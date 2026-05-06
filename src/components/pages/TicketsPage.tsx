@@ -32,6 +32,7 @@ export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [priorityFilter, setPriorityFilter] = useState('todas');
+  const [categoryFilter, setCategoryFilter] = useState('todas');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loadingCreate, setLoadingCreate] = useState(false);
@@ -46,6 +47,7 @@ export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
       if (searchTerm) query.append('search', searchTerm);
       if (statusFilter !== 'todos') query.append('status', statusFilter);
       if (priorityFilter !== 'todas') query.append('prioridade', priorityFilter);
+      if (categoryFilter !== 'todas') query.append('categoria', categoryFilter);
 
       const data = await api.get<Ticket[]>(`/tickets?${query.toString()}`);
       setTickets(data);
@@ -61,7 +63,7 @@ export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
       fetchTickets();
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchTerm, statusFilter, priorityFilter]);
+  }, [searchTerm, statusFilter, priorityFilter, categoryFilter]);
 
   const handleCreateTicket = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -127,6 +129,18 @@ export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
            />
         </div>
         <div className="flex items-center gap-3 w-full lg:w-auto">
+          <select 
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="h-14 px-6 bg-slate-50 border-none rounded-2xl text-sm font-black text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 transition-all appearance-none cursor-pointer flex-1 lg:flex-none"
+          >
+            <option value="todas">Todas Categorias</option>
+            <option value="suporte_tecnico">Suporte Técnico</option>
+            <option value="financeiro">Financeiro</option>
+            <option value="recursos_humanos">Recursos Humanos</option>
+            <option value="comercial">Comercial</option>
+            <option value="outros">Outros</option>
+          </select>
           <select 
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}

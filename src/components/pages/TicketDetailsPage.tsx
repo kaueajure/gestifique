@@ -35,6 +35,9 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
   const [newMessage, setNewMessage] = useState('');
   const [isInternal, setIsInternal] = useState(false);
   const [loadingSend, setLoadingSend] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [agents, setAgents] = useState<User[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const fetchData = async () => {
@@ -47,6 +50,12 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
       ]);
       setTicket(ticketData);
       setMessages(messagesData);
+
+      // If user is admin/dev, fetch agents for assignments
+      if (currentUser.administrador || currentUser.desenvolvedor) {
+        const usersData = await api.get<User[]>('/users');
+        setAgents(usersData.filter(u => u.administrador || u.desenvolvedor));
+      }
     } catch (err: any) {
       setError(err.message || 'Erro ao carregar detalhes do chamado.');
     } finally {
@@ -67,29 +76,42 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
     if (!newMessage.trim() || loadingSend) return;
 
     setLoadingSend(true);
+    setActionError(null);
+    setActionSuccess(null);
     try {
       await api.post(`/tickets/${ticketId}/messages`, {
         mensagem: newMessage,
         interno: isInternal
       });
       setNewMessage('');
+      setActionSuccess('Mensagem enviada com sucesso!');
       // Refresh messages
       const updatedMessages = await api.get<Message[]>(`/tickets/${ticketId}/messages`);
       setMessages(updatedMessages);
+      setTimeout(() => setActionSuccess(null), 3000);
     } catch (err: any) {
-      alert(err.message);
+      setActionError(err.message || 'Erro ao enviar mensagem.');
     } finally {
       setLoadingSend(false);
     }
   };
 
-  const handleUpdateStatus = async (newStatus: string) => {
+  const handleUpdateTicket = async (data: Partial<Ticket>) => {
+    setActionError(null);
+    setActionSuccess(null);
     try {
-      await api.patch(`/tickets/${ticketId}`, { status: newStatus });
+      await api.patch(`/tickets/${ticketId}`, data);
+      setActionSuccess('Chamado atualizado com sucesso!');
       fetchData();
+      setTimeout(() => setActionSuccess(null), 3000);
     } catch (err: any) {
-      alert(err.message);
+      setActionError(err.message || 'Erro ao atualizar chamado.');
     }
+  };
+
+  const handleArchiveTicket = async () => {
+    if (!confirm('Tem certeza que deseja arquivar este atendimento?')) return;
+    handleUpdateTicket({ status: 'fechado' });
   };
 
   if (loading) {
@@ -137,7 +159,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
              <div className="flex items-center gap-3">
                 <select 
                   value={ticket.status}
-                  onChange={(e) => handleUpdateStatus(e.target.value)}
+                  onChange={(e) => handleUpdateTicket({ status: e.target.value as any })}
                   className="h-10 px-4 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
                 >
                    <option value="aberto">Aberto</option>
@@ -174,6 +196,31 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
              </div>
           </div>
 
+          <div className="px-8 py-4 border-b border-slate-50">
+             <AnimatePresence>
+                {actionError && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-center gap-2 text-red-600 text-xs font-bold mb-2"
+                  >
+                    <AlertCircle size={14} /> {actionError}
+                  </motion.div>
+                )}
+                {actionSuccess && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-2 text-emerald-600 text-xs font-bold mb-2"
+                  >
+                    <CheckCircle2 size={14} /> {actionSuccess}
+                  </motion.div>
+                )}
+             </AnimatePresence>
+          </div>
+
           {messages.map((msg) => (
             <div 
               key={msg.id} 
@@ -184,13 +231,13 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
             >
               <div className={cn(
                 "w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-sm uppercase flex-shrink-0 animate-in zoom-in-50 duration-300 shadow-md",
-                msg.autor_id === ticket.cliente_id ? "bg-slate-800" : (msg.interno ? "bg-amber-500" : "bg-blue-600")
+                msg.usuario_id === ticket.usuario_id ? "bg-slate-800" : (msg.interno ? "bg-amber-500" : "bg-blue-600")
               )}>
-                {msg.autor_nome.charAt(0)}
+                {msg.usuario_nome.charAt(0)}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 mb-1.5">
-                   <span className="text-sm font-black text-slate-900">{msg.autor_nome}</span>
+                   <span className="text-sm font-black text-slate-900">{msg.usuario_nome}</span>
                    <span className="text-[10px] font-bold text-slate-400 uppercase">{new Date(msg.created_at).toLocaleString()}</span>
                    {msg.interno && (
                      <Badge variant="amber" className="text-[8px] font-black tracking-widest"><Lock size={10} className="mr-1" /> Nota Interna</Badge>
@@ -296,25 +343,58 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
             <div>
                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 border-b border-slate-50 pb-2">Propriedades</h4>
                <div className="space-y-4">
-                  <div className="flex items-center justify-between py-1">
+                  <div className="flex flex-col gap-2 py-1">
                      <span className="text-xs font-bold text-slate-400">Prioridade</span>
-                     <Badge variant={ticket.prioridade === 'urgente' ? 'red' : 'blue'} className="px-4 uppercase text-[10px]">{ticket.prioridade}</Badge>
+                     {currentUser.administrador || currentUser.desenvolvedor ? (
+                       <select 
+                         value={ticket.prioridade}
+                         onChange={(e) => handleUpdateTicket({ prioridade: e.target.value as any })}
+                         className="w-full h-10 px-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-black text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer appearance-none"
+                       >
+                          <option value="baixa">Baixa</option>
+                          <option value="media">Média</option>
+                          <option value="alta">Alta</option>
+                          <option value="urgente">Urgente</option>
+                       </select>
+                     ) : (
+                       <Badge variant={ticket.prioridade === 'urgente' ? 'red' : 'blue'} className="px-4 uppercase text-[10px] w-fit">{ticket.prioridade}</Badge>
+                     )}
                   </div>
+                  
+                  <div className="flex flex-col gap-2 py-1">
+                     <span className="text-xs font-bold text-slate-400">Responsável</span>
+                     {currentUser.administrador || currentUser.desenvolvedor ? (
+                       <select 
+                         value={ticket.responsavel_id || ''}
+                         onChange={(e) => handleUpdateTicket({ responsavel_id: e.target.value ? parseInt(e.target.value) : null })}
+                         className="w-full h-10 px-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-black text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer appearance-none"
+                       >
+                          <option value="">Não atribuído</option>
+                          {agents.map(agent => (
+                            <option key={agent.id} value={agent.id}>{agent.nome}</option>
+                          ))}
+                       </select>
+                     ) : (
+                       <span className="text-xs font-black text-slate-900">{ticket.responsavel_nome || 'Aguardando atribuição'}</span>
+                     )}
+                  </div>
+
                   <div className="flex items-center justify-between py-1">
                      <span className="text-xs font-bold text-slate-400">Tipo de Chamado</span>
                      <span className="text-xs font-black text-slate-900 uppercase">Suporte</span>
-                  </div>
-                  <div className="flex items-center justify-between py-1">
-                     <span className="text-xs font-bold text-slate-400">Tempo Decorrido</span>
-                     <span className="text-xs font-black text-blue-600">-- h -- min</span>
                   </div>
                </div>
             </div>
 
             <div className="pt-4">
-               <button className="w-full h-12 bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 font-black text-xs uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center gap-2">
-                  <Trash2 size={16} /> Excluir Atendimento
-               </button>
+               {(currentUser.administrador || currentUser.desenvolvedor) && ticket.status !== 'fechado' && (
+                 <button 
+                   onClick={handleArchiveTicket}
+                   className="w-full h-12 bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 font-black text-xs uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center gap-2"
+                 >
+                    <Trash2 size={16} /> Arquivar Atendimento
+                 </button>
+               )}
             </div>
          </div>
       </div>

@@ -167,7 +167,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
                       <div className="flex flex-wrap gap-2">
                         {user.administrador && <Badge variant="blue">Admin</Badge>}
                         {user.desenvolvedor && <Badge variant="indigo">Dev</Badge>}
-                        <Badge variant={user.ativo ? 'success' : 'red'}>{user.ativo ? 'Ativo' : 'Inativo'}</Badge>
+                        <Badge variant={user.ativo ? 'emerald' : 'red'}>{user.ativo ? 'Ativo' : 'Inativo'}</Badge>
                       </div>
                     </td>
                     <td className="px-8 py-6 text-right">

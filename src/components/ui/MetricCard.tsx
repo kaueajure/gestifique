@@ -11,7 +11,7 @@ interface MetricCardProps {
     value: string;
     positive: boolean;
   };
-  color?: 'blue' | 'emerald' | 'amber' | 'red';
+  color?: 'blue' | 'emerald' | 'amber' | 'red' | 'slate' | 'indigo' | 'orange';
   loading?: boolean;
 }
 
@@ -21,6 +21,9 @@ export const MetricCard = ({ label, value, icon, trend, color = 'blue', loading 
     emerald: 'bg-emerald-50 text-emerald-600',
     amber: 'bg-amber-50 text-amber-600',
     red: 'bg-red-50 text-red-600',
+    slate: 'bg-slate-50 text-slate-600',
+    indigo: 'bg-indigo-50 text-indigo-600',
+    orange: 'bg-orange-50 text-orange-600',
   };
 
   if (loading) {

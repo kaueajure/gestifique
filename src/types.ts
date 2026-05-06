@@ -35,7 +35,10 @@ export interface Ticket {
   status: 'aberto' | 'em_andamento' | 'aguardando_cliente' | 'resolvido' | 'fechado';
   prioridade: 'baixa' | 'media' | 'alta' | 'urgente';
   categoria: string;
+  origem?: string;
+  prazo_sla?: string | null;
   cliente_nome?: string;
+  cliente_email?: string;
   responsavel_nome?: string;
   empresa_nome?: string;
   finalizado_em: string | null;

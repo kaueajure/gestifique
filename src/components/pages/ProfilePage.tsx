@@ -77,7 +77,7 @@ export const ProfilePage = ({ currentUser, onUpdate }: ProfilePageProps) => {
                 <div className="flex flex-wrap justify-center gap-2 pt-2">
                    {currentUser.desenvolvedor && <Badge variant="indigo" className="rounded-full shadow-sm">Developer</Badge>}
                    {currentUser.administrador && <Badge variant="blue" className="rounded-full shadow-sm">Admin</Badge>}
-                   <Badge variant="success" className="rounded-full shadow-sm">Conta Ativa</Badge>
+                   <Badge variant="emerald" className="rounded-full shadow-sm">Conta Ativa</Badge>
                 </div>
               </div>
            </div>

@@ -72,9 +72,9 @@ export const CompaniesPage = () => {
   };
 
   const handleToggleStatus = async (company: Empresa) => {
-    if (!confirm(`Tem certeza que deseja ${company.ativa ? 'desativar' : 'ativar'} esta empresa?`)) return;
+    if (!confirm(`Tem certeza que deseja ${company.ativo ? 'desativar' : 'ativar'} esta empresa?`)) return;
     try {
-      await api.patch(`/companies/${company.id}`, { ativa: !company.ativa });
+      await api.patch(`/companies/${company.id}`, { ativo: !company.ativo });
       fetchCompanies();
     } catch (err: any) {
       alert(err.message);

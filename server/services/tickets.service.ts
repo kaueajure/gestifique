@@ -2,7 +2,8 @@ import pool from '../db/connection';
 
 class TicketsService {
   async list(filters: any) {
-    const { empresa_id, usuario_id, is_dev, is_admin, status, prioridade, busca, page = 1, limit = 20 } = filters;
+    const { empresa_id, usuario_id, is_dev, is_admin, status, prioridade, categoria, search, busca, page = 1, limit = 20 } = filters;
+    const searchTerm = search || busca;
     
     let query = `
       SELECT t.*, u.nome as cliente_nome, r.nome as responsavel_nome, e.nome as empresa_nome
@@ -34,9 +35,13 @@ class TicketsService {
       query += ' AND t.prioridade = ?';
       params.push(prioridade);
     }
-    if (busca) {
-      query += ' AND (t.titulo LIKE ? OR t.descricao LIKE ? OR t.id = ?)';
-      params.push(`%${busca}%`, `%${busca}%`, busca);
+    if (categoria) {
+      query += ' AND t.categoria = ?';
+      params.push(categoria);
+    }
+    if (searchTerm) {
+      query += ' AND (t.titulo LIKE ? OR t.descricao LIKE ? OR CAST(t.id AS CHAR) = ?)';
+      params.push(`%${searchTerm}%`, `%${searchTerm}%`, searchTerm);
     }
 
     query += ' ORDER BY t.created_at DESC';
