@@ -1,4 +1,4 @@
-import pool from './db';
+import pool from './connection';
 import bcrypt from 'bcryptjs';
 
 async function initDB() {
@@ -115,7 +115,7 @@ async function initDB() {
 
     console.log('[BOOT] 📚 Tabelas validadas com sucesso.');
 
-    // Seed Initial Developer if not exists
+    // Seed Initial Developer
     const [devs]: any = await connection.query('SELECT id FROM usuarios WHERE desenvolvedor = 1 LIMIT 1');
     if (devs.length === 0) {
       if (process.env.DEV_EMAIL && process.env.DEV_PASSWORD) {

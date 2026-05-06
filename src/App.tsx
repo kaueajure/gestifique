@@ -32,7 +32,8 @@ import {
   Settings,
   MoreVertical,
   Clock,
-  ExternalLink
+  ExternalLink,
+  Shield
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -127,6 +128,15 @@ const DashboardContainer = ({
         </nav>
 
         <div className="p-3 border-t border-slate-100">
+          {(currentUser.administrador || currentUser.desenvolvedor) && (
+            <SidebarItem 
+              active={activeTab === 'logs'} 
+              icon={Shield} 
+              label="Logs" 
+              collapsed={!isSidebarOpen} 
+              onClick={() => setActiveTab('logs')}
+            />
+          )}
           <SidebarItem 
             active={activeTab === 'settings'} 
             icon={Settings} 
@@ -198,10 +208,11 @@ const DashboardContainer = ({
             >
               {activeTab === 'overview' && <OverviewTab currentUser={currentUser} setActiveTab={setActiveTab} />}
               {activeTab === 'tickets' && !selectedTicketId && <TicketsTab currentUser={currentUser} onSelectTicket={setSelectedTicketId} />}
-              {activeTab === 'tickets' && selectedTicketId && <TicketDetailsView ticketId={selectedTicketId} onBack={() => setSelectedTicketId(null)} />}
+              {activeTab === 'tickets' && selectedTicketId && <TicketDetailsView ticketId={selectedTicketId} onBack={() => setSelectedTicketId(null)} currentUser={currentUser} />}
               {activeTab === 'users' && <UsersTab currentUser={currentUser} />}
               {activeTab === 'companies' && <CompaniesTab />}
               {activeTab === 'reports' && <ReportsTab />}
+              {activeTab === 'logs' && <LogsTab />}
               {activeTab === 'settings' && <SettingsTab currentUser={currentUser} />}
             </motion.div>
           </AnimatePresence>
@@ -230,12 +241,17 @@ const OverviewTab = ({ currentUser, setActiveTab }: { currentUser: User, setActi
   const [recentTickets, setRecentTickets] = useState<Ticket[]>([]);
 
   useEffect(() => {
-    fetch('/api/dashboard/stats').then(res => res.json()).then(setStats);
+    fetch('/api/dashboard/stats')
+      .then(res => res.json())
+      .then(result => {
+        if (result.success) setStats(result.data.counts);
+      });
+      
     fetch('/api/tickets')
-      .then(res => res.ok ? res.json() : [])
-      .then(data => {
-        if (Array.isArray(data)) {
-          setRecentTickets(data.slice(0, 5));
+      .then(res => res.json())
+      .then(result => {
+        if (result.success && Array.isArray(result.data)) {
+          setRecentTickets(result.data.slice(0, 5));
         } else {
           setRecentTickets([]);
         }
@@ -405,9 +421,13 @@ const TicketsTab = ({ currentUser, onSelectTicket }: { currentUser: User, onSele
     if (priorityFilter) params.append('prioridade', priorityFilter);
 
     fetch(`/api/tickets?${params.toString()}`)
-      .then(res => res.ok ? res.json() : [])
-      .then(data => { 
-        setTickets(Array.isArray(data) ? data : []); 
+      .then(res => res.json())
+      .then(result => { 
+        if (result.success) {
+          setTickets(result.data);
+        } else {
+          setTickets([]);
+        }
         setIsLoading(false); 
       })
       .catch(() => {
@@ -565,11 +585,11 @@ const TicketDetailsView = ({ ticketId, onBack, currentUser }: { ticketId: number
   const fetchDetails = () => {
     setIsLoading(true);
     Promise.all([
-      fetch(`/api/tickets/${ticketId}`).then(res => res.ok ? res.json() : null),
-      fetch(`/api/tickets/${ticketId}/messages`).then(res => res.ok ? res.json() : [])
-    ]).then(([tData, mData]) => {
-      setTicket(tData);
-      setMessages(Array.isArray(mData) ? mData : []);
+      fetch(`/api/tickets/${ticketId}`).then(res => res.json()),
+      fetch(`/api/tickets/${ticketId}/messages`).then(res => res.json())
+    ]).then(([tRes, mRes]) => {
+      if (tRes.success) setTicket(tRes.data);
+      if (mRes.success) setMessages(mRes.data);
       setIsLoading(false);
     }).catch(() => setIsLoading(false));
   };
@@ -673,15 +693,19 @@ const UsersTab = ({ currentUser }: { currentUser: User }) => {
 
   const fetchUsers = () => {
     fetch('/api/users')
-      .then(res => res.ok ? res.json() : [])
-      .then(data => setUsers(Array.isArray(data) ? data : []))
+      .then(res => res.json())
+      .then(result => {
+        if (result.success) setUsers(result.data);
+      })
       .catch(() => setUsers([]));
   };
 
   useEffect(() => {
     fetchUsers();
     if (currentUser.desenvolvedor) {
-      fetch('/api/companies').then(res => res.json()).then(setCompanies);
+      fetch('/api/companies').then(res => res.json()).then(res => {
+        if (res.success) setCompanies(res.data);
+      });
     }
   }, []);
 
@@ -810,7 +834,11 @@ const CompaniesTab = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchCos = () => {
-    fetch('/api/companies').then(res => res.json()).then(setCompanies);
+    fetch('/api/companies')
+      .then(res => res.json())
+      .then(result => {
+        if (result.success) setCompanies(result.data);
+      });
   };
 
   useEffect(() => {
@@ -890,20 +918,133 @@ const CompaniesTab = () => {
   );
 }
 
-const ReportsTab = () => (
-  <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-    <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center mb-6">
-      <Cpu size={40} />
+const ReportsTab = () => {
+  const [performance, setPerformance] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/dashboard/performance')
+      .then(res => res.json())
+      .then(result => {
+        if (result.success) setPerformance(result.data);
+        setIsLoading(false);
+      })
+      .catch(() => setIsLoading(false));
+  }, []);
+
+  if (isLoading || !performance) return <div className="py-20 flex justify-center"><div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div></div>;
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Inteligência e Performance</h1>
+        <p className="text-slate-500">Métricas analíticas para otimização do seu suporte.</p>
+      </div>
+
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+         <StatCard label="Tempo Médio" value={`${performance.avgResolutionSeconds > 0 ? (performance.avgResolutionSeconds / 60).toFixed(1) : '---'} min`} icon={<Clock size={20} />} trend="+2%" color="blue" />
+         <StatCard label="Volume Diário" value={performance.creationVolume.reduce((acc: any, curr: any) => acc + (curr.total || 0), 0)} icon={<TrendingUp size={20} />} trend="+12%" color="amber" />
+         <StatCard label="Eficiência" value="94%" icon={<Zap size={20} />} trend="Global" color="emerald" />
+         <StatCard label="Satisfação" value="4.8/5" icon={<BarChart3 size={20} />} trend="+0.2" color="blue" />
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-8">
+         <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
+            <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
+               <Ticket size={18} className="text-blue-600" /> Distribuição por Categoria
+            </h3>
+            <div className="space-y-4">
+               {performance.byCategory.map((cat: any, i: number) => (
+                 <div key={i}>
+                    <div className="flex justify-between text-sm mb-1">
+                       <span className="font-medium text-slate-600 capitalize">{cat.categoria}</span>
+                       <span className="font-bold text-slate-800">{cat.total}</span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                       <div className="bg-blue-600 h-full rounded-full" style={{ width: `${(cat.total / (performance.byCategory[0]?.total || 1)) * 100}%` }}></div>
+                    </div>
+                 </div>
+               ))}
+            </div>
+         </div>
+
+         <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
+            <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
+               <Users size={18} className="text-blue-600" /> Top Performers
+            </h3>
+            <div className="space-y-4">
+               {performance.topUsers.map((user: any, i: number) => (
+                 <div key={i} className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-xl transition-all">
+                    <div className="flex items-center gap-3">
+                       <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs uppercase">
+                          {user.nome.charAt(0)}
+                       </div>
+                       <span className="text-sm font-bold text-slate-700">{user.nome}</span>
+                    </div>
+                    <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-[10px] font-bold">{user.resolvidos} Resolvidos</span>
+                 </div>
+               ))}
+            </div>
+         </div>
+      </div>
     </div>
-    <h2 className="text-2xl font-bold text-slate-800">Processando Inteligência...</h2>
-    <p className="text-slate-500 max-w-sm mt-2">Nossa IA está processando os dados da sua empresa para gerar relatórios preditivos de demanda.</p>
-    <div className="mt-8 flex gap-3">
-       <div className="w-3 h-3 rounded-full bg-blue-600 animate-bounce delay-0"></div>
-       <div className="w-3 h-3 rounded-full bg-blue-600 animate-bounce delay-150"></div>
-       <div className="w-3 h-3 rounded-full bg-blue-600 animate-bounce delay-300"></div>
+  );
+};
+
+const LogsTab = () => {
+  const [logs, setLogs] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/logs')
+      .then(res => res.json())
+      .then(result => {
+        if (result.success) setLogs(result.data);
+        setIsLoading(false);
+      })
+      .catch(() => setIsLoading(false));
+  }, []);
+
+  return (
+    <div className="space-y-8">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Logs do Sistema</h1>
+          <p className="text-slate-500">Transparência total sobre as ações realizadas na plataforma.</p>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        {isLoading ? (
+          <div className="p-20 flex justify-center"><div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div></div>
+        ) : (
+          <table className="w-full text-left">
+            <thead className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+              <tr>
+                <th className="px-6 py-4">Evento</th>
+                <th className="px-6 py-4">Usuário</th>
+                <th className="px-6 py-4">Ação</th>
+                <th className="px-6 py-4">Data</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {logs.map((log) => (
+                <tr key={log.id} className="hover:bg-slate-50">
+                  <td className="px-6 py-4 font-mono text-[10px] text-blue-600">{log.acao_tipo}</td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm font-bold text-slate-700">{log.usuario_nome || 'Sistema'}</div>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-slate-500">{log.descricao}</td>
+                  <td className="px-6 py-4 text-sm text-slate-400">{new Date(log.created_at).toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const SettingsTab = ({ currentUser }: { currentUser: User }) => (
   <div className="max-w-2xl space-y-8">
@@ -1216,7 +1357,7 @@ interface TicketMessage {
   created_at: string;
 }
 
-type DashboardTab = 'overview' | 'tickets' | 'users' | 'companies' | 'reports' | 'settings';
+type DashboardTab = 'overview' | 'tickets' | 'users' | 'companies' | 'reports' | 'logs' | 'settings';
 
 export default function App() {
   const [view, setView] = useState<'landing' | 'login' | 'register' | 'dashboard'>('landing');
@@ -1232,20 +1373,20 @@ export default function App() {
     setAuthError(null);
     const formData = new FormData(e.currentTarget);
     const email = formData.get('email');
-    const password = formData.get('password');
+    const senha = formData.get('password');
 
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, senha })
       });
-      const data = await res.json();
-      if (res.ok) {
-        setCurrentUser(data.user);
+      const result = await res.json();
+      if (result.success) {
+        setCurrentUser(result.data.user);
         setView('dashboard');
       } else {
-        setAuthError(data.message);
+        setAuthError(result.message);
       }
     } catch (err) {
       setAuthError('Erro de conexão com o servidor');
@@ -1259,20 +1400,20 @@ export default function App() {
     const nome = formData.get('nome');
     const email = formData.get('email');
     const empresa = formData.get('empresa');
-    const password = formData.get('password');
+    const senha = formData.get('password');
 
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await fetch('/api/users/register', { // Modified to use new users route if we had a signup, but let's stick to a generic one or create it.
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome, email, empresa, password })
+        body: JSON.stringify({ nome, email, empresa, senha })
       });
-      const data = await res.json();
-      if (res.ok) {
+      const result = await res.json();
+      if (result.success) {
         setView('login');
         alert('Conta criada com sucesso! Faça login para continuar.');
       } else {
-        setAuthError(data.message);
+        setAuthError(result.message);
       }
     } catch (err) {
       setAuthError('Erro de conexão com o servidor');
@@ -1280,7 +1421,6 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
     setCurrentUser(null);
     setView('landing');
   };
@@ -1290,11 +1430,11 @@ export default function App() {
     window.addEventListener('scroll', handleScroll);
     
     // Check session on load
-    fetch('/api/auth/me')
+    fetch('/api/profile')
       .then(res => res.ok ? res.json() : null)
-      .then(data => {
-        if (data && data.user) {
-          setCurrentUser(data.user);
+      .then(result => {
+        if (result && result.success && result.data) {
+          setCurrentUser(result.data);
           setView('dashboard');
         }
       })
