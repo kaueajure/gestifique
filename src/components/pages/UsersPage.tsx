@@ -7,17 +7,13 @@ import {
   Search, 
   Shield, 
   Building2, 
-  Mail, 
-  Calendar, 
-  MoreVertical,
   CheckCircle2,
   XCircle,
   Edit2,
   Loader2,
   AlertCircle,
-  Lock,
-  Phone,
-  Key
+  Key,
+  UserPlus
 } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { Modal } from '../ui/Modal';
@@ -87,11 +83,17 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
     const data = Object.fromEntries(formData.entries());
 
     try {
-      const payload = {
+      const payload: any = {
         ...data,
         administrador: formData.get('administrador') === 'true',
         desenvolvedor: formData.get('desenvolvedor') === 'true',
       };
+
+      if (!selectedUser?.id && (payload.password as string || '').length < 8) {
+        setSaveError('A senha deve ter pelo menos 8 caracteres.');
+        setLoadingSave(false);
+        return;
+      }
 
       if (selectedUser?.id) {
         await api.patch(`/users/${selectedUser.id}`, payload);
@@ -117,6 +119,12 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
     const formData = new FormData(e.currentTarget);
     const password = formData.get('password') as string;
     const confirmPassword = formData.get('confirm_password') as string;
+
+    if (password.length < 8) {
+      setSaveError('A senha deve ter pelo menos 8 caracteres.');
+      setLoadingSave(false);
+      return;
+    }
 
     if (password !== confirmPassword) {
       setSaveError('As senhas não coincidem.');
@@ -229,6 +237,20 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
            <div className="p-20 text-center flex flex-col items-center">
              <AlertCircle className="w-16 h-16 text-red-500 mb-4" />
              <p className="text-slate-500">{error}</p>
+           </div>
+        ) : users.length === 0 ? (
+           <div className="p-20 text-center flex flex-col items-center">
+             <div className="w-20 h-20 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 mb-6">
+                <UsersIcon size={40} />
+             </div>
+             <h3 className="text-xl font-black text-slate-900 mb-2">Nenhum usuário encontrado</h3>
+             <p className="text-slate-500 max-w-xs mx-auto mb-8">Crie um novo usuário ou ajuste os filtros para ver novos resultados.</p>
+             <button 
+               onClick={() => { setSelectedUser(null); setSaveError(null); setIsModalOpen(true); }}
+               className="h-12 px-8 bg-slate-900 text-white font-black rounded-xl hover:bg-slate-800 transition-all flex items-center gap-2"
+             >
+                <UserPlus size={18} /> Convidar Usuário
+             </button>
            </div>
         ) : (
           <div className="overflow-x-auto">

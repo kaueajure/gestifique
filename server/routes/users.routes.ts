@@ -4,7 +4,7 @@ import { authMiddleware } from '../middlewares/auth';
 import { isAdmin, isDev } from '../middlewares/permissions';
 import { sendSuccess, sendError } from '../utils/response';
 import { logSystemAction } from '../utils/logger';
-import { isValidEmail, isValidPassword } from '../utils/validators';
+import { isValidEmail } from '../utils/validators';
 
 const router = Router();
 
@@ -28,23 +28,23 @@ router.get('/', isAdmin, async (req: any, res) => {
 
 router.post('/', isAdmin, async (req: any, res) => {
   try {
-    const { nome, email, password, is_admin, is_dev, empresa_id, cargo, telefone } = req.body;
+    const { nome, email, password, administrador, desenvolvedor, empresa_id, cargo, telefone } = req.body;
     
     if (!nome || !email || !password) return sendError(res, 'Nome, email e senha são obrigatórios', 400);
     if (!isValidEmail(email)) return sendError(res, 'Email inválido', 400);
-    if (!isValidPassword(password)) return sendError(res, 'Senha deve ter ao menos 6 caracteres', 400);
+    if (password.length < 8) return sendError(res, 'A senha deve ter pelo menos 8 caracteres', 400);
 
     const targetEmpresaId = req.user.desenvolvedor ? empresa_id : req.user.empresa_id;
     
-    if (!req.user.desenvolvedor && is_dev) {
+    if (!req.user.desenvolvedor && desenvolvedor) {
       return sendError(res, 'Apenas desenvolvedores podem criar outros desenvolvedores', 403);
     }
 
     const buildData = {
       nome, email, password, cargo, telefone,
       empresa_id: targetEmpresaId,
-      administrador: is_admin,
-      desenvolvedor: req.user.desenvolvedor ? is_dev : false
+      administrador: administrador === true,
+      desenvolvedor: req.user.desenvolvedor ? (desenvolvedor === true) : false
     };
 
     const newUser = await usersService.create(buildData);
@@ -71,10 +71,16 @@ router.patch('/:id', isAdmin, async (req: any, res) => {
             if (targetUser.desenvolvedor) {
                 return sendError(res, 'Você não tem permissão para editar um desenvolvedor', 403);
             }
-            // Admin cannot change empresa_id
+            // Admin cannot change empresa_id, administrador (to dev level) or desenvolvedor
             delete req.body.empresa_id;
-            // Admin cannot promote to dev
             delete req.body.desenvolvedor;
+        }
+
+        // Validate email if present
+        if (req.body.email && req.body.email !== targetUser.email) {
+            if (!isValidEmail(req.body.email)) {
+                return sendError(res, 'Email inválido', 400);
+            }
         }
 
         await usersService.update(id, req.body);
@@ -112,7 +118,7 @@ router.patch('/:id/password', isAdmin, async (req: any, res) => {
         const id = parseInt(req.params.id);
         const { password } = req.body;
         
-        if (!password || !isValidPassword(password)) return sendError(res, 'Senha inválida', 400);
+        if (!password || password.length < 8) return sendError(res, 'A senha deve ter pelo menos 8 caracteres', 400);
 
         const targetUser = await usersService.getById(id);
         if (!targetUser) return sendError(res, 'Usuário não encontrado', 404);

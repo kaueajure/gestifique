@@ -72,7 +72,7 @@ class UsersService {
     const params: any[] = [];
 
     Object.keys(data).forEach(key => {
-      if (['nome', 'email', 'cargo', 'administrador', 'desenvolvedor', 'ativo', 'telefone', 'foto'].includes(key)) {
+      if (['nome', 'email', 'cargo', 'administrador', 'desenvolvedor', 'ativo', 'telefone', 'foto', 'empresa_id'].includes(key)) {
         fields.push(`${key} = ?`);
         params.push(data[key]);
       }
