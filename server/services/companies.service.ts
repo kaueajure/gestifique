@@ -1,8 +1,30 @@
 import pool from '../db/connection';
 
 class CompaniesService {
-  async list() {
-    const [rows] = await pool.query('SELECT * FROM empresas ORDER BY nome ASC');
+  async list(filters: { search?: string; status?: string } = {}) {
+    let query = `
+      SELECT e.*, 
+             (SELECT COUNT(*) FROM usuarios u WHERE u.empresa_id = e.id) as total_usuarios,
+             (SELECT COUNT(*) FROM tickets t WHERE t.empresa_id = e.id) as total_tickets
+      FROM empresas e
+      WHERE 1=1
+    `;
+    const params: any[] = [];
+
+    if (filters.search) {
+      query += ' AND (e.nome LIKE ? OR e.cnpj LIKE ? OR e.email LIKE ?)';
+      params.push(`%${filters.search}%`, `%${filters.search}%`, `%${filters.search}%`);
+    }
+
+    if (filters.status === 'ativo') {
+      query += ' AND e.ativo = 1';
+    } else if (filters.status === 'inativo') {
+      query += ' AND e.ativo = 0';
+    }
+
+    query += ' ORDER BY e.nome ASC';
+
+    const [rows] = await pool.query(query, params);
     return rows;
   }
 

@@ -9,6 +9,7 @@ export interface User {
   ativo: boolean;
   telefone: string | null;
   foto: string | null;
+  ultimo_login: string | null;
   empresa_nome?: string;
   created_at: string;
 }
@@ -23,6 +24,28 @@ export interface Empresa {
   cor_principal: string;
   ativo: boolean;
   created_at: string;
+  total_usuarios?: number;
+  total_tickets?: number;
+}
+
+export interface UserFormData {
+  nome: string;
+  email: string;
+  password?: string;
+  cargo: string;
+  telefone: string;
+  empresa_id: number | null;
+  administrador: boolean;
+  desenvolvedor: boolean;
+}
+
+export interface CompanyFormData {
+  nome: string;
+  cnpj: string;
+  email: string;
+  telefone: string;
+  cor_principal: string;
+  logo?: string | null;
 }
 
 export interface Ticket {

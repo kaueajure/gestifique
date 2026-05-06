@@ -12,7 +12,11 @@ router.use(isDev);
 
 router.get('/', async (req, res) => {
   try {
-    const companies = await companiesService.list();
+    const { search, status } = req.query;
+    const companies = await companiesService.list({ 
+      search: search as string, 
+      status: status as string 
+    });
     sendSuccess(res, companies);
   } catch (error: any) {
     sendError(res, error.message);
@@ -36,6 +40,18 @@ router.patch('/:id', async (req: any, res) => {
     await companiesService.update(id, req.body);
     await logSystemAction(req, req.user.id, null, 'COMPANY_UPDATE', `Atualizou empresa ID: ${id}`);
     sendSuccess(res, null, 'Empresa atualizada com sucesso');
+  } catch (error: any) {
+    sendError(res, error.message);
+  }
+});
+
+router.patch('/:id/status', async (req: any, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { ativo } = req.body;
+    await companiesService.update(id, { ativo });
+    await logSystemAction(req, req.user.id, null, 'COMPANY_STATUS', `${ativo ? 'Ativou' : 'Desativou'} empresa ID ${id}`);
+    sendSuccess(res, null, `Empresa ${ativo ? 'ativada' : 'desativada'} com sucesso`);
   } catch (error: any) {
     sendError(res, error.message);
   }
