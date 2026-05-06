@@ -66,10 +66,10 @@ export default function App() {
     setAuthError(null);
     const formData = new FormData(e.currentTarget);
     const email = formData.get('email');
-    const senha = formData.get('senha');
+    const password = formData.get('password');
 
     try {
-      const data = await api.post<any>('/auth/login', { email, senha });
+      const data = await api.post<{ user: User }>('/auth/login', { email, password });
       setCurrentUser(data.user);
       setView('dashboard');
     } catch (err: any) {
@@ -197,7 +197,7 @@ export default function App() {
                    <div className="relative group">
                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={20} />
                       <input 
-                        name="senha"
+                        name="password"
                         type="password" 
                         required 
                         className="w-full h-14 bg-slate-50 border-none rounded-2xl pl-12 pr-4 text-sm font-bold focus:ring-2 focus:ring-blue-100 transition-all outline-none" 
@@ -279,11 +279,23 @@ export default function App() {
                     />
                   )}
 
-                  {activeTab === 'users' && <UsersPage currentUser={currentUser} />}
+                  {activeTab === 'users' && (currentUser.administrador || currentUser.desenvolvedor ? (
+                    <UsersPage currentUser={currentUser} />
+                  ) : (
+                    <AccessDenied />
+                  ))}
                   
-                  {activeTab === 'companies' && <CompaniesPage />}
+                  {activeTab === 'companies' && (currentUser.desenvolvedor ? (
+                    <CompaniesPage />
+                  ) : (
+                    <AccessDenied />
+                  ))}
                   
-                  {activeTab === 'logs' && <LogsPage />}
+                  {activeTab === 'logs' && (currentUser.administrador || currentUser.desenvolvedor ? (
+                    <LogsPage />
+                  ) : (
+                    <AccessDenied />
+                  ))}
                   
                   {activeTab === 'profile' && (
                     <ProfilePage 
@@ -316,3 +328,15 @@ export default function App() {
 
   return null;
 }
+
+const AccessDenied = () => (
+  <div className="flex flex-col items-center justify-center py-20 text-center">
+    <div className="w-20 h-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mb-6 shadow-lg shadow-red-100">
+      <Lock size={40} />
+    </div>
+    <h2 className="text-3xl font-black text-slate-900 mb-2">Acesso Restrito</h2>
+    <p className="text-slate-500 max-w-md mx-auto font-medium">
+      Você não tem permissão para acessar esta área. Se acredita que isso é um erro, entre em contato com o administrador do seu workspace.
+    </p>
+  </div>
+);

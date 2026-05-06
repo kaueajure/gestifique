@@ -13,16 +13,20 @@ interface UsersPageProps {
 export const UsersPage = ({ currentUser }: UsersPageProps) => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<Partial<User> | null>(null);
   const [companies, setCompanies] = useState<Empresa[]>([]);
 
   const fetchUsers = async () => {
     setLoading(true);
+    setError(null);
     try {
       const data = await api.get<User[]>('/users');
       setUsers(data);
-    } catch (error) { console.error(error); }
+    } catch (err: any) { 
+      setError(err.message || 'Erro ao carregar usuários.');
+    }
     finally { setLoading(false); }
   };
 
@@ -80,76 +84,93 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
       </div>
 
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-slate-50 border-b border-slate-100">
-              <tr>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-400 tracking-widest uppercase">Nome / E-mail</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-400 tracking-widest uppercase">Cargo / Empresa</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-400 tracking-widest uppercase">Permissões</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-400 tracking-widest uppercase">Status</th>
-                <th className="px-8 py-4"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {loading ? (
-                Array.from({ length: 4 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td className="px-8 py-6"><div className="w-48 h-4 bg-slate-100 rounded"></div></td>
-                    <td className="px-8 py-6"><div className="w-32 h-4 bg-slate-100 rounded"></div></td>
-                    <td className="px-8 py-6"><div className="w-24 h-4 bg-slate-100 rounded"></div></td>
-                    <td className="px-8 py-6"><div className="w-16 h-4 bg-slate-100 rounded"></div></td>
-                    <td className="px-8 py-6"></td>
-                  </tr>
-                ))
-              ) : users.map((user) => (
-                <tr key={user.id} className="group hover:bg-slate-50 transition-all">
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-3">
-                       <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-black text-xs uppercase shadow-sm">
-                          {user.nome.charAt(0)}
-                       </div>
-                       <div>
-                          <div className="text-sm font-black text-slate-800">{user.nome}</div>
-                          <div className="text-[10px] font-bold text-slate-400 lowercase">{user.email}</div>
-                       </div>
-                    </div>
-                  </td>
-                  <td className="px-8 py-6">
-                    <div className="text-xs font-bold text-slate-700">{user.cargo || 'Membro'}</div>
-                    <div className="text-[10px] font-bold text-blue-500 uppercase tracking-tighter">{user.empresa_nome || 'Gestifique'}</div>
-                  </td>
-                  <td className="px-8 py-6">
-                    <div className="flex gap-1 flex-wrap">
-                       {user.desenvolvedor && <Badge variant="indigo">Dev</Badge>}
-                       {user.administrador && <Badge variant="blue">Admin</Badge>}
-                       {!user.administrador && !user.desenvolvedor && <Badge variant="slate">Usuário</Badge>}
-                    </div>
-                  </td>
-                  <td className="px-8 py-6">
-                    <Badge variant={user.ativo ? 'emerald' : 'red'}>{user.ativo ? 'Ativo' : 'Inativo'}</Badge>
-                  </td>
-                  <td className="px-8 py-6 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                       <button 
-                        onClick={() => { setSelectedUser(user); setIsModalOpen(true); }}
-                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
-                       >
-                          <Edit2 size={16} />
-                       </button>
-                       <button 
-                        onClick={() => handleToggleStatus(user)}
-                        className={cn("p-2 rounded-xl transition-all", user.ativo ? "text-slate-400 hover:text-red-600 hover:bg-red-50" : "text-slate-400 hover:text-emerald-600 hover:bg-emerald-50")}
-                       >
-                          {user.ativo ? <UserX size={16} /> : <UserCheck size={16} />}
-                       </button>
-                    </div>
-                  </td>
+        {error ? (
+          <div className="p-20 text-center flex flex-col items-center">
+             <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mb-4">
+                <Shield size={32} />
+             </div>
+             <h4 className="font-bold text-slate-800">Falha ao buscar equipe</h4>
+             <p className="text-sm text-slate-500 mb-6">{error}</p>
+             <button onClick={() => fetchUsers()} className="text-xs font-black text-blue-600 uppercase tracking-widest hover:underline">Tentar novamente</button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-slate-50 border-b border-slate-100">
+                <tr>
+                  <th className="px-8 py-4 text-[10px] font-black text-slate-400 tracking-widest uppercase">Nome / E-mail</th>
+                  <th className="px-8 py-4 text-[10px] font-black text-slate-400 tracking-widest uppercase">Cargo / Empresa</th>
+                  <th className="px-8 py-4 text-[10px] font-black text-slate-400 tracking-widest uppercase">Permissões</th>
+                  <th className="px-8 py-4 text-[10px] font-black text-slate-400 tracking-widest uppercase">Status</th>
+                  <th className="px-8 py-4"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {loading ? (
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <tr key={i} className="animate-pulse">
+                      <td className="px-8 py-6"><div className="w-48 h-4 bg-slate-100 rounded"></div></td>
+                      <td className="px-8 py-6"><div className="w-32 h-4 bg-slate-100 rounded"></div></td>
+                      <td className="px-8 py-6"><div className="w-24 h-4 bg-slate-100 rounded"></div></td>
+                      <td className="px-8 py-6"><div className="w-16 h-4 bg-slate-100 rounded"></div></td>
+                      <td className="px-8 py-6"></td>
+                    </tr>
+                  ))
+                ) : users.length > 0 ? (
+                  users.map((user) => (
+                    <tr key={user.id} className="group hover:bg-slate-50 transition-all">
+                      <td className="px-8 py-6">
+                        <div className="flex items-center gap-3">
+                           <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-black text-xs uppercase shadow-sm">
+                              {user.nome.charAt(0)}
+                           </div>
+                           <div>
+                              <div className="text-sm font-black text-slate-800">{user.nome}</div>
+                              <div className="text-[10px] font-bold text-slate-400 lowercase">{user.email}</div>
+                           </div>
+                        </div>
+                      </td>
+                      <td className="px-8 py-6">
+                        <div className="text-xs font-bold text-slate-700">{user.cargo || 'Membro'}</div>
+                        <div className="text-[10px] font-bold text-blue-500 uppercase tracking-tighter">{user.empresa_nome || 'Gestifique'}</div>
+                      </td>
+                      <td className="px-8 py-6">
+                        <div className="flex gap-1 flex-wrap">
+                           {user.desenvolvedor && <Badge variant="indigo">Dev</Badge>}
+                           {user.administrador && <Badge variant="blue">Admin</Badge>}
+                           {!user.administrador && !user.desenvolvedor && <Badge variant="slate">Usuário</Badge>}
+                        </div>
+                      </td>
+                      <td className="px-8 py-6">
+                        <Badge variant={user.ativo ? 'emerald' : 'red'}>{user.ativo ? 'Ativo' : 'Inativo'}</Badge>
+                      </td>
+                      <td className="px-8 py-6 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                           <button 
+                            onClick={() => { setSelectedUser(user); setIsModalOpen(true); }}
+                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                           >
+                              <Edit2 size={16} />
+                           </button>
+                           <button 
+                            onClick={() => handleToggleStatus(user)}
+                            className={cn("p-2 rounded-xl transition-all", user.ativo ? "text-slate-400 hover:text-red-600 hover:bg-red-50" : "text-slate-400 hover:text-emerald-600 hover:bg-emerald-50")}
+                           >
+                              {user.ativo ? <UserX size={16} /> : <UserCheck size={16} />}
+                           </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="px-8 py-20 text-center text-slate-400 font-medium">Nenhum usuário cadastrado.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <Modal 
@@ -170,7 +191,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
               </div>
               <div>
                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Senha {selectedUser && "(Deixe vazio para manter)"}</label>
-                 <input name="senha" type="password" required={!selectedUser} className="w-full h-12 bg-slate-50 border-none rounded-2xl px-4 text-sm font-medium focus:ring-2 focus:ring-blue-100 outline-none" />
+                 <input name="password" type="password" required={!selectedUser} className="w-full h-12 bg-slate-50 border-none rounded-2xl px-4 text-sm font-medium focus:ring-2 focus:ring-blue-100 outline-none" />
               </div>
            </div>
 

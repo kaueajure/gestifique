@@ -6,7 +6,7 @@ import { env } from '../config/env';
 const SECRET = env.JWT_SECRET;
 
 class AuthService {
-  async login(email: string, senha: string) {
+  async login(email: string, password: string) {
     const [rows]: any = await pool.query(
       `SELECT u.*, e.ativo as empresa_ativa 
        FROM usuarios u 
@@ -25,7 +25,7 @@ class AuthService {
       throw new Error('Sua empresa está desativada. Entre em contato com o suporte.');
     }
 
-    const validPassword = await bcrypt.compare(senha, user.senha_hash);
+    const validPassword = await bcrypt.compare(password, user.senha_hash);
     if (!validPassword) {
       throw new Error('Senha incorreta');
     }

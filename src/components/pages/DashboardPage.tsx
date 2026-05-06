@@ -19,16 +19,21 @@ export const DashboardPage = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentTickets, setRecentTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        const statsData = await api.get<any>('/dashboard/stats');
-        const ticketsData = await api.get<Ticket[]>('/tickets?limit=5');
+        const [statsData, ticketsData] = await Promise.all([
+          api.get<any>('/dashboard/stats'),
+          api.get<Ticket[]>('/tickets?limit=5')
+        ]);
         setStats(statsData.counts);
         setRecentTickets(ticketsData);
-      } catch (error) {
-        console.error(error);
+      } catch (err: any) {
+        setError(err.message || 'Ocorreu um erro ao carregar o dashboard.');
       } finally {
         setLoading(false);
       }
@@ -42,6 +47,24 @@ export const DashboardPage = () => {
     { label: 'Em Andamento', value: stats?.em_andamento || 0, icon: <Clock size={20} />, color: 'blue' as const },
     { label: 'Resolvidos', value: stats?.resolvido || 0, icon: <CheckCircle2 size={20} />, color: 'emerald' as const, trend: { value: '98%', positive: true } },
   ];
+
+  if (error) {
+    return (
+      <div className="bg-red-50 p-8 rounded-3xl border border-red-100 flex flex-col items-center justify-center text-center">
+         <div className="w-16 h-16 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mb-4">
+            <AlertCircle size={32} />
+         </div>
+         <h4 className="font-bold text-red-900 mb-2">Erro ao carregar dados</h4>
+         <p className="text-red-600 text-sm max-w-sm mb-6">{error}</p>
+         <button 
+           onClick={() => window.location.reload()}
+           className="h-10 px-6 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-all shadow-lg shadow-red-100"
+         >
+           Tentar Novamente
+         </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">

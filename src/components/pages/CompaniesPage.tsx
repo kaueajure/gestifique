@@ -9,15 +9,19 @@ import { cn } from '../../lib/utils';
 export const CompaniesPage = () => {
   const [companies, setCompanies] = useState<Empresa[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<Partial<Empresa> | null>(null);
 
   const fetchCompanies = async () => {
     setLoading(true);
+    setError(null);
     try {
       const data = await api.get<Empresa[]>('/companies');
       setCompanies(data);
-    } catch (error) { console.error(error); }
+    } catch (err: any) { 
+      setError(err.message || 'Erro ao carregar empresas.');
+    }
     finally { setLoading(false); }
   };
 
@@ -71,49 +75,62 @@ export const CompaniesPage = () => {
                 </div>
              </div>
           ))
-        ) : companies.map((company) => (
-          <div key={company.id} className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:scale-[1.01] transition-all group relative overflow-hidden">
-             <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-all">
-                <div className="flex gap-1">
-                   <button onClick={() => { setSelectedCompany(company); setIsModalOpen(true); }} className="p-2 bg-white text-slate-400 hover:text-blue-600 rounded-xl shadow-lg border border-slate-100 transition-all"><Edit2 size={14} /></button>
-                   <button className="p-2 bg-white text-slate-400 hover:text-red-600 rounded-xl shadow-lg border border-slate-100 transition-all"><Trash2 size={14} /></button>
-                </div>
+        ) : error ? (
+          <div className="md:col-span-2 lg:col-span-3 bg-white p-20 rounded-3xl border border-slate-200 text-center flex flex-col items-center">
+             <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mb-4">
+                <Building2 size={32} />
              </div>
-             
-             <div className="flex items-center gap-4 mb-6">
-                <div className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-black text-2xl uppercase shadow-inner">
-                   {company.nome.charAt(0)}
-                </div>
-                <div>
-                   <h3 className="font-black text-slate-900 leading-tight">{company.nome}</h3>
-                   <div className="flex items-center gap-2 mt-1">
-                      <Badge variant={company.ativo ? 'emerald' : 'red'}>{company.ativo ? 'Ativa' : 'Pausada'}</Badge>
-                      <span className="text-[10px] font-bold text-slate-400">{company.cnpj}</span>
-                   </div>
-                </div>
-             </div>
-
-             <div className="space-y-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
-                   <Mail size={14} className="text-indigo-400" /> {company.email || 'Não informado'}
-                </div>
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
-                   <Phone size={14} className="text-indigo-400" /> {company.telefone || 'Não informado'}
-                </div>
-             </div>
-
-             <div className="mt-8 pt-6 border-t border-slate-50 flex items-center justify-between">
-                <div className="flex -space-x-2">
-                   {Array.from({ length: 3 }).map((_, j) => (
-                      <div key={j} className="w-8 h-8 rounded-lg bg-slate-100 border-2 border-white flex items-center justify-center text-[10px] font-bold text-slate-400">?</div>
-                   ))}
-                </div>
-                <div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest flex items-center gap-1">
-                  Workspace Ativo <CheckCircle2 size={12} />
-                </div>
-             </div>
+             <h4 className="font-bold text-slate-800">Erro ao carregar empresas</h4>
+             <p className="text-sm text-slate-500 mb-6">{error}</p>
+             <button onClick={() => fetchCompanies()} className="text-xs font-black text-blue-600 uppercase tracking-widest hover:underline">Tentar novamente</button>
           </div>
-        ))}
+        ) : companies.length > 0 ? (
+          companies.map((company) => (
+            <div key={company.id} className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:scale-[1.01] transition-all group relative overflow-hidden">
+               <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-all">
+                  <div className="flex gap-1">
+                     <button onClick={() => { setSelectedCompany(company); setIsModalOpen(true); }} className="p-2 bg-white text-slate-400 hover:text-blue-600 rounded-xl shadow-lg border border-slate-100 transition-all"><Edit2 size={14} /></button>
+                     <button className="p-2 bg-white text-slate-400 hover:text-red-600 rounded-xl shadow-lg border border-slate-100 transition-all"><Trash2 size={14} /></button>
+                  </div>
+               </div>
+               
+               <div className="flex items-center gap-4 mb-6">
+                  <div className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-black text-2xl uppercase shadow-inner">
+                     {company.nome.charAt(0)}
+                  </div>
+                  <div>
+                     <h3 className="font-black text-slate-900 leading-tight">{company.nome}</h3>
+                     <div className="flex items-center gap-2 mt-1">
+                        <Badge variant={company.ativo ? 'emerald' : 'red'}>{company.ativo ? 'Ativa' : 'Pausada'}</Badge>
+                        <span className="text-[10px] font-bold text-slate-400">{company.cnpj}</span>
+                     </div>
+                  </div>
+               </div>
+
+               <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                     <Mail size={14} className="text-indigo-400" /> {company.email || 'Não informado'}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                     <Phone size={14} className="text-indigo-400" /> {company.telefone || 'Não informado'}
+                  </div>
+               </div>
+
+               <div className="mt-8 pt-6 border-t border-slate-50 flex items-center justify-between">
+                  <div className="flex -space-x-2">
+                     {Array.from({ length: 3 }).map((_, j) => (
+                        <div key={j} className="w-8 h-8 rounded-lg bg-slate-100 border-2 border-white flex items-center justify-center text-[10px] font-bold text-slate-400">?</div>
+                     ))}
+                  </div>
+                  <div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest flex items-center gap-1">
+                    Workspace Ativo <CheckCircle2 size={12} />
+                  </div>
+               </div>
+            </div>
+          ))
+        ) : (
+          <div className="md:col-span-2 lg:col-span-3 bg-white p-20 rounded-3xl border border-slate-200 text-center text-slate-400 font-medium">Nenhuma empresa encontrada.</div>
+        )}
       </div>
 
       <Modal 

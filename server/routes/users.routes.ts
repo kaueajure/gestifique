@@ -22,17 +22,17 @@ router.get('/', isAdmin, async (req: any, res) => {
 
 router.post('/', isAdmin, async (req: any, res) => {
   try {
-    const { nome, email, senha, is_admin, is_dev, empresa_id_target, cargo } = req.body;
+    const { nome, email, password, is_admin, is_dev, empresa_id_target, cargo } = req.body;
     
-    if (!nome || !email || !senha) return sendError(res, 'Nome, email e senha são obrigatórios', 400);
+    if (!nome || !email || !password) return sendError(res, 'Nome, email e senha são obrigatórios', 400);
     if (!isValidEmail(email)) return sendError(res, 'Email inválido', 400);
-    if (!isValidPassword(senha)) return sendError(res, 'Senha deve ter ao menos 6 caracteres', 400);
+    if (!isValidPassword(password)) return sendError(res, 'Senha deve ter ao menos 6 caracteres', 400);
 
     const empresa_id = req.user.desenvolvedor ? empresa_id_target : req.user.empresa_id;
     
     // Security: non-dev cannot create dev
     const buildData = {
-      nome, email, senha, cargo,
+      nome, email, password, cargo,
       empresa_id,
       administrador: is_admin,
       desenvolvedor: req.user.desenvolvedor ? is_dev : false

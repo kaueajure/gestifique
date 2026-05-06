@@ -13,12 +13,14 @@ interface TicketsPageProps {
 export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
 
   const fetchTickets = async () => {
     setLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams();
       if (statusFilter) params.append('status', statusFilter);
@@ -27,8 +29,8 @@ export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
       
       const data = await api.get<Ticket[]>(`/tickets?${params.toString()}`);
       setTickets(data);
-    } catch (error) {
-      console.error(error);
+    } catch (err: any) {
+      setError(err.message || 'Erro ao carregar chamados.');
     } finally {
       setLoading(false);
     }
@@ -118,102 +120,113 @@ export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
       </div>
 
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-slate-50 border-b border-slate-100">
-              <tr>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-400 tracking-widest uppercase">ID / Chamado</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-400 tracking-widest uppercase">Status</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-400 tracking-widest uppercase">Solicitante</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-400 tracking-widest uppercase">Responsável</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-400 tracking-widest uppercase">Data</th>
-                <th className="px-8 py-4"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              <AnimatePresence mode='wait'>
-                {loading ? (
-                  Array.from({ length: 6 }).map((_, i) => (
-                    <tr key={i} className="animate-pulse">
-                      <td className="px-8 py-6"><div className="w-32 h-4 bg-slate-100 rounded"></div></td>
-                      <td className="px-8 py-6"><div className="w-20 h-4 bg-slate-100 rounded"></div></td>
-                      <td className="px-8 py-6"><div className="w-24 h-4 bg-slate-100 rounded"></div></td>
-                      <td className="px-8 py-6"><div className="w-24 h-4 bg-slate-100 rounded"></div></td>
-                      <td className="px-8 py-6"><div className="w-full h-4 bg-slate-100 rounded"></div></td>
-                    </tr>
-                  ))
-                ) : tickets.length > 0 ? (
-                  tickets.map((ticket) => (
-                    <motion.tr 
-                      key={ticket.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      onClick={() => onSelectTicket(ticket.id)}
-                      className="group hover:bg-slate-50 transition-all duration-300 cursor-pointer"
-                    >
-                      <td className="px-8 py-6">
-                        <div className="flex flex-col">
-                           <span className="text-[10px] font-black text-blue-600 mb-0.5">#{ticket.id}</span>
-                           <span className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors truncate max-w-xs">{ticket.titulo}</span>
-                           <div className="flex items-center gap-2 mt-1">
-                              <Badge variant={getPriorityVariant(ticket.prioridade)} className="scale-90 origin-left">
-                                 {ticket.prioridade}
-                              </Badge>
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{ticket.categoria}</span>
-                           </div>
-                        </div>
-                      </td>
-                      <td className="px-8 py-6">
-                        <Badge variant={getStatusVariant(ticket.status)}>
-                           {ticket.status.replace('_', ' ')}
-                        </Badge>
-                      </td>
-                      <td className="px-8 py-6">
-                        <div className="flex items-center gap-2">
-                           <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-xs uppercase">
-                             {ticket.cliente_nome?.charAt(0)}
-                           </div>
-                           <span className="text-xs font-bold text-slate-700">{ticket.cliente_nome}</span>
-                        </div>
-                      </td>
-                      <td className="px-8 py-6 text-xs text-slate-500 font-bold">
-                        {ticket.responsavel_nome ? (
-                          <div className="flex items-center gap-2">
-                             <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs uppercase">
-                               {ticket.responsavel_nome?.charAt(0)}
+        {error ? (
+          <div className="p-20 text-center flex flex-col items-center">
+             <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mb-4">
+                <AlertTriangle size={32} />
+             </div>
+             <h4 className="font-bold text-slate-800">Falha ao buscar chamados</h4>
+             <p className="text-sm text-slate-500 mb-6">{error}</p>
+             <button onClick={() => fetchTickets()} className="text-xs font-black text-blue-600 uppercase tracking-widest hover:underline">Tentar novamente</button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-slate-50 border-b border-slate-100">
+                <tr>
+                  <th className="px-8 py-4 text-[10px] font-black text-slate-400 tracking-widest uppercase">ID / Chamado</th>
+                  <th className="px-8 py-4 text-[10px] font-black text-slate-400 tracking-widest uppercase">Status</th>
+                  <th className="px-8 py-4 text-[10px] font-black text-slate-400 tracking-widest uppercase">Solicitante</th>
+                  <th className="px-8 py-4 text-[10px] font-black text-slate-400 tracking-widest uppercase">Responsável</th>
+                  <th className="px-8 py-4 text-[10px] font-black text-slate-400 tracking-widest uppercase">Data</th>
+                  <th className="px-8 py-4"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                <AnimatePresence mode='wait'>
+                  {loading ? (
+                    Array.from({ length: 6 }).map((_, i) => (
+                      <tr key={i} className="animate-pulse">
+                        <td className="px-8 py-6"><div className="w-32 h-4 bg-slate-100 rounded"></div></td>
+                        <td className="px-8 py-6"><div className="w-20 h-4 bg-slate-100 rounded"></div></td>
+                        <td className="px-8 py-6"><div className="w-24 h-4 bg-slate-100 rounded"></div></td>
+                        <td className="px-8 py-6"><div className="w-24 h-4 bg-slate-100 rounded"></div></td>
+                        <td className="px-8 py-6"><div className="w-full h-4 bg-slate-100 rounded"></div></td>
+                      </tr>
+                    ))
+                  ) : tickets.length > 0 ? (
+                    tickets.map((ticket) => (
+                      <motion.tr 
+                        key={ticket.id}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        onClick={() => onSelectTicket(ticket.id)}
+                        className="group hover:bg-slate-50 transition-all duration-300 cursor-pointer"
+                      >
+                        <td className="px-8 py-6">
+                          <div className="flex flex-col">
+                             <span className="text-[10px] font-black text-blue-600 mb-0.5">#{ticket.id}</span>
+                             <span className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors truncate max-w-xs">{ticket.titulo}</span>
+                             <div className="flex items-center gap-2 mt-1">
+                                <Badge variant={getPriorityVariant(ticket.prioridade)} className="scale-90 origin-left">
+                                   {ticket.prioridade}
+                                </Badge>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{ticket.categoria}</span>
                              </div>
-                             <span>{ticket.responsavel_nome}</span>
                           </div>
-                        ) : (
-                          <span className="text-slate-300 italic font-medium">Não atribuído</span>
-                        )}
-                      </td>
-                      <td className="px-8 py-6">
-                        <div className="flex flex-col">
-                           <span className="text-xs font-bold text-slate-700">{new Date(ticket.created_at).toLocaleDateString()}</span>
-                           <span className="text-[10px] font-medium text-slate-400">{new Date(ticket.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </td>
+                        <td className="px-8 py-6">
+                          <Badge variant={getStatusVariant(ticket.status)}>
+                             {ticket.status.replace('_', ' ')}
+                          </Badge>
+                        </td>
+                        <td className="px-8 py-6">
+                          <div className="flex items-center gap-2">
+                             <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-xs uppercase">
+                               {ticket.cliente_nome?.charAt(0)}
+                             </div>
+                             <span className="text-xs font-bold text-slate-700">{ticket.cliente_nome}</span>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 text-xs text-slate-500 font-bold">
+                          {ticket.responsavel_nome ? (
+                            <div className="flex items-center gap-2">
+                               <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs uppercase">
+                                 {ticket.responsavel_nome?.charAt(0)}
+                               </div>
+                               <span>{ticket.responsavel_nome}</span>
+                            </div>
+                          ) : (
+                            <span className="text-slate-300 italic font-medium">Não atribuído</span>
+                          )}
+                        </td>
+                        <td className="px-8 py-6">
+                          <div className="flex flex-col">
+                             <span className="text-xs font-bold text-slate-700">{new Date(ticket.created_at).toLocaleDateString()}</span>
+                             <span className="text-[10px] font-medium text-slate-400">{new Date(ticket.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 text-slate-300 group-hover:text-blue-600 transition-colors">
+                          <ChevronRight size={20} />
+                        </td>
+                      </motion.tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="px-8 py-20 text-center">
+                        <div className="flex flex-col items-center justify-center grayscale opacity-50">
+                          <TicketIcon size={40} className="mb-4 text-slate-300" />
+                          <h4 className="font-bold text-slate-800">Nenhum chamado encontrado</h4>
+                          <p className="text-sm text-slate-500">Tente ajustar seus filtros ou faça uma nova busca.</p>
                         </div>
                       </td>
-                      <td className="px-8 py-6 text-slate-300 group-hover:text-blue-600 transition-colors">
-                        <ChevronRight size={20} />
-                      </td>
-                    </motion.tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="px-8 py-20 text-center">
-                      <div className="flex flex-col items-center justify-center grayscale opacity-50">
-                        <TicketIcon size={40} className="mb-4 text-slate-300" />
-                        <h4 className="font-bold text-slate-800">Nenhum chamado encontrado</h4>
-                        <p className="text-sm text-slate-500">Tente ajustar seus filtros ou faça uma nova busca.</p>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </AnimatePresence>
-            </tbody>
-          </table>
-        </div>
+                    </tr>
+                  )}
+                </AnimatePresence>
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

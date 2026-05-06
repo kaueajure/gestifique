@@ -122,7 +122,7 @@ export const ProfilePage = ({ currentUser, onUpdate }: ProfilePageProps) => {
                     </label>
                     <div className="relative">
                        <input 
-                         name="senha" 
+                         name="password" 
                          type={showPassword ? 'text' : 'password'} 
                          className="w-full h-12 bg-slate-50 border-none rounded-2xl px-4 text-sm font-bold focus:ring-2 focus:ring-blue-100 transition-all outline-none" 
                          placeholder="Deixe em branco para não alterar" 

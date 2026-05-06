@@ -8,8 +8,8 @@ const router = Router();
 
 router.post('/login', async (req, res, next) => {
   try {
-    const { email, senha } = req.body;
-    const data = await authService.login(email, senha);
+    const { email, password } = req.body;
+    const data = await authService.login(email, password);
     
     // Set Secure Cookie
     res.cookie('token', data.token, {

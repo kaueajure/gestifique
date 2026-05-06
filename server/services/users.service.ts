@@ -27,8 +27,8 @@ class UsersService {
   }
 
   async create(data: any) {
-    const { nome, email, senha, empresa_id, cargo, administrador, desenvolvedor } = data;
-    const hash = await bcrypt.hash(senha, 10);
+    const { nome, email, password, empresa_id, cargo, administrador, desenvolvedor } = data;
+    const hash = await bcrypt.hash(password, 10);
     
     const [result]: any = await pool.query(
       'INSERT INTO usuarios (nome, email, senha_hash, empresa_id, cargo, administrador, desenvolvedor) VALUES (?, ?, ?, ?, ?, ?, ?)',
@@ -49,9 +49,9 @@ class UsersService {
       }
     });
 
-    if (data.senha) {
+    if (data.password) {
       fields.push('senha_hash = ?');
-      params.push(await bcrypt.hash(data.senha, 10));
+      params.push(await bcrypt.hash(data.password, 10));
     }
 
     if (fields.length === 0) return;
