@@ -3,14 +3,14 @@ import bcrypt from 'bcryptjs';
 
 async function initDB() {
   if (!process.env.DB_HOST) {
-    throw new Error('Variável de ambiente DB_HOST não definida.');
+    throw new Error('❌ Variável de ambiente DB_HOST não definida. Impossível iniciar banco de dados.');
   }
 
   let connection;
   try {
-    console.log(`Tentando conectar ao banco em: ${process.env.DB_HOST}...`);
+    console.log(`[BOOT] 🔌 Tentando conectar ao banco em: ${process.env.DB_HOST}...`);
     connection = await pool.getConnection();
-    console.log('Conexão estabelecida. Verificando tabelas...');
+    console.log('[BOOT] ✅ Conexão estabelecida. Verificando estrutura das tabelas...');
 
     // Empresas
     await connection.query(`
@@ -34,7 +34,7 @@ async function initDB() {
         id INT AUTO_INCREMENT PRIMARY KEY,
         empresa_id INT,
         nome VARCHAR(255) NOT NULL,
-        email VARCHAR(255) UNIQUE NOT NULL,
+        email VARCHAR(255) NOT NULL,
         senha_hash VARCHAR(255) NOT NULL,
         telefone VARCHAR(20),
         foto VARCHAR(255),
@@ -45,6 +45,8 @@ async function initDB() {
         ultimo_login DATETIME,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_email (email),
+        KEY idx_emp_id (empresa_id),
         FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE SET NULL
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
@@ -66,6 +68,11 @@ async function initDB() {
         finalizado_em DATETIME,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        KEY idx_tickets_empresa (empresa_id),
+        KEY idx_tickets_usuario (usuario_id),
+        KEY idx_tickets_responsavel (responsavel_id),
+        KEY idx_tickets_status (status),
+        KEY idx_tickets_prioridade (prioridade),
         FOREIGN KEY (empresa_id) REFERENCES empresas(id),
         FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
         FOREIGN KEY (responsavel_id) REFERENCES usuarios(id)
@@ -82,6 +89,7 @@ async function initDB() {
         interno TINYINT(1) DEFAULT 0,
         anexo VARCHAR(255),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        KEY idx_mensagens_ticket (ticket_id),
         FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
         FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -98,32 +106,37 @@ async function initDB() {
         ip VARCHAR(45),
         user_agent TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        KEY idx_logs_usuario (usuario_id),
+        KEY idx_logs_empresa (empresa_id),
         FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL,
         FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE SET NULL
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
-    console.log('Tables created or already exist.');
+    console.log('[BOOT] 📚 Tabelas validadas com sucesso.');
 
     // Seed Initial Developer if not exists
     const [devs]: any = await connection.query('SELECT id FROM usuarios WHERE desenvolvedor = 1 LIMIT 1');
     if (devs.length === 0) {
-      console.log('Seeding initial developer user...');
-      const devEmail = process.env.DEV_EMAIL || 'admin@gestifique.com';
-      const devPass = process.env.DEV_PASSWORD || 'gestifique2026';
-      const hashedPassword = await bcrypt.hash(devPass, 10);
-      
-      await connection.query(
-        'INSERT INTO usuarios (nome, email, senha_hash, cargo, administrador, desenvolvedor) VALUES (?, ?, ?, ?, ?, ?)',
-        ['Desenvolvedor Master', devEmail, hashedPassword, 'System Developer', 1, 1]
-      );
-      console.log(`Initial developer created: ${devEmail}`);
+      if (process.env.DEV_EMAIL && process.env.DEV_PASSWORD) {
+        console.log('[BOOT] 🌱 Semeando usuário desenvolvedor inicial...');
+        const hashedPassword = await bcrypt.hash(process.env.DEV_PASSWORD, 10);
+        
+        await connection.query(
+          'INSERT INTO usuarios (nome, email, senha_hash, cargo, administrador, desenvolvedor) VALUES (?, ?, ?, ?, ?, ?)',
+          ['Desenvolvedor Master', process.env.DEV_EMAIL, hashedPassword, 'System Developer', 1, 1]
+        );
+        console.log(`[BOOT] ✅ Desenvolvedor inicial criado: ${process.env.DEV_EMAIL}`);
+      } else {
+        console.warn('[BOOT] ⚠️ DEV_EMAIL ou DEV_PASSWORD não definidos. Pulei o seed do desenvolvedor.');
+      }
     }
 
   } catch (error) {
-    console.error('Error initializing database:', error);
+    console.error('[BOOT] ❌ Erro ao inicializar banco de dados:', error);
+    throw error;
   } finally {
-    connection.release();
+    if (connection) connection.release();
   }
 }
 

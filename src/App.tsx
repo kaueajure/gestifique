@@ -393,10 +393,18 @@ const TicketsTab = ({ currentUser, onSelectTicket }: { currentUser: User, onSele
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState("");
 
   const fetchTickets = () => {
     setIsLoading(true);
-    fetch('/api/tickets')
+    const params = new URLSearchParams();
+    if (searchTerm) params.append('busca', searchTerm);
+    if (statusFilter) params.append('status', statusFilter);
+    if (priorityFilter) params.append('prioridade', priorityFilter);
+
+    fetch(`/api/tickets?${params.toString()}`)
       .then(res => res.ok ? res.json() : [])
       .then(data => { 
         setTickets(Array.isArray(data) ? data : []); 
@@ -409,8 +417,9 @@ const TicketsTab = ({ currentUser, onSelectTicket }: { currentUser: User, onSele
   };
 
   useEffect(() => {
-    fetchTickets();
-  }, []);
+    const timer = setTimeout(fetchTickets, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm, statusFilter, priorityFilter]);
 
   const handleCreateTicket = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -434,10 +443,6 @@ const TicketsTab = ({ currentUser, onSelectTicket }: { currentUser: User, onSele
     }
   };
 
-  if (isLoading) {
-    return <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div></div>;
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -453,160 +458,81 @@ const TicketsTab = ({ currentUser, onSelectTicket }: { currentUser: User, onSele
         </button>
       </div>
 
-      {/* Filters Bar */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-4">
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-lg text-sm text-slate-500 cursor-pointer hover:bg-slate-100 transition-colors">
-          <Filter size={16} /> Todos os Status
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+          <input 
+            type="text" 
+            placeholder="Pesquisar por ID, título..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none"
+          />
         </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-lg text-sm text-slate-500 cursor-pointer hover:bg-slate-100 transition-colors">
-          <Clock size={16} /> Últimos 30 Dias
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-lg text-sm text-slate-500 cursor-pointer hover:bg-slate-100 transition-colors ml-auto">
-          <Search size={16} /> Pesquisar ID...
-        </div>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-sm">
+          <option value="">Todos Status</option>
+          <option value="aberto">Abertos</option>
+          <option value="em_andamento">Em Andamento</option>
+          <option value="resolvido">Resolvidos</option>
+        </select>
+        <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)} className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-sm">
+          <option value="">Prioridades</option>
+          <option value="alta">Alta</option>
+          <option value="urgente">Urgente</option>
+        </select>
       </div>
 
-      {/* Tickets List */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-400 uppercase tracking-widest">
-            <tr>
-              <th className="px-6 py-4">Assunto / ID</th>
-              <th className="px-6 py-4">Solicitante</th>
-              <th className="px-6 py-4">Status</th>
-              <th className="px-6 py-4">Prioridade</th>
-              <th className="px-6 py-4">Data</th>
-              <th className="px-6 py-4"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {tickets.map((t) => (
-              <tr 
-                key={t.id} 
-                className="hover:bg-slate-50 transition-colors cursor-pointer group"
-                onClick={() => onSelectTicket(t.id)}
-              >
-                <td className="px-6 py-5">
-                   <div className="font-bold text-slate-800 line-clamp-1">{t.titulo}</div>
-                   <div className="text-[10px] text-slate-400 mt-0.5 font-bold uppercase tracking-wider">#{t.id} • {t.categoria}</div>
-                </td>
-                <td className="px-6 py-5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs uppercase">
-                      {t.cliente_nome?.charAt(0)}
-                    </div>
-                    <span className="text-sm font-medium text-slate-600">{t.cliente_nome}</span>
-                  </div>
-                </td>
-                <td className="px-6 py-5">
-                   <span className={cn(
-                     "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                     t.status === 'aberto' && "bg-blue-100 text-blue-600",
-                     t.status === 'em_andamento' && "bg-indigo-100 text-indigo-600",
-                     t.status === 'resolvido' && "bg-emerald-100 text-emerald-600",
-                     t.status === 'fechado' && "bg-slate-100 text-slate-500",
-                     t.status === 'aguardando_cliente' && "bg-amber-100 text-amber-600"
-                   )}>
-                     {t.status.replace('_', ' ')}
-                   </span>
-                </td>
-                <td className="px-6 py-5">
-                   <span className={cn(
-                     "flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider",
-                     t.prioridade === 'urgente' ? "text-red-600" : t.prioridade === 'alta' ? "text-orange-600" : "text-slate-500"
-                   )}>
-                     <div className={cn("w-1.5 h-1.5 rounded-full", 
-                        t.prioridade === 'urgente' ? "bg-red-600" : t.prioridade === 'alta' ? "bg-orange-600" : "bg-slate-400"
-                     )}></div>
-                     {t.prioridade}
-                   </span>
-                </td>
-                <td className="px-6 py-5 text-sm text-slate-500">
-                  {new Date(t.created_at).toLocaleDateString()}
-                </td>
-                <td className="px-6 py-5 text-right opacity-0 group-hover:opacity-100 transition-opacity">
-                  <ChevronRight size={20} className="text-slate-300 inline-block" />
-                </td>
+        {isLoading ? (
+          <div className="py-20 flex justify-center"><div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div></div>
+        ) : (
+          <table className="w-full text-left">
+            <thead className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-400 uppercase tracking-widest">
+              <tr>
+                <th className="px-6 py-4">Assunto</th>
+                <th className="px-6 py-4">Status</th>
+                <th className="px-6 py-4">Prioridade</th>
+                <th className="px-6 py-4">Data</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {tickets.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-24 text-slate-400">
-            <Ticket size={48} className="mb-4 opacity-20" />
-            <p className="font-bold">Nenhum ticket encontrado.</p>
-            <p className="text-sm mt-1">Sua lista de atendimentos está limpa.</p>
-          </div>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {tickets.map((t) => (
+                <tr key={t.id} className="hover:bg-slate-50 cursor-pointer" onClick={() => onSelectTicket(t.id)}>
+                  <td className="px-6 py-5">
+                    <div className="font-bold text-slate-800">{t.titulo}</div>
+                  </td>
+                  <td className="px-6 py-5 whitespace-nowrap">
+                    <span className={cn(
+                      "px-3 py-1 rounded-full text-[10px] font-bold uppercase",
+                      t.status === 'aberto' ? "bg-blue-100 text-blue-600" : "bg-emerald-100 text-emerald-600"
+                    )}>{t.status}</span>
+                  </td>
+                  <td className="px-6 py-5 capitalize text-xs font-bold">{t.prioridade}</td>
+                  <td className="px-6 py-5 text-sm text-slate-500">{new Date(t.created_at).toLocaleDateString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
 
-      {/* Create Ticket Modal */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 sm:p-0">
-            <motion.div 
-               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-               onClick={() => setIsModalOpen(false)}
-               className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-            ></motion.div>
-            <motion.div
-               initial={{ opacity: 0, scale: 0.95, y: 20 }}
-               animate={{ opacity: 1, scale: 1, y: 0 }}
-               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-               className="relative bg-white w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden"
-            >
-               <div className="p-8">
-                  <div className="flex justify-between items-center mb-8">
-                    <h2 className="text-2xl font-bold text-slate-900">Novo Chamado</h2>
-                    <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-50 rounded-xl text-slate-400"><X /></button>
-                  </div>
-
-                  <form className="space-y-6" onSubmit={handleCreateTicket}>
-                    <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">Título do Chamado</label>
-                      <input 
-                        name="titulo" 
-                        required 
-                        placeholder="Breve descrição do problema"
-                        className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2">Prioridade</label>
-                        <select name="prioridade" className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-blue-500">
-                          <option value="baixa">Baixa</option>
-                          <option value="media" selected>Média</option>
-                          <option value="alta">Alta</option>
-                          <option value="urgente">Urgente</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2">Categoria</label>
-                        <select name="categoria" className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-blue-500">
-                          <option value="suporte">Suporte Técnico</option>
-                          <option value="financeiro">Financeiro</option>
-                          <option value="duvida">Dúvida Geral</option>
-                          <option value="comercial">Comercial</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">Descrição Detalhada</label>
-                      <textarea 
-                        name="descricao" 
-                        required 
-                        rows={4}
-                        placeholder="Descreva detalhadamente o que está ocorrendo..."
-                        className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 h-32 resize-none"
-                      ></textarea>
-                    </div>
-
-                    <button className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">Criar Ticket</button>
-                  </form>
-               </div>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+            <div onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="relative bg-white w-full max-w-xl rounded-3xl p-8">
+               <h2 className="text-2xl font-bold mb-6">Novo Chamado</h2>
+               <form className="space-y-4" onSubmit={handleCreateTicket}>
+                  <input name="titulo" required placeholder="Título" className="w-full px-4 py-3 border rounded-xl" />
+                  <textarea name="descricao" required placeholder="Descrição" className="w-full px-4 py-3 border rounded-xl h-32" />
+                  <select name="prioridade" className="w-full px-4 py-3 border rounded-xl">
+                    <option value="baixa">Baixa</option>
+                    <option value="media">Média</option>
+                    <option value="alta">Alta</option>
+                    <option value="urgente">Urgente</option>
+                  </select>
+                  <button className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold">Criar Ticket</button>
+               </form>
             </motion.div>
           </div>
         )}
@@ -615,10 +541,25 @@ const TicketsTab = ({ currentUser, onSelectTicket }: { currentUser: User, onSele
   );
 };
 
-const TicketDetailsView = ({ ticketId, onBack }: { ticketId: number, onBack: () => void }) => {
+const InfoRow = ({ label, value, color, isId }: { label: string, value: string, color?: string, isId?: boolean }) => (
+  <div>
+    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">{label}</label>
+    {color ? (
+      <div className="flex items-center gap-2">
+        <div className={cn("w-1.5 h-1.5 rounded-full", `bg-${color}-500`)}></div>
+        <span className={cn("text-xs font-bold capitalize", `text-${color}-600`)}>{value}</span>
+      </div>
+    ) : (
+      <div className={cn("text-xs font-bold text-slate-700", isId && "font-mono")}>{value}</div>
+    )}
+  </div>
+);
+
+const TicketDetailsView = ({ ticketId, onBack, currentUser }: { ticketId: number, onBack: () => void, currentUser: User }) => {
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [messages, setMessages] = useState<TicketMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
+  const [isInternal, setIsInternal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchDetails = () => {
@@ -630,133 +571,147 @@ const TicketDetailsView = ({ ticketId, onBack }: { ticketId: number, onBack: () 
       setTicket(tData);
       setMessages(Array.isArray(mData) ? mData : []);
       setIsLoading(false);
-    }).catch(() => {
-      setIsLoading(false);
-    });
+    }).catch(() => setIsLoading(false));
   };
 
-  useEffect(() => {
-    fetchDetails();
-  }, [ticketId]);
+  useEffect(() => { fetchDetails(); }, [ticketId]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
-
     const res = await fetch(`/api/tickets/${ticketId}/messages`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mensagem: newMessage, interno: false })
+      body: JSON.stringify({ mensagem: newMessage, interno: isInternal })
     });
+    if (res.ok) { setNewMessage(""); setIsInternal(false); fetchDetails(); }
+  };
 
-    if (res.ok) {
-      setNewMessage("");
-      fetch(`/api/tickets/${ticketId}/messages`).then(res => res.json()).then(setMessages);
-    }
+  const handleUpdateStatus = async (status: string) => {
+    const res = await fetch(`/api/tickets/${ticketId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    if (res.ok) fetchDetails();
   };
 
   if (isLoading || !ticket) return <div className="py-20 flex justify-center"><div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div></div>;
 
+  const isAdminOrDev = currentUser.administrador || currentUser.desenvolvedor;
+
   return (
-    <div className="grid lg:grid-cols-4 gap-8 h-[calc(100vh-12rem)]">
-      {/* Left Column: Chat */}
-      <div className="lg:col-span-3 flex flex-col bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-        <header className="px-8 py-4 border-b border-slate-100 bg-slate-50 flex items-center gap-4">
-          <button onClick={onBack} className="p-2 hover:bg-white rounded-xl text-slate-400 transition-colors"><ArrowLeft size={20} /></button>
-          <div>
-             <h3 className="font-bold text-slate-800 leading-tight">{ticket.titulo}</h3>
-             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">#{ticket.id} • Solicitado por {ticket.cliente_nome}</span>
+    <div className="grid lg:grid-cols-4 gap-8 h-[calc(100vh-14rem)]">
+      <div className="lg:col-span-3 flex flex-col bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+        <header className="px-8 py-4 border-b bg-slate-50 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button onClick={onBack} className="p-2 hover:bg-white rounded-xl text-slate-400 transition-colors"><ArrowLeft size={20} /></button>
+            <div>
+              <h3 className="font-bold text-slate-800">{ticket.titulo}</h3>
+              <p className="text-xs text-slate-400">#{ticket.id} • {ticket.cliente_nome}</p>
+            </div>
           </div>
+          {isAdminOrDev && (
+            <select value={ticket.status} onChange={(e) => handleUpdateStatus(e.target.value)} className="text-xs font-bold border rounded-lg px-3 py-1.5 outline-none">
+              <option value="aberto">Aberto</option>
+              <option value="em_andamento">Em Andamento</option>
+              <option value="resolvido">Resolvido</option>
+            </select>
+          )}
         </header>
 
         <div className="flex-1 overflow-y-auto p-8 space-y-6">
-           <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 mb-8">
-              <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2 block">Descrição Original</span>
+           <div className="bg-slate-50 p-6 rounded-2xl mb-8">
+              <span className="text-[10px] font-bold text-blue-600 uppercase mb-2 block tracking-widest">Descrição</span>
               <p className="text-slate-600 text-sm whitespace-pre-wrap">{ticket.descricao}</p>
            </div>
-
            {messages.map((m, i) => (
-             <div key={i} className={cn(
-               "flex flex-col max-w-[80%]",
-               i % 2 === 0 ? "mr-auto" : "ml-auto items-end"
-             )}>
-                <div className="text-[10px] font-bold text-slate-400 mb-1 px-1">{m.usuario_nome} • {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                <div className={cn(
-                  "p-4 rounded-2xl text-sm shadow-sm",
-                  i % 2 === 0 ? "bg-white border border-slate-200 text-slate-700" : "bg-blue-600 text-white rounded-tr-none"
-                )}>
+             <div key={i} className={cn("flex flex-col max-w-[85%]", m.usuario_id === currentUser.id ? "ml-auto items-end" : "mr-auto")}>
+                <div className="text-[10px] font-bold text-slate-400 mb-1 flex gap-2">
+                  {m.usuario_nome} • {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {m.interno && <span className="text-amber-600 bg-amber-50 px-1 rounded uppercase">Interno</span>}
+                </div>
+                <div className={cn("p-4 rounded-2xl text-sm", m.interno ? "bg-amber-50 border border-amber-100" : m.usuario_id === currentUser.id ? "bg-blue-600 text-white" : "bg-white border text-slate-700")}>
                    {m.mensagem}
                 </div>
              </div>
            ))}
         </div>
 
-        <form className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3" onSubmit={handleSendMessage}>
-           <input 
-             value={newMessage}
-             onChange={(e) => setNewMessage(e.target.value)}
-             placeholder="Escreva sua mensagem..." 
-             className="flex-1 px-4 py-3 rounded-xl border border-slate-200 bg-white outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 text-sm"
-           />
-           <button 
-             type="submit"
-             disabled={!newMessage.trim()}
-             className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center disabled:opacity-50 shadow-lg shadow-blue-100"
-           >
-              Enviar
-           </button>
+        <form className="p-6 border-t bg-white" onSubmit={handleSendMessage}>
+           <div className="flex gap-3">
+              <input value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Diga algo..." className="flex-1 px-4 py-3 rounded-xl bg-slate-50 outline-none focus:ring-4 focus:ring-blue-50" />
+              <button disabled={!newMessage.trim()} className="bg-blue-600 text-white px-6 rounded-xl font-bold">Enviar</button>
+           </div>
+           {isAdminOrDev && (
+             <label className="mt-3 flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={isInternal} onChange={(e) => setIsInternal(e.target.checked)} className="rounded" />
+                <span className="text-xs font-bold text-amber-600">Mensagem interna</span>
+             </label>
+           )}
         </form>
       </div>
 
-      {/* Right Column: Metadata */}
-      <div className="lg:col-span-1 space-y-6">
-         <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-            <h4 className="font-bold text-slate-800 mb-6 text-sm uppercase tracking-wider">Informações</h4>
-            <div className="space-y-4">
-               <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Status</label>
-                  <div className="flex items-center gap-2">
-                     <div className={cn("w-2 h-2 rounded-full", ticket.status === 'resolvido' ? 'bg-emerald-500' : 'bg-blue-500')}></div>
-                     <span className="text-sm font-bold text-slate-700 capitalize">{ticket.status.replace('_', ' ')}</span>
-                  </div>
-               </div>
-               <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Prioridade</label>
-                  <span className={cn("text-sm font-bold", ticket.prioridade === 'urgente' ? 'text-red-500' : 'text-slate-700')}>{ticket.prioridade.toUpperCase()}</span>
-               </div>
-               <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Responsável</label>
-                  <div className="text-sm font-bold text-slate-700">{ticket.responsavel_nome || 'Aguardando atribuição'}</div>
-               </div>
-               <div className="pt-4 border-t border-slate-50">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Criado em</label>
-                  <div className="text-sm text-slate-500">{new Date(ticket.created_at).toLocaleString()}</div>
-               </div>
+      <div className="space-y-6">
+         <div className="bg-white p-6 rounded-3xl border border-slate-200">
+            <h4 className="font-bold text-slate-800 mb-6 text-xs uppercase tracking-widest">Informações</h4>
+            <div className="space-y-5">
+               <InfoRow label="Status" value={ticket.status} color={ticket.status === 'resolvido' ? 'emerald' : 'blue'} />
+               <InfoRow label="Prioridade" value={ticket.prioridade} color={ticket.prioridade === 'urgente' ? 'red' : 'slate'} />
+               <InfoRow label="Responsável" value={ticket.responsavel_nome || 'Aguardando'} />
             </div>
-         </div>
-
-         <div className="bg-slate-900 p-6 rounded-3xl text-white">
-            <div className="flex items-center gap-3 mb-4">
-              <Zap className="text-amber-400" size={20} />
-              <h4 className="font-bold text-sm">Resumo da IA</h4>
-            </div>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              O cliente está com problemas de acesso recorrente. Sugerimos verificar o log de autenticação e reset de tokens.
-            </p>
          </div>
       </div>
     </div>
   );
-}
+};
 
 const UsersTab = ({ currentUser }: { currentUser: User }) => {
   const [users, setUsers] = useState<User[]>([]);
-  useEffect(() => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [companies, setCompanies] = useState<any[]>([]);
+
+  const fetchUsers = () => {
     fetch('/api/users')
       .then(res => res.ok ? res.json() : [])
       .then(data => setUsers(Array.isArray(data) ? data : []))
       .catch(() => setUsers([]));
+  };
+
+  useEffect(() => {
+    fetchUsers();
+    if (currentUser.desenvolvedor) {
+      fetch('/api/companies').then(res => res.json()).then(setCompanies);
+    }
   }, []);
+
+  const handleCreateUser = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      nome: formData.get('nome'),
+      email: formData.get('email'),
+      senha: formData.get('senha'),
+      cargo: formData.get('cargo'),
+      is_admin: !!formData.get('is_admin'),
+      is_dev: !!formData.get('is_dev'),
+      empresa_id_target: formData.get('empresa_id')
+    };
+
+    const res = await fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+
+    if (res.ok) {
+      setIsModalOpen(false);
+      fetchUsers();
+    } else {
+      const err = await res.json();
+      alert(err.message);
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -765,7 +720,10 @@ const UsersTab = ({ currentUser }: { currentUser: User }) => {
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Equipe e Membros</h1>
           <p className="text-slate-500">Gerencie quem tem acesso à sua plataforma.</p>
         </div>
-        <button className="bg-white border border-slate-200 px-6 py-3 rounded-xl font-bold text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm">
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
+        >
           <Plus size={20} /> Adicionar Membro
         </button>
       </div>
@@ -802,58 +760,107 @@ const UsersTab = ({ currentUser }: { currentUser: User }) => {
           </div>
         ))}
       </div>
+
+      {/* User Modal */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 sm:p-0">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl p-8">
+               <h2 className="text-2xl font-bold text-slate-900 mb-6">Convidar Membro</h2>
+               <form className="space-y-4" onSubmit={handleCreateUser}>
+                  <input name="nome" required placeholder="Nome completo" className="w-full px-4 py-3 rounded-xl border border-slate-200" />
+                  <input name="email" type="email" required placeholder="E-mail profissional" className="w-full px-4 py-3 rounded-xl border border-slate-200" />
+                  <input name="senha" type="password" required placeholder="Senha inicial" className="w-full px-4 py-3 rounded-xl border border-slate-200" />
+                  <input name="cargo" placeholder="Ex: Suporte N1" className="w-full px-4 py-3 rounded-xl border border-slate-200" />
+                  
+                  {currentUser.desenvolvedor && (
+                    <select name="empresa_id" className="w-full px-4 py-3 rounded-xl border border-slate-200">
+                       <option value="">Selecione uma Empresa</option>
+                       {companies.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                    </select>
+                  )}
+
+                  <div className="flex gap-4">
+                     <label className="flex items-center gap-2 text-sm font-medium">
+                        <input type="checkbox" name="is_admin" /> Administrador
+                     </label>
+                     {currentUser.desenvolvedor && (
+                       <label className="flex items-center gap-2 text-sm font-medium">
+                          <input type="checkbox" name="is_dev" /> Desenvolvedor
+                       </label>
+                     )}
+                  </div>
+
+                  <div className="flex gap-3 mt-6">
+                    <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 font-bold text-slate-500">Cancelar</button>
+                    <button type="submit" className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold">Criar Usuário</button>
+                  </div>
+               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
 const CompaniesTab = () => {
   const [companies, setCompanies] = useState<any[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const fetchCos = () => {
+    fetch('/api/companies').then(res => res.json()).then(setCompanies);
+  };
+
   useEffect(() => {
-    fetch('/api/companies')
-      .then(res => res.ok ? res.json() : [])
-      .then(data => setCompanies(Array.isArray(data) ? data : []))
-      .catch(() => setCompanies([]));
+    fetchCos();
   }, []);
+
+  const handleCreateCompany = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const res = await fetch('/api/companies', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(Object.fromEntries(fd))
+    });
+    if (res.ok) { setIsModalOpen(false); fetchCos(); }
+  };
 
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Todas as Empresas</h1>
-          <p className="text-slate-500">Acesso mestre para gestão de instâncias SaaS.</p>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Gestão SaaS</h1>
+          <p className="text-slate-500">Acesso mestre para administração de instâncias.</p>
         </div>
-        <button className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-blue-100">Configurar Nova Instância</button>
+        <button onClick={() => setIsModalOpen(true)} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-blue-100 flex items-center gap-2">
+           <Plus size={20} /> Nova Empresa
+        </button>
       </div>
 
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
         <table className="w-full text-left">
            <thead className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
              <tr>
-               <th className="px-6 py-4">Nome da Empresa</th>
-               <th className="px-6 py-4">ID / Chave</th>
+               <th className="px-6 py-4">Empresa</th>
                <th className="px-6 py-4">Status</th>
-               <th className="px-6 py-4">Criado em</th>
+               <th className="px-6 py-4">Data</th>
                <th className="px-6 py-4">Ações</th>
              </tr>
            </thead>
            <tbody className="divide-y divide-slate-100">
              {companies.map((c) => (
-               <tr key={c.id} className="hover:bg-slate-50 transition-colors">
+               <tr key={c.id} className="hover:bg-slate-50">
                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                       <div className="w-10 h-10 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold">
-                          {c.nome.charAt(0)}
-                       </div>
-                       <span className="font-bold text-slate-700">{c.nome}</span>
-                    </div>
+                    <div className="font-bold text-slate-700">{c.nome}</div>
+                    <div className="text-[10px] text-slate-400">{c.cnpj || 'Sem CNPJ'}</div>
                  </td>
-                 <td className="px-6 py-4 font-mono text-xs text-slate-400">GH-2026-X{c.id}</td>
                  <td className="px-6 py-4">
-                    <span className="px-2 py-1 rounded bg-emerald-100 text-emerald-600 text-[10px] font-bold uppercase tracking-wider">Ativa</span>
+                    <span className="px-2 py-1 rounded bg-emerald-100 text-emerald-600 text-[10px] font-bold uppercase">Ativa</span>
                  </td>
-                 <td className="px-6 py-4 text-sm text-slate-500">
-                    {new Date(c.created_at).toLocaleDateString()}
-                 </td>
+                 <td className="px-6 py-4 text-sm text-slate-500">{new Date(c.created_at).toLocaleDateString()}</td>
                  <td className="px-6 py-4">
                     <button className="p-2 hover:bg-slate-100 rounded-lg text-slate-400"><ExternalLink size={16} /></button>
                  </td>
@@ -862,6 +869,23 @@ const CompaniesTab = () => {
            </tbody>
         </table>
       </div>
+
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+            <div onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="relative bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
+               <h2 className="text-2xl font-bold mb-6">Nova Instância</h2>
+               <form className="space-y-4" onSubmit={handleCreateCompany}>
+                  <input name="nome" required placeholder="Nome Fantasia" className="w-full px-4 py-3 rounded-xl border border-slate-200" />
+                  <input name="cnpj" placeholder="CNPJ (opcional)" className="w-full px-4 py-3 rounded-xl border border-slate-200" />
+                  <input name="email" type="email" placeholder="E-mail de contato" className="w-full px-4 py-3 rounded-xl border border-slate-200" />
+                  <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mt-4 shadow-lg shadow-blue-100">Instalar instância</button>
+               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
