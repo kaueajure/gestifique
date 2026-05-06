@@ -22,6 +22,18 @@ class ReportsService {
     
     stats.counts = counts[0];
 
+    const [byStatus]: any = await pool.query(
+      `SELECT status, COUNT(*) as qtd FROM tickets ${where} GROUP BY status`,
+      params
+    );
+    stats.byStatus = byStatus;
+
+    const [byPriority]: any = await pool.query(
+      `SELECT prioridade, COUNT(*) as qtd FROM tickets ${where} GROUP BY prioridade`,
+      params
+    );
+    stats.byPriority = byPriority;
+
     const [byDay]: any = await pool.query(
       `SELECT DATE(created_at) as data, COUNT(*) as qtd 
        FROM tickets 

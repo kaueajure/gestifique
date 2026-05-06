@@ -60,9 +60,10 @@ class TicketsService {
 
   async getById(id: number) {
     const [rows]: any = await pool.query(
-      `SELECT t.*, u.nome as cliente_nome, r.nome as responsavel_nome 
+      `SELECT t.*, u.nome as cliente_nome, u.email as cliente_email, r.nome as responsavel_nome, e.nome as empresa_nome
        FROM tickets t 
        JOIN usuarios u ON t.usuario_id = u.id 
+       JOIN empresas e ON t.empresa_id = e.id
        LEFT JOIN usuarios r ON t.responsavel_id = r.id 
        WHERE t.id = ?`,
       [id]
