@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { env } from '../config/env';
 
-const SECRET = process.env.JWT_SECRET || 'gestifique-super-secret';
+const SECRET = env.JWT_SECRET;
 
 export interface AuthRequest extends Request {
   user?: any;

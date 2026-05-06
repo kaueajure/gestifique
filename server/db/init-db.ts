@@ -1,14 +1,11 @@
 import pool from './connection';
 import bcrypt from 'bcryptjs';
+import { env } from '../config/env';
 
 async function initDB() {
-  if (!process.env.DB_HOST) {
-    throw new Error('❌ Variável de ambiente DB_HOST não definida. Impossível iniciar banco de dados.');
-  }
-
   let connection;
   try {
-    console.log(`[BOOT] 🔌 Tentando conectar ao banco em: ${process.env.DB_HOST}...`);
+    console.log(`[BOOT] 🔌 Tentando conectar ao banco em: ${env.DB.HOST}...`);
     connection = await pool.getConnection();
     console.log('[BOOT] ✅ Conexão estabelecida. Verificando estrutura das tabelas...');
 
@@ -118,15 +115,15 @@ async function initDB() {
     // Seed Initial Developer
     const [devs]: any = await connection.query('SELECT id FROM usuarios WHERE desenvolvedor = 1 LIMIT 1');
     if (devs.length === 0) {
-      if (process.env.DEV_EMAIL && process.env.DEV_PASSWORD) {
+      if (env.DEV_EMAIL && env.DEV_PASSWORD) {
         console.log('[BOOT] 🌱 Semeando usuário desenvolvedor inicial...');
-        const hashedPassword = await bcrypt.hash(process.env.DEV_PASSWORD, 10);
+        const hashedPassword = await bcrypt.hash(env.DEV_PASSWORD, 10);
         
         await connection.query(
           'INSERT INTO usuarios (nome, email, senha_hash, cargo, administrador, desenvolvedor) VALUES (?, ?, ?, ?, ?, ?)',
-          ['Desenvolvedor Master', process.env.DEV_EMAIL, hashedPassword, 'System Developer', 1, 1]
+          ['Desenvolvedor Master', env.DEV_EMAIL, hashedPassword, 'System Developer', 1, 1]
         );
-        console.log(`[BOOT] ✅ Desenvolvedor inicial criado: ${process.env.DEV_EMAIL}`);
+        console.log(`[BOOT] ✅ Desenvolvedor inicial criado: ${env.DEV_EMAIL}`);
       } else {
         console.warn('[BOOT] ⚠️ DEV_EMAIL ou DEV_PASSWORD não definidos. Pulei o seed do desenvolvedor.');
       }

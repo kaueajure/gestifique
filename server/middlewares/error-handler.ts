@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { env } from '../config/env';
 
 export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
   console.error("Internal Error:", err);
@@ -9,6 +10,6 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
   res.status(status).json({
     success: false,
     message,
-    errors: process.env.NODE_ENV === 'development' ? [err.stack] : []
+    errors: !env.IS_PROD ? [err.stack] : []
   });
 };

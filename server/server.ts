@@ -6,21 +6,29 @@ import { createServer as createViteServer } from 'vite';
 import { initDB } from './db/init-db';
 import apiRoutes from './routes';
 import { errorHandler } from './middlewares/error-handler';
+import { env } from './config/env';
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = env.PORT;
 
   // Initial Config
   app.use(cors());
   app.use(express.json());
   app.use(cookieParser());
   
-  // Try to Init DB
+  // Hardened Boot Sequence
   try {
+     console.log('[BOOT] Initializing database...');
      await initDB();
   } catch (err) {
-     console.error("Database connection failed. Proceeding anyway, but API will fail.");
+     console.error("❌ CRITICAL: Database initialization failed.");
+     if (env.IS_PROD) {
+       console.error("Stopping server due to database failure in production.");
+       process.exit(1);
+     } else {
+       console.warn("⚠️ Continuing in Development mode, but database features will be unavailable.");
+     }
   }
 
   // API Routes
@@ -30,7 +38,7 @@ async function startServer() {
   app.use(errorHandler);
 
   // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
+  if (!env.IS_PROD) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
@@ -39,14 +47,14 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    app.get('*', (req: express.Request, res: express.Response) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 Gestifique Server running on http://localhost:${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`Environment: ${env.NODE_ENV}`);
   });
 }
 

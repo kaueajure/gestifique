@@ -1,8 +1,9 @@
 import pool from '../db/connection';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { env } from '../config/env';
 
-const SECRET = process.env.JWT_SECRET || 'gestifique-super-secret';
+const SECRET = env.JWT_SECRET;
 
 class AuthService {
   async login(email: string, senha: string) {
