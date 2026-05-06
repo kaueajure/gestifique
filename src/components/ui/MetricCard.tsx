@@ -15,7 +15,7 @@ interface MetricCardProps {
   loading?: boolean;
 }
 
-export const MetricCard = ({ label, value, icon, trend, color = 'blue', loading }: MetricCardProps) => {
+export const MetricCard: React.FC<MetricCardProps> = ({ label, value, icon, trend, color = 'blue', loading }) => {
   const colors = {
     blue: 'bg-blue-50 text-blue-600',
     emerald: 'bg-emerald-50 text-emerald-600',

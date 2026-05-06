@@ -82,8 +82,21 @@ router.patch('/:id', async (req: any, res) => {
         delete req.body.responsavel_id;
     }
 
+    const oldTicket = await ticketsService.getById(id);
     await ticketsService.update(id, req.body);
-    await logSystemAction(req, req.user.id, req.user.empresa_id, 'TICKET_UPDATE', `Atualizou chamado: #${id}`);
+    
+    let descriptions = [];
+    if (req.body.status && req.body.status !== oldTicket.status) descriptions.push(`status para ${req.body.status}`);
+    if (req.body.prioridade && req.body.prioridade !== oldTicket.prioridade) descriptions.push(`prioridade para ${req.body.prioridade}`);
+    if (req.body.responsavel_id !== undefined && req.body.responsavel_id !== oldTicket.responsavel_id) {
+       descriptions.push(`responsável atualizado`);
+    }
+
+    const logMsg = descriptions.length > 0 
+      ? `Atualizou chamado #${id}: ${descriptions.join(', ')}`
+      : `Atualizou detalhes do chamado #${id}`;
+
+    await logSystemAction(req, req.user.id, req.user.empresa_id, 'TICKET_UPDATE', logMsg);
     
     sendSuccess(res, null, 'Ticket atualizado com sucesso');
   } catch (error: any) {

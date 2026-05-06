@@ -4,9 +4,6 @@ import { Ticket, Message, User } from '../../types';
 import { 
   ArrowLeft, 
   Send, 
-  Paperclip, 
-  MoreVertical, 
-  Clock, 
   CheckCircle2, 
   AlertCircle,
   User as UserIcon,
@@ -15,11 +12,14 @@ import {
   Lock,
   Loader2,
   Trash2,
-  Tag
+  Tag,
+  Clock,
+  History
 } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 
 interface TicketDetailsPageProps {
   ticketId: number;
@@ -38,6 +38,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [agents, setAgents] = useState<User[]>([]);
+  const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const fetchData = async () => {
@@ -51,10 +52,18 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
       setTicket(ticketData);
       setMessages(messagesData);
 
-      // If user is admin/dev, fetch agents for assignments
+      // Fetch agents for assignments
       if (currentUser.administrador || currentUser.desenvolvedor) {
         const usersData = await api.get<User[]>('/users');
-        setAgents(usersData.filter(u => u.administrador || u.desenvolvedor));
+        // Rules: 
+        // 1. Devs see everyone who is admin/dev
+        // 2. Admins see only those from their own company
+        const filteredAgents = usersData.filter(u => {
+          const isAgent = u.administrador || u.desenvolvedor;
+          if (currentUser.desenvolvedor) return isAgent;
+          return isAgent && u.empresa_id === currentUser.empresa_id;
+        });
+        setAgents(filteredAgents);
       }
     } catch (err: any) {
       setError(err.message || 'Erro ao carregar detalhes do chamado.');
@@ -110,7 +119,6 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
   };
 
   const handleArchiveTicket = async () => {
-    if (!confirm('Tem certeza que deseja arquivar este atendimento?')) return;
     handleUpdateTicket({ status: 'fechado' });
   };
 
@@ -134,8 +142,25 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
     );
   }
 
+  const clienteNome = ticket.cliente_nome || 'Não informado';
+  const empresaNome = ticket.empresa_nome || 'Empresa não vinculada';
+  const responsavelNome = ticket.responsavel_nome || 'Sem responsável';
+  const categoriaLabel = ticket.categoria || 'Não informado';
+  const origemLabel = ticket.origem || 'Não informado';
+
   return (
     <div className="flex flex-col lg:flex-row gap-8 h-[calc(100vh-160px)] min-h-[600px]">
+      <ConfirmDialog 
+        isOpen={isArchiveConfirmOpen}
+        onClose={() => setIsArchiveConfirmOpen(false)}
+        onConfirm={handleArchiveTicket}
+        title="Arquivar Atendimento"
+        description="Tem certeza que deseja arquivar este atendimento? Ele ficará fechado e poderá ser consultado depois."
+        confirmLabel="Arquivar"
+        cancelLabel="Cancelar"
+        variant="danger"
+      />
+
       <div className="flex-1 flex flex-col min-w-0 bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden">
         {/* Header */}
         <div className="px-8 py-6 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">
@@ -180,7 +205,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                    <UserIcon size={24} />
                 </div>
                 <div>
-                   <div className="text-sm font-black text-slate-900">{ticket.cliente_nome}</div>
+                   <div className="text-sm font-black text-slate-900">{clienteNome}</div>
                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{new Date(ticket.created_at).toLocaleString()} (Abertura)</div>
                 </div>
              </div>
@@ -196,7 +221,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
              </div>
           </div>
 
-          <div className="px-8 py-4 border-b border-slate-50">
+          <div className="px-8 py-2">
              <AnimatePresence>
                 {actionError && (
                   <motion.div 
@@ -233,11 +258,11 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                 "w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-sm uppercase flex-shrink-0 animate-in zoom-in-50 duration-300 shadow-md",
                 msg.usuario_id === ticket.usuario_id ? "bg-slate-800" : (msg.interno ? "bg-amber-500" : "bg-blue-600")
               )}>
-                {msg.usuario_nome.charAt(0)}
+                {(msg.usuario_nome || 'U').charAt(0)}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 mb-1.5">
-                   <span className="text-sm font-black text-slate-900">{msg.usuario_nome}</span>
+                   <span className="text-sm font-black text-slate-900">{msg.usuario_nome || 'Usuário'}</span>
                    <span className="text-[10px] font-bold text-slate-400 uppercase">{new Date(msg.created_at).toLocaleString()}</span>
                    {msg.interno && (
                      <Badge variant="amber" className="text-[8px] font-black tracking-widest"><Lock size={10} className="mr-1" /> Nota Interna</Badge>
@@ -316,26 +341,40 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 border-b border-slate-50 pb-2">Informações do Cliente</h4>
                <div className="space-y-6">
                   <div className="flex items-center gap-4">
-                     <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-700 flex items-center justify-center text-white font-black text-xl">
-                        {ticket.cliente_nome.charAt(0)}
+                     <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-700 flex items-center justify-center text-white font-black text-xl flex-shrink-0">
+                        {clienteNome.charAt(0)}
                      </div>
-                     <div>
-                        <div className="text-base font-black text-slate-900 leading-tight">{ticket.cliente_nome}</div>
-                        <div className="text-[10px] font-bold text-slate-400 uppercase">{ticket.cliente_email}</div>
+                     <div className="min-w-0">
+                        <div className="text-base font-black text-slate-900 leading-tight truncate">{clienteNome}</div>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase truncate">{ticket.cliente_email || 'Email não informado'}</div>
                      </div>
                   </div>
                   <div className="space-y-4">
                      <div className="flex items-center gap-3">
-                        <Building2 size={16} className="text-slate-300" />
-                        <span className="text-xs font-bold text-slate-600">{ticket.empresa_nome || 'Gestifique Master'}</span>
+                        <Building2 size={16} className="text-slate-300 flex-shrink-0" />
+                        <span className="text-xs font-bold text-slate-600 truncate">{empresaNome}</span>
                      </div>
                      <div className="flex items-center gap-3">
-                        <Tag size={16} className="text-slate-300" />
-                        <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">{ticket.categoria}</span>
+                        <Tag size={16} className="text-slate-300 flex-shrink-0" />
+                        <span className="text-xs font-bold text-slate-600 uppercase tracking-widest truncate">{categoriaLabel}</span>
+                     </div>
+                     <div className="flex items-center gap-3">
+                        <History size={16} className="text-slate-300 flex-shrink-0" />
+                        <span className="text-xs font-bold text-slate-600 uppercase tracking-widest truncate">Origem: {origemLabel}</span>
                      </div>
                      <div className="flex items-center gap-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                        <Calendar size={16} className="text-slate-300" /> Aberto em: {new Date(ticket.created_at).toLocaleDateString()}
+                        <Calendar size={16} className="text-slate-300 flex-shrink-0" /> Aberto em: {new Date(ticket.created_at).toLocaleDateString()}
                      </div>
+                     {ticket.prazo_sla && (
+                        <div className="flex items-center gap-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                           <Clock size={16} className="text-slate-300 flex-shrink-0" /> Prazo SLA: {new Date(ticket.prazo_sla).toLocaleString()}
+                        </div>
+                     )}
+                     {ticket.finalizado_em && (
+                        <div className="flex items-center gap-3 text-[10px] font-bold text-emerald-500 uppercase tracking-widest">
+                           <CheckCircle2 size={16} className="text-emerald-500 flex-shrink-0" /> Finalizado: {new Date(ticket.finalizado_em).toLocaleString()}
+                        </div>
+                     )}
                   </div>
                </div>
             </div>
@@ -375,7 +414,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                           ))}
                        </select>
                      ) : (
-                       <span className="text-xs font-black text-slate-900">{ticket.responsavel_nome || 'Aguardando atribuição'}</span>
+                       <span className="text-xs font-black text-slate-900">{responsavelNome}</span>
                      )}
                   </div>
 
@@ -389,7 +428,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
             <div className="pt-4">
                {(currentUser.administrador || currentUser.desenvolvedor) && ticket.status !== 'fechado' && (
                  <button 
-                   onClick={handleArchiveTicket}
+                   onClick={() => setIsArchiveConfirmOpen(true)}
                    className="w-full h-12 bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 font-black text-xs uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center gap-2"
                  >
                     <Trash2 size={16} /> Arquivar Atendimento
@@ -401,3 +440,4 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
     </div>
   );
 };
+

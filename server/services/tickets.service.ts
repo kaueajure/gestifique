@@ -65,7 +65,13 @@ class TicketsService {
 
   async getById(id: number) {
     const [rows]: any = await pool.query(
-      `SELECT t.*, u.nome as cliente_nome, u.email as cliente_email, r.nome as responsavel_nome, e.nome as empresa_nome
+      `SELECT 
+        t.id, t.empresa_id, t.usuario_id, t.responsavel_id, t.titulo, t.descricao, 
+        t.status, t.prioridade, t.categoria, t.origem, t.prazo_sla, t.finalizado_em,
+        t.created_at, t.updated_at,
+        u.nome as cliente_nome, u.email as cliente_email, 
+        r.nome as responsavel_nome, 
+        e.nome as empresa_nome
        FROM tickets t 
        JOIN usuarios u ON t.usuario_id = u.id 
        JOIN empresas e ON t.empresa_id = e.id
@@ -80,12 +86,17 @@ class TicketsService {
     const fields: string[] = [];
     const params: any[] = [];
 
-    if (data.status === 'resolvido' || data.status === 'fechado') {
-      fields.push('finalizado_em = NOW()');
+    // Finalizado_em logic
+    if (data.status) {
+      if (['resolvido', 'fechado'].includes(data.status)) {
+        fields.push('finalizado_em = NOW()');
+      } else {
+        fields.push('finalizado_em = NULL');
+      }
     }
 
     Object.keys(data).forEach(key => {
-      if (['titulo', 'descricao', 'status', 'prioridade', 'responsavel_id', 'categoria'].includes(key)) {
+      if (['titulo', 'descricao', 'status', 'prioridade', 'responsavel_id', 'categoria', 'origem', 'prazo_sla'].includes(key)) {
         fields.push(`${key} = ?`);
         params.push(data[key]);
       }
@@ -99,7 +110,8 @@ class TicketsService {
 
   async getMessages(ticketId: number, includeInternal: boolean) {
     let query = `
-      SELECT m.*, u.nome as usuario_nome 
+      SELECT m.id, m.ticket_id, m.usuario_id, m.mensagem, m.interno, m.anexo, m.created_at,
+             u.nome as usuario_nome 
       FROM ticket_mensagens m
       JOIN usuarios u ON m.usuario_id = u.id
       WHERE m.ticket_id = ?
