@@ -93,7 +93,6 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
     setLoadingSave(true);
     setSaveError(null);
     const formData = new FormData(e.currentTarget);
-    const data = Object.fromEntries(formData.entries());
 
     try {
       const payload: UserPayload = {

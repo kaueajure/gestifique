@@ -6,14 +6,12 @@ import {
   Plus, 
   Search, 
   Edit2, 
-  Mail, 
   Phone, 
   Ticket, 
   Users, 
   CheckCircle2, 
   AlertCircle,
   Loader2,
-  Trash2,
   Target,
   XCircle
 } from 'lucide-react';
@@ -25,9 +23,17 @@ import { Card } from '../ui/Card';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
-import { motion } from 'motion/react';
 
 import { AccessDenied } from '../ui/AccessDenied';
+
+type CompanyPayload = {
+  nome: string;
+  cnpj: string;
+  email: string;
+  telefone: string;
+  cor_principal: string;
+  logo: string;
+};
 
 interface CompaniesPageProps {
   currentUser: User | null;
@@ -85,14 +91,28 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
     e.preventDefault();
     setLoadingSave(true);
     setSaveError(null);
-    const formData = new FormData(e.currentTarget as HTMLFormElement);
-    const data = Object.fromEntries(formData.entries());
+    const formData = new FormData(e.currentTarget);
 
     try {
+      const payload: CompanyPayload = {
+        nome: String(formData.get('nome') || ''),
+        cnpj: String(formData.get('cnpj') || ''),
+        email: String(formData.get('email') || ''),
+        telefone: String(formData.get('telefone') || ''),
+        cor_principal: String(formData.get('cor_principal') || '#2563eb'),
+        logo: String(formData.get('logo') || ''),
+      };
+
+      if (!payload.nome) {
+        setSaveError('O nome da empresa é obrigatório.');
+        setLoadingSave(false);
+        return;
+      }
+
       if (selectedCompany?.id) {
-        await api.patch(`/companies/${selectedCompany.id}`, data);
+        await api.patch(`/companies/${selectedCompany.id}`, payload);
       } else {
-        await api.post('/companies', data);
+        await api.post('/companies', payload);
       }
       showSuccess(`Empresa ${selectedCompany?.id ? 'atualizada' : 'criada'} com sucesso!`);
       setIsModalOpen(false);
@@ -129,9 +149,9 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-slate-900 tracking-tight">Empresas</h2>
-          <p className="text-xs font-medium text-slate-400 uppercase tracking-widest mt-1">Gerencie clientes e instâncias do sistema</p>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mt-1">Gestão de Workspaces</p>
         </div>
-        <Button size="sm" onClick={() => { setSelectedCompany(null); setSaveError(null); setIsModalOpen(true); }} className="font-bold text-xs uppercase tracking-widest">
+        <Button size="sm" onClick={() => { setSelectedCompany(null); setSaveError(null); setIsModalOpen(true); }} className="font-bold text-[10px] uppercase tracking-widest px-4 h-9">
           <Plus size={14} className="mr-2" /> Nova Empresa
         </Button>
       </div>
@@ -249,18 +269,18 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
                               <Building2 size={20} />
                            </div>
                            <div className="min-w-0">
-                              <div className="text-sm font-bold text-slate-900 truncate tracking-tight">{company.nome}</div>
-                              <div className="text-[10px] font-bold text-slate-400 truncate tracking-tighter uppercase">{company.email || 'Email não disponível'}</div>
+                              <div className="text-sm font-bold text-slate-900 truncate tracking-tight">{company.nome || "Empresa"}</div>
+                              <div className="text-[10px] font-bold text-slate-400 truncate tracking-tighter uppercase">{company.email || 'Email não informado'}</div>
                            </div>
                         </div>
                       </td>
                       <td className="px-5 py-4">
                          <div className="space-y-1">
                             <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-tight">
-                               <Target size={10} className="text-slate-300" /> {company.cnpj || '----------'}
+                               <Target size={10} className="text-slate-300" /> {company.cnpj || 'CNPJ não informado'}
                             </div>
                             <div className="flex items-center gap-2 text-[10px] font-bold text-slate-300 uppercase tracking-tight">
-                               <Phone size={10} className="text-slate-300" /> {company.telefone || '-- ---- ----'}
+                               <Phone size={10} className="text-slate-300" /> {company.telefone || 'Telefone não informado'}
                             </div>
                          </div>
                       </td>
@@ -323,7 +343,7 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
            )}
            
            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Nome Fantasia / Razão Social</label>
+              <label className="text-xs font-medium text-slate-500 px-1">Nome Fantasia / Razão Social</label>
               <Input 
                 name="nome" 
                 defaultValue={selectedCompany?.nome} 
@@ -335,7 +355,7 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
 
            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">CNPJ</label>
+                 <label className="text-xs font-medium text-slate-500 px-1">CNPJ</label>
                  <Input 
                    name="cnpj" 
                    defaultValue={selectedCompany?.cnpj || ''} 
@@ -344,7 +364,7 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
                  />
               </div>
               <div className="space-y-1.5">
-                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">E-mail de Contato</label>
+                 <label className="text-xs font-medium text-slate-500 px-1">E-mail de Contato</label>
                  <Input 
                    name="email" 
                    type="email" 
@@ -356,7 +376,7 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
            </div>
 
            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Telefone Principal</label>
+              <label className="text-xs font-medium text-slate-500 px-1">Telefone Principal</label>
               <Input 
                 name="telefone" 
                 defaultValue={selectedCompany?.telefone || ''} 
@@ -366,10 +386,10 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
            </div>
 
            <div className="pt-4 border-t border-slate-50">
-              <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">Customização do Workspace</h4>
+              <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4 text-center">Visual & Identidade</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Cor Principal (Hex)</label>
+                    <label className="text-xs font-medium text-slate-500 px-1">Cor Principal (Hex)</label>
                     <Input 
                       name="cor_principal" 
                       defaultValue={selectedCompany?.cor_principal || '#2563eb'} 
@@ -378,7 +398,7 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
                     />
                  </div>
                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">URL da Logo</label>
+                    <label className="text-xs font-medium text-slate-500 px-1">URL da Logo</label>
                     <Input 
                       name="logo" 
                       defaultValue={selectedCompany?.logo || ''} 
