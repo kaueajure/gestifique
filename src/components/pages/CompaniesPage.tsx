@@ -40,10 +40,6 @@ interface CompaniesPageProps {
 }
 
 export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
-  if (!currentUser?.desenvolvedor) {
-    return <AccessDenied />;
-  }
-
   const [companies, setCompanies] = useState<Empresa[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -109,6 +105,19 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
         return;
       }
 
+      if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
+        setSaveError('E-mail inválido.');
+        setLoadingSave(false);
+        return;
+      }
+
+      const hexRegex = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/;
+      if (payload.cor_principal && !hexRegex.test(payload.cor_principal)) {
+        setSaveError('Cor principal deve ser um hexadecimal válido (ex: #2563eb).');
+        setLoadingSave(false);
+        return;
+      }
+
       if (selectedCompany?.id) {
         await api.patch(`/companies/${selectedCompany.id}`, payload);
       } else {
@@ -130,6 +139,7 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
     try {
       await api.patch(`/companies/${selectedCompany.id}/status`, { ativo: !selectedCompany.ativo });
       showSuccess(`Empresa ${!selectedCompany.ativo ? 'ativada' : 'desativada'} com sucesso!`);
+      setIsStatusConfirmOpen(false);
       fetchCompanies();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao alterar status.';
@@ -144,12 +154,16 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
     usuarios: companies.reduce((acc, c) => acc + Number(c.total_usuarios || 0), 0)
   };
 
+  if (!currentUser?.desenvolvedor) {
+    return <AccessDenied />;
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-slate-900 tracking-tight">Empresas</h2>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mt-1">Gestão de Workspaces</p>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mt-1">Gestão de empresas e unidades vinculadas</p>
         </div>
         <Button size="sm" onClick={() => { setSelectedCompany(null); setSaveError(null); setIsModalOpen(true); }} className="font-bold text-[10px] uppercase tracking-widest px-4 h-9">
           <Plus size={14} className="mr-2" /> Nova Empresa
@@ -303,7 +317,7 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
                          </div>
                       </td>
                       <td className="px-5 py-4 text-right">
-                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                         <div className="flex items-center justify-end gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                             <button 
                               onClick={() => { setSelectedCompany(company); setSaveError(null); setIsModalOpen(true); }}
                               className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-all font-sans"

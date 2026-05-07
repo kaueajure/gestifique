@@ -13,9 +13,10 @@ interface MetricCardProps {
   };
   color?: 'blue' | 'emerald' | 'amber' | 'red' | 'slate' | 'indigo' | 'orange';
   loading?: boolean;
+  className?: string;
 }
 
-export const MetricCard: React.FC<MetricCardProps> = ({ label, value, icon, trend, color = 'blue', loading }) => {
+export const MetricCard: React.FC<MetricCardProps> = ({ label, value, icon, trend, color = 'blue', loading, className }) => {
   const colors = {
     blue: 'bg-blue-50 text-blue-700 border-blue-100',
     emerald: 'bg-emerald-50 text-emerald-600 border-emerald-100',
@@ -28,7 +29,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({ label, value, icon, tren
 
   if (loading) {
     return (
-      <Card className="animate-pulse">
+      <Card className={cn("animate-pulse", className)}>
         <CardContent className="p-5">
           <div className="flex justify-between items-start mb-4">
             <div className="w-10 h-10 rounded-lg bg-slate-100"></div>
@@ -42,7 +43,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({ label, value, icon, tren
   }
 
   return (
-    <Card className="hover:border-slate-300 transition-colors">
+    <Card className={cn("hover:border-slate-300 transition-colors", className)}>
       <CardContent className="p-5">
         <div className="flex justify-between items-start mb-3">
           <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center border", colors[color])}>
