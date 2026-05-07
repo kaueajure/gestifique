@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User } from '../../types';
 import { api } from '../../lib/api';
-import { Settings, Building2, Palette, Bell, Keyboard, ShieldCheck, Globe, Database, Cpu, Lock, Save, Loader2, AlertCircle, CheckCircle2, Layout, Zap } from 'lucide-react';
+import { Building2, Keyboard, ShieldCheck, Database, Cpu, Lock, Save, Loader2, AlertCircle, CheckCircle2, Layout, Zap, Globe, Palette } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -218,6 +218,38 @@ export const SettingsPage = ({ currentUser, onNavigate }: SettingsPageProps) => 
                   <div className="space-y-4">
                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Endereço da Sede</label>
                      <textarea name="endereco" rows={3} className="w-full bg-slate-50 border-none rounded-2xl p-6 text-sm font-bold focus:ring-4 focus:ring-blue-100 transition-all outline-none resize-none" />
+                  </div>
+
+                  <div className="pt-6 border-t border-slate-50 space-y-6">
+                     <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+                           <Layout size={20} />
+                        </div>
+                        <h4 className="font-black text-slate-900">Gestão Rápida</h4>
+                     </div>
+                     <div className="grid md:grid-cols-3 gap-4">
+                        <button 
+                          onClick={() => onNavigate('users')}
+                          className="h-16 px-6 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 flex items-center justify-between hover:bg-slate-100 transition-all"
+                        >
+                           Colaboradores
+                           <ShieldCheck size={16} />
+                        </button>
+                        <button 
+                          onClick={() => onNavigate('logs')}
+                          className="h-16 px-6 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 flex items-center justify-between hover:bg-slate-100 transition-all"
+                        >
+                           Auditoria
+                           <Database size={16} />
+                        </button>
+                        <button 
+                          onClick={() => onNavigate('tickets')}
+                          className="h-16 px-6 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 flex items-center justify-between hover:bg-slate-100 transition-all"
+                        >
+                           Chamados
+                           <Layout size={16} />
+                        </button>
+                     </div>
                   </div>
 
                   <div className="pt-6 flex justify-end">

@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { User } from '../../types';
 import { api } from '../../lib/api';
-import { UserCircle as UserIcon, Mail, Phone, Building2, Shield, Key, Eye, EyeOff, Save, Loader2, AlertCircle, CheckCircle2, Lock } from 'lucide-react';
+import { UserCircle as UserIcon, Building2, Key, Eye, EyeOff, Save, Loader2, AlertCircle, CheckCircle2, Lock } from 'lucide-react';
 import { Badge } from '../ui/Badge';
-import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface ProfilePageProps {

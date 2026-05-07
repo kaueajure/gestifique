@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
-import { Shield, Search, Calendar, Info, Loader2, AlertCircle, ChevronLeft, ChevronRight, RefreshCw, FilterX } from 'lucide-react';
+import { Search, Calendar, Info, Loader2, AlertCircle, ChevronLeft, ChevronRight, RefreshCw, FilterX } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { cn } from '../../lib/utils';
-import { motion } from 'motion/react';
 import { SystemLog } from '../../types';
 
 interface Pagination {
@@ -171,7 +170,7 @@ export const LogsPage = () => {
         ) : error ? (
           <div className="p-24 text-center flex flex-col items-center">
              <div className="w-20 h-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mb-6">
-                <Shield size={40} />
+                <AlertCircle size={40} />
              </div>
              <h4 className="text-xl font-black text-slate-800">Falha na Auditoria</h4>
              <p className="text-slate-500 font-medium mb-8 max-w-sm">{error}</p>
