@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
-import { DashboardData } from '../../types';
+import { DashboardData, Ticket, Log } from '../../types';
 import { MetricCard } from '../ui/MetricCard';
 import { 
   Ticket as TicketIcon, 
@@ -45,8 +45,8 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
       try {
         const data = await api.get<DashboardData>('/dashboard');
         setStats(data);
-      } catch (err: any) {
-        setError(err.message || 'Ocorreu um erro ao carregar o dashboard.');
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Ocorreu um erro ao carregar o dashboard.');
       } finally {
         setLoading(false);
       }
@@ -91,7 +91,7 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
   })) || [];
 
   const COLORS = ['#3b82f6', '#6366f1', '#f59e0b', '#10b981', '#64748b'];
-  const PRIO_COLORS = {
+  const PRIO_COLORS: Record<string, string> = {
     urgente: '#ef4444',
     alta: '#f97316',
     media: '#f59e0b',
@@ -149,7 +149,7 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
             label={card.label} 
             value={card.value} 
             icon={card.icon} 
-            color={card.color as any} 
+            color={card.color} 
             loading={loading} 
           />
         ))}
@@ -175,7 +175,7 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
                         contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
                       />
                       <Bar dataKey="value" radius={[10, 10, 10, 10]} barSize={40}>
-                        {statusData.map((entry: any, index: number) => (
+                        {statusData.map((entry: { name: string; value: number }, index: number) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Bar>
@@ -209,7 +209,7 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
                     </div>
                   ))
                 ) : recentTickets && recentTickets.length > 0 ? (
-                  recentTickets.map((ticket: any) => {
+                  recentTickets.map((ticket: Ticket) => {
                     const tStatus = ticket.status || 'aberto';
                     const tPrio = ticket.prioridade || 'media';
                     const tClient = ticket.cliente_nome || 'Usuário';
@@ -279,8 +279,8 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
                           paddingAngle={5}
                           dataKey="value"
                         >
-                          {priorityData.map((entry: any, index: number) => (
-                            <Cell key={`cell-${index}`} fill={(PRIO_COLORS as any)[entry.name] || '#cbd5e1'} />
+                          {priorityData.map((entry: { name: string; value: number }, index: number) => (
+                            <Cell key={`cell-${index}`} fill={PRIO_COLORS[entry.name] || '#cbd5e1'} />
                           ))}
                         </Pie>
                         <Tooltip 
@@ -296,10 +296,10 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
               
               {priorityData.length > 0 && (
                 <div className="grid grid-cols-2 gap-4 mt-6">
-                   {priorityData.map((p: any, i: number) => (
+                   {priorityData.map((p: { name: string; value: number }, i: number) => (
                      <div key={i} className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
                         <div className="flex items-center gap-2 mb-1">
-                           <div className="w-2 h-2 rounded-full" style={{backgroundColor: (PRIO_COLORS as any)[p.name]}}></div>
+                           <div className="w-2 h-2 rounded-full" style={{backgroundColor: PRIO_COLORS[p.name] || '#cbd5e1'}}></div>
                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{p.name}</span>
                         </div>
                         <div className="text-xl font-black text-slate-900">{p.value}</div>
@@ -323,7 +323,7 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
                     </div>
                   ))
                 ) : recentActivities && recentActivities.length > 0 ? (
-                  recentActivities.map((act: any) => (
+                  recentActivities.map((act: Log) => (
                     <div key={act.id} className="flex gap-4 group">
                       <div className="relative">
                         <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">

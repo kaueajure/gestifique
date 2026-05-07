@@ -213,7 +213,7 @@ export default function App() {
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
                 >
-                  {activeTab === 'dashboard' && <DashboardPage onNavigate={(tab) => { setActiveTab(tab); setSelectedTicketId(null); }} />}
+                  {activeTab === 'dashboard' && <DashboardPage onNavigate={(tab) => setActiveTab(tab)} />}
                   
                   {activeTab === 'tickets' && !selectedTicketId && (
                     <TicketsPage onSelectTicket={setSelectedTicketId} />
