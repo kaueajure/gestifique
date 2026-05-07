@@ -9,10 +9,18 @@ import { Card } from '../ui/Card';
 import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
+type AppTab = 'dashboard' | 'tickets' | 'users' | 'companies' | 'logs' | 'profile' | 'settings';
+
 interface SettingsPageProps {
   currentUser: User;
-  onNavigate: (tab: any) => void;
+  onNavigate: (tab: AppTab) => void;
 }
+
+type DbHealthResponse = {
+  success?: boolean;
+  status?: string;
+  database?: string;
+};
 
 export const SettingsPage = ({ currentUser, onNavigate }: SettingsPageProps) => {
   const [loading, setLoading] = useState(false);
@@ -23,28 +31,56 @@ export const SettingsPage = ({ currentUser, onNavigate }: SettingsPageProps) => 
 
   const checkDb = async () => {
     try {
-      const res = await api.get<any>('/health/db');
-      setDbStatus(res.status);
+      const res = await api.get<DbHealthResponse>('/health/db');
+      const statusValue = res.status || res.database || (res.success ? 'CONNECTED' : 'ERROR');
+      setDbStatus(statusValue === 'CONNECTED' ? 'CONECTADO' : statusValue);
     } catch {
-      setDbStatus('ERROR');
+      setDbStatus('ERRO');
     }
   };
 
   React.useEffect(() => {
-    if (activeSubTab === 'system') checkDb();
+    if (activeSubTab === 'system') {
+      setDbStatus('VERIFICANDO...');
+      checkDb();
+    }
   }, [activeSubTab]);
 
   const handleSaveCompany = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!currentUser.empresa_id) {
+       setError('Sua conta não possui empresa vinculada para editar.');
+       return;
+    }
+
     setLoading(true);
     setSuccess(null);
     setError(null);
 
     const formData = new FormData(e.currentTarget as HTMLFormElement);
-    const data = Object.fromEntries(formData.entries());
+    const payload = {
+      nome: String(formData.get('nome') || ''),
+      cnpj: String(formData.get('cnpj') || ''),
+      email: String(formData.get('email') || ''),
+      telefone: String(formData.get('telefone') || ''),
+      endereco: String(formData.get('endereco') || '')
+    };
+
+    if (!payload.nome) {
+      setError('O nome da empresa é obrigatório.');
+      setLoading(false);
+      return;
+    }
+
+    if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
+      setError('E-mail de contato inválido.');
+      setLoading(false);
+      return;
+    }
 
     try {
-      await api.patch(`/companies/${currentUser.empresa_id}`, data);
+      await api.patch(`/companies/${currentUser.empresa_id}`, payload);
       setSuccess('Configurações da empresa atualizadas!');
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
@@ -131,22 +167,22 @@ export const SettingsPage = ({ currentUser, onNavigate }: SettingsPageProps) => 
                          Acessar Perfil <Zap size={14} className="text-amber-500" />
                        </Button>
 
-                       <div className="space-y-4 pt-2">
-                        <div className="flex items-center justify-between p-3 rounded-lg border border-slate-100 bg-white">
-                           <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-600">
-                                 <Layout size={18} />
-                              </div>
-                              <div>
-                                 <div className="text-xs font-semibold text-slate-900">Navegação Compacta</div>
-                                 <div className="text-[10px] font-medium text-slate-400 uppercase tracking-tight">Otimizar espaço lateral</div>
-                              </div>
-                           </div>
-                           <div className="w-8 h-4 bg-slate-200 rounded-full relative opacity-50 cursor-not-allowed">
-                              <div className="absolute left-0.5 top-0.5 w-3 h-3 bg-white rounded-full transition-all"></div>
-                           </div>
-                        </div>
-                      </div>
+                       <div className="pt-2 border-t border-slate-100">
+                          <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50/50 border border-slate-100">
+                             <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-slate-400 border border-slate-100">
+                                   <Palette size={16} />
+                                </div>
+                                <div>
+                                   <div className="text-xs font-semibold text-slate-900">Modo Escuro</div>
+                                   <div className="text-[10px] font-medium text-slate-400 uppercase">Em breve</div>
+                                </div>
+                             </div>
+                             <div className="w-8 h-4 bg-slate-200 rounded-full relative opacity-50">
+                                <div className="absolute left-0.5 top-0.5 w-3 h-3 bg-white rounded-full transition-all"></div>
+                             </div>
+                          </div>
+                       </div>
                     </div>
                  </Card>
 
@@ -158,23 +194,27 @@ export const SettingsPage = ({ currentUser, onNavigate }: SettingsPageProps) => 
                       <h4 className="text-sm font-semibold text-slate-900">Atalhos de Trabalho</h4>
                     </div>
                     <div className="grid gap-2.5">
-                       {[
-                         { id: 'tickets', desc: 'Central de Chamados', icon: <Layout size={16} /> },
-                         { id: 'profile', desc: 'Dados do Perfil', icon: <ShieldCheck size={16} /> },
-                         { id: 'dashboard', desc: 'Dashboard de Indicadores', icon: <Zap size={16} /> },
-                       ].map(nav => (
-                         <button 
-                           key={nav.id} 
-                           onClick={() => onNavigate(nav.id)}
-                           className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100 hover:bg-slate-100 hover:border-slate-200 transition-all group"
-                         >
-                            <div className="flex items-center gap-3">
-                               <div className="text-slate-400 group-hover:text-blue-600 transition-colors">{nav.icon}</div>
-                               <span className="text-xs font-semibold text-slate-600">{nav.desc}</span>
-                            </div>
-                            <ChevronRight size={14} className="text-slate-300 group-hover:text-slate-600" />
-                         </button>
-                       ))}
+                       {(['tickets', 'profile', 'dashboard'] as const).map(id => {
+                         const navMap: Record<string, { desc: string; icon: React.ReactNode }> = {
+                            tickets: { desc: 'Central de Chamados', icon: <Layout size={16} /> },
+                            profile: { desc: 'Dados do Perfil', icon: <ShieldCheck size={16} /> },
+                            dashboard: { desc: 'Indicadores em Tempo Real', icon: <Zap size={16} /> },
+                         };
+                         const nav = navMap[id];
+                         return (
+                           <button 
+                             key={id} 
+                             onClick={() => onNavigate(id)}
+                             className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100 hover:bg-slate-100 hover:border-slate-200 transition-all group"
+                           >
+                              <div className="flex items-center gap-3">
+                                 <div className="text-slate-400 group-hover:text-blue-600 transition-colors">{nav.icon}</div>
+                                 <span className="text-xs font-semibold text-slate-600">{nav.desc}</span>
+                              </div>
+                              <ChevronRight size={14} className="text-slate-300 group-hover:text-slate-600" />
+                           </button>
+                         );
+                       })}
                     </div>
                  </Card>
               </div>
@@ -287,14 +327,14 @@ export const SettingsPage = ({ currentUser, onNavigate }: SettingsPageProps) => 
                           <Database size={20} />
                        </div>
                        <div>
-                          <div className="text-lg font-bold">MySQL Engine</div>
-                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Database Core</div>
+                          <div className="text-lg font-bold">Banco de Dados</div>
+                          <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Conexão principal</div>
                        </div>
                        <div className="pt-3 border-t border-white/5 flex items-center justify-between">
-                          <Badge variant={dbStatus === 'CONNECTED' ? 'emerald' : dbStatus === 'ERROR' ? 'red' : 'slate'} className="font-semibold text-[10px]">
-                             {dbStatus || 'CHECKING...'}
+                          <Badge variant={dbStatus === 'CONECTADO' ? 'emerald' : dbStatus === 'ERRO' ? 'red' : 'slate'} className="font-semibold text-[10px]">
+                             {dbStatus || 'VERIFICANDO...'}
                           </Badge>
-                          <span className="text-[10px] font-mono text-slate-600">v8.0.x</span>
+                          <span className="text-[10px] font-mono text-slate-500">Produção</span>
                        </div>
                     </Card>
 
@@ -303,12 +343,12 @@ export const SettingsPage = ({ currentUser, onNavigate }: SettingsPageProps) => 
                           <Globe size={20} />
                        </div>
                        <div>
-                          <div className="text-lg font-bold text-slate-900">Node.js API</div>
-                          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Environment</div>
+                          <div className="text-lg font-bold text-slate-900">API do Sistema</div>
+                          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Ambiente</div>
                        </div>
                        <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                          <Badge variant="indigo" className="font-semibold text-[10px]">OPERATIONAL</Badge>
-                          <span className="text-[10px] font-mono text-slate-400">v20.x</span>
+                          <Badge variant="indigo" className="font-semibold text-[10px]">OPERACIONAL</Badge>
+                          <span className="text-[10px] font-mono text-slate-400">Protegido</span>
                        </div>
                     </Card>
 
@@ -317,12 +357,12 @@ export const SettingsPage = ({ currentUser, onNavigate }: SettingsPageProps) => 
                           <ShieldCheck size={20} />
                        </div>
                        <div>
-                          <div className="text-lg font-bold text-slate-900">Security Layers</div>
-                          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Auth Infrastructure</div>
+                          <div className="text-lg font-bold text-slate-900">Camada de Segurança</div>
+                          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Autenticação</div>
                        </div>
                        <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                          <Badge variant="emerald" className="font-semibold text-[10px]">ACTIVE</Badge>
-                          <span className="text-[10px] font-mono text-slate-400">JWT / Argon2</span>
+                          <Badge variant="emerald" className="font-semibold text-[10px]">ATIVO</Badge>
+                          <span className="text-[10px] font-mono text-slate-400">Conectado</span>
                        </div>
                     </Card>
                  </div>
@@ -342,9 +382,9 @@ export const SettingsPage = ({ currentUser, onNavigate }: SettingsPageProps) => 
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                        {[
-                         { id: 'companies', desc: 'Instâncias Ativas', icon: <Building className="text-blue-600" /> },
-                         { id: 'users', desc: 'Contas Globais', icon: <Shield className="text-indigo-600" /> },
-                         { id: 'logs', desc: 'Trilha de Auditoria', icon: <Database className="text-emerald-600" /> },
+                         { id: 'companies' as const, desc: 'Instâncias Ativas', icon: <Building className="text-blue-600" /> },
+                         { id: 'users' as const, desc: 'Contas Globais', icon: <Shield className="text-indigo-600" /> },
+                         { id: 'logs' as const, desc: 'Trilha de Auditoria', icon: <Database className="text-emerald-600" /> },
                        ].map(action => (
                          <Button 
                            key={action.id}
