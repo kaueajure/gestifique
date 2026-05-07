@@ -31,6 +31,11 @@ import {
   Pie
 } from 'recharts';
 
+type ChartDataItem = {
+  name: string;
+  value: number;
+};
+
 interface DashboardPageProps {
   onNavigate?: (tab: 'dashboard' | 'tickets' | 'users' | 'companies' | 'logs' | 'profile' | 'settings') => void;
 }
@@ -77,12 +82,12 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
     { label: 'Resolvidos', value: counts.resolvido || 0, icon: <CheckCircle2 size={18} />, color: 'emerald' as const },
   ];
 
-  const statusData = stats?.byStatus?.map((s) => ({
+  const statusData: ChartDataItem[] = stats?.byStatus?.map((s) => ({
     name: s.status.replace('_', ' '),
     value: s.qtd
   })) || [];
 
-  const priorityData = stats?.byPriority?.map((p) => ({
+  const priorityData: ChartDataItem[] = stats?.byPriority?.map((p) => ({
     name: p.prioridade,
     value: p.qtd
   })) || [];
@@ -158,7 +163,7 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
                           contentStyle={{borderRadius: '8px', border: '1px solid #f1f5f9', boxShadow: 'none', fontSize: '12px'}}
                         />
                         <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={24}>
-                          {statusData.map((entry: any, index: number) => (
+                          {statusData.map((entry: ChartDataItem, index: number) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Bar>
@@ -239,7 +244,7 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
            </Card>
         </div>
 
-        <div className="lg:col-span-4 space-y-6">
+        <div className="lg:col-span-1 space-y-6">
            <Card>
               <CardHeader className="py-4">
                  <CardTitle className="text-sm font-bold">Prioridades</CardTitle>
@@ -256,7 +261,7 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
                           paddingAngle={4}
                           dataKey="value"
                         >
-                          {priorityData.map((entry: any, index: number) => (
+                          {priorityData.map((entry: ChartDataItem, index: number) => (
                             <Cell key={`cell-${index}`} fill={PRIO_COLORS[entry.name] || '#94a3b8'} />
                           ))}
                         </Pie>
@@ -272,7 +277,7 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
                 
                 {priorityData.length > 0 && (
                   <div className="grid grid-cols-2 gap-2 mt-2">
-                     {priorityData.map((p: any, i: number) => (
+                     {priorityData.map((p: ChartDataItem, i: number) => (
                        <div key={i} className="bg-slate-50 border border-slate-200/50 p-2 rounded-lg">
                           <div className="flex items-center gap-1.5 mb-0.5">
                              <div className="w-1.5 h-1.5 rounded-full" style={{backgroundColor: PRIO_COLORS[p.name] || '#94a3b8'}}></div>
