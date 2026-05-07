@@ -15,15 +15,15 @@ import {
   Tag,
 } from 'lucide-react';
 import { Badge } from '../ui/Badge';
-
-type BadgeVariant = 'blue' | 'emerald' | 'amber' | 'red' | 'indigo' | 'slate' | 'orange';
-type TicketStatus = 'aberto' | 'em_andamento' | 'aguardando_cliente' | 'resolvido' | 'fechado';
-type TicketPriority = 'baixa' | 'media' | 'alta' | 'urgente';
 import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { Button } from '../ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
+
+type BadgeVariant = 'blue' | 'emerald' | 'amber' | 'red' | 'indigo' | 'slate' | 'orange';
+type TicketStatus = 'aberto' | 'em_andamento' | 'aguardando_cliente' | 'resolvido' | 'fechado';
+type TicketPriority = 'baixa' | 'media' | 'alta' | 'urgente';
 
 interface TicketDetailsPageProps {
   ticketId: number;
@@ -59,12 +59,11 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
       if (currentUser.administrador || currentUser.desenvolvedor) {
         const usersData = await api.get<User[]>('/users');
         const filteredAgents = usersData.filter(u => {
-          const isAgent = u.administrador || u.desenvolvedor;
           const isActive = u.ativo !== false;
           if (!isActive) return false;
           
-          if (currentUser.desenvolvedor) return isAgent;
-          return isAgent && u.empresa_id === currentUser.empresa_id;
+          if (currentUser.desenvolvedor) return true;
+          return u.empresa_id === currentUser.empresa_id;
         });
         setAgents(filteredAgents);
       }
