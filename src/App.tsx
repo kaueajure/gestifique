@@ -10,6 +10,7 @@ import { CompaniesPage } from './components/pages/CompaniesPage';
 import { LogsPage } from './components/pages/LogsPage';
 import { ProfilePage } from './components/pages/ProfilePage';
 import { AccessDenied } from './components/ui/AccessDenied';
+import { LandingPage } from './components/public/LandingPage';
 import { User } from './types';
 import { api } from './lib/api';
 import { 
@@ -101,61 +102,7 @@ export default function App() {
   // --- RENDERING VIEWS ---
 
   if (view === 'landing') {
-    return (
-      <div className="min-h-screen bg-white">
-        <header className="h-20 max-w-7xl mx-auto px-6 flex items-center justify-between border-b border-slate-50">
-          <div className="flex items-center gap-3">
-             <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-100">
-                <TicketIcon className="text-white" size={24} />
-             </div>
-             <span className="text-xl font-black text-slate-900 tracking-tight">Gestifique</span>
-          </div>
-          <div className="flex items-center gap-6">
-             <button onClick={() => setView('login')} className="text-sm font-black text-slate-500 hover:text-blue-600 transition-colors">Entrar</button>
-             <button onClick={() => setView('login')} className="h-10 px-6 bg-slate-900 text-white text-sm font-black rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 active:scale-95">Experimentar Grátis</button>
-          </div>
-        </header>
-
-        <main className="max-w-7xl mx-auto px-6 py-20">
-           <div className="grid lg:grid-cols-2 gap-20 items-center">
-              <div className="space-y-8">
-                 <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 text-blue-600 rounded-full text-xs font-black uppercase tracking-widest border border-blue-100">
-                    <Zap size={14} /> Soluções Inteligentes
-                 </div>
-                 <h1 className="text-6xl lg:text-7xl font-black text-slate-900 tracking-tight leading-[1.05]">
-                    Atendimento <br />que <span className="text-blue-600">encanta.</span>
-                 </h1>
-                 <p className="text-xl text-slate-500 font-medium leading-relaxed max-w-lg">
-                    A plataforma de suporte que escala com sua empresa. Gestifique sua operação de atendimento com IA e automação.
-                 </p>
-                 <div className="flex items-center gap-4">
-                    <button onClick={() => setView('login')} className="h-14 px-10 bg-blue-600 text-white text-lg font-black rounded-2xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center gap-3 group">
-                       Começar agora <ArrowRight className="group-hover:translate-x-1 transition-transform" />
-                    </button>
-                    <button className="h-14 px-8 border-2 border-slate-100 text-slate-600 font-black rounded-2xl hover:bg-slate-50 transition-all">Ver Demonstração</button>
-                 </div>
-              </div>
-              <div className="relative">
-                 <div className="absolute inset-0 bg-blue-600/10 blur-[120px] rounded-full scale-150 -z-10"></div>
-                 <div className="bg-white p-4 rounded-[40px] border border-slate-100 shadow-2xl relative overflow-hidden backdrop-blur-3xl">
-                    <div className="bg-slate-50 rounded-[30px] p-6 border border-white">
-                       <div className="grid grid-cols-3 gap-4 mb-8">
-                          {Array.from({ length: 3 }).map((_, i) => (
-                             <div key={i} className="h-24 bg-white rounded-2xl border border-slate-100 shadow-sm animate-pulse"></div>
-                          ))}
-                       </div>
-                       <div className="space-y-4">
-                          <div className="h-4 bg-slate-100 rounded-full w-2/3"></div>
-                          <div className="h-4 bg-slate-100 rounded-full w-full"></div>
-                          <div className="h-4 bg-slate-100 rounded-full w-1/2"></div>
-                       </div>
-                    </div>
-                 </div>
-              </div>
-           </div>
-        </main>
-      </div>
-    );
+    return <LandingPage onLogin={() => setView('login')} />;
   }
 
   if (view === 'login') {
