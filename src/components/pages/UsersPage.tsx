@@ -161,22 +161,22 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-semibold text-slate-950 tracking-tight">Time Gestifique</h2>
-          <p className="text-sm text-slate-500">Gerencie cargos, permissões e acesso dos colaboradores.</p>
+          <h2 className="text-xl font-semibold text-slate-900 tracking-tight">Time Gestifique</h2>
+          <p className="text-sm text-slate-500 font-medium tracking-tight">Gerencie cargos, permissões e acesso dos colaboradores.</p>
         </div>
-        <Button onClick={() => { setSelectedUser(null); setSaveError(null); setIsModalOpen(true); }}>
-          <Plus size={18} className="mr-2" /> Novo Usuário
+        <Button size="sm" className="h-9" onClick={() => { setSelectedUser(null); setSaveError(null); setIsModalOpen(true); }}>
+          <Plus size={16} className="mr-2" /> Novo Usuário
         </Button>
       </div>
 
-      <Card className="p-4">
-        <div className="flex flex-col lg:flex-row gap-3">
+      <Card className="p-3">
+        <div className="flex flex-col lg:flex-row gap-2">
           <div className="relative flex-1 group">
-             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={16} />
+             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={14} />
              <input 
                type="text" 
                placeholder="Buscar por nome ou e-mail..." 
-               className="w-full h-9 bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+               className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 text-xs font-semibold outline-none focus:ring-2 focus:ring-blue-100 transition-all font-sans"
                value={searchTerm}
                onChange={(e) => setSearchTerm(e.target.value)}
              />
@@ -185,28 +185,28 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
             <select 
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-9 px-3 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
+              className="h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
             >
-              <option value="todos">Todos Status</option>
+              <option value="todos">Status</option>
               <option value="ativo">Ativos</option>
               <option value="inativo">Inativos</option>
             </select>
             <select 
               value={permissionFilter}
               onChange={(e) => setPermissionFilter(e.target.value)}
-              className="h-9 px-3 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer col-span-2 lg:col-span-1"
+              className="h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
             >
-              <option value="todos">Todas Permissões</option>
-              <option value="usuario">Apenas Usuários</option>
-              <option value="administrador">Apenas Admins</option>
-              <option value="desenvolvedor">Apenas Devs</option>
+              <option value="todos">Permissões</option>
+              <option value="usuario">Usuários</option>
+              <option value="administrador">Admins</option>
+              <option value="desenvolvedor">Devs</option>
             </select>
           </div>
         </div>
       </Card>
 
       {successMsg && (
-        <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-lg text-emerald-600 text-sm font-medium animate-in fade-in slide-in-from-top-2">
+        <div className="p-2 px-3 bg-emerald-50 border border-emerald-100 rounded-lg text-emerald-600 text-xs font-bold animate-in fade-in slide-in-from-top-2">
           {successMsg}
         </div>
       )}
@@ -214,38 +214,26 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
       <Card className="overflow-hidden">
         {loading ? (
           <div className="p-20 flex flex-col items-center justify-center space-y-3">
-             <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-             <p className="text-sm text-slate-500 font-medium tracking-tight">Carregando usuários...</p>
+             <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+             <p className="text-xs text-slate-500 font-bold tracking-tight uppercase">Carregando...</p>
           </div>
-        ) : error ? (
-           <div className="p-20 text-center flex flex-col items-center">
-             <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
-             <p className="text-sm text-slate-500">{error}</p>
-             <Button variant="outline" size="sm" onClick={fetchData} className="mt-4">Tentar novamente</Button>
-           </div>
         ) : users.length === 0 ? (
            <div className="p-20 text-center flex flex-col items-center">
-             <div className="w-16 h-16 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300 mb-4">
-                <UsersIcon size={32} />
+             <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300 mb-4">
+                <UsersIcon size={24} />
              </div>
-             <h3 className="text-base font-semibold text-slate-900 mb-1">Nenhum usuário encontrado</h3>
-             <p className="text-xs text-slate-500 max-w-xs mx-auto mb-6">Crie um novo usuário ou ajuste os filtros para ver novos resultados.</p>
-             <Button 
-               onClick={() => { setSelectedUser(null); setSaveError(null); setIsModalOpen(true); }}
-               size="sm"
-             >
-                <Plus size={16} className="mr-2" /> Convidar Usuário
-             </Button>
+             <h3 className="text-sm font-semibold text-slate-900">Nenhum usuário encontrado</h3>
+             <p className="text-xs text-slate-500 max-w-xs mx-auto mb-6">Crie um novo usuário ou ajuste os filtros.</p>
            </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-100">
-                  <th className="px-6 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Usuário</th>
-                  <th className="px-6 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Cargo / Empresa</th>
-                  <th className="px-6 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Permissões</th>
-                  <th className="px-6 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider text-right">Ações</th>
+                <tr className="bg-slate-50/50 border-b border-slate-100">
+                  <th className="px-5 py-2.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Usuário</th>
+                  <th className="px-5 py-2.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cargo / Empresa</th>
+                  <th className="px-5 py-2.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</th>
+                  <th className="px-5 py-2.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -255,44 +243,44 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
                   
                   return (
                     <tr key={user.id} className="hover:bg-slate-50/50 transition-colors group">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-2.5">
                           <div className={cn(
-                            "w-9 h-9 rounded-lg flex items-center justify-center font-bold text-sm border shadow-sm",
-                            user.ativo ? "bg-blue-600 text-white border-blue-700" : "bg-slate-100 text-slate-400 border-slate-200"
+                            "w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs border shadow-sm transition-colors",
+                            user.ativo ? "bg-slate-900 text-white border-slate-950" : "bg-slate-50 text-slate-400 border-slate-100"
                           )}>
                             {user.nome.charAt(0)}
                           </div>
-                          <div>
-                            <div className="text-sm font-semibold text-slate-950 leading-tight">{user.nome}</div>
-                            <div className="text-xs text-slate-500">{user.email}</div>
+                          <div className="min-w-0">
+                            <div className="text-sm font-semibold text-slate-900 leading-tight truncate">{user.nome}</div>
+                            <div className="text-[10px] font-medium text-slate-400 truncate">{user.email}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                         <div className="text-sm font-medium text-slate-700">{user.cargo || 'Membro'}</div>
-                         <div className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
-                            <Building2 size={12} className="text-slate-300" /> {user.empresa_nome || 'Gestifique Master'}
+                      <td className="px-5 py-3">
+                         <div className="text-xs font-semibold text-slate-700">{user.cargo || 'Membro'}</div>
+                         <div className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                            <Building2 size={10} className="text-slate-300" /> {user.empresa_nome || 'Gestifique Master'}
                          </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-5 py-3">
                         <div className="flex flex-wrap gap-1.5">
-                          {user.administrador && <Badge variant="blue">Admin</Badge>}
-                          {user.desenvolvedor && <Badge variant="indigo">Dev</Badge>}
-                          <Badge variant={user.ativo ? 'emerald' : 'slate'} className={!user.ativo ? 'bg-slate-100 text-slate-500 border-slate-200' : ''}>
+                          {user.administrador && <Badge variant="blue" className="text-[9px] py-0 px-1.5 font-bold uppercase">Admin</Badge>}
+                          {user.desenvolvedor && <Badge variant="indigo" className="text-[9px] py-0 px-1.5 font-bold uppercase">Dev</Badge>}
+                          <Badge variant={user.ativo ? 'emerald' : 'slate'} className={cn("text-[9px] py-0 px-1.5 font-bold uppercase", !user.ativo && "bg-slate-100 text-slate-400 border-slate-100")}>
                             {user.ativo ? 'Ativo' : 'Inativo'}
                           </Badge>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-right">
-                         <div className="flex items-center justify-end gap-1">
+                      <td className="px-5 py-3 text-right">
+                         <div className="flex items-center justify-end gap-0.5 opacity-40 group-hover:opacity-100 transition-opacity">
                             {canManage ? (
                               <>
                                 <Button 
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => { setSelectedUser(user); setSaveError(null); setIsPasswordModalOpen(true); }}
-                                  className="h-8 w-8 text-slate-400 hover:text-amber-600"
+                                  className="h-7 w-7 text-slate-400 hover:text-amber-600"
                                   title="Alterar Senha"
                                 >
                                    <Key size={14} />
@@ -301,7 +289,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => { setSelectedUser(user); setSaveError(null); setIsModalOpen(true); }}
-                                  className="h-8 w-8 text-slate-400 hover:text-blue-600"
+                                  className="h-7 w-7 text-slate-400 hover:text-blue-600"
                                   title="Editar Dados"
                                 >
                                    <Edit2 size={14} />
@@ -311,7 +299,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
                                   size="icon"
                                   onClick={() => { setSelectedUser(user); setIsStatusConfirmOpen(true); }}
                                   className={cn(
-                                    "h-8 w-8",
+                                    "h-7 w-7",
                                     user.ativo ? "text-slate-400 hover:text-red-600" : "text-slate-400 hover:text-emerald-600"
                                   )}
                                   title={user.ativo ? 'Desativar' : 'Ativar'}
@@ -320,7 +308,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
                                 </Button>
                               </>
                             ) : (
-                              <div className="w-8 h-8 flex items-center justify-center text-slate-300" title="Sem permissão para editar">
+                              <div className="w-7 h-7 flex items-center justify-center text-slate-200" title="Sem permissão">
                                 <Shield size={14} />
                               </div>
                             )}

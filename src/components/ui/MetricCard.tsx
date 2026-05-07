@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { Card, CardContent } from './Card';

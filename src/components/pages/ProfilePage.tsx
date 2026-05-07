@@ -76,20 +76,20 @@ export const ProfilePage = ({ currentUser, onUpdate }: ProfilePageProps) => {
   };
 
   return (
-    <div className="max-w-5xl space-y-6">
+    <div className="max-w-4xl space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold text-slate-950 tracking-tight">Meu Perfil</h2>
-        <p className="text-sm text-slate-500">Gerencie como você aparece para o time e configure sua segurança.</p>
+        <h2 className="text-xl font-semibold text-slate-900 tracking-tight">Meu Perfil</h2>
+        <p className="text-sm text-slate-500 font-medium">Gerencie suas informações e configurações de segurança.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Lado Esquerdo: Info Fixa */}
-        <div className="lg:col-span-4 space-y-6">
+        <div className="lg:col-span-4 space-y-4">
            <Card className="text-center overflow-hidden">
-              <div className="h-20 bg-slate-100" />
-              <div className="px-6 pb-6 -mt-10 relative">
+              <div className="h-16 bg-slate-50" />
+              <div className="px-5 pb-5 -mt-8 relative">
                 <div className="inline-block relative">
-                   <div className="w-24 h-24 rounded-2xl bg-white border-4 border-white shadow-sm flex items-center justify-center text-blue-600 font-bold text-3xl uppercase overflow-hidden">
+                   <div className="w-20 h-20 rounded-xl bg-white border-4 border-white shadow-sm flex items-center justify-center text-slate-900 font-bold text-2xl uppercase overflow-hidden">
                       {currentUser.foto ? (
                         <img src={currentUser.foto} alt="" className="w-full h-full object-cover" />
                       ) : (
@@ -97,40 +97,34 @@ export const ProfilePage = ({ currentUser, onUpdate }: ProfilePageProps) => {
                       )}
                    </div>
                 </div>
-                <div className="mt-4">
-                   <h3 className="font-semibold text-slate-950 text-lg leading-tight mb-1">{currentUser.nome}</h3>
-                   <p className="text-xs text-slate-500 font-medium mb-3">{currentUser.email}</p>
+                <div className="mt-3">
+                   <h3 className="font-bold text-slate-900 text-base leading-tight mb-0.5">{currentUser.nome}</h3>
+                   <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-3 truncate">{currentUser.email}</p>
                    <div className="flex flex-wrap justify-center gap-1.5">
-                      <Badge variant="indigo" className="text-[10px] font-bold uppercase tracking-tight">{currentUser.cargo || 'Membro'}</Badge>
-                      {currentUser.administrador && <Badge variant="blue">Admin</Badge>}
+                      <Badge variant="indigo" className="text-[9px] font-bold uppercase px-2 py-0">{currentUser.cargo || 'Membro'}</Badge>
+                      {currentUser.administrador && <Badge variant="blue" className="text-[9px] font-bold uppercase px-2 py-0">Admin</Badge>}
                    </div>
                 </div>
               </div>
            </Card>
 
-           <Card className="p-5 bg-slate-950 text-white border-slate-900 shadow-md">
-              <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2 mb-4">
-                 <Building2 size={12} className="text-blue-400" /> Vínculo Empresarial
+           <Card className="p-4 bg-slate-900 text-white border-slate-900 shadow-lg">
+              <h4 className="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 mb-3">
+                 <Building2 size={10} className="text-blue-500" /> workspace
               </h4>
               <div className="flex items-center gap-3">
-                 <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-blue-400">
-                    <Building2 size={20} />
+                 <div className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-blue-500">
+                    <Building2 size={18} />
                  </div>
                  <div className="min-w-0">
-                    <div className="text-sm font-semibold truncate leading-tight">{currentUser.empresa_nome || 'Gestifique Master'}</div>
-                    <div className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Workspace Ativo</div>
+                    <div className="text-sm font-bold truncate leading-tight tracking-tight">{currentUser.empresa_nome || 'Gestifique Central'}</div>
+                    <div className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest mt-0.5">Conectado</div>
                  </div>
               </div>
-              <div className="mt-5 pt-4 border-t border-white/5 grid grid-cols-2 gap-4">
+              <div className="mt-4 pt-3 border-t border-white/5 grid grid-cols-2 gap-3">
                  <div className="space-y-0.5">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Membro ID</span>
-                    <div className="text-xs font-mono font-bold text-blue-400">#{currentUser.id?.toString().padStart(4, '0')}</div>
-                 </div>
-                 <div className="space-y-0.5">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Desde</span>
-                    <div className="text-xs font-mono font-bold text-blue-400">
-                      {currentUser.created_at ? new Date(currentUser.created_at).toLocaleDateString() : '---'}
-                    </div>
+                    <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">ID Membro</span>
+                    <div className="text-xs font-mono font-bold text-slate-300">#{currentUser.id?.toString().padStart(4, '0')}</div>
                  </div>
               </div>
            </Card>

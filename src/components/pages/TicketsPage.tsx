@@ -106,22 +106,22 @@ export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-semibold text-slate-950 tracking-tight">Atendimentos</h2>
-          <p className="text-sm text-slate-500">Gerencie e acompanhe todas as solicitações de suporte.</p>
+          <h2 className="text-xl font-semibold text-slate-900 tracking-tight">Atendimentos</h2>
+          <p className="text-sm text-slate-500 font-medium tracking-tight">Gerencie e acompanhe todas as solicitações de suporte.</p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)}>
-          <Plus size={18} className="mr-2" /> Novo Atendimento
+        <Button size="sm" className="h-9" onClick={() => setIsModalOpen(true)}>
+          <Plus size={16} className="mr-2" /> Novo Atendimento
         </Button>
       </div>
 
-      <Card className="p-4">
-        <div className="flex flex-col lg:flex-row gap-3">
+      <Card className="p-3">
+        <div className="flex flex-col lg:flex-row gap-2">
           <div className="relative flex-1 group">
-             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={16} />
+             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={14} />
              <input 
                type="text" 
-               placeholder="Buscar ticket..." 
-               className="w-full h-9 bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+               placeholder="Buscar por ID ou assunto..." 
+               className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 text-xs font-semibold outline-none focus:ring-2 focus:ring-blue-100 transition-all"
                value={searchTerm}
                onChange={(e) => setSearchTerm(e.target.value)}
              />
@@ -130,9 +130,9 @@ export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
             <select 
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="h-9 px-3 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
+              className="h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
             >
-              <option value="todas">Todas Categorias</option>
+              <option value="todas">Categorias</option>
               <option value="suporte_tecnico">Suporte Técnico</option>
               <option value="financeiro">Financeiro</option>
               <option value="recursos_humanos">Recursos Humanos</option>
@@ -142,9 +142,9 @@ export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
             <select 
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-9 px-3 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
+              className="h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
             >
-              <option value="todos">Todos Status</option>
+              <option value="todos">Status</option>
               <option value="aberto">Aberto</option>
               <option value="em_andamento">Em Andamento</option>
               <option value="aguardando_cliente">Aguardando Cliente</option>
@@ -153,9 +153,9 @@ export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
             <select 
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
-              className="h-9 px-3 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer col-span-2 lg:col-span-1"
+              className="h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
             >
-              <option value="todas">Todas Prioridades</option>
+              <option value="todas">Prioridades</option>
               <option value="urgente">Urgente</option>
               <option value="alta">Alta</option>
               <option value="media">Média</option>
@@ -171,9 +171,9 @@ export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
                   setPriorityFilter('todas');
                   setCategoryFilter('todas');
                 }}
-                className="h-9 px-2"
+                className="h-8 px-2 text-[10px] font-bold"
               >
-                <X size={14} className="mr-1" /> Limpar
+                <X size={12} className="mr-1" /> Limpar
               </Button>
             )}
           </div>
@@ -183,17 +183,8 @@ export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
       <Card className="overflow-hidden">
         {loading && tickets.length === 0 ? (
           <div className="p-20 flex flex-col items-center justify-center space-y-3">
-             <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-             <p className="text-sm text-slate-500 font-medium tracking-tight">Carregando chamados...</p>
-          </div>
-        ) : error ? (
-          <div className="p-20 text-center flex flex-col items-center">
-             <div className="w-12 h-12 bg-red-50 text-red-500 rounded-xl flex items-center justify-center mb-4 border border-red-100">
-                <AlertCircle size={24} />
-             </div>
-             <h4 className="text-base font-semibold text-slate-900 mb-1">Falha na listagem</h4>
-             <p className="text-xs text-slate-500 mb-6">{error}</p>
-             <Button variant="outline" size="sm" onClick={fetchTickets}>Tentar novamente</Button>
+             <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+             <p className="text-xs text-slate-500 font-bold tracking-tight uppercase">Carregando...</p>
           </div>
         ) : tickets.length > 0 ? (
           <div className="divide-y divide-slate-100">
@@ -201,46 +192,46 @@ export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
               <div 
                 key={ticket.id}
                 onClick={() => onSelectTicket(ticket.id)}
-                className="p-4 flex flex-col sm:flex-row sm:items-center gap-4 hover:bg-slate-50 transition-colors cursor-pointer group"
+                className="p-3 px-4 flex flex-col sm:flex-row sm:items-center gap-4 hover:bg-slate-50/50 transition-colors cursor-pointer group"
               >
                 <div className={cn(
-                  "w-10 h-10 rounded-lg flex items-center justify-center border transition-colors",
-                  ticket.status === 'resolvido' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-blue-50 text-blue-700 border-blue-100"
+                  "w-9 h-9 rounded-lg flex items-center justify-center border transition-colors shadow-sm bg-white",
+                  ticket.status === 'resolvido' ? "text-emerald-600 border-emerald-100" : "text-slate-400 group-hover:text-blue-600 border-slate-100 group-hover:border-blue-100"
                 )}>
-                  <MessageSquare size={20} />
+                  <MessageSquare size={16} />
                 </div>
 
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-0.5">
-                    <span className="text-sm font-semibold text-slate-900 truncate group-hover:text-blue-700 transition-colors">{ticket.titulo}</span>
-                    <Badge variant={statusMap[ticket.status || 'aberto']}>{ticket.status.replace('_', ' ')}</Badge>
+                    <span className="text-sm font-semibold text-slate-800 truncate group-hover:text-slate-950 transition-colors">{ticket.titulo}</span>
+                    <Badge variant={statusMap[ticket.status || 'aberto']} className="text-[9px] py-0 px-1.5">{ticket.status.replace('_', ' ')}</Badge>
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-medium text-slate-500">
-                    <span className="text-blue-700 font-bold">#{ticket.id}</span>
-                    <span className="flex items-center gap-1.5"><UserIcon size={12} className="text-slate-400" /> {ticket.cliente_nome}</span>
-                    <span className="flex items-center gap-1.5"><Tag size={12} className="text-slate-400" /> {ticket.categoria?.replace('_', ' ')}</span>
-                    <span className="flex items-center gap-1.5"><Calendar size={12} className="text-slate-400" /> {new Date(ticket.created_at).toLocaleDateString()}</span>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] font-medium text-slate-400">
+                    <span className="text-blue-600 font-bold">#{ticket.id}</span>
+                    <span className="flex items-center gap-1.5"><UserIcon size={10} /> {ticket.cliente_nome}</span>
+                    <span className="flex items-center gap-1.5"><Tag size={10} /> {ticket.categoria?.replace('_', ' ')}</span>
+                    <span className="flex items-center gap-1.5"><Calendar size={10} /> {new Date(ticket.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-4 ml-auto sm:ml-0">
-                  <Badge variant={getPriorityVariant(ticket.prioridade)} className="font-semibold uppercase text-[10px]">
+                  <Badge variant={getPriorityVariant(ticket.prioridade)} className="font-bold uppercase text-[9px] px-1.5 py-0">
                     {ticket.prioridade}
                   </Badge>
-                  <div className="h-8 w-8 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 group-hover:bg-blue-700 group-hover:text-white group-hover:border-blue-700 transition-all">
-                    <ChevronRight size={16} />
+                  <div className="h-7 w-7 rounded-lg border border-slate-100 flex items-center justify-center text-slate-300 group-hover:bg-slate-900 group-hover:text-white group-hover:border-slate-900 transition-all">
+                    <ChevronRight size={14} />
                   </div>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="p-24 text-center flex flex-col items-center">
-            <div className="w-16 h-16 bg-slate-50 text-slate-300 rounded-2xl flex items-center justify-center mb-4 border border-slate-100">
-              <Search size={32} />
+          <div className="p-20 text-center flex flex-col items-center">
+            <div className="w-12 h-12 bg-slate-50 text-slate-300 rounded-xl flex items-center justify-center mb-4 border border-slate-100">
+              <Search size={24} />
             </div>
-            <h4 className="text-base font-semibold text-slate-900 mb-1">Nenhum resultado</h4>
-            <p className="text-xs text-slate-500 max-w-[240px] mx-auto">Tente ajustar seus filtros ou termos de pesquisa para encontrar o que procura.</p>
+            <h4 className="text-sm font-semibold text-slate-900">Nenhum resultado</h4>
+            <p className="text-xs text-slate-500 max-w-[200px] mx-auto">Tente ajustar seus filtros ou termos de pesquisa.</p>
           </div>
         )}
       </Card>

@@ -171,29 +171,29 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
 
       <div className="flex-1 flex flex-col min-w-0 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-           <div className="flex items-center gap-4">
+        <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+           <div className="flex items-center gap-3">
               <button 
                 onClick={onBack}
-                className="w-9 h-9 flex items-center justify-center bg-white text-slate-400 hover:text-slate-900 rounded-lg shadow-sm border border-slate-200 transition-all active:scale-95"
+                className="w-8 h-8 flex items-center justify-center bg-white text-slate-400 hover:text-slate-900 rounded-lg shadow-sm border border-slate-200 transition-all active:scale-95"
               >
-                <ArrowLeft size={16} />
+                <ArrowLeft size={14} />
               </button>
-              <div>
+              <div className="min-w-0">
                  <div className="flex items-center gap-2 mb-0.5">
                     <span className="text-[10px] font-bold text-blue-600 uppercase tracking-tight">#{ticket.id}</span>
-                    <Badge variant={getStatusVariant(ticket.status)}>{ticket.status.replace('_', ' ')}</Badge>
+                    <Badge variant={getStatusVariant(ticket.status)} className="text-[9px] py-0 px-1.5 font-bold uppercase">{ticket.status.replace('_', ' ')}</Badge>
                  </div>
-                 <h3 className="text-sm font-semibold text-slate-900 truncate max-w-md">{ticket.titulo}</h3>
+                 <h3 className="text-sm font-semibold text-slate-900 truncate max-w-md leading-tight">{ticket.titulo}</h3>
               </div>
            </div>
            
            {(currentUser.administrador || currentUser.desenvolvedor) && (
-             <div className="flex items-center gap-3">
+             <div className="flex items-center gap-2">
                 <select 
                   value={ticket.status}
                   onChange={(e) => handleUpdateTicket({ status: e.target.value as any })}
-                  className="h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
+                  className="h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
                 >
                    <option value="aberto">Aberto</option>
                    <option value="em_andamento">Em Andamento</option>
@@ -206,26 +206,26 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-white">
-          <div className="bg-slate-50 p-6 rounded-xl border border-slate-200/50">
-             <div className="flex items-start gap-3 mb-4">
-                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-sm">
-                   <UserIcon size={18} />
+        <div className="flex-1 overflow-y-auto p-5 space-y-5 custom-scrollbar bg-white">
+          <div className="bg-slate-50/50 p-5 rounded-xl border border-slate-100">
+             <div className="flex items-start gap-3 mb-3">
+                <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-white shadow-sm font-bold text-xs">
+                   {clienteNome.charAt(0)}
                 </div>
                 <div>
                    <div className="text-sm font-bold text-slate-900">{clienteNome}</div>
-                   <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-tight">{new Date(ticket.created_at).toLocaleString()} (Abertura)</div>
+                   <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tight italic">Relatado em {new Date(ticket.created_at).toLocaleString()}</div>
                 </div>
              </div>
-             <div className="text-sm font-medium text-slate-600 leading-relaxed whitespace-pre-wrap sm:pl-13">
+             <div className="text-sm font-medium text-slate-700 leading-relaxed whitespace-pre-wrap pl-11">
                {ticket.descricao}
              </div>
           </div>
 
-          <div className="relative">
-             <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-t border-slate-100"></div>
+          <div className="relative py-2">
+             <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-t border-slate-50"></div>
              <div className="relative flex justify-center">
-                <span className="bg-white px-3 text-[10px] font-bold text-slate-300 uppercase tracking-widest italic">Início da conversa</span>
+                <span className="bg-white px-3 text-[9px] font-bold text-slate-300 uppercase tracking-widest italic">Comunicações</span>
              </div>
           </div>
 
@@ -256,22 +256,22 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
             <div 
               key={msg.id} 
               className={cn(
-                "flex gap-3 group animate-in fade-in slide-in-from-bottom-2 duration-300",
-                msg.interno && "bg-amber-50 p-4 rounded-xl border border-dashed border-amber-200"
+                "flex gap-3 animate-in fade-in slide-in-from-bottom-1 duration-300",
+                msg.interno && "bg-amber-50/50 p-3 rounded-xl border border-dashed border-amber-100"
               )}
             >
               <div className={cn(
-                "w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-xs uppercase flex-shrink-0 shadow-sm",
-                msg.usuario_id === ticket.usuario_id ? "bg-slate-800" : (msg.interno ? "bg-amber-500" : "bg-blue-600")
+                "w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-[10px] uppercase flex-shrink-0 shadow-sm",
+                msg.usuario_id === ticket.usuario_id ? "bg-slate-900" : (msg.interno ? "bg-amber-500" : "bg-blue-600")
               )}>
                 {(msg.usuario_nome || 'U').charAt(0)}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                   <span className="text-sm font-bold text-slate-900">{msg.usuario_nome || 'Usuário'}</span>
-                   <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-tight">{new Date(msg.created_at).toLocaleString()}</span>
+                <div className="flex items-center gap-2 mb-0.5">
+                   <span className="text-xs font-bold text-slate-900">{msg.usuario_nome || 'Usuário'}</span>
+                   <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tight italic">{new Date(msg.created_at).toLocaleString()}</span>
                    {msg.interno && (
-                     <Badge variant="amber" className="text-[9px] font-bold px-1.5 py-0"><Lock size={10} className="mr-1" /> Nota Interna</Badge>
+                     <Badge variant="amber" className="text-[8px] font-bold px-1.5 py-0 uppercase">Nota Interna</Badge>
                    )}
                 </div>
                 <div className="text-sm font-medium text-slate-600 leading-relaxed whitespace-pre-wrap">

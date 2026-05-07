@@ -112,16 +112,15 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
     );
   }
 
-  return (
-    <div className="space-y-8">
+  return (    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-semibold text-slate-950 tracking-tight">Dashboard</h2>
-          <p className="text-sm text-slate-500">Visão geral do sistema e indicadores de performance.</p>
+          <h2 className="text-xl font-semibold text-slate-900 tracking-tight">Dashboard</h2>
+          <p className="text-sm text-slate-500 font-medium">Visão geral do sistema e indicadores de performance.</p>
         </div>
         <div className="flex items-center gap-2">
-           <Button variant="outline" size="sm">PDF Report</Button>
-           <Button size="sm" onClick={() => onNavigate?.('tickets')}>
+           <Button variant="outline" size="sm" className="h-9">Relatório</Button>
+           <Button size="sm" className="h-9" onClick={() => onNavigate?.('tickets')}>
               <Plus size={16} className="mr-2" /> Novo Ticket
            </Button>
         </div>
@@ -143,22 +142,22 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                 <CardTitle>Chamados por Status</CardTitle>
-                 <Badge variant="blue">Total: {counts.total}</Badge>
+              <CardHeader className="flex flex-row items-center justify-between py-4">
+                 <CardTitle className="text-sm font-bold">Chamados por Status</CardTitle>
+                 <Badge variant="blue" className="text-[10px] py-0 px-2">Total: {counts.total}</Badge>
               </CardHeader>
-              <CardContent>
-                <div className="h-64 w-full">
+              <CardContent className="pb-6">
+                <div className="h-48 w-full">
                   {statusData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={statusData}>
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 11, fontWeight: 500}} dy={10} />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 500}} dy={10} />
                         <YAxis hide />
                         <Tooltip 
-                          cursor={{fill: '#f1f5f9'}} 
-                          contentStyle={{borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}
+                          cursor={{fill: '#f8fafc'}} 
+                          contentStyle={{borderRadius: '8px', border: '1px solid #f1f5f9', boxShadow: 'none', fontSize: '12px'}}
                         />
-                        <Bar dataKey="value" radius={[4, 4, 4, 4]} barSize={32}>
+                        <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={24}>
                           {statusData.map((entry: any, index: number) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
@@ -166,27 +165,27 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
                       </BarChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="flex h-full items-center justify-center text-sm text-slate-400">Nenhum dado disponível.</div>
+                    <div className="flex h-full items-center justify-center text-xs text-slate-400">Nenhum dado disponível.</div>
                   )}
                 </div>
               </CardContent>
            </Card>
 
            <Card className="overflow-hidden">
-              <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 bg-slate-50/50">
-                <CardTitle>Chamados Recentes</CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => onNavigate?.('tickets')}>
-                  Ver Todos <ChevronRight size={14} className="ml-1" />
+              <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 bg-slate-50/30 py-3">
+                <CardTitle className="text-sm font-bold">Chamados Recentes</CardTitle>
+                <Button variant="ghost" size="sm" className="h-7 text-[11px] font-bold" onClick={() => onNavigate?.('tickets')}>
+                  Ver Todos <ChevronRight size={12} className="ml-1" />
                 </Button>
               </CardHeader>
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-slate-50">
                 {loading ? (
                   Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="p-4 animate-pulse flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-slate-100"></div>
+                    <div key={i} className="p-4 animate-pulse flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-slate-100"></div>
                       <div className="flex-1 space-y-2">
-                        <div className="w-1/4 h-4 bg-slate-100 rounded"></div>
-                        <div className="w-1/2 h-3 bg-slate-100 rounded"></div>
+                        <div className="w-1/4 h-3 bg-slate-100 rounded"></div>
+                        <div className="w-1/2 h-2 bg-slate-100 rounded"></div>
                       </div>
                     </div>
                   ))
@@ -200,39 +199,39 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
                       fechado: 'slate'
                     };
                     return (
-                      <div key={ticket.id} onClick={() => onNavigate?.('tickets')} className="p-4 flex items-center gap-4 hover:bg-slate-50 transition-colors cursor-pointer group">
-                        <div className="w-10 h-10 rounded-lg border border-slate-100 bg-slate-50 flex items-center justify-center text-slate-400 group-hover:text-blue-600 transition-colors">
-                          <TicketIcon size={18} />
+                      <div key={ticket.id} onClick={() => onNavigate?.('tickets')} className="p-3 px-4 flex items-center gap-3 hover:bg-slate-50 transition-colors cursor-pointer group">
+                        <div className="w-8 h-8 rounded-lg border border-slate-100 bg-white flex items-center justify-center text-slate-400 group-hover:text-blue-600 transition-colors shadow-sm">
+                          <TicketIcon size={14} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-0.5">
-                            <span className="text-sm font-semibold text-slate-900 truncate">{ticket.titulo}</span>
-                            <Badge variant={statusMap[ticket.status || 'aberto']}>{ticket.status?.replace('_', ' ')}</Badge>
+                            <span className="text-sm font-semibold text-slate-800 truncate group-hover:text-slate-950">{ticket.titulo}</span>
+                            <Badge variant={statusMap[ticket.status || 'aberto']} className="text-[9px] py-0 px-1.5">{ticket.status?.replace('_', ' ')}</Badge>
                           </div>
-                          <div className="flex items-center gap-3 text-[11px] font-medium text-slate-400">
-                            <span className="text-blue-700 font-bold">#{ticket.id}</span>
-                            <span className="flex items-center gap-1"><Calendar size={12} /> {new Date(ticket.created_at).toLocaleDateString()}</span>
-                            <span className="truncate flex items-center gap-1"><UserIcon size={12} /> {ticket.cliente_nome || 'Usuário'}</span>
+                          <div className="flex items-center gap-3 text-[10px] font-medium text-slate-400">
+                            <span className="text-blue-600 font-bold">#{ticket.id}</span>
+                            <span className="flex items-center gap-1"><Calendar size={10} /> {new Date(ticket.created_at).toLocaleDateString()}</span>
+                            <span className="truncate flex items-center gap-1"><UserIcon size={10} /> {ticket.cliente_nome || 'Usuário'}</span>
                           </div>
                         </div>
                         <div className="hidden sm:block">
-                           <Badge variant={ticket.prioridade === 'urgente' ? 'red' : 'slate'} className="font-semibold px-2">
+                           <Badge variant={ticket.prioridade === 'urgente' ? 'red' : 'slate'} className="text-[9px] font-bold px-1.5 py-0 uppercase">
                              {ticket.prioridade}
                            </Badge>
                         </div>
-                        <ChevronRight className="text-slate-300 group-hover:text-slate-600 ml-2" size={16} />
+                        <ChevronRight className="text-slate-300 group-hover:text-slate-500 ml-1" size={14} />
                       </div>
                     );
                   })
                 ) : (
-                  <div className="p-12 text-center flex flex-col items-center">
-                    <div className="w-12 h-12 bg-slate-50 text-slate-300 rounded-xl flex items-center justify-center mb-4 border border-slate-100">
-                      <TicketIcon size={24} />
+                  <div className="p-8 text-center flex flex-col items-center">
+                    <div className="w-10 h-10 bg-slate-50 text-slate-300 rounded-lg flex items-center justify-center mb-3 border border-slate-100">
+                      <TicketIcon size={20} />
                     </div>
-                    <h4 className="text-base font-semibold text-slate-900 mb-1">Tudo em dia!</h4>
-                    <p className="text-xs text-slate-500 max-w-[200px] mb-6">Nenhum chamado pendente no momento.</p>
-                    <Button size="sm" onClick={() => onNavigate?.('tickets')}>
-                       <Plus size={14} className="mr-2" /> Novo Ticket
+                    <h4 className="text-sm font-semibold text-slate-900">Tudo em dia!</h4>
+                    <p className="text-xs text-slate-500 max-w-[180px] mb-4">Nenhum chamado pendente.</p>
+                    <Button size="sm" className="h-8 text-[11px]" onClick={() => onNavigate?.('tickets')}>
+                       <Plus size={14} className="mr-1" /> Novo Ticket
                     </Button>
                   </div>
                 )}
@@ -240,20 +239,20 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
            </Card>
         </div>
 
-        <div className="space-y-6">
+        <div className="lg:col-span-4 space-y-6">
            <Card>
-              <CardHeader>
-                 <CardTitle>Prioridades</CardTitle>
+              <CardHeader className="py-4">
+                 <CardTitle className="text-sm font-bold">Prioridades</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="h-56 w-full flex items-center justify-center">
+              <CardContent className="pb-6">
+                <div className="h-44 w-full flex items-center justify-center">
                   {priorityData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
                           data={priorityData}
-                          innerRadius={50}
-                          outerRadius={80}
+                          innerRadius={45}
+                          outerRadius={65}
                           paddingAngle={4}
                           dataKey="value"
                         >
@@ -262,24 +261,24 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
                           ))}
                         </Pie>
                         <Tooltip 
-                          contentStyle={{borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}
+                          contentStyle={{borderRadius: '8px', border: '1px solid #f1f5f9', boxShadow: 'none', fontSize: '11px'}}
                         />
                       </PieChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="text-sm text-slate-400">Sem dados.</div>
+                    <div className="text-xs text-slate-400">Sem dados.</div>
                   )}
                 </div>
                 
                 {priorityData.length > 0 && (
-                  <div className="grid grid-cols-2 gap-2 mt-4">
+                  <div className="grid grid-cols-2 gap-2 mt-2">
                      {priorityData.map((p: any, i: number) => (
-                       <div key={i} className="bg-slate-50 border border-slate-100 p-2.5 rounded-lg">
+                       <div key={i} className="bg-slate-50 border border-slate-200/50 p-2 rounded-lg">
                           <div className="flex items-center gap-1.5 mb-0.5">
-                             <div className="w-2 h-2 rounded-full" style={{backgroundColor: PRIO_COLORS[p.name] || '#94a3b8'}}></div>
-                             <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-tight">{p.name}</span>
+                             <div className="w-1.5 h-1.5 rounded-full" style={{backgroundColor: PRIO_COLORS[p.name] || '#94a3b8'}}></div>
+                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{p.name}</span>
                           </div>
-                          <div className="text-lg font-bold text-slate-900 leading-tight">{p.value}</div>
+                          <div className="text-base font-bold text-slate-900 leading-tight">{p.value}</div>
                        </div>
                      ))}
                   </div>
@@ -288,35 +287,22 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
            </Card>
 
            <Card>
-              <CardHeader>
-                 <CardTitle>Atividades</CardTitle>
+              <CardHeader className="py-4">
+                 <CardTitle className="text-sm font-bold">Atividades</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-5">
-                {loading ? (
-                  Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="flex gap-3 animate-pulse">
-                      <div className="w-8 h-8 rounded-lg bg-slate-50"></div>
-                      <div className="flex-1 space-y-1.5">
-                        <div className="h-3 bg-slate-100 rounded-full w-full"></div>
-                        <div className="h-2 bg-slate-100 rounded-full w-2/3"></div>
-                      </div>
-                    </div>
-                  ))
-                ) : recentActivities && recentActivities.length > 0 ? (
+              <CardContent className="space-y-4 pb-6">
+                {recentActivities && recentActivities.length > 0 ? (
                   recentActivities.map((act: Log) => (
-                    <div key={act.id} className="flex gap-3 relative group">
+                    <div key={act.id} className="flex gap-2.5 relative group">
                       <div className="flex flex-col items-center">
-                        <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-blue-600 group-hover:bg-blue-50 transition-colors z-10">
-                           <ActivityIcon size={14} />
+                        <div className="w-6 h-6 rounded-md bg-white border border-slate-200 flex items-center justify-center text-slate-400 group-hover:text-blue-600 transition-colors z-10 shadow-sm">
+                           <ActivityIcon size={12} />
                         </div>
-                        <div className="absolute top-8 bottom-[-20px] left-4 w-px bg-slate-100 last:hidden"></div>
+                        <div className="absolute top-6 bottom-[-16px] left-3 w-px bg-slate-100 last:hidden"></div>
                       </div>
-                      <div className="flex-1 min-w-0 pb-4">
-                        <p className="text-xs font-semibold text-slate-800 leading-snug mb-0.5 line-clamp-1">{act.acao}</p>
-                        {act.descricao && (
-                          <p className="text-[11px] text-slate-500 truncate">{act.descricao}</p>
-                        )}
-                        <div className="flex items-center gap-2 mt-1 text-[10px] font-medium text-slate-400">
+                      <div className="flex-1 min-w-0 pb-3">
+                        <p className="text-[11px] font-bold text-slate-800 leading-snug mb-0.5 line-clamp-1">{act.acao}</p>
+                        <div className="flex items-center gap-2 text-[10px] font-medium text-slate-400">
                           <span className="text-blue-600">{act.usuario_nome?.split(' ')[0] || 'Sistema'}</span>
                           <span>•</span>
                           <span>{new Date(act.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -325,7 +311,7 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-6 text-sm text-slate-400">Sem atividades recentes.</div>
+                  <div className="text-center py-4 text-xs text-slate-400 font-medium">Sem atividades recentes.</div>
                 )}
               </CardContent>
            </Card>
