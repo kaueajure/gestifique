@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import  ticketsService from  '../services/tickets.service.js';
+import  ticketsService, { toPositiveInt } from  '../services/tickets.service.js';
 import  attachmentsService from  '../services/attachments.service.js';
 import  { authMiddleware, AuthRequest } from  '../middlewares/auth.js';
 import  { isAdmin } from  '../middlewares/permissions.js';
@@ -17,12 +17,25 @@ router.get('/', async (req: AuthRequest, res) => {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
 
+    const empresaIdFilter = currentUser.desenvolvedor 
+      ? toPositiveInt(req.query.empresa_id) 
+      : undefined;
+      
+    const responsavelId = toPositiveInt(req.query.responsavel_id);
+
     const filters = {
-      ...req.query,
       empresa_id: currentUser.empresa_id,
       usuario_id: currentUser.id,
       is_dev: currentUser.desenvolvedor,
-      is_admin: currentUser.administrador
+      is_admin: currentUser.administrador,
+      responsavel_id: responsavelId,
+      empresa_id_filter: empresaIdFilter,
+      status: typeof req.query.status === 'string' && req.query.status !== 'todos' ? req.query.status : undefined,
+      prioridade: typeof req.query.prioridade === 'string' && req.query.prioridade !== 'todas' ? req.query.prioridade : undefined,
+      categoria: typeof req.query.categoria === 'string' && req.query.categoria !== 'todas' ? req.query.categoria : undefined,
+      search: typeof req.query.search === 'string' ? req.query.search.trim() : undefined,
+      page: toPositiveInt(req.query.page) ?? 1,
+      limit: toPositiveInt(req.query.limit) ?? 20
     };
     const tickets = await ticketsService.list(filters);
     sendSuccess(res, tickets);
@@ -37,17 +50,23 @@ router.get('/kanban', async (req: AuthRequest, res) => {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
 
+    const empresaIdFilter = currentUser.desenvolvedor
+      ? toPositiveInt(req.query.empresa_id)
+      : undefined;
+
+    const responsavelId = toPositiveInt(req.query.responsavel_id);
+
     const filters = {
       empresa_id: currentUser.empresa_id,
       usuario_id: currentUser.id,
       is_dev: currentUser.desenvolvedor,
       is_admin: currentUser.administrador,
-      responsavel_id: req.query.responsavel_id,
-      empresa_id_filter: req.query.empresa_id,
-      search: req.query.search,
-      status: req.query.status,
-      prioridade: req.query.prioridade,
-      categoria: req.query.categoria
+      responsavel_id: responsavelId,
+      empresa_id_filter: empresaIdFilter,
+      search: typeof req.query.search === 'string' ? req.query.search.trim() : undefined,
+      status: typeof req.query.status === 'string' && req.query.status !== 'todos' ? req.query.status : undefined,
+      prioridade: typeof req.query.prioridade === 'string' && req.query.prioridade !== 'todas' ? req.query.prioridade : undefined,
+      categoria: typeof req.query.categoria === 'string' && req.query.categoria !== 'todas' ? req.query.categoria : undefined
     };
     
     const kanbanData = await ticketsService.getKanban(filters);

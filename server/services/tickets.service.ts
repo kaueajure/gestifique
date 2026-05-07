@@ -1,6 +1,27 @@
 import  pool from  '../db/connection.js';
 import notificationsService from './notifications.service.js';
 
+export function toPositiveInt(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  if (Array.isArray(value)) value = value[0];
+
+  const str = String(value).trim();
+
+  if (
+    str === '' ||
+    str === 'undefined' ||
+    str === 'null' ||
+    str === 'NaN' ||
+    str === 'todos' ||
+    str === 'todas'
+  ) {
+    return undefined;
+  }
+
+  const n = Number(str);
+  return Number.isInteger(n) && n > 0 ? n : undefined;
+}
+
 class TicketsService {
   async list(filters: any) {
     const { empresa_id, usuario_id, is_dev, is_admin, status, prioridade, categoria, search, responsavel_id, page = 1, limit = 20 } = filters;
@@ -21,27 +42,31 @@ class TicketsService {
         summaryWhere += ' AND t.usuario_id = ?';
         params.push(usuario_id);
       }
-    } else if (filters.empresa_id_filter) {
-       baseWhere += ' AND t.empresa_id = ?';
-       summaryWhere += ' AND t.empresa_id = ?';
-       params.push(filters.empresa_id_filter);
+    } else {
+      const empresaIdFilter = toPositiveInt(filters.empresa_id_filter);
+      if (empresaIdFilter) {
+        baseWhere += ' AND t.empresa_id = ?';
+        summaryWhere += ' AND t.empresa_id = ?';
+        params.push(empresaIdFilter);
+      }
     }
 
     // Common Filters (for both items and summary)
-    if (prioridade) {
+    if (prioridade && prioridade !== 'todas') {
       baseWhere += ' AND t.prioridade = ?';
       summaryWhere += ' AND t.prioridade = ?';
       params.push(prioridade);
     }
-    if (categoria) {
+    if (categoria && categoria !== 'todas') {
       baseWhere += ' AND t.categoria = ?';
       summaryWhere += ' AND t.categoria = ?';
       params.push(categoria);
     }
-    if (responsavel_id) {
+    const safeResponsavelId = toPositiveInt(responsavel_id);
+    if (safeResponsavelId) {
       baseWhere += ' AND t.responsavel_id = ?';
       summaryWhere += ' AND t.responsavel_id = ?';
-      params.push(Number(responsavel_id));
+      params.push(safeResponsavelId);
     }
     if (searchTerm) {
       const searchPattern = `%${searchTerm}%`;
@@ -54,7 +79,7 @@ class TicketsService {
     // Status is only for items in list view
     const summaryParams = [...params]; // copy params for summary
     
-    if (status) {
+    if (status && status !== 'todos') {
       baseWhere += ' AND t.status = ?';
       params.push(status);
     }
@@ -77,7 +102,9 @@ class TicketsService {
     const total = Number(summary.total || 0);
 
     // Fetch items
-    const offset = (Number(page) - 1) * Number(limit);
+    const safePage = toPositiveInt(page) ?? 1;
+    const safeLimit = toPositiveInt(limit) ?? 20;
+    const offset = (safePage - 1) * safeLimit;
     const [items]: any = await pool.query(`
       SELECT t.*, u.nome as cliente_nome, r.nome as responsavel_nome, e.nome as empresa_nome
       FROM tickets t
@@ -87,15 +114,15 @@ class TicketsService {
       ${baseWhere}
       ORDER BY t.created_at DESC
       LIMIT ? OFFSET ?
-    `, [...params, Number(limit), offset]);
+    `, [...params, safeLimit, offset]);
 
     return {
       items,
       pagination: {
-        page: Number(page),
-        limit: Number(limit),
+        page: safePage,
+        limit: safeLimit,
         total,
-        totalPages: Math.ceil(total / Number(limit))
+        totalPages: Math.ceil(total / safeLimit)
       },
       summary: {
         total: Number(summary.total || 0),
@@ -127,24 +154,28 @@ class TicketsService {
         summaryWhere += ' AND t.usuario_id = ?';
         params.push(usuario_id);
       }
-    } else if (filters.empresa_id_filter) {
-       baseWhere += ' AND t.empresa_id = ?';
-       summaryWhere += ' AND t.empresa_id = ?';
-       params.push(filters.empresa_id_filter);
+    } else {
+      const empresaIdFilter = toPositiveInt(filters.empresa_id_filter);
+      if (empresaIdFilter) {
+        baseWhere += ' AND t.empresa_id = ?';
+        summaryWhere += ' AND t.empresa_id = ?';
+        params.push(empresaIdFilter);
+      }
     }
     
     // Common Filters
-    if (responsavel_id) {
+    const safeResponsavelId = toPositiveInt(responsavel_id);
+    if (safeResponsavelId) {
        baseWhere += ' AND t.responsavel_id = ?';
        summaryWhere += ' AND t.responsavel_id = ?';
-       params.push(Number(responsavel_id));
+       params.push(safeResponsavelId);
     }
-    if (prioridade) {
+    if (prioridade && prioridade !== 'todas') {
        baseWhere += ' AND t.prioridade = ?';
        summaryWhere += ' AND t.prioridade = ?';
        params.push(prioridade);
     }
-    if (categoria) {
+    if (categoria && categoria !== 'todas') {
        baseWhere += ' AND t.categoria = ?';
        summaryWhere += ' AND t.categoria = ?';
        params.push(categoria);
@@ -156,7 +187,7 @@ class TicketsService {
        params.push(searchPattern, searchPattern, searchTerm, searchPattern);
     }
 
-    if (status) {
+    if (status && status !== 'todos') {
        baseWhere += ' AND t.status = ?';
        summaryWhere += ' AND t.status = ?';
        params.push(status);
