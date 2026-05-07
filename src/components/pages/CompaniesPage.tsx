@@ -5,18 +5,14 @@ import {
   Building2, 
   Plus, 
   Search, 
-  Trash2, 
   Edit2, 
   Mail, 
   Phone, 
-  Globe, 
   Ticket, 
   Users, 
   CheckCircle2, 
   AlertCircle,
   Loader2,
-  Calendar,
-  ChevronRight,
   Target
 } from 'lucide-react';
 import { Badge } from '../ui/Badge';
@@ -26,7 +22,17 @@ import { MetricCard } from '../ui/MetricCard';
 import { cn } from '../../lib/utils';
 import { motion } from 'motion/react';
 
-export const CompaniesPage = () => {
+import { AccessDenied } from '../ui/AccessDenied';
+
+interface CompaniesPageProps {
+  currentUser: User | null;
+}
+
+export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
+  if (!currentUser?.desenvolvedor) {
+    return <AccessDenied />;
+  }
+
   const [companies, setCompanies] = useState<Empresa[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -107,7 +113,7 @@ export const CompaniesPage = () => {
     total: companies.length,
     ativas: companies.filter(c => c.ativo).length,
     inativas: companies.filter(c => !c.ativo).length,
-    usuarios: companies.reduce((acc, c) => acc + (c.total_usuarios || 0), 0)
+    usuarios: companies.reduce((acc, c) => acc + Number(c.total_usuarios || 0), 0)
   };
 
   return (
@@ -213,6 +219,20 @@ export const CompaniesPage = () => {
            <div className="md:col-span-3 p-20 text-center flex flex-col items-center">
              <AlertCircle className="w-16 h-16 text-red-500 mb-4" />
              <p className="text-slate-500">{error}</p>
+           </div>
+        ) : companies.length === 0 ? (
+           <div className="md:col-span-3 p-20 text-center flex flex-col items-center">
+             <div className="w-20 h-20 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 mb-6">
+                <Building2 size={40} />
+             </div>
+             <h3 className="text-xl font-black text-slate-900 mb-2">Nenhum workspace encontrado</h3>
+             <p className="text-slate-500 max-w-xs mx-auto mb-8">Crie uma nova empresa para começar a gerenciar instâncias do sistema.</p>
+             <button 
+               onClick={() => { setSelectedCompany(null); setSaveError(null); setIsModalOpen(true); }}
+               className="h-12 px-8 bg-slate-900 text-white font-black rounded-xl hover:bg-slate-800 transition-all flex items-center gap-2"
+             >
+                <Plus size={18} /> Novo Workspace
+             </button>
            </div>
         ) : companies.map((company) => (
           <motion.div 
@@ -342,6 +362,27 @@ export const CompaniesPage = () => {
                 className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold focus:ring-2 focus:ring-blue-100 transition-all outline-none" 
                 placeholder="(00) 00000-0000"
               />
+           </div>
+
+           <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Cor Principal (Hex)</label>
+                <input 
+                  name="cor_principal" 
+                  defaultValue={selectedCompany?.cor_principal || '#2563eb'} 
+                  className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold focus:ring-2 focus:ring-blue-100 transition-all outline-none" 
+                  placeholder="#000000"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">URL da Logo</label>
+                <input 
+                  name="logo" 
+                  defaultValue={selectedCompany?.logo || ''} 
+                  className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold focus:ring-2 focus:ring-blue-100 transition-all outline-none" 
+                  placeholder="https://exemplo.com/logo.png"
+                />
+              </div>
            </div>
 
            <div className="pt-6 flex justify-end gap-3 font-black text-sm uppercase tracking-widest">

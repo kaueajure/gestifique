@@ -34,15 +34,38 @@ class CompaniesService {
   }
 
   async create(data: any) {
-    const { nome, cnpj, email, telefone } = data;
+    const { nome, cnpj, email, telefone, cor_principal = '#2563eb', logo } = data;
+
+    // Duplication Check
+    if (cnpj) {
+      const [existing]: any = await pool.query('SELECT id FROM empresas WHERE cnpj = ?', [cnpj]);
+      if (existing.length > 0) throw new Error('Este CNPJ já está cadastrado.');
+    }
+    if (email) {
+      const [existing]: any = await pool.query('SELECT id FROM empresas WHERE email = ?', [email]);
+      if (existing.length > 0) throw new Error('Este E-mail já está cadastrado.');
+    }
+
     const [result]: any = await pool.query(
-      'INSERT INTO empresas (nome, cnpj, email, telefone) VALUES (?, ?, ?, ?)',
-      [nome, cnpj, email, telefone]
+      'INSERT INTO empresas (nome, cnpj, email, telefone, cor_principal, logo) VALUES (?, ?, ?, ?, ?, ?)',
+      [nome, cnpj, email, telefone, cor_principal, logo]
     );
     return result.insertId;
   }
 
   async update(id: number, data: any) {
+    const { cnpj, email } = data;
+
+    // Duplication Check (Excluding self)
+    if (cnpj) {
+      const [existing]: any = await pool.query('SELECT id FROM empresas WHERE cnpj = ? AND id != ?', [cnpj, id]);
+      if (existing.length > 0) throw new Error('Este CNPJ já está sendo usado por outra empresa.');
+    }
+    if (email) {
+      const [existing]: any = await pool.query('SELECT id FROM empresas WHERE email = ? AND id != ?', [email, id]);
+      if (existing.length > 0) throw new Error('Este E-mail já está sendo usado por outra empresa.');
+    }
+
     const fields: string[] = [];
     const params: any[] = [];
     Object.keys(data).forEach(key => {

@@ -9,6 +9,7 @@ import { UsersPage } from './components/pages/UsersPage';
 import { CompaniesPage } from './components/pages/CompaniesPage';
 import { LogsPage } from './components/pages/LogsPage';
 import { ProfilePage } from './components/pages/ProfilePage';
+import { AccessDenied } from './components/ui/AccessDenied';
 import { User } from './types';
 import { api } from './lib/api';
 import { 
@@ -286,7 +287,7 @@ export default function App() {
                   ))}
                   
                   {activeTab === 'companies' && (currentUser.desenvolvedor ? (
-                    <CompaniesPage />
+                    <CompaniesPage currentUser={currentUser} />
                   ) : (
                     <AccessDenied />
                   ))}

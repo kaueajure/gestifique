@@ -22,7 +22,7 @@ class AuthService {
     const user = rows[0];
 
     if (user.empresa_id && !user.empresa_ativa) {
-      throw new Error('Sua empresa está desativada. Entre em contato com o suporte.');
+      throw new Error('A empresa vinculada a este usuário está inativa.');
     }
 
     const validPassword = await bcrypt.compare(password, user.senha_hash);
