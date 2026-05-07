@@ -53,10 +53,11 @@ async function startServer() {
      }
   }
 
-  // API Routes
-  app.use('/api', apiRoutes);
+  // Health Checks (Global and API)
+  app.get('/health', (req, res) => {
+    res.json({ success: true, status: 'UP', timestamp: new Date().toISOString() });
+  });
 
-  // Health Checks
   app.get('/api/health/db', async (req, res) => {
     try {
       const { default: pool } = await import('./db/connection.js');
@@ -67,6 +68,9 @@ async function startServer() {
     }
   });
 
+  // API Routes
+  app.use('/api', apiRoutes);
+
   // API 404 Fallback
   app.use('/api', (req, res) => {
     res.status(404).json({
@@ -75,14 +79,10 @@ async function startServer() {
     });
   });
 
-  app.get('/health', (req, res) => {
-    res.json({ success: true, status: 'UP', timestamp: new Date().toISOString() });
-  });
-
   // Error Handler
   app.use(errorHandler);
 
-  // Vite middleware for development
+  // Static Assets / SPA Fallback
   if (!env.IS_PROD) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -93,6 +93,12 @@ async function startServer() {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req: express.Request, res: express.Response) => {
+      if (req.path.startsWith('/api')) {
+        return res.status(404).json({ 
+          success: false, 
+          message: `Rota API não encontrada: ${req.originalUrl}` 
+        });
+      }
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
