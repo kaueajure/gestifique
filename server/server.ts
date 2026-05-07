@@ -13,8 +13,27 @@ async function startServer() {
   const PORT = env.PORT;
 
   // Initial Config
+  const allowedOrigins = env.CORS_ORIGINS;
+  
   app.use(cors({
-    origin: true,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      const isLocal = !env.IS_PROD && (
+        origin.startsWith('http://localhost') || 
+        origin.startsWith('http://127.0.0.1') ||
+        origin.includes('.run.app') || // Support Google Cloud Run / Preview environments
+        origin.includes('.studio') // Support AI Studio patterns
+      );
+
+      if (isLocal || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn(`[CORS] Blocked request from unauthorized origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true
   }));
   app.use(express.json());

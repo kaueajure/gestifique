@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import  { env } from  '../config/env.js';
+import pool from '../db/connection.js';
 
 const SECRET = env.JWT_SECRET;
 
@@ -18,7 +19,7 @@ export interface AuthRequest extends Request {
   user?: UserPayload;
 }
 
-export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
+export const authMiddleware = async (req: AuthRequest, res: Response, next: NextFunction) => {
   const token = req.headers.authorization?.split(' ')[1] || req.cookies?.token;
 
   if (!token) {
@@ -33,8 +34,14 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
       return res.status(401).json({ success: false, message: 'Sessão inválida. Faça login novamente.' });
     }
 
-    // Check if user is active
-    if (decoded.ativo === false) {
+    // Strict validation: check database
+    const [rows]: any = await pool.query('SELECT ativo FROM usuarios WHERE id = ?', [decoded.id]);
+    
+    if (rows.length === 0) {
+      return res.status(401).json({ success: false, message: 'Usuário não encontrado' });
+    }
+
+    if (Number(rows[0].ativo) !== 1) {
       return res.status(403).json({ success: false, message: 'Sua conta está inativada' });
     }
 

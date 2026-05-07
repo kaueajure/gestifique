@@ -109,8 +109,11 @@ router.post('/', async (req: AuthRequest, res) => {
     const validPriorities = ['baixa', 'media', 'alta', 'urgente'];
     const validCategories = ['suporte_tecnico', 'financeiro', 'recursos_humanos', 'comercial', 'outros'];
 
-    if (!prioridade || !validPriorities.includes(prioridade)) prioridade = 'media';
-    if (!categoria || !validCategories.includes(categoria)) categoria = 'suporte_tecnico';
+    if (prioridade && !validPriorities.includes(prioridade)) return sendError(res, 'Prioridade inválida', 400);
+    if (categoria && !validCategories.includes(categoria)) return sendError(res, 'Categoria inválida', 400);
+    
+    if (!prioridade) prioridade = 'media';
+    if (!categoria) categoria = 'suporte_tecnico';
 
     const targetEmpresaId = req.body.empresa_id && currentUser.desenvolvedor
       ? Number(req.body.empresa_id)
@@ -149,6 +152,9 @@ router.patch('/:id/status', async (req: AuthRequest, res) => {
     const id = parseInt(req.params.id);
     const { status } = req.body;
     if (!status) return sendError(res, 'Status é obrigatório', 400);
+
+    const validStatuses = ['aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado'];
+    if (!validStatuses.includes(status)) return sendError(res, 'Status inválido', 400);
 
     const result: any = await ticketsService.getByIdForUser(id, currentUser);
     if (!result) return sendError(res, 'Ticket não encontrado', 404);
@@ -204,6 +210,16 @@ router.patch('/:id', async (req: AuthRequest, res) => {
     let oldResp = ticket.responsavel_id;
     let oldPrio = ticket.prioridade;
     
+    // Validations for update
+    const validStatuses = ['aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado'];
+    const validPriorities = ['baixa', 'media', 'alta', 'urgente'];
+    
+    if (req.body.status && !validStatuses.includes(req.body.status)) return sendError(res, 'Status inválido', 400);
+    if (req.body.prioridade && !validPriorities.includes(req.body.prioridade)) return sendError(res, 'Prioridade inválida', 400);
+    if (req.body.responsavel_id !== undefined && req.body.responsavel_id !== null) {
+      if (!toPositiveInt(req.body.responsavel_id)) return sendError(res, 'Responsável inválido', 400);
+    }
+
     if (req.body.status && req.body.status !== ticket.status) {
        const updateResult = await ticketsService.updateStatus(id, req.body.status, currentUser.id, req);
        if (updateResult && updateResult.oldStatus !== updateResult.newStatus) {
@@ -332,6 +348,15 @@ router.post('/:id/attachments', ticketUpload.array('files', 5), async (req: Auth
 
     if (!files || files.length === 0) {
       return sendError(res, 'Nenhum arquivo enviado', 400);
+    }
+
+    // Validate mensagem_id belongs to ticket
+    if (mensagem_id) {
+      const [msgRows]: any = await pool.query('SELECT ticket_id FROM mensagens_bilhetes WHERE id = ?', [mensagem_id]);
+      if (msgRows.length === 0 || msgRows[0].ticket_id !== id) {
+        await attachmentsService.deleteMultiple(files);
+        return sendError(res, 'A mensagem informada não pertence a este ticket.', 400);
+      }
     }
 
     const ticketResult: any = await ticketsService.getByIdForUser(id, currentUser);

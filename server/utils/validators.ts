@@ -14,3 +14,7 @@ export const isValidId = (id: any) => {
   const n = Number(id);
   return Number.isInteger(n) && n > 0;
 };
+
+export const isValidHexColor = (color: string) => {
+  return /^#[0-9A-Fa-f]{6}$/.test(color);
+};

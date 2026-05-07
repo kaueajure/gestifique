@@ -245,9 +245,9 @@ class ReportsService {
     let params: any[] = [];
 
     if (!isDev) {
-      if (empresaId) {
-        whereClause = 'WHERE empresa_id = ? OR usuario_id = ?';
-        params.push(empresaId, userId);
+      if (user.administrador && empresaId) {
+        whereClause = 'WHERE empresa_id = ?';
+        params.push(empresaId);
       } else {
         whereClause = 'WHERE usuario_id = ?';
         params.push(userId);
@@ -263,7 +263,7 @@ class ReportsService {
         SUM(CASE WHEN status = 'aguardando_cliente' THEN 1 ELSE 0 END) as aguardando_cliente,
         SUM(CASE WHEN status = 'resolvido' THEN 1 ELSE 0 END) as resolvido,
         SUM(CASE WHEN status = 'fechado' THEN 1 ELSE 0 END) as fechado,
-        SUM(CASE WHEN prioridade = 'urgente' THEN 1 ELSE 0 END) as urgent,
+        SUM(CASE WHEN prioridade = 'urgente' THEN 1 ELSE 0 END) as urgente,
         AVG(CASE WHEN status IN ('resolvido', 'fechado') AND finalizado_em IS NOT NULL THEN TIMESTAMPDIFF(HOUR, created_at, finalizado_em) ELSE NULL END) as avg_res
       FROM tickets
       ${whereClause}
@@ -302,9 +302,9 @@ class ReportsService {
     let logWhere = 'WHERE 1=1';
     let logParams = [];
     if (!isDev) {
-      if (empresaId) {
-        logWhere += ' AND (l.empresa_id = ? OR l.usuario_id = ?)';
-        logParams.push(empresaId, userId);
+      if (user.administrador && empresaId) {
+        logWhere += ' AND l.empresa_id = ?';
+        logParams.push(empresaId);
       } else {
         logWhere += ' AND l.usuario_id = ?';
         logParams.push(userId);

@@ -30,6 +30,7 @@ export const env = {
     PORT: parseInt(process.env.DB_PORT as string)
   },
   IS_PROD: process.env.NODE_ENV === 'production',
+  CORS_ORIGINS: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : [],
   DEV_EMAIL: process.env.DEV_EMAIL,
   DEV_PASSWORD: process.env.DEV_PASSWORD
 };

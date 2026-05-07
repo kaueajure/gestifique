@@ -4,6 +4,7 @@ import  { authMiddleware, AuthRequest } from  '../middlewares/auth.js';
 import { isDev, isAdmin } from  '../middlewares/permissions.js';
 import  { sendSuccess, sendError } from  '../utils/response.js';
 import  { logSystemAction } from  '../utils/logger.js';
+import { isValidEmail, isValidHexColor } from '../utils/validators.js';
 
 const router = Router();
 
@@ -29,9 +30,14 @@ router.post('/', isDev, async (req: AuthRequest, res) => {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
 
-    if (!req.body.nome) return sendError(res, 'Nome é obrigatório', 400);
+    const { nome, email, cor_principal } = req.body;
+    if (!nome) return sendError(res, 'Nome é obrigatório', 400);
+    
+    if (email && !isValidEmail(email)) return sendError(res, 'Email inválido', 400);
+    if (cor_principal && !isValidHexColor(cor_principal)) return sendError(res, 'Cor principal inválida (formato #RRGGBB)', 400);
+
     const id = await companiesService.create(req.body);
-    await logSystemAction(req, currentUser.id, null, 'COMPANY_CREATE', `Criou empresa: ${req.body.nome}`);
+    await logSystemAction(req, currentUser.id, null, 'COMPANY_CREATE', `Criou empresa: ${nome}`);
     sendSuccess(res, { id }, 'Empresa criada com sucesso', 201);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erro ao criar empresa';
@@ -52,6 +58,10 @@ router.patch('/:id', async (req: AuthRequest, res) => {
         return sendError(res, 'Acesso negado', 403);
       }
     }
+
+    const { email, cor_principal } = req.body;
+    if (email && !isValidEmail(email)) return sendError(res, 'Email inválido', 400);
+    if (cor_principal && !isValidHexColor(cor_principal)) return sendError(res, 'Cor principal inválida (formato #RRGGBB)', 400);
 
     await companiesService.update(id, req.body);
     await logSystemAction(req, currentUser.id, id, 'COMPANY_UPDATE', `Atualizou informações da empresa ID: ${id}`);

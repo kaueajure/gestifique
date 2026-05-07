@@ -22,7 +22,7 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req: any, file: any, cb: any) => {
-  const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.csv', '.txt', '.zip', '.rar', '.7z'];
+  const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.csv', '.txt'];
   const allowedMimetypes = [
     'image/jpeg',
     'image/png',
@@ -33,10 +33,7 @@ const fileFilter = (req: any, file: any, cb: any) => {
     'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'text/csv',
-    'text/plain',
-    'application/zip',
-    'application/x-rar-compressed',
-    'application/x-7z-compressed'
+    'text/plain'
   ];
 
   const ext = path.extname(file.originalname).toLowerCase();

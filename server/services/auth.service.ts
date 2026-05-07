@@ -38,7 +38,8 @@ class AuthService {
       nome: user.nome,
       email: user.email,
       administrador: !!user.administrador,
-      desenvolvedor: !!user.desenvolvedor
+      desenvolvedor: !!user.desenvolvedor,
+      ativo: !!user.ativo
     };
 
     const token = jwt.sign(payload, SECRET, { expiresIn: '1d' });
