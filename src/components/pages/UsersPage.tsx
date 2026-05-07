@@ -11,9 +11,7 @@ import {
   XCircle,
   Edit2,
   Loader2,
-  AlertCircle,
-  Key,
-  UserPlus
+  Key
 } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { Modal } from '../ui/Modal';
@@ -22,6 +20,17 @@ import { Input } from '../ui/Input';
 import { Card } from '../ui/Card';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { cn } from '../../lib/utils';
+
+type UserPayload = {
+  nome: string;
+  email: string;
+  password?: string;
+  cargo: string;
+  telefone: string;
+  empresa_id: number | null;
+  administrador: boolean;
+  desenvolvedor: boolean;
+};
 
 interface UsersPageProps {
   currentUser: User;
@@ -87,13 +96,22 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
     const data = Object.fromEntries(formData.entries());
 
     try {
-      const payload = {
-        ...data,
+      const payload: UserPayload = {
+        nome: String(formData.get('nome') || ''),
+        email: String(formData.get('email') || ''),
+        cargo: String(formData.get('cargo') || ''),
+        telefone: String(formData.get('telefone') || ''),
+        empresa_id: formData.get('empresa_id') ? Number(formData.get('empresa_id')) : null,
         administrador: formData.get('administrador') === 'true',
         desenvolvedor: formData.get('desenvolvedor') === 'true',
-      } as any;
+      };
 
-      if (!selectedUser?.id && (payload.password as string || '').length < 8) {
+      const password = formData.get('password') as string;
+      if (password) {
+        payload.password = password;
+      }
+
+      if (!selectedUser?.id && (!payload.password || payload.password.length < 8)) {
         setSaveError('A senha deve ter pelo menos 8 caracteres.');
         setLoadingSave(false);
         return;
@@ -257,7 +275,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
                           </div>
                           <div className="min-w-0">
                             <div className="text-sm font-bold text-slate-900 truncate tracking-tight">{user.nome || "Usuário"}</div>
-                            <div className="text-[10px] font-bold text-slate-400 truncate tracking-tighter uppercase">{user.email}</div>
+                            <div className="text-[10px] font-bold text-slate-400 truncate tracking-tighter uppercase">{user.email || 'Email não informado'}</div>
                           </div>
                         </div>
                       </td>
@@ -281,7 +299,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
                         </div>
                       </td>
                       <td className="px-5 py-4 text-right">
-                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                         <div className="flex items-center justify-end gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                             {canManage ? (
                               <>
                                 <button 
@@ -341,7 +359,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
            )}
            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Nome Completo</label>
+                 <label className="text-xs font-medium text-slate-500 px-1">Nome Completo</label>
                  <Input 
                    name="nome" 
                    defaultValue={selectedUser?.nome} 
@@ -351,7 +369,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
                  />
               </div>
               <div className="space-y-1.5">
-                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">E-mail</label>
+                 <label className="text-xs font-medium text-slate-500 px-1">E-mail</label>
                  <Input 
                    name="email" 
                    type="email" 
@@ -366,7 +384,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
 
            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Cargo</label>
+                 <label className="text-xs font-medium text-slate-500 px-1">Cargo</label>
                  <Input 
                    name="cargo" 
                    defaultValue={selectedUser?.cargo || ''} 
@@ -375,7 +393,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
                  />
               </div>
               <div className="space-y-1.5">
-                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Telefone</label>
+                 <label className="text-xs font-medium text-slate-500 px-1">Telefone</label>
                  <Input 
                    name="telefone" 
                    defaultValue={selectedUser?.telefone || ''} 
@@ -387,7 +405,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
 
            {(currentUser.desenvolvedor || currentUser.administrador) && (
               <div className="space-y-1.5">
-                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Empresa</label>
+                 <label className="text-xs font-medium text-slate-500 px-1">Empresa</label>
                  <select 
                    name="empresa_id" 
                    defaultValue={selectedUser?.empresa_id || ''}
@@ -404,7 +422,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
 
            {!selectedUser && (
               <div className="space-y-1.5">
-                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Senha Inicial</label>
+                 <label className="text-xs font-medium text-slate-500 px-1">Senha Inicial</label>
                  <Input 
                    name="password" 
                    type="password" 
@@ -431,7 +449,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
                     />
                     <div className="min-w-0">
                        <div className="text-xs font-bold text-slate-900 uppercase tracking-tight">Administrador</div>
-                       <div className="text-[10px] font-medium text-slate-400 mt-0.5 leading-tight">Pode gerenciar usuários, empresas e configurações básicas.</div>
+                       <div className="text-[10px] font-medium text-slate-400 mt-0.5 leading-tight">Pode gerenciar usuários da própria empresa e acompanhar registros permitidos.</div>
                     </div>
                  </label>
                  {currentUser.desenvolvedor && (
@@ -484,7 +502,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
            
            <div className="space-y-4">
              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Nova Senha</label>
+                <label className="text-xs font-medium text-slate-500 px-1">Nova Senha</label>
                 <Input 
                   name="password" 
                   type="password" 
@@ -494,7 +512,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
                 />
              </div>
              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Confirmar Senha</label>
+                <label className="text-xs font-medium text-slate-500 px-1">Confirmar Senha</label>
                 <Input 
                   name="confirm_password" 
                   type="password" 
