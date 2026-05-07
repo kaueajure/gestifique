@@ -196,6 +196,19 @@ async function initDB() {
     await ensureColumn('logs_sistema', 'ip', 'VARCHAR(45) NULL');
     await ensureColumn('logs_sistema', 'user_agent', 'TEXT NULL');
 
+    // Add index for responsavel_id if column was created
+    try {
+      const [indices]: any = await connection.query(`
+        SHOW INDEX FROM tickets WHERE COLUMN_NAME = 'responsavel_id'
+      `);
+      if (indices.length === 0) {
+        console.log('[MIGRATE] 🔍 Criando índice para responsavel_id...');
+        await connection.query('CREATE INDEX idx_tickets_responsavel ON tickets(responsavel_id)');
+      }
+    } catch (e) {
+      console.warn('[MIGRATE] ⚠️ Falha ao criar índice para responsavel_id:', e);
+    }
+
     console.log('[BOOT] ✅ Estrutura do banco de dados atualizada.');
 
     // Seed Initial Developer

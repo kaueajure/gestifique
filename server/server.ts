@@ -37,19 +37,7 @@ async function startServer() {
   // API Routes
   app.use('/api', apiRoutes);
 
-  // API 404 Fallback
-  app.use('/api', (req, res) => {
-    res.status(404).json({
-      success: false,
-      message: `Rota API não encontrada: ${req.originalUrl}`
-    });
-  });
-
   // Health Checks
-  app.get('/health', (req, res) => {
-    res.json({ success: true, status: 'UP', timestamp: new Date().toISOString() });
-  });
-
   app.get('/api/health/db', async (req, res) => {
     try {
       const { default: pool } = await import('./db/connection.js');
@@ -58,6 +46,18 @@ async function startServer() {
     } catch (err) {
       res.status(503).json({ success: false, status: 'DISCONNECTED', error: err instanceof Error ? err.message : String(err) });
     }
+  });
+
+  // API 404 Fallback
+  app.use('/api', (req, res) => {
+    res.status(404).json({
+      success: false,
+      message: `Rota API não encontrada: ${req.originalUrl}`
+    });
+  });
+
+  app.get('/health', (req, res) => {
+    res.json({ success: true, status: 'UP', timestamp: new Date().toISOString() });
   });
 
   // Error Handler

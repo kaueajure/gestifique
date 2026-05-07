@@ -242,7 +242,10 @@ export default function App() {
                   {activeTab === 'dashboard' && <DashboardPage onNavigate={(tab) => setActiveTab(tab)} />}
                   
                   {activeTab === 'tickets' && !selectedTicketId && (
-                    <TicketsPage onSelectTicket={setSelectedTicketId} />
+                    <TicketsPage 
+                      onSelectTicket={setSelectedTicketId} 
+                      currentUser={currentUser}
+                    />
                   )}
                   
                   {activeTab === 'tickets' && selectedTicketId && (

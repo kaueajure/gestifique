@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
-import { Ticket } from '../../types';
+import { Ticket, User, Empresa as Company } from '../../types';
 import { 
   Search, 
   Plus, 
@@ -10,7 +10,8 @@ import {
   User as UserIcon,
   Loader2,
   Tag,
-  X
+  X,
+  Building
 } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { Modal } from '../ui/Modal';
@@ -21,9 +22,10 @@ import { cn } from '../../lib/utils';
 
 interface TicketsPageProps {
   onSelectTicket: (id: number) => void;
+  currentUser: User;
 }
 
-export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
+export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +37,9 @@ export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loadingCreate, setLoadingCreate] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [loadingCompanies, setLoadingCompanies] = useState(false);
 
   const fetchTickets = async () => {
     setLoading(true);
@@ -56,6 +61,20 @@ export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
     }
   };
 
+  const fetchCompanies = async () => {
+    if (!currentUser.desenvolvedor || currentUser.empresa_id) return;
+    
+    setLoadingCompanies(true);
+    try {
+      const data = await api.get<Company[]>('/companies');
+      setCompanies(data);
+    } catch (err) {
+      console.error('Erro ao buscar empresas:', err);
+    } finally {
+      setLoadingCompanies(false);
+    }
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchTickets();
@@ -63,12 +82,24 @@ export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
     return () => clearTimeout(timer);
   }, [searchTerm, statusFilter, priorityFilter, categoryFilter]);
 
+  useEffect(() => {
+    if (isModalOpen && currentUser.desenvolvedor && !currentUser.empresa_id) {
+      fetchCompanies();
+    }
+  }, [isModalOpen, currentUser]);
+
   const handleCreateTicket = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoadingCreate(true);
     setCreateError(null);
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData.entries());
+
+    if (currentUser.desenvolvedor && !currentUser.empresa_id && !data.empresa_id) {
+       setCreateError('Selecione uma empresa para abrir o atendimento.');
+       setLoadingCreate(false);
+       return;
+    }
 
     try {
       await api.post('/tickets', data);
@@ -263,6 +294,30 @@ export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
             required 
             placeholder="Descreva o assunto brevemente" 
           />
+
+          {currentUser.desenvolvedor && !currentUser.empresa_id && (
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700">Empresa Solicitante</label>
+              <div className="relative">
+                <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                <select 
+                  name="empresa_id" 
+                  required
+                  className="w-full h-10 bg-white border border-slate-200 rounded-lg pl-9 pr-3 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all appearance-none"
+                >
+                  <option value="">Selecione uma empresa...</option>
+                  {companies.map(emp => (
+                    <option key={emp.id} value={emp.id}>{emp.nome}</option>
+                  ))}
+                </select>
+                {loadingCompanies && (
+                  <div className="absolute right-8 top-1/2 -translate-y-1/2">
+                    <Loader2 size={14} className="animate-spin text-blue-600" />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
