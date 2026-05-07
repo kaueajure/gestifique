@@ -7,21 +7,10 @@ const router = Router();
 
 router.use(authMiddleware);
 
-router.get('/stats', async (req: any, res) => {
+router.get('/', async (req: any, res) => {
   try {
-    const empresaId = req.user.desenvolvedor ? undefined : req.user.empresa_id;
-    const stats = await reportsService.getDashboardStats(empresaId);
+    const stats = await reportsService.getDashboardStats(req.user);
     sendSuccess(res, stats);
-  } catch (error: any) {
-    sendError(res, error.message);
-  }
-});
-
-router.get('/performance', async (req: any, res) => {
-  try {
-    const empresaId = req.user.desenvolvedor ? undefined : req.user.empresa_id;
-    const perf = await reportsService.getPerformance(empresaId);
-    sendSuccess(res, perf);
   } catch (error: any) {
     sendError(res, error.message);
   }

@@ -88,4 +88,5 @@ export interface DashboardStats {
   resolvido: number;
   fechado: number;
   urgente: number;
+  tempo_medio_resolucao: string;
 }

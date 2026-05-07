@@ -1,9 +1,24 @@
 import pool from '../db/connection';
 
 class ReportsService {
-  async getDashboardStats(empresaId?: number) {
-    const params = empresaId ? [empresaId] : [];
-    const where = empresaId ? 'WHERE empresa_id = ?' : '';
+  async getDashboardStats(user: any) {
+    const isDev = user.desenvolvedor;
+    const isAdmin = user.administrador;
+    const empresaId = user.empresa_id;
+    const userId = user.id;
+
+    let where = '';
+    let params: any[] = [];
+
+    if (!isDev) {
+      if (isAdmin) {
+        where = 'WHERE empresa_id = ?';
+        params = [empresaId];
+      } else {
+        where = 'WHERE usuario_id = ? OR responsavel_id = ?';
+        params = [userId, userId];
+      }
+    }
 
     const stats: any = {};
     
@@ -15,12 +30,16 @@ class ReportsService {
         SUM(CASE WHEN status = 'aguardando_cliente' THEN 1 ELSE 0 END) as aguardando_cliente,
         SUM(CASE WHEN status = 'resolvido' THEN 1 ELSE 0 END) as resolvido,
         SUM(CASE WHEN status = 'fechado' THEN 1 ELSE 0 END) as fechado,
-        SUM(CASE WHEN prioridade = 'urgente' THEN 1 ELSE 0 END) as urgente
+        SUM(CASE WHEN prioridade = 'urgente' THEN 1 ELSE 0 END) as urgente,
+        AVG(CASE WHEN finalizado_em IS NOT NULL THEN TIMESTAMPDIFF(HOUR, created_at, finalizado_em) END) as tempo_medio
        FROM tickets ${where}`,
       params
     );
     
-    stats.counts = counts[0];
+    stats.counts = {
+      ...counts[0],
+      tempo_medio_resolucao: counts[0].tempo_medio ? `${Math.round(counts[0].tempo_medio)}h` : '0h'
+    };
 
     const [byStatus]: any = await pool.query(
       `SELECT status, COUNT(*) as qtd FROM tickets ${where} GROUP BY status`,
@@ -34,15 +53,25 @@ class ReportsService {
     );
     stats.byPriority = byPriority;
 
-    const [byDay]: any = await pool.query(
-      `SELECT DATE(created_at) as data, COUNT(*) as qtd 
-       FROM tickets 
-       ${where}
-       ${where ? 'AND' : 'WHERE'} created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-       GROUP BY DATE(created_at) ORDER BY data ASC`,
+    const [recentTickets]: any = await pool.query(
+      `SELECT t.*, u.nome as cliente_nome 
+       FROM tickets t
+       LEFT JOIN usuarios u ON t.usuario_id = u.id
+       ${where} 
+       ORDER BY t.created_at DESC LIMIT 5`,
       params
     );
-    stats.byDay = byDay;
+    stats.recentTickets = recentTickets;
+
+    const [atividades]: any = await pool.query(
+      `SELECT l.*, u.nome as usuario_nome 
+       FROM logs_sistema l
+       JOIN usuarios u ON l.usuario_id = u.id
+       ${!isDev ? (isAdmin ? 'WHERE u.empresa_id = ?' : 'WHERE l.usuario_id = ?') : ''}
+       ORDER BY l.created_at DESC LIMIT 10`,
+      !isDev ? (isAdmin ? [empresaId] : [userId]) : []
+    );
+    stats.recentActivities = atividades;
 
     return stats;
   }

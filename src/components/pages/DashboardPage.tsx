@@ -12,7 +12,8 @@ import {
   Calendar,
   ChevronRight,
   User as UserIcon,
-  Plus
+  Plus,
+  Activity as ActivityIcon
 } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { motion } from 'motion/react';
@@ -39,7 +40,7 @@ export const DashboardPage = () => {
       setLoading(true);
       setError(null);
       try {
-        const data = await api.get<any>('/dashboard/stats');
+        const data = await api.get<any>('/dashboard');
         setStats(data);
       } catch (err: any) {
         setError(err.message || 'Ocorreu um erro ao carregar o dashboard.');
@@ -52,11 +53,12 @@ export const DashboardPage = () => {
 
   const counts = stats?.counts || {};
   const recentTickets = stats?.recentTickets || [];
+  const recentActivities = stats?.recentActivities || [];
 
   const metricCards = [
     { label: 'Total de Chamados', value: counts.total || 0, icon: <TicketIcon size={20} />, color: 'blue' as const },
     { label: 'Em Aberto', value: counts.aberto || 0, icon: <AlertCircle size={20} />, color: 'amber' as const },
-    { label: 'Em Andamento', value: counts.em_andamento || 0, icon: <Clock size={20} />, color: 'indigo' as const },
+    { label: 'Tempo Médio', value: counts.tempo_medio_resolucao || '0h', icon: <Clock size={20} />, color: 'indigo' as const },
     { label: 'Resolvidos', value: counts.resolvido || 0, icon: <CheckCircle2 size={20} />, color: 'emerald' as const },
   ];
 
@@ -249,32 +251,41 @@ export const DashboardPage = () => {
               </div>
            </div>
 
-           <div className="bg-gradient-to-br from-indigo-600 to-blue-700 p-10 rounded-[40px] text-white shadow-2xl shadow-indigo-100 relative overflow-hidden group">
-              <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000"></div>
-              <div className="flex items-center gap-4 mb-8">
-                 <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20">
-                    <TrendingUp size={28} />
-                 </div>
-                 <div>
-                    <h4 className="font-black text-lg">Meta Operacional</h4>
-                    <p className="text-white/60 text-xs font-bold uppercase tracking-widest font-mono">Performance</p>
-                 </div>
-              </div>
-              <div className="text-5xl font-black mb-3">94.2%</div>
-              <p className="text-white/80 font-medium mb-10 leading-relaxed">Você resolveu 12 chamados a mais que o planejado para este período.</p>
-              <div className="space-y-4">
-                <div className="w-full bg-white/10 h-3 rounded-full overflow-hidden border border-white/10">
-                   <motion.div 
-                     initial={{ width: 0 }}
-                     animate={{ width: '94.2%' }}
-                     transition={{ duration: 1.5, ease: 'easeOut' }}
-                     className="bg-white h-full rounded-full shadow-[0_0_15px_rgba(255,255,255,0.5)]"
-                   />
-                </div>
-                <div className="flex justify-between text-[10px] font-black uppercase tracking-tighter text-white/50">
-                   <span>Início</span>
-                   <span>Meta: 90%</span>
-                </div>
+           <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm h-fit">
+              <h3 className="text-xl font-black text-slate-900 mb-8">Atividades Recentes</h3>
+              <div className="space-y-6">
+                {loading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="flex gap-4 animate-pulse">
+                      <div className="w-10 h-10 rounded-xl bg-slate-100"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-3 bg-slate-100 rounded-full w-full"></div>
+                        <div className="h-2 bg-slate-100 rounded-full w-2/3"></div>
+                      </div>
+                    </div>
+                  ))
+                ) : recentActivities && recentActivities.length > 0 ? (
+                  recentActivities.map((act: any) => (
+                    <div key={act.id} className="flex gap-4 group">
+                      <div className="relative">
+                        <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
+                           <ActivityIcon size={18} />
+                        </div>
+                        <div className="absolute top-10 bottom-[-24px] left-1/2 -translate-x-1/2 w-px bg-slate-100 last:hidden"></div>
+                      </div>
+                      <div className="flex-1 pb-4">
+                        <p className="text-sm font-bold text-slate-700 leading-tight mb-1">{act.acao}</p>
+                        <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                          <span className="text-blue-600">{act.usuario_nome}</span>
+                          <span>•</span>
+                          <span>{new Date(act.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center py-10 text-slate-400 font-medium">Nenhuma atividade registrada.</p>
+                )}
               </div>
            </div>
         </div>
