@@ -31,6 +31,28 @@ router.get('/', async (req: AuthRequest, res) => {
   }
 });
 
+router.get('/kanban', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
+    const filters = {
+      empresa_id: currentUser.empresa_id,
+      usuario_id: currentUser.id,
+      is_dev: currentUser.desenvolvedor,
+      is_admin: currentUser.administrador,
+      responsavel_id: req.query.responsavel_id,
+      empresa_id_filter: req.query.empresa_id
+    };
+    
+    const kanbanData = await ticketsService.getKanban(filters);
+    sendSuccess(res, kanbanData);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao carregar Kanban';
+    sendError(res, message);
+  }
+});
+
 router.get('/:id', async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
@@ -86,6 +108,39 @@ router.post('/', async (req: AuthRequest, res) => {
     sendSuccess(res, { id: ticketId }, 'Ticket aberto com sucesso', 201);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erro ao criar ticket';
+    sendError(res, message);
+  }
+});
+
+router.patch('/:id/status', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
+    const id = parseInt(req.params.id);
+    const { status } = req.body;
+    if (!status) return sendError(res, 'Status é obrigatório', 400);
+
+    const ticket = await ticketsService.getById(id);
+    if (!ticket) return sendError(res, 'Ticket não encontrado', 404);
+
+    const canManage = currentUser.administrador || currentUser.desenvolvedor;
+    if (!canManage) {
+        return sendError(res, 'Permissão negada', 403);
+    }
+
+    if (!currentUser.desenvolvedor && ticket.empresa_id !== currentUser.empresa_id) {
+        return sendError(res, 'Permissão negada para atualizar chamados de outra empresa.', 403);
+    }
+
+    const updateResult = await ticketsService.updateStatus(id, status, currentUser.id, req);
+    if (updateResult && updateResult.oldStatus !== updateResult.newStatus) {
+       await logSystemAction(req, currentUser.id, updateResult.empresa_id, 'TICKET_STATUS_CHANGE', `Status do chamado #${id} alterado de ${updateResult.oldStatus} para ${updateResult.newStatus}`);
+    }
+
+    sendSuccess(res, null, 'Status atualizado com sucesso');
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao atualizar status';
     sendError(res, message);
   }
 });

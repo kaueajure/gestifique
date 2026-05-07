@@ -3,56 +3,160 @@ import notificationsService from './notifications.service.js';
 
 class TicketsService {
   async list(filters: any) {
-    const { empresa_id, usuario_id, is_dev, is_admin, status, prioridade, categoria, search, busca, page = 1, limit = 20 } = filters;
-    const searchTerm = search || busca;
+    const { empresa_id, usuario_id, is_dev, is_admin, status, prioridade, categoria, search, responsavel_id, page = 1, limit = 20 } = filters;
+    const searchTerm = search;
     
-    let query = `
-      SELECT t.*, u.nome as cliente_nome, r.nome as responsavel_nome, e.nome as empresa_nome
-      FROM tickets t
-      JOIN usuarios u ON t.usuario_id = u.id
-      JOIN empresas e ON t.empresa_id = e.id
-      LEFT JOIN usuarios r ON t.responsavel_id = r.id
-      WHERE 1=1
-    `;
-    const params: any[] = [];
+    let baseWhere = 'WHERE 1=1';
+    const params: (string | number)[] = [];
 
     // ACL
     if (!is_dev) {
       if (is_admin) {
-        query += ' AND t.empresa_id = ?';
+        baseWhere += ' AND t.empresa_id = ?';
         params.push(empresa_id);
       } else {
-        query += ' AND t.usuario_id = ?';
+        baseWhere += ' AND t.usuario_id = ?';
         params.push(usuario_id);
       }
+    } else if (filters.empresa_id_filter) {
+       baseWhere += ' AND t.empresa_id = ?';
+       params.push(filters.empresa_id_filter);
     }
 
     // Filters
     if (status) {
-      query += ' AND t.status = ?';
+      baseWhere += ' AND t.status = ?';
       params.push(status);
     }
     if (prioridade) {
-      query += ' AND t.prioridade = ?';
+      baseWhere += ' AND t.prioridade = ?';
       params.push(prioridade);
     }
     if (categoria) {
-      query += ' AND t.categoria = ?';
+      baseWhere += ' AND t.categoria = ?';
       params.push(categoria);
     }
+    if (responsavel_id) {
+      baseWhere += ' AND t.responsavel_id = ?';
+      params.push(Number(responsavel_id));
+    }
     if (searchTerm) {
-      query += ' AND (t.titulo LIKE ? OR t.descricao LIKE ? OR CAST(t.id AS CHAR) = ?)';
+      baseWhere += ' AND (t.titulo LIKE ? OR t.descricao LIKE ? OR CAST(t.id AS CHAR) = ?)';
       params.push(`%${searchTerm}%`, `%${searchTerm}%`, searchTerm);
     }
 
-    query += ' ORDER BY t.created_at DESC';
-    
-    const offset = (page - 1) * limit;
-    query += ' LIMIT ? OFFSET ?';
-    params.push(parseInt(limit.toString()), offset);
+    // Summary calculation
+    const [summaryRows]: any = await pool.query(`
+      SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN t.status = 'aberto' THEN 1 ELSE 0 END) as aberto,
+        SUM(CASE WHEN t.status = 'em_andamento' THEN 1 ELSE 0 END) as em_andamento,
+        SUM(CASE WHEN t.status = 'aguardando_cliente' THEN 1 ELSE 0 END) as aguardando_cliente,
+        SUM(CASE WHEN t.status = 'resolvido' THEN 1 ELSE 0 END) as resolvido,
+        SUM(CASE WHEN t.status = 'fechado' THEN 1 ELSE 0 END) as fechado
+      FROM tickets t
+      ${baseWhere}
+    `, params);
 
-    const [rows] = await pool.query(query, params);
-    return rows;
+    const summary = summaryRows[0] || { total: 0, aberto: 0, em_andamento: 0, aguardando_cliente: 0, resolvido: 0, fechado: 0 };
+    const total = Number(summary.total || 0);
+
+    // Fetch items
+    const offset = (Number(page) - 1) * Number(limit);
+    const [items]: any = await pool.query(`
+      SELECT t.*, u.nome as cliente_nome, r.nome as responsavel_nome, e.nome as empresa_nome
+      FROM tickets t
+      LEFT JOIN usuarios u ON t.usuario_id = u.id
+      LEFT JOIN empresas e ON t.empresa_id = e.id
+      LEFT JOIN usuarios r ON t.responsavel_id = r.id
+      ${baseWhere}
+      ORDER BY t.created_at DESC
+      LIMIT ? OFFSET ?
+    `, [...params, Number(limit), offset]);
+
+    return {
+      items,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        totalPages: Math.ceil(total / Number(limit))
+      },
+      summary: {
+        total: Number(summary.total || 0),
+        aberto: Number(summary.aberto || 0),
+        em_andamento: Number(summary.em_andamento || 0),
+        aguardando_cliente: Number(summary.aguardando_cliente || 0),
+        resolvido: Number(summary.resolvido || 0),
+        fechado: Number(summary.fechado || 0)
+      }
+    };
+  }
+
+  async getKanban(filters: any) {
+    const { empresa_id, usuario_id, is_dev, is_admin, responsavel_id } = filters;
+    
+    let baseWhere = 'WHERE 1=1';
+    const params: (string | number)[] = [];
+
+    // ACL
+    if (!is_dev) {
+      if (is_admin) {
+        baseWhere += ' AND t.empresa_id = ?';
+        params.push(empresa_id);
+      } else {
+        baseWhere += ' AND t.usuario_id = ?';
+        params.push(usuario_id);
+      }
+    } else if (filters.empresa_id_filter) {
+       baseWhere += ' AND t.empresa_id = ?';
+       params.push(filters.empresa_id_filter);
+    }
+    
+    if (responsavel_id) {
+       baseWhere += ' AND t.responsavel_id = ?';
+       params.push(Number(responsavel_id));
+    }
+
+    const [tickets]: any = await pool.query(`
+      SELECT t.id, t.titulo, t.status, t.prioridade, t.categoria, t.created_at, t.empresa_id,
+             u.nome as cliente_nome, r.nome as responsavel_nome, e.nome as empresa_nome
+      FROM tickets t
+      LEFT JOIN usuarios u ON t.usuario_id = u.id
+      LEFT JOIN empresas e ON t.empresa_id = e.id
+      LEFT JOIN usuarios r ON t.responsavel_id = r.id
+      ${baseWhere}
+      ORDER BY t.created_at DESC
+    `, params);
+
+    const columnsConfig = [
+      { id: 'aberto', title: 'Aberto' },
+      { id: 'em_andamento', title: 'Em andamento' },
+      { id: 'aguardando_cliente', title: 'Aguardando cliente' },
+      { id: 'resolvido', title: 'Resolvido' },
+      { id: 'fechado', title: 'Fechado' }
+    ];
+
+    const columns = columnsConfig.map(c => {
+      const colTickets = tickets.filter((t: any) => t.status === c.id);
+      return {
+        id: c.id,
+        title: c.title,
+        count: colTickets.length,
+        tickets: colTickets
+      };
+    });
+
+    const totals = {
+      total: tickets.length,
+      aberto: columns[0].count,
+      em_andamento: columns[1].count,
+      aguardando_cliente: columns[2].count,
+      resolvido: columns[3].count,
+      fechado: columns[4].count
+    };
+
+    return { columns, totals };
   }
 
   async create(data: any) {
@@ -111,6 +215,68 @@ class TicketsService {
       [id]
     );
     return rows[0] || null;
+  }
+
+  async updateStatus(id: number, status: string, changedByUserId: number, req?: any) {
+    const validStatuses = ['aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado'];
+    if (!validStatuses.includes(status)) {
+      throw new Error(`Status inválido: ${status}`);
+    }
+
+    const oldTicket = await this.getById(id);
+    if (!oldTicket) {
+      throw new Error('Chamado não encontrado');
+    }
+
+    if (oldTicket.status === status) return;
+
+    let finalizado_em = null;
+    if (['resolvido', 'fechado'].includes(status)) {
+       finalizado_em = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    }
+
+    await pool.query(
+      `UPDATE tickets SET status = ?, finalizado_em = ${finalizado_em ? '?' : 'NULL'}, updated_at = NOW() WHERE id = ?`,
+      finalizado_em ? [status, finalizado_em, id] : [status, id]
+    );
+
+    // Logging se req for passado (seria ideal importar o logger, mas vou deixar pro routes)
+    // Para simplificar, vou confiar no retorno e deixar o route logar. Mas vou retornar oldTicket para comparar.
+
+    // Notificações de Status
+    try {
+      const translateStatus: any = { aberto: 'Aberto', em_andamento: 'Em Andamento', aguardando_cliente: 'Aguardando Cliente', resolvido: 'Resolvido', fechado: 'Fechado' };
+      const newStatusText = translateStatus[status] || status;
+
+      // Notificar cliente
+      if (oldTicket.usuario_id && oldTicket.usuario_id !== changedByUserId) {
+        await notificationsService.create({
+          usuario_id: oldTicket.usuario_id,
+          empresa_id: oldTicket.empresa_id,
+          tipo: 'TICKET_STATUS_CHANGED',
+          titulo: 'Status atualizado',
+          mensagem: `O status do seu chamado #${id} mudou para: ${newStatusText}`,
+          link: `ticket:${id}`
+        });
+      }
+
+      // Notificar responsável (se existir e for diferente do cliente e de quem mudou)
+      const currentRespId = oldTicket.responsavel_id;
+      if (currentRespId && currentRespId !== oldTicket.usuario_id && currentRespId !== changedByUserId) {
+        await notificationsService.create({
+          usuario_id: Number(currentRespId),
+          empresa_id: oldTicket.empresa_id,
+          tipo: 'TICKET_STATUS_CHANGED',
+          titulo: 'Status atualizado',
+          mensagem: `O chamado #${id} sob sua responsabilidade mudou para: ${newStatusText}`,
+          link: `ticket:${id}`
+        });
+      }
+    } catch (e) {
+      console.error('Erro ao notificar atualização de status do ticket:', e);
+    }
+
+    return { oldStatus: oldTicket.status, newStatus: status, empresa_id: oldTicket.empresa_id };
   }
 
   async update(id: number, data: any) {
