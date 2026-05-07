@@ -183,9 +183,9 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="min-w-0">
           <h2 className="text-xl font-bold text-slate-900 tracking-tight">Usuários</h2>
-          <p className="text-xs font-medium text-slate-400 uppercase tracking-widest mt-1">Gerenciamento de acesso e permissões</p>
+          <p className="text-sm text-slate-500 font-medium mt-1">Gerenciamento de acesso e permissões</p>
         </div>
-        <Button size="sm" onClick={() => { setSelectedUser(null); setSaveError(null); setIsModalOpen(true); }} className="font-bold text-xs uppercase tracking-widest">
+        <Button size="sm" onClick={() => { setSelectedUser(null); setSaveError(null); setIsModalOpen(true); }} className="font-semibold text-xs h-9">
           <Plus size={14} className="mr-2" /> Novo Usuário
         </Button>
       </div>
@@ -197,7 +197,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
              <input 
                type="text" 
                placeholder="Buscar usuário..." 
-               className="w-full h-9 bg-slate-50 border border-slate-100 rounded-lg pl-9 pr-4 text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 placeholder:text-slate-400 placeholder:font-medium transition-all"
+               className="w-full h-9 bg-slate-50 border border-slate-100 rounded-lg pl-9 pr-4 text-xs font-medium text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 placeholder:text-slate-400 placeholder:font-normal transition-all"
                value={searchTerm}
                onChange={(e) => setSearchTerm(e.target.value)}
              />
@@ -206,7 +206,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
             <select 
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-9 px-3 bg-white border border-slate-100 rounded-lg text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer hover:bg-slate-50 transition-all font-sans"
+              className="h-9 px-3 bg-white border border-slate-100 rounded-lg text-xs font-semibold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer hover:bg-slate-50 transition-all font-sans"
             >
               <option value="todos">Todos os Status</option>
               <option value="ativo">Ativos</option>
@@ -215,7 +215,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
             <select 
               value={permissionFilter}
               onChange={(e) => setPermissionFilter(e.target.value)}
-              className="h-9 px-3 bg-white border border-slate-100 rounded-lg text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer hover:bg-slate-50 transition-all font-sans"
+              className="h-9 px-3 bg-white border border-slate-100 rounded-lg text-xs font-semibold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer hover:bg-slate-50 transition-all font-sans"
             >
               <option value="todos">Todas Permissões</option>
               <option value="usuario">Usuários Comuns</option>

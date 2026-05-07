@@ -35,8 +35,9 @@ export const ProfilePage = ({ currentUser, onUpdate }: ProfilePageProps) => {
       onUpdate(updated);
       setSuccess('Dados de perfil atualizados com sucesso!');
       setTimeout(() => setSuccess(null), 4000);
-    } catch (err: any) {
-      setError(err.message || 'Erro ao atualizar dados de perfil.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao atualizar dados de perfil.';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -68,8 +69,9 @@ export const ProfilePage = ({ currentUser, onUpdate }: ProfilePageProps) => {
       setSuccess('Senha alterada com sucesso!');
       (e.target as HTMLFormElement).reset();
       setTimeout(() => setSuccess(null), 4000);
-    } catch (err: any) {
-      setError(err.message || 'Erro ao alterar senha.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao alterar senha.';
+      setError(message);
     } finally {
       setPwdLoading(false);
     }

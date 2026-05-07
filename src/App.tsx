@@ -86,8 +86,9 @@ export default function App() {
       const data = await api.post<{ user: User }>('/auth/login', { email, password });
       setCurrentUser(data.user);
       setView('dashboard');
-    } catch (err: any) {
-      setAuthError(err.message);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao autenticar.';
+      setAuthError(message);
     }
   };
 

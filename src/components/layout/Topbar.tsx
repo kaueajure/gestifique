@@ -18,7 +18,7 @@ export const Topbar = ({ title, onMenuClick, currentUser }: TopbarProps) => {
         >
           <Menu size={20} />
         </button>
-        <h1 className="text-xl font-black text-slate-900 tracking-tight hidden sm:block">
+        <h1 className="text-xl font-bold text-slate-900 tracking-tight hidden sm:block">
           {title}
         </h1>
       </div>
@@ -29,7 +29,7 @@ export const Topbar = ({ title, onMenuClick, currentUser }: TopbarProps) => {
           <input 
             type="text" 
             placeholder="Pesquisar chamados, usuários ou documentos..."
-            className="w-full h-12 bg-slate-50 border-none rounded-2xl pl-12 pr-4 text-sm font-medium focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+            className="w-full h-12 bg-slate-50 border-none rounded-xl pl-12 pr-4 text-sm font-medium focus:ring-2 focus:ring-blue-100 transition-all outline-none"
           />
         </div>
       </div>
@@ -42,10 +42,10 @@ export const Topbar = ({ title, onMenuClick, currentUser }: TopbarProps) => {
 
         <div className="flex items-center gap-3 pl-4 border-l border-slate-100">
            <div className="text-right hidden sm:block">
-              <div className="text-xs font-black text-slate-800">{currentUser.nome.split(' ')[0]}</div>
+              <div className="text-xs font-bold text-slate-800">{currentUser.nome.split(' ')[0]}</div>
               <div className="text-[10px] font-bold text-slate-400">{currentUser.empresa_nome || 'Gestifique'}</div>
            </div>
-           <div className="w-10 h-10 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-blue-600 font-black relative overflow-hidden group">
+           <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-blue-600 font-bold relative overflow-hidden group">
               {currentUser.foto ? (
                 <img src={currentUser.foto} alt="" className="w-full h-full object-cover" />
               ) : (

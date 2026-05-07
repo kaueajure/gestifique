@@ -162,7 +162,7 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
                           contentStyle={{borderRadius: '8px', border: '1px solid #f1f5f9', boxShadow: 'none', fontSize: '12px'}}
                         />
                         <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={24}>
-                          {statusData.map((entry: ChartDataItem, index: number) => (
+                          {statusData.map((_, index) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Bar>
@@ -260,7 +260,7 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
                           paddingAngle={4}
                           dataKey="value"
                         >
-                          {priorityData.map((entry: ChartDataItem, index: number) => (
+                          {priorityData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={PRIO_COLORS[entry.name] || '#94a3b8'} />
                           ))}
                         </Pie>
