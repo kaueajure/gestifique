@@ -1,3 +1,4 @@
+import { ResultSetHeader, RowDataPacket } from 'mysql2';
 import pool from '../db/connection.js';
 
 export interface CreateNotificationData {
@@ -7,12 +8,26 @@ export interface CreateNotificationData {
   titulo: string;
   mensagem?: string | null;
   link?: string | null;
-  metadata?: any;
+  metadata?: Record<string, unknown> | null;
+}
+
+interface NotificationRow extends RowDataPacket {
+  id: number;
+  usuario_id: number;
+  empresa_id: number | null;
+  tipo: string;
+  titulo: string;
+  mensagem: string | null;
+  link: string | null;
+  lida: number;
+  metadata: string | any | null;
+  created_at: string | Date;
+  read_at: string | Date | null;
 }
 
 class NotificationsService {
   async create(data: CreateNotificationData) {
-    const [result]: any = await pool.query(
+    const [result] = await pool.query<ResultSetHeader>(
       'INSERT INTO notificacoes (usuario_id, empresa_id, tipo, titulo, mensagem, link, metadata) VALUES (?, ?, ?, ?, ?, ?, ?)',
       [
         data.usuario_id, 
@@ -40,7 +55,7 @@ class NotificationsService {
       data.metadata ? JSON.stringify(data.metadata) : null
     ]);
 
-    await pool.query(
+    await pool.query<ResultSetHeader>(
       'INSERT INTO notificacoes (usuario_id, empresa_id, tipo, titulo, mensagem, link, metadata) VALUES ?',
       [values]
     );
@@ -48,7 +63,7 @@ class NotificationsService {
 
   async listForUser(userId: number, filters: { unread_only?: boolean; limit?: number; offset?: number }) {
     let query = 'SELECT * FROM notificacoes WHERE usuario_id = ?';
-    const params: any[] = [userId];
+    const params: (string | number | boolean)[] = [userId];
 
     if (filters.unread_only) {
       query += ' AND lida = 0';
@@ -62,17 +77,17 @@ class NotificationsService {
     query += ' LIMIT ? OFFSET ?';
     params.push(limit, offset);
 
-    const [rows]: any = await pool.query(query, params);
+    const [rows] = await pool.query<NotificationRow[]>(query, params);
     
-    return rows.map((r: any) => ({
+    return rows.map((r) => ({
       ...r,
       lida: Boolean(r.lida),
       metadata: r.metadata ? (typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata) : null
     }));
   }
 
-  async countUnread(userId: number) {
-    const [rows]: any = await pool.query(
+  async countUnread(userId: number): Promise<number> {
+    const [rows] = await pool.query<RowDataPacket[]>(
       'SELECT COUNT(*) as count FROM notificacoes WHERE usuario_id = ? AND lida = 0',
       [userId]
     );
@@ -80,21 +95,21 @@ class NotificationsService {
   }
 
   async markAsRead(notificationId: number, userId: number) {
-    await pool.query(
+    await pool.query<ResultSetHeader>(
       'UPDATE notificacoes SET lida = 1, read_at = NOW() WHERE id = ? AND usuario_id = ?',
       [notificationId, userId]
     );
   }
 
   async markAllAsRead(userId: number) {
-    await pool.query(
+    await pool.query<ResultSetHeader>(
       'UPDATE notificacoes SET lida = 1, read_at = NOW() WHERE usuario_id = ? AND lida = 0',
       [userId]
     );
   }
 
   async delete(notificationId: number, userId: number) {
-    await pool.query(
+    await pool.query<ResultSetHeader>(
       'DELETE FROM notificacoes WHERE id = ? AND usuario_id = ?',
       [notificationId, userId]
     );

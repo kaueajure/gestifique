@@ -1,11 +1,18 @@
 import { Router } from 'express';
 import notificationsService from '../services/notifications.service.js';
+import { authMiddleware, AuthRequest } from '../middlewares/auth.js';
+import { sendSuccess, sendError } from '../utils/response.js';
 
 const router = Router();
 
+router.use(authMiddleware);
+
 router.get('/', async (req, res) => {
   try {
-    const userId = (req as any).user.id;
+    const currentUser = (req as AuthRequest).user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+    
+    const userId = currentUser.id;
     const { unread_only, limit, offset } = req.query;
     
     const items = await notificationsService.listForUser(userId, {
@@ -16,55 +23,73 @@ router.get('/', async (req, res) => {
     
     const unread_count = await notificationsService.countUnread(userId);
     
-    res.json({ items, unread_count });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    sendSuccess(res, { items, unread_count });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao listar notificações';
+    sendError(res, message);
   }
 });
 
 router.get('/unread-count', async (req, res) => {
   try {
-    const userId = (req as any).user.id;
+    const currentUser = (req as AuthRequest).user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
+    const userId = currentUser.id;
     const count = await notificationsService.countUnread(userId);
-    res.json({ count });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    sendSuccess(res, { count });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao buscar contagem';
+    sendError(res, message);
+  }
+});
+
+// Important: Move specific action routes BEFORE parameterized :id routes
+router.patch('/read-all', async (req, res) => {
+  try {
+    const currentUser = (req as AuthRequest).user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
+    const userId = currentUser.id;
+    await notificationsService.markAllAsRead(userId);
+    sendSuccess(res, null, 'Notificações marcadas como lidas');
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao marcar tarefas como lidas';
+    sendError(res, message);
   }
 });
 
 router.patch('/:id/read', async (req, res) => {
   try {
-    const userId = (req as any).user.id;
+    const currentUser = (req as AuthRequest).user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
+    const userId = currentUser.id;
     const id = Number(req.params.id);
     if (!isNaN(id)) {
       await notificationsService.markAsRead(id, userId);
     }
-    res.status(204).send();
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.patch('/read-all', async (req, res) => {
-  try {
-    const userId = (req as any).user.id;
-    await notificationsService.markAllAsRead(userId);
-    res.status(204).send();
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    sendSuccess(res, null, 'Notificação marcada como lida');
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao marcar as lida';
+    sendError(res, message);
   }
 });
 
 router.delete('/:id', async (req, res) => {
   try {
-    const userId = (req as any).user.id;
+    const currentUser = (req as AuthRequest).user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
+    const userId = currentUser.id;
     const id = Number(req.params.id);
     if (!isNaN(id)) {
       await notificationsService.delete(id, userId);
     }
-    res.status(204).send();
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    sendSuccess(res, null, 'Notificação removida');
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao remover notificação';
+    sendError(res, message);
   }
 });
 

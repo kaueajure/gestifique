@@ -21,8 +21,9 @@ export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({ cu
 
   const fetchUnreadCount = useCallback(async () => {
     try {
-      const res = await api.get<{ count: number }>('/notifications/unread-count');
-      setUnreadCount(res.count || 0);
+      const res = await api.get<any>('/notifications/unread-count');
+      const count = res?.data?.count !== undefined ? res.data.count : res?.count;
+      setUnreadCount(count || 0);
     } catch (err) {
       console.error('Erro ao buscar contagem de notificações:', err);
     }
@@ -31,9 +32,10 @@ export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({ cu
   const fetchNotifications = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get<{ items: Notification[]; unread_count: number }>('/notifications?limit=10');
-      setNotifications(res.items || []);
-      setUnreadCount(res.unread_count || 0);
+      const res = await api.get<any>('/notifications?limit=10');
+      const data = res?.data || res;
+      setNotifications(data.items || []);
+      setUnreadCount(data.unread_count || 0);
     } catch (err) {
       console.error('Erro ao buscar notificações:', err);
     } finally {
