@@ -7,6 +7,8 @@ import { Card } from '../ui/Card';
 import { cn } from '../../lib/utils';
 import { SystemLog } from '../../types';
 
+type BadgeVariant = 'blue' | 'emerald' | 'amber' | 'red' | 'indigo' | 'slate' | 'orange';
+
 interface Pagination {
   page: number;
   limit: number;
@@ -43,11 +45,21 @@ export const LogsPage = () => {
         end_date: filters.end_date
       });
       
-      const response = await api.get<{ items: SystemLog[], pagination: Pagination }>(`/logs?${queryParams.toString()}`);
-      setLogs(response.items);
-      setPagination(response.pagination);
-    } catch (err: any) { 
-      setError(err.message || 'Erro ao carregar logs.');
+      const response = await api.get<any>(`/logs?${queryParams.toString()}`);
+      
+      const items = Array.isArray(response.items) 
+        ? response.items 
+        : Array.isArray(response.data?.items) 
+          ? response.data.items 
+          : [];
+          
+      const paginationData = response.pagination || response.data?.pagination || null;
+      
+      setLogs(items);
+      setPagination(paginationData);
+    } catch (err) { 
+      const message = err instanceof Error ? err.message : 'Erro ao carregar logs.';
+      setError(message);
     }
     finally { setLoading(false); }
   };
@@ -76,12 +88,13 @@ export const LogsPage = () => {
     });
   };
 
-  const getActionColor = (acao: string) => {
-    if (acao.includes('CREATE')) return 'emerald';
-    if (acao.includes('UPDATE')) return 'blue';
-    if (acao.includes('DELETE')) return 'red';
-    if (acao.includes('LOGIN')) return 'indigo';
-    if (acao.includes('PASSWORD')) return 'orange';
+  const getActionColor = (acao?: string): BadgeVariant => {
+    const action = acao || '';
+    if (action.includes('CREATE')) return 'emerald';
+    if (action.includes('UPDATE')) return 'blue';
+    if (action.includes('DELETE')) return 'red';
+    if (action.includes('LOGIN')) return 'indigo';
+    if (action.includes('PASSWORD')) return 'orange';
     return 'slate';
   };
 
@@ -190,10 +203,10 @@ export const LogsPage = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {logs.map((log) => (
+                  {Array.isArray(logs) && logs.map((log) => (
                     <tr key={log.id} className="hover:bg-slate-50/30 transition-colors group">
                       <td className="px-5 py-3">
-                        <Badge variant={getActionColor(log.acao) as any} className="px-1.5 py-0 font-bold text-[9px] tracking-tight uppercase">{log.acao}</Badge>
+                        <Badge variant={getActionColor(log.acao)} className="px-1.5 py-0 font-bold text-[9px] tracking-tight uppercase">{log.acao || 'SYSTEM'}</Badge>
                       </td>
                       <td className="px-5 py-3 max-w-xs">
                          <div className="flex items-start gap-2">
@@ -201,25 +214,25 @@ export const LogsPage = () => {
                          </div>
                       </td>
                       <td className="px-5 py-3">
-                         <div className="flex items-center gap-2.5">
-                            <div className={cn(
-                              "w-7 h-7 rounded-lg flex items-center justify-center font-bold text-[10px] uppercase shadow-sm border",
-                              log.usuario_nome ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-400 border-slate-100"
-                            )}>
-                               {log.usuario_nome?.charAt(0) || 'S'}
-                            </div>
-                            <div className="min-w-0">
-                               <div className="text-xs font-bold text-slate-900 leading-tight truncate">{log.usuario_nome || 'Sistema'}</div>
-                               <div className="text-[9px] font-bold text-blue-600 leading-tight flex items-center gap-1 mt-0.5 uppercase tracking-tighter">
-                                  <Building2 size={8} /> {log.empresa_nome || 'Master'}
-                               </div>
-                            </div>
-                         </div>
+                        <div className="flex items-center gap-2.5">
+                           <div className={cn(
+                             "w-7 h-7 rounded-lg flex items-center justify-center font-bold text-[10px] uppercase shadow-sm border",
+                             log.usuario_nome ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-400 border-slate-100"
+                           )}>
+                              {(log.usuario_nome || 'S').charAt(0)}
+                           </div>
+                           <div className="min-w-0">
+                              <div className="text-xs font-bold text-slate-900 leading-tight truncate">{log.usuario_nome || 'Sistema'}</div>
+                              <div className="text-[9px] font-bold text-blue-600 leading-tight flex items-center gap-1 mt-0.5 uppercase tracking-tighter">
+                                 <Building2 size={8} /> {log.empresa_nome || 'Master'}
+                              </div>
+                           </div>
+                        </div>
                       </td>
                       <td className="px-5 py-3">
                          <div className="flex flex-col gap-0.5">
                             <span className="text-[10px] font-bold text-slate-700 flex items-center gap-1 whitespace-nowrap">
-                               <Calendar size={10} className="text-slate-400" /> {new Date(log.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                               <Calendar size={10} className="text-slate-400" /> {log.created_at ? new Date(log.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'Data indisponível'}
                             </span>
                             <span className="text-[9px] font-bold text-slate-400 truncate opacity-60">
                                {log.ip || 'Local'}
