@@ -21,13 +21,15 @@ class ApiService {
     });
 
     if (response.status === 401) {
-      // Avoid triggering unauthorized event for the initial auth check if it fails silently
-      // Only trigger if we are not on the login/profile check or if the app expects to be authenticated
-      const isPublicEndpoint = endpoint === '/profile' || endpoint === '/auth/login';
+      // Avoid triggering unauthorized event for endpoints that handle their own errors
+      // or for the initial session check.
+      const silentEndpoints = ['/profile', '/auth/login'];
+      const isSilent = silentEndpoints.some(e => endpoint.includes(e));
       
-      // We still want to trigger it if the user WAS logged in or if it's a critical failure
-      // To keep it simple as requested:
-      window.dispatchEvent(new CustomEvent('api:unauthorized', { detail: { endpoint } }));
+      if (!isSilent) {
+        window.dispatchEvent(new CustomEvent('api:unauthorized', { detail: { endpoint } }));
+      }
+      
       throw new Error('Sessão expirada. Faça login novamente.');
     }
 

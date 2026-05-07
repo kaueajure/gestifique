@@ -53,11 +53,7 @@ export default function App() {
     checkAuth();
 
     // Global event listener for unauthorized requests
-    const handleUnauthorized = (e: any) => {
-      const endpoint = e.detail?.endpoint;
-      // If it failed on /profile check during boot, just silent it
-      if (endpoint === '/profile') return;
-      
+    const handleUnauthorized = () => {
       setCurrentUser(null);
       setView('login');
       setAuthError('Sessão expirada. Faça login novamente.');
