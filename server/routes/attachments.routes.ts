@@ -13,6 +13,9 @@ router.use(authMiddleware);
 
 router.get('/:id/download', async (req: AuthRequest, res: Response) => {
   try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
     const id = parseInt(req.params.id);
     const attachment = await attachmentsService.getById(id);
     
@@ -21,16 +24,16 @@ router.get('/:id/download', async (req: AuthRequest, res: Response) => {
     const ticket = await ticketsService.getById(attachment.ticket_id);
     if (!ticket) return sendError(res, 'Ticket não encontrado', 404);
 
-    const isAdminOrDev = req.user.administrador || req.user.desenvolvedor;
-    const isOwner = ticket.usuario_id === req.user.id;
-    const isSameEnterprise = ticket.empresa_id === req.user.empresa_id;
+    const isAdminOrDev = currentUser.administrador || currentUser.desenvolvedor;
+    const isOwner = ticket.usuario_id === currentUser.id;
+    const isSameEnterprise = ticket.empresa_id === currentUser.empresa_id;
 
     // ACL Check
     // Desenvolvedor: tudo
     // Administrador: tickets da empresa
     // Usuário comum: apenas tickets próprios
-    if (!req.user.desenvolvedor) {
-      if (req.user.administrador) {
+    if (!currentUser.desenvolvedor) {
+      if (currentUser.administrador) {
         if (!isSameEnterprise) {
           return sendError(res, 'Acesso negado ao ticket (Admin)', 403);
         }
@@ -70,25 +73,28 @@ router.get('/:id/download', async (req: AuthRequest, res: Response) => {
 
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
   try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
     const id = parseInt(req.params.id);
     const attachment = await attachmentsService.getById(id);
     
     if (!attachment) return sendError(res, 'Anexo não encontrado', 404);
 
-    const isAdminOrDev = req.user.administrador || req.user.desenvolvedor;
-    const isOwner = attachment.usuario_id === req.user.id;
+    const isAdminOrDev = currentUser.administrador || currentUser.desenvolvedor;
+    const isOwner = attachment.usuario_id === currentUser.id;
     
     if (!isAdminOrDev && !isOwner) {
        return sendError(res, 'Permissão negada para excluir anexo', 403);
     }
 
     // Even if owner, can't delete if from another enterprise (security)
-    if (!req.user.desenvolvedor && attachment.empresa_id !== req.user.empresa_id) {
+    if (!currentUser.desenvolvedor && attachment.empresa_id !== currentUser.empresa_id) {
        return sendError(res, 'Acesso negado', 403);
     }
 
     await attachmentsService.delete(id);
-    await logSystemAction(req, req.user.id, req.user.empresa_id, 'ATTACHMENT_DELETE', `Anexo excluído: ${attachment.nome_original} (ID: ${id})`);
+    await logSystemAction(req, currentUser.id, currentUser.empresa_id, 'ATTACHMENT_DELETE', `Anexo excluído: ${attachment.nome_original} (ID: ${id})`);
     
     sendSuccess(res, null, 'Anexo excluído com sucesso');
   } catch (error: unknown) {

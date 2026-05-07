@@ -12,8 +12,11 @@ router.use(authMiddleware);
 
 router.get('/', isAdmin, async (req: AuthRequest, res) => {
   try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
     const { search, status, permission } = req.query;
-    const empresaId = req.user?.desenvolvedor ? undefined : req.user?.empresa_id;
+    const empresaId = currentUser.desenvolvedor ? undefined : currentUser.empresa_id;
     const users = await usersService.list({ 
       empresaId, 
       search: search as string, 
@@ -29,13 +32,15 @@ router.get('/', isAdmin, async (req: AuthRequest, res) => {
 
 router.post('/', isAdmin, async (req: AuthRequest, res) => {
   try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
     const { nome, email, password, administrador, desenvolvedor, empresa_id, cargo, telefone } = req.body;
     
     if (!nome || !email || !password) return sendError(res, 'Nome, email e senha são obrigatórios', 400);
     if (!isValidEmail(email)) return sendError(res, 'Email inválido', 400);
     if (password.length < 8) return sendError(res, 'A senha deve ter pelo menos 8 caracteres', 400);
 
-    const currentUser = req.user!;
     const targetEmpresaId = currentUser.desenvolvedor ? empresa_id : currentUser.empresa_id;
     
     if (!currentUser.desenvolvedor && desenvolvedor) {
@@ -61,8 +66,10 @@ router.post('/', isAdmin, async (req: AuthRequest, res) => {
 
 router.patch('/:id', isAdmin, async (req: AuthRequest, res) => {
     try {
+        const currentUser = req.user;
+        if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
         const id = parseInt(req.params.id);
-        const currentUser = req.user!;
         const targetUser = await usersService.getById(id);
         
         if (!targetUser) return sendError(res, 'Usuário não encontrado', 404);
@@ -99,9 +106,11 @@ router.patch('/:id', isAdmin, async (req: AuthRequest, res) => {
 
 router.patch('/:id/status', isAdmin, async (req: AuthRequest, res) => {
     try {
+        const currentUser = req.user;
+        if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
         const id = parseInt(req.params.id);
         const { ativo } = req.body;
-        const currentUser = req.user!;
         const targetUser = await usersService.getById(id);
         
         if (!targetUser) return sendError(res, 'Usuário não encontrado', 404);
@@ -120,8 +129,11 @@ router.patch('/:id/status', isAdmin, async (req: AuthRequest, res) => {
     }
 });
 
-router.patch('/:id/password', isAdmin, async (req: any, res) => {
+router.patch('/:id/password', isAdmin, async (req: AuthRequest, res) => {
     try {
+        const currentUser = req.user;
+        if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
         const id = parseInt(req.params.id);
         const { password } = req.body;
         
@@ -130,16 +142,17 @@ router.patch('/:id/password', isAdmin, async (req: any, res) => {
         const targetUser = await usersService.getById(id);
         if (!targetUser) return sendError(res, 'Usuário não encontrado', 404);
         
-        if (!req.user.desenvolvedor && (targetUser.empresa_id !== req.user.empresa_id || targetUser.desenvolvedor)) {
+        if (!currentUser.desenvolvedor && (targetUser.empresa_id !== currentUser.empresa_id || targetUser.desenvolvedor)) {
             return sendError(res, 'Acesso proibido', 403);
         }
 
         await usersService.update(id, { password });
-        await logSystemAction(req, req.user.id, req.user.empresa_id, 'USER_PASSWORD', `Alterou senha do usuário ID ${id}`);
+        await logSystemAction(req, currentUser.id, currentUser.empresa_id, 'USER_PASSWORD', `Alterou senha do usuário ID ${id}`);
         
         sendSuccess(res, null, 'Senha alterada com sucesso');
-    } catch (error: any) {
-        sendError(res, error.message);
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Erro ao alterar senha';
+        sendError(res, message);
     }
 });
 

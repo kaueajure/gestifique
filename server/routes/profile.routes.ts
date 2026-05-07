@@ -10,7 +10,10 @@ router.use(authMiddleware);
 
 router.get('/', async (req: AuthRequest, res) => {
   try {
-    const profile = await usersService.getById(req.user!.id);
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
+    const profile = await usersService.getById(currentUser.id);
     sendSuccess(res, profile);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erro ao buscar perfil';
@@ -20,7 +23,9 @@ router.get('/', async (req: AuthRequest, res) => {
 
 router.patch('/', async (req: AuthRequest, res) => {
   try {
-    const currentUser = req.user!;
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
     // Prevent privilege escalation - Only allow specific fields
     const safeData: Partial<{nome: string; telefone: string; foto: string}> = {};
     if (req.body.nome) safeData.nome = req.body.nome;
@@ -43,7 +48,9 @@ router.patch('/', async (req: AuthRequest, res) => {
 
 router.patch('/password', async (req: AuthRequest, res) => {
   try {
-    const currentUser = req.user!;
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
     const { currentPassword, newPassword, confirmPassword } = req.body;
 
     if (!currentPassword || !newPassword || !confirmPassword) {

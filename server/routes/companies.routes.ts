@@ -26,7 +26,9 @@ router.get('/', isDev, async (req: AuthRequest, res) => {
 
 router.post('/', isDev, async (req: AuthRequest, res) => {
   try {
-    const currentUser = req.user!;
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
     if (!req.body.nome) return sendError(res, 'Nome é obrigatório', 400);
     const id = await companiesService.create(req.body);
     await logSystemAction(req, currentUser.id, null, 'COMPANY_CREATE', `Criou empresa: ${req.body.nome}`);
@@ -40,8 +42,10 @@ router.post('/', isDev, async (req: AuthRequest, res) => {
 // Update company: Devs can update any, Admins only their own
 router.patch('/:id', async (req: AuthRequest, res) => {
   try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
     const id = parseInt(req.params.id);
-    const currentUser = req.user!;
     
     if (!currentUser.desenvolvedor) {
       if (!currentUser.administrador || currentUser.empresa_id !== id) {
@@ -60,9 +64,11 @@ router.patch('/:id', async (req: AuthRequest, res) => {
 
 router.patch('/:id/status', isDev, async (req: AuthRequest, res) => {
   try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
     const id = parseInt(req.params.id);
     const { ativo } = req.body;
-    const currentUser = req.user!;
     await companiesService.update(id, { ativo });
     await logSystemAction(req, currentUser.id, null, 'COMPANY_STATUS', `${ativo ? 'Ativou' : 'Desativou'} empresa ID ${id}`);
     sendSuccess(res, null, `Empresa ${ativo ? 'ativada' : 'desativada'} com sucesso`);

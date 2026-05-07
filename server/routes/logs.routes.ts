@@ -11,7 +11,9 @@ router.use(isAdmin);
 
 router.get('/', async (req: AuthRequest, res) => {
   try {
-    const currentUser = req.user!;
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
     const filters = {
       ...req.query,
       empresa_id: currentUser.empresa_id,

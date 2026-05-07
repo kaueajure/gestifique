@@ -27,6 +27,17 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
 
   try {
     const decoded = jwt.verify(token, SECRET) as UserPayload;
+    
+    // Payload validation
+    if (!decoded || typeof decoded !== 'object' || !decoded.id || !decoded.email) {
+      return res.status(401).json({ success: false, message: 'Sessão inválida. Faça login novamente.' });
+    }
+
+    // Check if user is active
+    if (decoded.ativo === false) {
+      return res.status(403).json({ success: false, message: 'Sua conta está inativada' });
+    }
+
     req.user = decoded;
     next();
   } catch (error) {

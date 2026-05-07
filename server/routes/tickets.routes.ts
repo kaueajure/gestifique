@@ -13,12 +13,15 @@ router.use(authMiddleware);
 
 router.get('/', async (req: AuthRequest, res) => {
   try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
     const filters = {
       ...req.query,
-      empresa_id: req.user.empresa_id,
-      usuario_id: req.user.id,
-      is_dev: req.user.desenvolvedor,
-      is_admin: req.user.administrador
+      empresa_id: currentUser.empresa_id,
+      usuario_id: currentUser.id,
+      is_dev: currentUser.desenvolvedor,
+      is_admin: currentUser.administrador
     };
     const tickets = await ticketsService.list(filters);
     sendSuccess(res, tickets);
@@ -30,14 +33,17 @@ router.get('/', async (req: AuthRequest, res) => {
 
 router.get('/:id', async (req: AuthRequest, res) => {
   try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
     const id = parseInt(req.params.id);
     const ticket = await ticketsService.getById(id);
     
     if (!ticket) return sendError(res, 'Ticket não encontrado', 404);
     
     // ACL
-    if (!req.user.desenvolvedor && ticket.empresa_id !== req.user.empresa_id) {
-      if (ticket.usuario_id !== req.user.id) {
+    if (!currentUser.desenvolvedor && ticket.empresa_id !== currentUser.empresa_id) {
+      if (ticket.usuario_id !== currentUser.id) {
         return sendError(res, 'Permissão negada', 403);
       }
     }
@@ -51,16 +57,19 @@ router.get('/:id', async (req: AuthRequest, res) => {
 
 router.post('/', async (req: AuthRequest, res) => {
   try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
     const { titulo, descricao, prioridade, categoria } = req.body;
     if (!titulo) return sendError(res, 'Título é obrigatório', 400);
 
     const ticketId = await ticketsService.create({
-      empresa_id: req.user.empresa_id,
-      usuario_id: req.user.id,
+      empresa_id: currentUser.empresa_id,
+      usuario_id: currentUser.id,
       titulo, descricao, prioridade, categoria
     });
 
-    await logSystemAction(req, req.user.id, req.user.empresa_id, 'TICKET_CREATE', `Novo chamado criado: #${ticketId}`);
+    await logSystemAction(req, currentUser.id, currentUser.empresa_id, 'TICKET_CREATE', `Novo chamado criado: #${ticketId}`);
     
     sendSuccess(res, { id: ticketId }, 'Ticket aberto com sucesso', 201);
   } catch (error: unknown) {
@@ -71,12 +80,15 @@ router.post('/', async (req: AuthRequest, res) => {
 
 router.patch('/:id', async (req: AuthRequest, res) => {
   try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
     const id = parseInt(req.params.id);
     const ticket = await ticketsService.getById(id);
     if (!ticket) return sendError(res, 'Ticket não encontrado', 404);
 
-    const canManage = req.user.administrador || req.user.desenvolvedor;
-    if (!canManage && ticket.usuario_id !== req.user.id) {
+    const canManage = currentUser.administrador || currentUser.desenvolvedor;
+    if (!canManage && ticket.usuario_id !== currentUser.id) {
         return sendError(res, 'Permissão negada', 403);
     }
 
@@ -101,7 +113,7 @@ router.patch('/:id', async (req: AuthRequest, res) => {
       ? `Atualizou chamado #${id}: ${descriptions.join(', ')}`
       : `Atualizou detalhes do chamado #${id}`;
 
-    await logSystemAction(req, req.user.id, req.user.empresa_id, 'TICKET_UPDATE', logMsg);
+    await logSystemAction(req, currentUser.id, currentUser.empresa_id, 'TICKET_UPDATE', logMsg);
     
     sendSuccess(res, null, 'Ticket atualizado com sucesso');
   } catch (error: unknown) {
@@ -112,8 +124,11 @@ router.patch('/:id', async (req: AuthRequest, res) => {
 
 router.get('/:id/messages', async (req: AuthRequest, res) => {
   try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
     const id = parseInt(req.params.id);
-    const isAdminOrDev = req.user.administrador || req.user.desenvolvedor;
+    const isAdminOrDev = currentUser.administrador || currentUser.desenvolvedor;
     const messages = await ticketsService.getMessages(id, isAdminOrDev);
     
     // Fetch attachments for each message
@@ -131,19 +146,22 @@ router.get('/:id/messages', async (req: AuthRequest, res) => {
 
 router.post('/:id/messages', async (req: AuthRequest, res) => {
   try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
     const id = parseInt(req.params.id);
     const { mensagem, interno } = req.body;
     
-    const isAdminOrDev = req.user.administrador || req.user.desenvolvedor;
+    const isAdminOrDev = currentUser.administrador || currentUser.desenvolvedor;
     
     const messageId = await ticketsService.addMessage({
       ticket_id: id,
-      usuario_id: req.user.id,
+      usuario_id: currentUser.id,
       mensagem,
       interno: isAdminOrDev ? interno : false
     });
 
-    await logSystemAction(req, req.user.id, req.user.empresa_id, 'MESSAGE_SEND', `Nova mensagem no chamado #${id}`);
+    await logSystemAction(req, currentUser.id, currentUser.empresa_id, 'MESSAGE_SEND', `Nova mensagem no chamado #${id}`);
     
     sendSuccess(res, { id: messageId }, 'Mensagem enviada');
   } catch (error: unknown) {
@@ -155,8 +173,11 @@ router.post('/:id/messages', async (req: AuthRequest, res) => {
 // Attachment routes
 router.get('/:id/attachments', async (req: AuthRequest, res) => {
   try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
     const id = parseInt(req.params.id);
-    const isAdminOrDev = req.user.administrador || req.user.desenvolvedor;
+    const isAdminOrDev = currentUser.administrador || currentUser.desenvolvedor;
     const attachments = await attachmentsService.listByTicket(id, isAdminOrDev);
     sendSuccess(res, attachments);
   } catch (error: unknown) {
@@ -168,6 +189,12 @@ router.get('/:id/attachments', async (req: AuthRequest, res) => {
 router.post('/:id/attachments', ticketUpload.array('files', 5), async (req: AuthRequest, res) => {
   const files = req.files as Express.Multer.File[];
   try {
+    const currentUser = req.user;
+    if (!currentUser) {
+      await attachmentsService.deleteMultiple(files);
+      return sendError(res, 'Não autenticado', 401);
+    }
+
     const id = parseInt(req.params.id);
     const { mensagem_id, interno } = req.body;
 
@@ -182,15 +209,15 @@ router.post('/:id/attachments', ticketUpload.array('files', 5), async (req: Auth
     }
 
     // ACL Check
-    const isAdminOrDev = !!(req.user.administrador || req.user.desenvolvedor);
-    const isOwner = ticket.usuario_id === req.user.id;
-    const isSameEnterprise = ticket.empresa_id === req.user.empresa_id;
+    const isAdminOrDev = !!(currentUser.administrador || currentUser.desenvolvedor);
+    const isOwner = ticket.usuario_id === currentUser.id;
+    const isSameEnterprise = ticket.empresa_id === currentUser.empresa_id;
 
     // Desenvolvedor: tudo
     // Administrador: tickets da empresa
     // Usuário comum: apenas tickets próprios
-    if (!req.user.desenvolvedor) {
-       if (req.user.administrador) {
+    if (!currentUser.desenvolvedor) {
+       if (currentUser.administrador) {
           if (!isSameEnterprise) {
             await attachmentsService.deleteMultiple(files);
             return sendError(res, 'Permissão negada para anexar arquivos neste ticket (Admin)', 403);
@@ -210,8 +237,8 @@ router.post('/:id/attachments', ticketUpload.array('files', 5), async (req: Auth
       const attachmentId = await attachmentsService.create({
         ticket_id: id,
         mensagem_id: mensagem_id ? parseInt(mensagem_id) : null,
-        usuario_id: req.user.id,
-        empresa_id: req.user.empresa_id,
+        usuario_id: currentUser.id,
+        empresa_id: currentUser.empresa_id,
         nome_original: file.originalname,
         nome_arquivo: file.filename,
         caminho: file.path,
@@ -229,7 +256,7 @@ router.post('/:id/attachments', ticketUpload.array('files', 5), async (req: Auth
       };
     }));
 
-    await logSystemAction(req, req.user.id, req.user.empresa_id, 'ATTACHMENT_UPLOAD', `Anexo(s) enviado(s) para o chamado #${id}`);
+    await logSystemAction(req, currentUser.id, currentUser.empresa_id, 'ATTACHMENT_UPLOAD', `Anexo(s) enviado(s) para o chamado #${id}`);
 
     sendSuccess(res, createdAttachments, 'Arquivos enviados com sucesso', 201);
   } catch (error: unknown) {
