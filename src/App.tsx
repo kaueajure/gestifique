@@ -52,7 +52,11 @@ export default function App() {
     checkAuth();
 
     // Global event listener for unauthorized requests
-    const handleUnauthorized = () => {
+    const handleUnauthorized = (e: any) => {
+      const endpoint = e.detail?.endpoint;
+      // If it failed on /profile check during boot, just silent it
+      if (endpoint === '/profile') return;
+      
       setCurrentUser(null);
       setView('login');
       setAuthError('Sessão expirada. Faça login novamente.');
@@ -329,15 +333,3 @@ export default function App() {
 
   return null;
 }
-
-const AccessDenied = () => (
-  <div className="flex flex-col items-center justify-center py-20 text-center">
-    <div className="w-20 h-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mb-6 shadow-lg shadow-red-100">
-      <Lock size={40} />
-    </div>
-    <h2 className="text-3xl font-black text-slate-900 mb-2">Acesso Restrito</h2>
-    <p className="text-slate-500 max-w-md mx-auto font-medium">
-      Você não tem permissão para acessar esta área. Se acredita que isso é um erro, entre em contato com o administrador do seu workspace.
-    </p>
-  </div>
-);

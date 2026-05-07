@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
-import { Empresa } from '../../types';
+import { Empresa, User } from '../../types';
 import { 
   Building2, 
   Plus, 
