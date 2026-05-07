@@ -59,8 +59,9 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
       ]);
       setUsers(usersData);
       setCompanies(companiesData);
-    } catch (err: any) {
-      setError(err.message || 'Erro ao carregar usuários.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao carregar usuários.';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -86,11 +87,11 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
     const data = Object.fromEntries(formData.entries());
 
     try {
-      const payload: any = {
+      const payload = {
         ...data,
         administrador: formData.get('administrador') === 'true',
         desenvolvedor: formData.get('desenvolvedor') === 'true',
-      };
+      } as any;
 
       if (!selectedUser?.id && (payload.password as string || '').length < 8) {
         setSaveError('A senha deve ter pelo menos 8 caracteres.');
@@ -107,8 +108,9 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
       }
       setIsModalOpen(false);
       fetchData();
-    } catch (err: any) {
-      setSaveError(err.message || 'Erro ao salvar usuário.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao salvar usuário.';
+      setSaveError(message);
     } finally {
       setLoadingSave(false);
     }
@@ -139,8 +141,9 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
       await api.patch(`/users/${selectedUser.id}/password`, { password });
       showSuccess('Senha alterada com sucesso!');
       setIsPasswordModalOpen(false);
-    } catch (err: any) {
-      setSaveError(err.message || 'Erro ao alterar senha.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao alterar senha.';
+      setSaveError(message);
     } finally {
       setLoadingSave(false);
     }
@@ -152,165 +155,166 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
       await api.patch(`/users/${selectedUser.id}/status`, { ativo: !selectedUser.ativo });
       showSuccess(`Usuário ${!selectedUser.ativo ? 'ativado' : 'desativado'} com sucesso!`);
       fetchData();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao alterar status.';
+      setError(message);
     }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold text-slate-900 tracking-tight">Time Gestifique</h2>
-          <p className="text-sm text-slate-500 font-medium tracking-tight">Gerencie cargos, permissões e acesso dos colaboradores.</p>
+        <div className="min-w-0">
+          <h2 className="text-xl font-bold text-slate-900 tracking-tight">Usuários</h2>
+          <p className="text-xs font-medium text-slate-400 uppercase tracking-widest mt-1">Gerenciamento de acesso e permissões</p>
         </div>
-        <Button size="sm" className="h-9" onClick={() => { setSelectedUser(null); setSaveError(null); setIsModalOpen(true); }}>
-          <Plus size={16} className="mr-2" /> Novo Usuário
+        <Button size="sm" onClick={() => { setSelectedUser(null); setSaveError(null); setIsModalOpen(true); }} className="font-bold text-xs uppercase tracking-widest">
+          <Plus size={14} className="mr-2" /> Novo Usuário
         </Button>
       </div>
 
-      <Card className="p-3">
-        <div className="flex flex-col lg:flex-row gap-2">
-          <div className="relative flex-1 group">
-             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={14} />
+      <Card>
+        <div className="p-4 border-b border-slate-50 flex flex-col lg:flex-row gap-3">
+          <div className="relative flex-1">
+             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
              <input 
                type="text" 
-               placeholder="Buscar por nome ou e-mail..." 
-               className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 text-xs font-semibold outline-none focus:ring-2 focus:ring-blue-100 transition-all font-sans"
+               placeholder="Buscar usuário..." 
+               className="w-full h-9 bg-slate-50 border border-slate-100 rounded-lg pl-9 pr-4 text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 placeholder:text-slate-400 placeholder:font-medium transition-all"
                value={searchTerm}
                onChange={(e) => setSearchTerm(e.target.value)}
              />
           </div>
-          <div className="grid grid-cols-3 lg:flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <select 
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
+              className="h-9 px-3 bg-white border border-slate-100 rounded-lg text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer hover:bg-slate-50 transition-all font-sans"
             >
-              <option value="todos">Status</option>
+              <option value="todos">Todos os Status</option>
               <option value="ativo">Ativos</option>
               <option value="inativo">Inativos</option>
             </select>
             <select 
               value={permissionFilter}
               onChange={(e) => setPermissionFilter(e.target.value)}
-              className="h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
+              className="h-9 px-3 bg-white border border-slate-100 rounded-lg text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer hover:bg-slate-50 transition-all font-sans"
             >
-              <option value="todos">Permissões</option>
-              <option value="usuario">Usuários</option>
-              <option value="administrador">Admins</option>
-              <option value="desenvolvedor">Devs</option>
+              <option value="todos">Todas Permissões</option>
+              <option value="usuario">Usuários Comuns</option>
+              <option value="administrador">Administradores</option>
+              <option value="desenvolvedor">Desenvolvedores</option>
             </select>
           </div>
         </div>
-      </Card>
 
-      {successMsg && (
-        <div className="p-2 px-3 bg-emerald-50 border border-emerald-100 rounded-lg text-emerald-600 text-xs font-bold animate-in fade-in slide-in-from-top-2">
-          {successMsg}
-        </div>
-      )}
+        {successMsg && (
+          <div className="mx-4 mt-4 p-3 bg-emerald-50 border border-emerald-100 rounded-lg text-emerald-600 text-xs font-bold animate-in fade-in slide-in-from-top-2">
+            {successMsg}
+          </div>
+        )}
 
-      <Card className="overflow-hidden">
         {loading ? (
           <div className="p-20 flex flex-col items-center justify-center space-y-3">
              <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
-             <p className="text-xs text-slate-500 font-bold tracking-tight uppercase">Carregando...</p>
+             <p className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">Carregando usuários...</p>
           </div>
         ) : users.length === 0 ? (
            <div className="p-20 text-center flex flex-col items-center">
              <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300 mb-4">
                 <UsersIcon size={24} />
              </div>
-             <h3 className="text-sm font-semibold text-slate-900">Nenhum usuário encontrado</h3>
-             <p className="text-xs text-slate-500 max-w-xs mx-auto mb-6">Crie um novo usuário ou ajuste os filtros.</p>
+             <h3 className="text-sm font-bold text-slate-900">Nenhum usuário encontrado</h3>
+             <p className="text-xs font-medium text-slate-500 max-w-xs mx-auto mt-1">Ajuste os filtros ou crie um novo colaborador.</p>
            </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left">
+            <table className="w-full">
               <thead>
-                <tr className="bg-slate-50/50 border-b border-slate-100">
-                  <th className="px-5 py-2.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Usuário</th>
-                  <th className="px-5 py-2.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cargo / Empresa</th>
-                  <th className="px-5 py-2.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</th>
-                  <th className="px-5 py-2.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Ações</th>
+                <tr className="bg-slate-50/30">
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-left">Usuário</th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-left">Empresa</th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-left">Status / Cargo</th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100/50">
                 {users.map((user) => {
                   const isDev = !!user.desenvolvedor;
-                  const canManage = currentUser.desenvolvedor || (!isDev);
+                  const canManage = currentUser.desenvolvedor || (!isDev && (currentUser.administrador && (currentUser.empresa_id === user.empresa_id || !user.empresa_id)));
                   
                   return (
                     <tr key={user.id} className="hover:bg-slate-50/50 transition-colors group">
-                      <td className="px-5 py-3">
-                        <div className="flex items-center gap-2.5">
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
                           <div className={cn(
-                            "w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs border shadow-sm transition-colors",
-                            user.ativo ? "bg-slate-900 text-white border-slate-950" : "bg-slate-50 text-slate-400 border-slate-100"
+                            "w-9 h-9 rounded-lg flex items-center justify-center font-bold text-xs shadow-sm border",
+                            user.ativo 
+                              ? "bg-slate-900 text-white border-slate-950" 
+                              : "bg-white text-slate-300 border-slate-100"
                           )}>
-                            {user.nome.charAt(0)}
+                            {(user.nome || "U").charAt(0)}
                           </div>
                           <div className="min-w-0">
-                            <div className="text-sm font-semibold text-slate-900 leading-tight truncate">{user.nome}</div>
-                            <div className="text-[10px] font-medium text-slate-400 truncate">{user.email}</div>
+                            <div className="text-sm font-bold text-slate-900 truncate tracking-tight">{user.nome || "Usuário"}</div>
+                            <div className="text-[10px] font-bold text-slate-400 truncate tracking-tighter uppercase">{user.email}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-3">
-                         <div className="text-xs font-semibold text-slate-700">{user.cargo || 'Membro'}</div>
-                         <div className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
-                            <Building2 size={10} className="text-slate-300" /> {user.empresa_nome || 'Gestifique Master'}
+                      <td className="px-5 py-4">
+                         <div className="flex items-center gap-2">
+                           <Building2 size={12} className="text-slate-300" />
+                           <span className="text-xs font-bold text-slate-600 truncate max-w-[180px]">{user.empresa_nome || 'Gestifique Master'}</span>
                          </div>
                       </td>
-                      <td className="px-5 py-3">
-                        <div className="flex flex-wrap gap-1.5">
-                          {user.administrador && <Badge variant="blue" className="text-[9px] py-0 px-1.5 font-bold uppercase">Admin</Badge>}
-                          {user.desenvolvedor && <Badge variant="indigo" className="text-[9px] py-0 px-1.5 font-bold uppercase">Dev</Badge>}
-                          <Badge variant={user.ativo ? 'emerald' : 'slate'} className={cn("text-[9px] py-0 px-1.5 font-bold uppercase", !user.ativo && "bg-slate-100 text-slate-400 border-slate-100")}>
+                      <td className="px-5 py-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge 
+                            variant={user.ativo ? 'emerald' : 'slate'} 
+                            className="text-[9px] py-0 px-1.5 font-bold uppercase tracking-tight border-none"
+                          >
                             {user.ativo ? 'Ativo' : 'Inativo'}
                           </Badge>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{user.cargo || 'Membro'}</span>
+                          {user.administrador && <Badge variant="blue" className="text-[8px] py-0 px-1 font-bold uppercase border-none opacity-80">Admin</Badge>}
+                          {user.desenvolvedor && <Badge variant="indigo" className="text-[8px] py-0 px-1 font-bold uppercase border-none opacity-80">Dev</Badge>}
                         </div>
                       </td>
-                      <td className="px-5 py-3 text-right">
-                         <div className="flex items-center justify-end gap-0.5 opacity-40 group-hover:opacity-100 transition-opacity">
+                      <td className="px-5 py-4 text-right">
+                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             {canManage ? (
                               <>
-                                <Button 
-                                  variant="ghost"
-                                  size="icon"
+                                <button 
                                   onClick={() => { setSelectedUser(user); setSaveError(null); setIsPasswordModalOpen(true); }}
-                                  className="h-7 w-7 text-slate-400 hover:text-amber-600"
+                                  className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-amber-50 hover:text-amber-600 transition-all"
                                   title="Alterar Senha"
                                 >
                                    <Key size={14} />
-                                </Button>
-                                <Button 
-                                  variant="ghost"
-                                  size="icon"
+                                </button>
+                                <button 
                                   onClick={() => { setSelectedUser(user); setSaveError(null); setIsModalOpen(true); }}
-                                  className="h-7 w-7 text-slate-400 hover:text-blue-600"
-                                  title="Editar Dados"
+                                  className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-all"
+                                  title="Editar"
                                 >
                                    <Edit2 size={14} />
-                                </Button>
-                                <Button 
-                                  variant="ghost"
-                                  size="icon"
+                                </button>
+                                <button 
                                   onClick={() => { setSelectedUser(user); setIsStatusConfirmOpen(true); }}
                                   className={cn(
-                                    "h-7 w-7",
-                                    user.ativo ? "text-slate-400 hover:text-red-600" : "text-slate-400 hover:text-emerald-600"
+                                    "h-8 w-8 flex items-center justify-center rounded-lg transition-all",
+                                    user.ativo 
+                                      ? "text-slate-400 hover:bg-red-50 hover:text-red-500" 
+                                      : "text-slate-400 hover:bg-emerald-50 hover:text-emerald-500"
                                   )}
                                   title={user.ativo ? 'Desativar' : 'Ativar'}
                                 >
                                    {user.ativo ? <XCircle size={14} /> : <CheckCircle2 size={14} />}
-                                </Button>
+                                </button>
                               </>
                             ) : (
-                              <div className="w-7 h-7 flex items-center justify-center text-slate-200" title="Sem permissão">
-                                <Shield size={14} />
-                              </div>
+                               <div className="w-8 h-8 flex items-center justify-center text-slate-200" title="Sem permissão">
+                                  <Shield size={14} />
+                               </div>
                             )}
                          </div>
                       </td>
@@ -326,80 +330,98 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={selectedUser ? 'Editar Usuário' : 'Novo Usuário do Time'}
+        title={selectedUser ? 'Editar Usuário' : 'Novo Usuário'}
         size="lg"
       >
-        <form onSubmit={handleSaveUser} className="space-y-5">
+        <form onSubmit={handleSaveUser} className="space-y-6">
            {saveError && (
-             <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-xs font-semibold mb-4">
+             <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-xs font-bold mb-4">
                 {saveError}
              </div>
            )}
-           <div className="grid md:grid-cols-2 gap-4">
-              <Input 
-                label="Nome Completo"
-                name="nome" 
-                defaultValue={selectedUser?.nome} 
-                required 
-                placeholder="Ex: João Silva"
-              />
-              <Input 
-                label="E-mail de Acesso"
-                name="email" 
-                type="email" 
-                defaultValue={selectedUser?.email} 
-                required 
-                disabled={!!selectedUser}
-                placeholder="joao@gestifique.com"
-              />
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Nome Completo</label>
+                 <Input 
+                   name="nome" 
+                   defaultValue={selectedUser?.nome} 
+                   required 
+                   placeholder="Ex: João Silva"
+                   className="h-10 bg-slate-50/50 border-slate-100 font-bold text-xs"
+                 />
+              </div>
+              <div className="space-y-1.5">
+                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">E-mail</label>
+                 <Input 
+                   name="email" 
+                   type="email" 
+                   defaultValue={selectedUser?.email} 
+                   required 
+                   disabled={!!selectedUser}
+                   placeholder="joao@exemplo.com"
+                   className="h-10 bg-slate-50/50 border-slate-100 font-bold text-xs"
+                 />
+              </div>
            </div>
 
-           <div className="grid md:grid-cols-2 gap-4">
-              <Input 
-                label="Cargo"
-                name="cargo" 
-                defaultValue={selectedUser?.cargo || ''} 
-                placeholder="Ex: Gerente de Suporte"
-              />
-              <Input 
-                label="Telefone"
-                name="telefone" 
-                defaultValue={selectedUser?.telefone || ''} 
-                placeholder="(00) 00000-0000"
-              />
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Cargo</label>
+                 <Input 
+                   name="cargo" 
+                   defaultValue={selectedUser?.cargo || ''} 
+                   placeholder="Ex: Analista de Suporte"
+                   className="h-10 bg-slate-50/50 border-slate-100 font-bold text-xs"
+                 />
+              </div>
+              <div className="space-y-1.5">
+                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Telefone</label>
+                 <Input 
+                   name="telefone" 
+                   defaultValue={selectedUser?.telefone || ''} 
+                   placeholder="(00) 00000-0000"
+                   className="h-10 bg-slate-50/50 border-slate-100 font-bold text-xs"
+                 />
+              </div>
            </div>
 
-           {currentUser.desenvolvedor && (
-             <div className="space-y-1.5 flex flex-col">
-               <label className="text-sm font-medium text-slate-700">Empresa Associada</label>
-               <select 
-                 name="empresa_id" 
-                 defaultValue={selectedUser?.empresa_id || ''}
-                 className="h-10 bg-white border border-slate-200 rounded-lg px-3 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all appearance-none cursor-pointer"
-               >
-                 <option value="">Gestifique Central</option>
-                 {companies.map(c => (
-                   <option key={c.id} value={c.id}>{c.nome}</option>
-                 ))}
-               </select>
-               <p className="text-[11px] text-slate-500 px-1">Usuários comuns acessam apenas os tickets da sua empresa.</p>
-             </div>
+           {(currentUser.desenvolvedor || currentUser.administrador) && (
+              <div className="space-y-1.5">
+                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Empresa</label>
+                 <select 
+                   name="empresa_id" 
+                   defaultValue={selectedUser?.empresa_id || ''}
+                   disabled={!currentUser.desenvolvedor && !!selectedUser}
+                   className="w-full h-10 bg-slate-50/50 border border-slate-100 rounded-lg px-3 text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer appearance-none"
+                 >
+                   <option value="">Gestifique Central</option>
+                   {companies.map(c => (
+                     <option key={c.id} value={c.id}>{c.nome}</option>
+                   ))}
+                 </select>
+              </div>
            )}
 
            {!selectedUser && (
-             <Input 
-               label="Senha Inicial"
-               name="password" 
-               type="password" 
-               required 
-               placeholder="••••••••"
-             />
+              <div className="space-y-1.5">
+                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Senha Inicial</label>
+                 <Input 
+                   name="password" 
+                   type="password" 
+                   required 
+                   placeholder="Mínimo 8 caracteres"
+                   className="h-10 bg-slate-50/50 border-slate-100 font-bold text-xs"
+                 />
+              </div>
            )}
 
-           <div className="pt-4 border-t border-slate-100">
-              <h4 className="text-xs font-bold text-slate-900 mb-3 ml-1 uppercase tracking-wider">Permissões do Sistema</h4>
-              <div className="grid md:grid-cols-2 gap-3">
-                 <label className="flex items-start gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 transition-all group">
+           <div className="pt-4 border-t border-slate-50">
+              <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">Permissões de Acesso</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                 <label className={cn(
+                   "flex items-start gap-3 p-4 rounded-xl border transition-all cursor-pointer group",
+                   "bg-white hover:border-blue-200 hover:bg-blue-50/30 border-slate-100"
+                 )}>
                     <input 
                       type="checkbox" 
                       name="administrador" 
@@ -407,13 +429,16 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
                       defaultChecked={selectedUser?.administrador}
                       className="mt-1 w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-100" 
                     />
-                    <div>
-                       <div className="text-sm font-semibold text-slate-950">Administrador</div>
-                       <div className="text-[11px] text-slate-500">Pode gerenciar usuários, empresas e relatórios do dashboard.</div>
+                    <div className="min-w-0">
+                       <div className="text-xs font-bold text-slate-900 uppercase tracking-tight">Administrador</div>
+                       <div className="text-[10px] font-medium text-slate-400 mt-0.5 leading-tight">Pode gerenciar usuários, empresas e configurações básicas.</div>
                     </div>
                  </label>
                  {currentUser.desenvolvedor && (
-                   <label className="flex items-start gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 transition-all">
+                   <label className={cn(
+                     "flex items-start gap-3 p-4 rounded-xl border transition-all cursor-pointer group",
+                     "bg-white hover:border-indigo-200 hover:bg-indigo-50/30 border-slate-100"
+                   )}>
                       <input 
                         type="checkbox" 
                         name="desenvolvedor" 
@@ -421,21 +446,21 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
                         defaultChecked={selectedUser?.desenvolvedor}
                         className="mt-1 w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-100" 
                       />
-                      <div>
-                         <div className="text-sm font-semibold text-slate-950">Desenvolvedor</div>
-                         <div className="text-[11px] text-slate-500">Acesso total ao núcleo do sistema e logs técnicos.</div>
+                      <div className="min-w-0">
+                         <div className="text-xs font-bold text-slate-900 uppercase tracking-tight">Desenvolvedor</div>
+                         <div className="text-[10px] font-medium text-slate-400 mt-0.5 leading-tight">Acesso total ao sistema, logs técnicos e instâncias master.</div>
                       </div>
                    </label>
                  )}
               </div>
            </div>
 
-           <div className="pt-4 flex justify-end gap-2">
-              <Button variant="ghost" type="button" onClick={() => setIsModalOpen(false)}>
+           <div className="pt-6 flex items-center justify-end gap-3 border-t border-slate-50">
+              <Button variant="ghost" size="sm" type="button" onClick={() => setIsModalOpen(false)} className="font-bold text-[10px] uppercase tracking-widest text-slate-400">
                 Cancelar
               </Button>
-              <Button type="submit" loading={loadingSave}>
-                {selectedUser ? 'Atualizar Dados' : 'Convidar Usuário'}
+              <Button type="submit" loading={loadingSave} size="sm" className="font-bold text-[10px] uppercase tracking-widest px-6 h-9">
+                {selectedUser ? 'Atualizar Dados' : 'Criar Conta'}
               </Button>
            </div>
         </form>
@@ -447,38 +472,45 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
         title="Alterar Senha"
         size="md"
       >
-        <form onSubmit={handleUpdatePassword} className="space-y-4">
+        <form onSubmit={handleUpdatePassword} className="space-y-5">
            {saveError && (
-             <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-xs font-semibold mb-4">
+             <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-xs font-bold mb-4">
                 {saveError}
              </div>
            )}
-           <p className="text-xs text-slate-500 px-1">
-              Alterando a senha de acesso para <span className="font-semibold text-slate-900">{selectedUser?.nome}</span>.
+           <p className="text-[11px] font-medium text-slate-500 leading-relaxed px-1">
+              Defina uma nova senha de acesso para <b>{selectedUser?.nome || 'este usuário'}</b>. Recomendamos o uso de caracteres especiais e números.
            </p>
            
-           <Input 
-             label="Nova Senha"
-             name="password" 
-             type="password" 
-             required 
-             placeholder="••••••••"
-           />
-           
-           <Input 
-             label="Confirmar Nova Senha"
-             name="confirm_password" 
-             type="password" 
-             required 
-             placeholder="••••••••"
-           />
+           <div className="space-y-4">
+             <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Nova Senha</label>
+                <Input 
+                  name="password" 
+                  type="password" 
+                  required 
+                  placeholder="Mínimo 8 caracteres"
+                  className="h-10 bg-slate-50/50 border-slate-100 font-bold text-xs"
+                />
+             </div>
+             <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Confirmar Senha</label>
+                <Input 
+                  name="confirm_password" 
+                  type="password" 
+                  required 
+                  placeholder="Confirme a nova senha"
+                  className="h-10 bg-slate-50/50 border-slate-100 font-bold text-xs"
+                />
+             </div>
+           </div>
 
-           <div className="pt-4 flex justify-end gap-2">
-              <Button variant="ghost" type="button" onClick={() => setIsPasswordModalOpen(false)}>
+           <div className="pt-6 flex justify-end gap-3">
+              <Button variant="ghost" size="sm" type="button" onClick={() => setIsPasswordModalOpen(false)} className="font-bold text-[10px] uppercase tracking-widest text-slate-400">
                 Cancelar
               </Button>
-              <Button type="submit" loading={loadingSave} className="bg-amber-600 hover:bg-amber-700 border-amber-600">
-                Alterar Senha
+              <Button type="submit" loading={loadingSave} size="sm" className="bg-amber-600 hover:bg-amber-700 font-bold text-[10px] uppercase tracking-widest h-9 px-6 border-none">
+                Confirmar Alteração
               </Button>
            </div>
         </form>
@@ -488,8 +520,8 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
         isOpen={isStatusConfirmOpen}
         onClose={() => setIsStatusConfirmOpen(false)}
         onConfirm={toggleUserStatus}
-        title={selectedUser?.ativo ? 'Desativar Usuário' : 'Ativar Usuário'}
-        description={`Tem certeza que deseja ${selectedUser?.ativo ? 'desativar' : 'ativar'} o acesso de ${selectedUser?.nome}?`}
+        title={selectedUser?.ativo ? 'Desativar Usuário?' : 'Ativar Usuário?'}
+        description={`Ao ${selectedUser?.ativo ? 'desativar' : 'ativar'}, o colaborador ${selectedUser?.nome || 'selecionado'} ${selectedUser?.ativo ? 'perderá' : 'recuperará'} o acesso imediato ao sistema.`}
         confirmLabel={selectedUser?.ativo ? 'Desativar' : 'Ativar'}
         variant={selectedUser?.ativo ? 'danger' : 'info'}
       />
