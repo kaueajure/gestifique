@@ -191,16 +191,18 @@ export const ProfilePage = ({ currentUser, onUpdate }: ProfilePageProps) => {
                     <input 
                       name="telefone" 
                       defaultValue={currentUser.telefone || ''} 
+                      placeholder="Não informado"
                       className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold focus:ring-4 focus:ring-blue-100 transition-all outline-none" 
                     />
                  </div>
                  <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 pl-1">Cargo / Função</label>
                     <input 
-                      name="cargo" 
-                      defaultValue={currentUser.cargo || ''} 
-                      className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold focus:ring-4 focus:ring-blue-100 transition-all outline-none" 
+                      value={currentUser.cargo || 'Membro do Time'} 
+                      readOnly
+                      className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold text-slate-400 cursor-not-allowed outline-none" 
                     />
+                    <p className="text-[9px] font-bold text-slate-400 pl-1 uppercase tracking-tighter">* O cargo é atribuído por um administrador</p>
                  </div>
               </div>
 

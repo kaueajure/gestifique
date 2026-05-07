@@ -59,12 +59,16 @@ class LogsService {
     }
 
     if (search) {
-      const filter = ' AND (l.descricao LIKE ? OR l.acao LIKE ?)';
+      const filter = ' AND (l.descricao LIKE ? OR l.acao LIKE ? OR u.nome LIKE ? OR e.nome LIKE ?)';
       query += filter;
-      countQuery += filter;
+      countQuery += `
+        LEFT JOIN usuarios u ON l.usuario_id = u.id
+        LEFT JOIN empresas e ON l.empresa_id = e.id
+        ${filter}
+      `;
       const searchVal = `%${search}%`;
-      params.push(searchVal, searchVal);
-      countParams.push(searchVal, searchVal);
+      params.push(searchVal, searchVal, searchVal, searchVal);
+      countParams.push(searchVal, searchVal, searchVal, searchVal);
     }
 
     if (start_date) {

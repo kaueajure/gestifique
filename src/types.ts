@@ -90,6 +90,19 @@ export interface Log {
   created_at: string;
 }
 
+export interface SystemLog {
+  id: number;
+  usuario_id?: number | null;
+  empresa_id?: number | null;
+  acao: string;
+  descricao?: string | null;
+  ip?: string | null;
+  user_agent?: string | null;
+  created_at: string;
+  usuario_nome?: string | null;
+  empresa_nome?: string | null;
+}
+
 export interface DashboardData {
   counts: {
     total: number;

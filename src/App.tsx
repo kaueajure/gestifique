@@ -258,7 +258,10 @@ export default function App() {
                   )}
 
                   {activeTab === 'settings' && (
-                    <SettingsPage currentUser={currentUser} />
+                    <SettingsPage 
+                      currentUser={currentUser} 
+                      onNavigate={(tab) => setActiveTab(tab)}
+                    />
                   )}
                 </motion.div>
               </AnimatePresence>

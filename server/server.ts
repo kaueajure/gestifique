@@ -37,6 +37,21 @@ async function startServer() {
   // API Routes
   app.use('/api', apiRoutes);
 
+  // Health Checks
+  app.get('/health', (req, res) => {
+    res.json({ success: true, status: 'UP', timestamp: new Date().toISOString() });
+  });
+
+  app.get('/api/health/db', async (req, res) => {
+    try {
+      const { default: pool } = await import('./db/connection.js');
+      await pool.query('SELECT 1');
+      res.json({ success: true, status: 'CONNECTED' });
+    } catch (err) {
+      res.status(503).json({ success: false, status: 'DISCONNECTED', error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
   // Error Handler
   app.use(errorHandler);
 

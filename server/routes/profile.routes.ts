@@ -19,12 +19,15 @@ router.get('/', async (req: any, res) => {
 
 router.patch('/', async (req: any, res) => {
   try {
-    // Prevent privilege escalation
-    const safeData = { ...req.body };
-    delete safeData.administrador;
-    delete safeData.desenvolvedor;
-    delete safeData.empresa_id;
-    delete safeData.ativo;
+    // Prevent privilege escalation - Only allow specific fields
+    const safeData: any = {};
+    if (req.body.nome) safeData.nome = req.body.nome;
+    if (req.body.telefone) safeData.telefone = req.body.telefone;
+    if (req.body.foto) safeData.foto = req.body.foto;
+
+    if (Object.keys(safeData).length === 0) {
+      return sendError(res, 'Nenhum dado válido para atualização');
+    }
 
     await usersService.update(req.user.id, safeData);
     await logSystemAction(req, req.user.id, req.user.empresa_id, 'PROFILE_UPDATE', 'Usuário atualizou o próprio perfil');

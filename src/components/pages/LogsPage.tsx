@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
-import { Shield, Search, User as UserIcon, Calendar, Info, Filter, Loader2, AlertCircle, ChevronLeft, ChevronRight, RefreshCw, X } from 'lucide-react';
+import { Shield, Search, Calendar, Info, Loader2, AlertCircle, ChevronLeft, ChevronRight, RefreshCw, FilterX } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { cn } from '../../lib/utils';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
+import { SystemLog } from '../../types';
 
 interface Pagination {
   page: number;
@@ -13,7 +14,7 @@ interface Pagination {
 }
 
 export const LogsPage = () => {
-  const [logs, setLogs] = useState<any[]>([]);
+  const [logs, setLogs] = useState<SystemLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<Pagination | null>(null);
@@ -22,11 +23,11 @@ export const LogsPage = () => {
   const [filters, setFilters] = useState({
     search: '',
     action: '',
+    start_date: '',
+    end_date: '',
     page: 1,
     limit: 15
   });
-
-  const [showFilters, setShowFilters] = useState(false);
 
   const fetchLogs = async () => {
     setLoading(true);
@@ -36,10 +37,12 @@ export const LogsPage = () => {
         page: filters.page.toString(),
         limit: filters.limit.toString(),
         search: filters.search,
-        action: filters.action
+        action: filters.action,
+        start_date: filters.start_date,
+        end_date: filters.end_date
       });
       
-      const response = await api.get<{ items: any[], pagination: Pagination }>(`/logs?${queryParams.toString()}`);
+      const response = await api.get<{ items: SystemLog[], pagination: Pagination }>(`/logs?${queryParams.toString()}`);
       setLogs(response.items);
       setPagination(response.pagination);
     } catch (err: any) { 
@@ -53,12 +56,23 @@ export const LogsPage = () => {
       fetchLogs();
     }, 300);
     return () => clearTimeout(debounce);
-  }, [filters.page, filters.action]);
+  }, [filters.search, filters.page, filters.action, filters.start_date, filters.end_date]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setFilters(f => ({ ...f, page: 1 }));
     fetchLogs();
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      search: '',
+      action: '',
+      start_date: '',
+      end_date: '',
+      page: 1,
+      limit: 15
+    });
   };
 
   const getActionColor = (acao: string) => {
@@ -86,34 +100,64 @@ export const LogsPage = () => {
       </div>
 
       <div className="space-y-4">
-        <form onSubmit={handleSearch} className="bg-white p-6 rounded-[32px] border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 items-center">
-          <div className="relative flex-1 group w-full">
-             <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
-             <input 
-               type="text" 
-               placeholder="Buscar por descrição ou ação..." 
-               className="w-full h-14 bg-slate-50 border-none rounded-2xl pl-14 pr-6 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-100 transition-all"
-               value={filters.search}
-               onChange={(e) => setFilters(f => ({ ...f, search: e.target.value }))}
-             />
+        <form onSubmit={handleSearch} className="bg-white p-6 rounded-[32px] border border-slate-200 shadow-sm flex flex-col gap-6">
+          <div className="flex flex-col md:flex-row gap-4 items-center">
+            <div className="relative flex-1 group w-full">
+               <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+               <input 
+                 type="text" 
+                 placeholder="Buscar por descrição, ação, usuário ou empresa..." 
+                 className="w-full h-14 bg-slate-50 border-none rounded-2xl pl-14 pr-6 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+                 value={filters.search}
+                 onChange={(e) => setFilters(f => ({ ...f, search: e.target.value }))}
+               />
+            </div>
+            <div className="flex gap-2 w-full md:w-auto">
+              <select 
+                value={filters.action}
+                onChange={(e) => setFilters(f => ({ ...f, action: e.target.value, page: 1 }))}
+                className="h-14 px-6 bg-slate-50 border-none rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-blue-100 transition-all appearance-none min-w-[160px]"
+              >
+                <option value="">Todas as Ações</option>
+                <option value="LOGIN">Login</option>
+                <option value="CREATE">Criação</option>
+                <option value="UPDATE">Atualização</option>
+                <option value="DELETE">Exclusão</option>
+                <option value="PROFILE_UPDATE">Perfil</option>
+                <option value="PASSWORD_CHANGE">Senha</option>
+              </select>
+              <button type="submit" className="h-14 px-8 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all active:scale-95">
+                Buscar
+              </button>
+            </div>
           </div>
-          <div className="flex gap-2 w-full md:w-auto">
-            <select 
-              value={filters.action}
-              onChange={(e) => setFilters(f => ({ ...f, action: e.target.value, page: 1 }))}
-              className="h-14 px-6 bg-slate-50 border-none rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-blue-100 transition-all appearance-none min-w-[160px]"
-            >
-              <option value="">Todas as Ações</option>
-              <option value="LOGIN">Login</option>
-              <option value="CREATE">Criação</option>
-              <option value="UPDATE">Atualização</option>
-              <option value="DELETE">Exclusão</option>
-              <option value="PROFILE_UPDATE">Perfil</option>
-              <option value="PASSWORD_CHANGE">Senha</option>
-            </select>
-            <button type="submit" className="h-14 px-8 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all active:scale-95">
-              Buscar
-            </button>
+
+          <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-slate-50">
+             <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Período de</span>
+                <input 
+                  type="date" 
+                  value={filters.start_date}
+                  onChange={(e) => setFilters(f => ({ ...f, start_date: e.target.value, page: 1 }))}
+                  className="h-10 px-4 bg-slate-50 border-none rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+                />
+             </div>
+             <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Até</span>
+                <input 
+                  type="date" 
+                  value={filters.end_date}
+                  onChange={(e) => setFilters(f => ({ ...f, end_date: e.target.value, page: 1 }))}
+                  className="h-10 px-4 bg-slate-50 border-none rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+                />
+             </div>
+             <button 
+               type="button"
+               onClick={clearFilters}
+               className="h-10 px-4 flex items-center gap-2 text-xs font-black text-slate-400 hover:text-red-500 transition-colors ml-auto"
+             >
+                <FilterX size={16} /> Limpar Filtros
+             </button>
           </div>
         </form>
       </div>
@@ -154,7 +198,7 @@ export const LogsPage = () => {
                       <td className="px-8 py-6 max-w-md">
                          <div className="flex items-start gap-3">
                             <Info size={16} className="text-blue-400 mt-0.5 flex-shrink-0" />
-                            <span className="text-sm font-bold text-slate-700 leading-relaxed">{log.descricao}</span>
+                            <span className="text-sm font-bold text-slate-700 leading-relaxed">{log.descricao || 'Sem descrição'}</span>
                          </div>
                       </td>
                       <td className="px-8 py-6">
@@ -166,7 +210,7 @@ export const LogsPage = () => {
                                {log.usuario_nome?.charAt(0) || 'S'}
                             </div>
                             <div>
-                               <div className="text-sm font-black text-slate-800 leading-tight">{log.usuario_nome || 'Sistema (Worker)'}</div>
+                               <div className="text-sm font-black text-slate-800 leading-tight">{log.usuario_nome || 'Sistema'}</div>
                                <div className="text-[10px] font-bold text-blue-500 uppercase tracking-tighter">{log.empresa_nome || 'Gestifique Master'}</div>
                             </div>
                          </div>
@@ -174,7 +218,7 @@ export const LogsPage = () => {
                       <td className="px-8 py-6">
                          <div className="flex flex-col gap-1">
                             <span className="text-xs font-black text-slate-700 flex items-center gap-1.5"><Calendar size={14} className="text-slate-300" /> {new Date(log.created_at).toLocaleString('pt-BR')}</span>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 w-fit px-2 py-0.5 rounded-lg border border-slate-100">IP: {log.ip || 'Local / Interno'}</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 w-fit px-2 py-0.5 rounded-lg border border-slate-100" title={log.user_agent || 'Não informado'}>IP: {log.ip || 'Local / Interno'}</span>
                          </div>
                       </td>
                     </tr>

@@ -8,13 +8,28 @@ import { motion, AnimatePresence } from 'motion/react';
 
 interface SettingsPageProps {
   currentUser: User;
+  onNavigate: (tab: string) => void;
 }
 
-export const SettingsPage = ({ currentUser }: SettingsPageProps) => {
+export const SettingsPage = ({ currentUser, onNavigate }: SettingsPageProps) => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeSubTab, setActiveSubTab] = useState<'general' | 'company' | 'system'>('general');
+  const [dbStatus, setDbStatus] = useState<string | null>(null);
+
+  const checkDb = async () => {
+    try {
+      const res = await api.get<any>('/health/db');
+      setDbStatus(res.status);
+    } catch {
+      setDbStatus('ERROR');
+    }
+  };
+
+  React.useEffect(() => {
+    if (activeSubTab === 'system') checkDb();
+  }, [activeSubTab]);
 
   const handleSaveCompany = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,12 +108,22 @@ export const SettingsPage = ({ currentUser }: SettingsPageProps) => {
             <div className="grid md:grid-cols-2 gap-8">
                <div className="bg-white p-10 rounded-[40px] border border-slate-200 shadow-sm space-y-8">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center">
-                       <Palette size={20} />
+                    <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+                       <ShieldCheck size={20} />
                     </div>
-                    <h4 className="font-black text-slate-900">Interface & Tema</h4>
+                    <h4 className="font-black text-slate-900">Minha Conta</h4>
                   </div>
                   
+                  <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-100 space-y-4">
+                     <p className="text-sm font-medium text-slate-500">Gerencie suas informações pessoais, altere sua senha e personalize sua identidade na plataforma.</p>
+                     <button 
+                       onClick={() => onNavigate('profile')}
+                       className="w-full h-12 bg-white border border-slate-200 rounded-xl text-xs font-black uppercase tracking-widest text-slate-700 hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+                     >
+                       Ir para Meu Perfil <Zap size={14} className="text-orange-500" />
+                     </button>
+                  </div>
+
                   <div className="space-y-6">
                     <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-100 flex items-center justify-between group cursor-pointer hover:border-slate-200 transition-all">
                        <div className="flex items-center gap-4">
@@ -114,19 +139,6 @@ export const SettingsPage = ({ currentUser }: SettingsPageProps) => {
                           <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-all"></div>
                        </div>
                     </div>
-
-                    <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-100 flex items-center justify-between group cursor-not-allowed opacity-60">
-                       <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-2xl bg-slate-900 shadow-sm flex items-center justify-center text-white">
-                             <Zap size={24} />
-                          </div>
-                          <div>
-                             <div className="text-sm font-black text-slate-900">Modo Dark</div>
-                             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Disponível em breve</div>
-                          </div>
-                       </div>
-                       <Badge variant="slate" className="rounded-full">SOON</Badge>
-                    </div>
                   </div>
                </div>
 
@@ -135,19 +147,25 @@ export const SettingsPage = ({ currentUser }: SettingsPageProps) => {
                     <div className="w-10 h-10 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center">
                        <Keyboard size={20} />
                     </div>
-                    <h4 className="font-black text-slate-900">Atalhos Globais</h4>
+                    <h4 className="font-black text-slate-900">Acesso Rápido</h4>
                   </div>
                   <div className="space-y-4">
                      {[
-                       { key: 'N', desc: 'Novo Ticket' },
-                       { key: 'S', desc: 'Buscar' },
-                       { key: 'Esc', desc: 'Fechar Modal' },
-                       { key: '/', desc: 'Focar busca' },
-                     ].map(shortcut => (
-                       <div key={shortcut.key} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                          <span className="text-sm font-bold text-slate-600">{shortcut.desc}</span>
-                          <kbd className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl font-mono font-black text-xs shadow-sm">{shortcut.key}</kbd>
-                       </div>
+                       { id: 'tickets', desc: 'Central de Chamados', icon: <Layout size={16} /> },
+                       { id: 'profile', desc: 'Configurar Perfil', icon: <ShieldCheck size={16} /> },
+                       { id: 'dashboard', desc: 'Dashboard Principal', icon: <Zap size={16} /> },
+                     ].map(nav => (
+                       <button 
+                         key={nav.id} 
+                         onClick={() => onNavigate(nav.id)}
+                         className="w-full flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:bg-slate-100 transition-all group"
+                       >
+                          <div className="flex items-center gap-3">
+                             <div className="text-slate-400 group-hover:text-blue-600 transition-colors">{nav.icon}</div>
+                             <span className="text-sm font-bold text-slate-600">{nav.desc}</span>
+                          </div>
+                          <Badge variant="slate" className="font-black">IR</Badge>
+                       </button>
                      ))}
                   </div>
                </div>
@@ -189,11 +207,11 @@ export const SettingsPage = ({ currentUser }: SettingsPageProps) => {
                      </div>
                      <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">E-mail de Contato</label>
-                        <input name="email" placeholder="contato@empresa.com" className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold focus:ring-4 focus:ring-blue-100 transition-all outline-none" />
+                        <input name="email" defaultValue={currentUser.empresa_email || ''} placeholder="contato@empresa.com" className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold focus:ring-4 focus:ring-blue-100 transition-all outline-none" />
                      </div>
                      <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Telefone Suporte</label>
-                        <input name="telefone" defaultValue={currentUser.empresa_telefone || ''} className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold focus:ring-4 focus:ring-blue-100 transition-all outline-none" />
+                        <input name="telefone" defaultValue={currentUser.empresa_telefone || ''} placeholder="Não informado" className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold focus:ring-4 focus:ring-blue-100 transition-all outline-none" />
                      </div>
                   </div>
 
@@ -227,7 +245,9 @@ export const SettingsPage = ({ currentUser }: SettingsPageProps) => {
                         <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Database Engine</div>
                      </div>
                      <div className="pt-4 border-t border-white/5 flex items-center justify-between">
-                        <Badge variant="emerald" className="rounded-full">HEALTHY</Badge>
+                        <Badge variant={dbStatus === 'CONNECTED' ? 'emerald' : dbStatus === 'ERROR' ? 'red' : 'slate'} className="rounded-full">
+                           {dbStatus || 'CHECKING...'}
+                        </Badge>
                         <span className="text-[10px] font-mono text-white/30 text-right">v8.0.32</span>
                      </div>
                   </div>
@@ -274,14 +294,27 @@ export const SettingsPage = ({ currentUser }: SettingsPageProps) => {
                   
                   <p className="text-sm font-medium text-slate-500 max-w-2xl">Acesso restrito para manutenção técnica do núcleo Gestifique. Use com cautela.</p>
 
-                  <div className="grid md:grid-cols-2 gap-4">
-                     <button className="h-16 px-6 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 flex items-center justify-between hover:bg-slate-100 transition-all">
-                        Limpar Cache do Sistema
-                        <Badge variant="slate">CTRL + SHIFT + C</Badge>
+                  <div className="grid md:grid-cols-3 gap-4">
+                     <button 
+                       onClick={() => onNavigate('companies')}
+                       className="h-16 px-6 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 flex items-center justify-between hover:bg-slate-100 transition-all"
+                     >
+                        Gestão de Empresas
+                        <Building2 size={16} />
                      </button>
-                     <button className="h-16 px-6 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 flex items-center justify-between hover:bg-slate-100 transition-all">
-                        Re-indexar Banco de Dados
-                        <Badge variant="slate">DB REINDEX</Badge>
+                     <button 
+                       onClick={() => onNavigate('users')}
+                       className="h-16 px-6 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 flex items-center justify-between hover:bg-slate-100 transition-all"
+                     >
+                        Gestão de Usuários
+                        <ShieldCheck size={16} />
+                     </button>
+                     <button 
+                       onClick={() => onNavigate('logs')}
+                       className="h-16 px-6 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 flex items-center justify-between hover:bg-slate-100 transition-all"
+                     >
+                        Logs de Auditoria
+                        <Layout size={16} />
                      </button>
                   </div>
                </div>
