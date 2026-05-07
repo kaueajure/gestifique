@@ -13,6 +13,8 @@ import {
   Loader2,
   Trash2,
   Tag,
+  Paperclip,
+  Download,
 } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { cn } from '../../lib/utils';
@@ -20,6 +22,9 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { Button } from '../ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
+import { FileUpload } from '../ui/FileUpload';
+import { AttachmentList } from '../ui/AttachmentList';
+import { TicketAttachment } from '../../types';
 
 type BadgeVariant = 'blue' | 'emerald' | 'amber' | 'red' | 'indigo' | 'slate' | 'orange';
 type TicketStatus = 'aberto' | 'em_andamento' | 'aguardando_cliente' | 'resolvido' | 'fechado';
@@ -43,18 +48,22 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [agents, setAgents] = useState<User[]>([]);
   const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [ticketAttachments, setTicketAttachments] = useState<TicketAttachment[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const fetchData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const [ticketData, messagesData] = await Promise.all([
+      const [ticketData, messagesData, attachmentsData] = await Promise.all([
         api.get<Ticket>(`/tickets/${ticketId}`),
-        api.get<Message[]>(`/tickets/${ticketId}/messages`)
+        api.get<Message[]>(`/tickets/${ticketId}/messages`),
+        api.get<TicketAttachment[]>(`/tickets/${ticketId}/attachments`)
       ]);
       setTicket(ticketData);
       setMessages(messagesData);
+      setTicketAttachments(attachmentsData);
 
       if (currentUser.administrador || currentUser.desenvolvedor) {
         const usersData = await api.get<User[]>('/users');
@@ -85,20 +94,37 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || loadingSend) return;
+    if ((!newMessage.trim() && selectedFiles.length === 0) || loadingSend) return;
 
     setLoadingSend(true);
     setActionError(null);
     setActionSuccess(null);
     try {
-      await api.post(`/tickets/${ticketId}/messages`, {
-        mensagem: newMessage,
+      // 1. Create Message
+      const messageResponse = await api.post<{ id: number }>(`/tickets/${ticketId}/messages`, {
+        mensagem: newMessage.trim() || 'Anexo enviado.',
         interno: isInternal
       });
+
+      const messageId = messageResponse.id;
+
+      // 2. Upload Attachments if any
+      if (selectedFiles.length > 0) {
+        const formData = new FormData();
+        selectedFiles.forEach(file => formData.append('files', file));
+        formData.append('mensagem_id', messageId.toString());
+        formData.append('interno', isInternal.toString());
+
+        await api.post(`/tickets/${ticketId}/attachments`, formData);
+      }
+
       setNewMessage('');
+      setSelectedFiles([]);
       setActionSuccess('Mensagem enviada com sucesso!');
-      const updatedMessages = await api.get<Message[]>(`/tickets/${ticketId}/messages`);
-      setMessages(updatedMessages);
+      
+      // Reload everything
+      fetchData();
+      
       setTimeout(() => setActionSuccess(null), 3000);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao enviar mensagem.';
@@ -125,6 +151,20 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
   const handleArchiveTicket = async () => {
     await handleUpdateTicket({ status: 'fechado' });
     setIsArchiveConfirmOpen(false);
+  };
+
+  const handleDeleteAttachment = async (attachmentId: number) => {
+    if (!window.confirm('Tem certeza que deseja excluir este anexo permanentemente?')) return;
+    
+    try {
+      await api.delete(`/attachments/${attachmentId}`);
+      setActionSuccess('Anexo removido do sistema.');
+      fetchData();
+      setTimeout(() => setActionSuccess(null), 3000);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao excluir anexo.';
+      setActionError(message);
+    }
   };
 
   const getStatusVariant = (status: string): BadgeVariant => {
@@ -279,6 +319,15 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                           <div className={cn("text-sm font-medium leading-relaxed whitespace-pre-wrap", msg.interno ? "text-amber-800" : "text-slate-600")}>
                             {msg.mensagem}
                           </div>
+                          {msg.attachments && msg.attachments.length > 0 && (
+                            <div className="mt-3">
+                               <AttachmentList 
+                                 attachments={msg.attachments} 
+                                 compact 
+                                 onRemove={handleDeleteAttachment}
+                               />
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))
@@ -327,6 +376,8 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                         />
                      </div>
 
+                     <FileUpload onFilesChange={setSelectedFiles} />
+
                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="flex items-center gap-4">
                            {(currentUser.administrador || currentUser.desenvolvedor) && (
@@ -350,7 +401,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
 
                         <Button 
                           type="submit" 
-                          disabled={!newMessage.trim() || loadingSend}
+                          disabled={(!newMessage.trim() && selectedFiles.length === 0) || loadingSend}
                           className={cn(
                             "h-9 px-6 font-bold text-xs uppercase tracking-widest shadow-sm",
                             isInternal ? "bg-amber-600 hover:bg-amber-700" : "bg-blue-600 hover:bg-blue-700"
@@ -501,6 +552,26 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                       </div>
                     )}
                  </div>
+
+                 <Card className="mt-6 border-slate-200 border-dashed shadow-none bg-slate-50/20">
+                    <CardHeader className="py-2.5 px-5 border-b border-slate-100 flex flex-row items-center justify-between bg-white rounded-t-xl">
+                       <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Arquivos do Chamado</CardTitle>
+                       <Paperclip size={12} className="text-slate-300" />
+                    </CardHeader>
+                    <CardContent className="p-4">
+                       {ticketAttachments.length === 0 ? (
+                         <div className="text-center py-4">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight italic">Nenhum anexo</p>
+                         </div>
+                       ) : (
+                         <AttachmentList 
+                           attachments={ticketAttachments} 
+                           compact 
+                           className="gap-2"
+                         />
+                       )}
+                    </CardContent>
+                 </Card>
 
                  {(currentUser.administrador || currentUser.desenvolvedor) && ticket.status !== 'fechado' && (
                    <div className="pt-2">

@@ -80,6 +80,24 @@ export interface Message {
   interno: boolean;
   anexo: string | null;
   created_at: string;
+  attachments?: TicketAttachment[];
+}
+
+export interface TicketAttachment {
+  id: number;
+  ticket_id: number;
+  mensagem_id?: number | null;
+  usuario_id: number;
+  empresa_id?: number | null;
+  nome_original: string;
+  nome_arquivo?: string;
+  mime_type: string;
+  tamanho_bytes: number;
+  tipo?: string;
+  interno?: boolean;
+  created_at: string;
+  usuario_nome?: string;
+  url?: string;
 }
 
 export interface Log {

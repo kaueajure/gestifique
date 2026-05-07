@@ -125,11 +125,12 @@ class TicketsService {
 
   async addMessage(data: any) {
     const { ticket_id, usuario_id, mensagem, interno } = data;
-    await pool.query(
+    const [result]: any = await pool.query(
       'INSERT INTO ticket_mensagens (ticket_id, usuario_id, mensagem, interno) VALUES (?, ?, ?, ?)',
       [ticket_id, usuario_id, mensagem, interno ? 1 : 0]
     );
     await pool.query('UPDATE tickets SET updated_at = NOW() WHERE id = ?', [ticket_id]);
+    return result.insertId;
   }
 }
 

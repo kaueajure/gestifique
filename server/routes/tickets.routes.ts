@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import  ticketsService from  '../services/tickets.service.js';
+import  attachmentsService from  '../services/attachments.service.js';
 import  { authMiddleware } from  '../middlewares/auth.js';
 import  { isAdmin } from  '../middlewares/permissions.js';
 import  { sendSuccess, sendError } from  '../utils/response.js';
 import  { logSystemAction } from  '../utils/logger.js';
+import { ticketUpload } from '../middlewares/upload.js';
 
 const router = Router();
 
@@ -109,7 +111,14 @@ router.get('/:id/messages', async (req: any, res) => {
     const id = parseInt(req.params.id);
     const isAdminOrDev = req.user.administrador || req.user.desenvolvedor;
     const messages = await ticketsService.getMessages(id, isAdminOrDev);
-    sendSuccess(res, messages);
+    
+    // Fetch attachments for each message
+    const messagesWithAttachments = await Promise.all((messages as any[]).map(async (msg: any) => {
+      const attachments = await attachmentsService.getByMessage(msg.id);
+      return { ...msg, attachments };
+    }));
+
+    sendSuccess(res, messagesWithAttachments);
   } catch (error: any) {
     sendError(res, error.message);
   }
@@ -122,7 +131,7 @@ router.post('/:id/messages', async (req: any, res) => {
     
     const isAdminOrDev = req.user.administrador || req.user.desenvolvedor;
     
-    await ticketsService.addMessage({
+    const messageId = await ticketsService.addMessage({
       ticket_id: id,
       usuario_id: req.user.id,
       mensagem,
@@ -131,7 +140,65 @@ router.post('/:id/messages', async (req: any, res) => {
 
     await logSystemAction(req, req.user.id, req.user.empresa_id, 'MESSAGE_SEND', `Nova mensagem no chamado #${id}`);
     
-    sendSuccess(res, null, 'Mensagem enviada');
+    sendSuccess(res, { id: messageId }, 'Mensagem enviada');
+  } catch (error: any) {
+    sendError(res, error.message);
+  }
+});
+
+// Attachment routes
+router.get('/:id/attachments', async (req: any, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const isAdminOrDev = req.user.administrador || req.user.desenvolvedor;
+    const attachments = await attachmentsService.listByTicket(id, isAdminOrDev);
+    sendSuccess(res, attachments);
+  } catch (error: any) {
+    sendError(res, error.message);
+  }
+});
+
+router.post('/:id/attachments', ticketUpload.array('files', 5), async (req: any, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { mensagem_id, interno } = req.body;
+    const files = req.files as Express.Multer.File[];
+
+    if (!files || files.length === 0) {
+      return sendError(res, 'Nenhum arquivo enviado', 400);
+    }
+
+    const ticket = await ticketsService.getById(id);
+    if (!ticket) return sendError(res, 'Ticket não encontrado', 404);
+
+    const isInternal = req.user.administrador || req.user.desenvolvedor ? (interno === 'true' || interno === true) : false;
+
+    const createdAttachments = await Promise.all(files.map(async (file) => {
+      const attachmentId = await attachmentsService.create({
+        ticket_id: id,
+        mensagem_id: mensagem_id ? parseInt(mensagem_id) : null,
+        usuario_id: req.user.id,
+        empresa_id: req.user.empresa_id,
+        nome_original: file.originalname,
+        nome_arquivo: file.filename,
+        caminho: file.path,
+        mime_type: file.mimetype,
+        tamanho_bytes: file.size,
+        interno: isInternal
+      });
+
+      return {
+        id: attachmentId,
+        nome_original: file.originalname,
+        mime_type: file.mimetype,
+        tamanho_bytes: file.size,
+        url: `/api/attachments/${attachmentId}/download`
+      };
+    }));
+
+    await logSystemAction(req, req.user.id, req.user.empresa_id, 'ATTACHMENT_UPLOAD', `Anexo(s) enviado(s) para o chamado #${id}`);
+
+    sendSuccess(res, createdAttachments, 'Arquivos enviados com sucesso', 201);
   } catch (error: any) {
     sendError(res, error.message);
   }

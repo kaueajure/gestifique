@@ -92,6 +92,34 @@ async function initDB() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    // Ticket Anexos
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS ticket_anexos (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        ticket_id INT NOT NULL,
+        mensagem_id INT NULL,
+        usuario_id INT NOT NULL,
+        empresa_id INT NULL,
+        nome_original VARCHAR(255) NOT NULL,
+        nome_arquivo VARCHAR(255) NOT NULL,
+        caminho TEXT NOT NULL,
+        mime_type VARCHAR(150) NOT NULL,
+        tamanho_bytes INT NOT NULL,
+        tipo VARCHAR(50) DEFAULT 'arquivo',
+        interno TINYINT(1) DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        KEY idx_ticket_anexos_ticket_id (ticket_id),
+        KEY idx_ticket_anexos_mensagem_id (mensagem_id),
+        KEY idx_ticket_anexos_usuario_id (usuario_id),
+        KEY idx_ticket_anexos_empresa_id (empresa_id),
+        KEY idx_ticket_anexos_created_at (created_at),
+        FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
+        FOREIGN KEY (mensagem_id) REFERENCES ticket_mensagens(id) ON DELETE CASCADE,
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+        FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
     // Logs Sistema
     await connection.query(`
       CREATE TABLE IF NOT EXISTS logs_sistema (

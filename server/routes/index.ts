@@ -6,6 +6,7 @@ import  companyRoutes from  './companies.routes.js';
 import  dashboardRoutes from  './dashboard.routes.js';
 import  profileRoutes from  './profile.routes.js';
 import  logsRoutes from  './logs.routes.js';
+import  attachmentRoutes from  './attachments.routes.js';
 
 const router = Router();
 
@@ -16,5 +17,6 @@ router.use('/companies', companyRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/profile', profileRoutes);
 router.use('/logs', logsRoutes);
+router.use('/attachments', attachmentRoutes);
 
 export default router;
