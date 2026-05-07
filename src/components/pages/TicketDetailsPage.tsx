@@ -15,6 +15,10 @@ import {
   Tag,
 } from 'lucide-react';
 import { Badge } from '../ui/Badge';
+
+type BadgeVariant = 'blue' | 'emerald' | 'amber' | 'red' | 'indigo' | 'slate' | 'orange';
+type TicketStatus = 'aberto' | 'em_andamento' | 'aguardando_cliente' | 'resolvido' | 'fechado';
+type TicketPriority = 'baixa' | 'media' | 'alta' | 'urgente';
 import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
@@ -56,6 +60,9 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
         const usersData = await api.get<User[]>('/users');
         const filteredAgents = usersData.filter(u => {
           const isAgent = u.administrador || u.desenvolvedor;
+          const isActive = u.ativo !== false;
+          if (!isActive) return false;
+          
           if (currentUser.desenvolvedor) return isAgent;
           return isAgent && u.empresa_id === currentUser.empresa_id;
         });
@@ -117,11 +124,12 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
   };
 
   const handleArchiveTicket = async () => {
-    handleUpdateTicket({ status: 'fechado' });
+    await handleUpdateTicket({ status: 'fechado' });
+    setIsArchiveConfirmOpen(false);
   };
 
-  const getStatusVariant = (status: string) => {
-    const map: Record<string, any> = {
+  const getStatusVariant = (status: string): BadgeVariant => {
+    const map: Record<string, BadgeVariant> = {
       aberto: 'blue',
       em_andamento: 'indigo',
       aguardando_cliente: 'amber',
@@ -131,8 +139,8 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
     return map[status] || 'slate';
   };
 
-  const getPriorityVariant = (priority: string) => {
-    const map: Record<string, any> = {
+  const getPriorityVariant = (priority: string): BadgeVariant => {
+    const map: Record<string, BadgeVariant> = {
       baixa: 'blue',
       media: 'indigo',
       alta: 'orange',
@@ -197,7 +205,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
               <Badge variant={getStatusVariant(ticket.status || 'aberto')} className="text-[9px] py-0 px-1.5 font-bold uppercase tracking-tight">{(ticket.status || 'aberto').replace('_', ' ')}</Badge>
               <Badge variant={getPriorityVariant(ticket.prioridade || 'media')} className="text-[9px] py-0 px-1.5 font-bold uppercase tracking-tight">{ticket.prioridade || 'media'}</Badge>
             </div>
-            <h2 className="text-lg font-bold text-slate-900 truncate leading-tight tracking-tight">{ticket.titulo}</h2>
+            <h2 className="text-lg font-bold text-slate-900 truncate leading-tight tracking-tight">{ticket.titulo || 'Atendimento'}</h2>
           </div>
         </div>
       </div>
@@ -207,8 +215,8 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
         <div className="lg:col-span-8 space-y-6">
           {/* Descrição */}
           <Card>
-            <CardHeader className="py-4 px-5 border-b border-slate-50">
-               <CardTitle className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Descrição</CardTitle>
+            <CardHeader className="py-2.5 px-5 border-b border-slate-50">
+               <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Descrição</CardTitle>
             </CardHeader>
             <CardContent className="p-5">
                <div className="flex items-start gap-4 mb-4">
@@ -221,7 +229,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{new Date(ticket.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
                      </div>
                      <div className="text-sm font-medium text-slate-600 leading-relaxed whitespace-pre-wrap">
-                        {ticket.descricao}
+                        {ticket.descricao || 'Nenhuma descrição fornecida.'}
                      </div>
                   </div>
                </div>
@@ -230,8 +238,8 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
 
           {/* Histórico/Mensagens */}
           <Card>
-            <CardHeader className="py-4 px-5 border-b border-slate-50">
-               <CardTitle className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Histórico</CardTitle>
+            <CardHeader className="py-2.5 px-5 border-b border-slate-50">
+               <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Histórico</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
                <div className="max-h-[500px] overflow-y-auto p-5 space-y-5 custom-scrollbar">
@@ -332,8 +340,8 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                                   )}
                                 >
                                    <div className={cn(
-                                     "absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all",
-                                     isInternal ? "left-4.5" : "left-0.5"
+                                     "absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all shadow-sm",
+                                     isInternal ? "translate-x-4" : "translate-x-0"
                                    )} />
                                 </div>
                                 <span className={cn("text-[10px] font-bold uppercase tracking-widest", isInternal ? "text-amber-600" : "text-slate-400 group-hover:text-slate-500")}>Nota Interna</span>
@@ -366,18 +374,18 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
         {/* Coluna Lateral */}
         <div className="lg:col-span-4 space-y-6">
            <Card>
-              <CardHeader className="py-4 px-5 border-b border-slate-50">
-                 <CardTitle className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Propriedades</CardTitle>
+              <CardHeader className="py-2.5 px-5 border-b border-slate-50">
+                 <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Propriedades</CardTitle>
               </CardHeader>
               <CardContent className="p-5 space-y-6">
                  {/* Status & Prioridade para Admin */}
                  {(currentUser.administrador || currentUser.desenvolvedor) ? (
                    <div className="space-y-4">
                       <div className="space-y-1.5">
-                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status do Atendimento</span>
+                         <span className="text-xs font-semibold text-slate-500">Status</span>
                          <select 
                            value={ticket.status || 'aberto'}
-                           onChange={(e) => handleUpdateTicket({ status: e.target.value as any })}
+                           onChange={(e) => handleUpdateTicket({ status: e.target.value as TicketStatus })}
                            className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer hover:bg-slate-50"
                          >
                             <option value="aberto">Aberto</option>
@@ -388,10 +396,10 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                          </select>
                       </div>
                       <div className="space-y-1.5">
-                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Prioridade</span>
+                         <span className="text-xs font-semibold text-slate-500">Prioridade</span>
                          <select 
                            value={ticket.prioridade || 'media'}
-                           onChange={(e) => handleUpdateTicket({ prioridade: e.target.value as any })}
+                           onChange={(e) => handleUpdateTicket({ prioridade: e.target.value as TicketPriority })}
                            className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer hover:bg-slate-50"
                          >
                             <option value="baixa">Baixa</option>
@@ -401,7 +409,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                          </select>
                       </div>
                       <div className="space-y-1.5">
-                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Atribuído a</span>
+                         <span className="text-xs font-semibold text-slate-500">Responsável</span>
                          <select 
                            value={ticket.responsavel_id || ''}
                            onChange={(e) => handleUpdateTicket({ responsavel_id: e.target.value ? parseInt(e.target.value) : null })}
@@ -409,7 +417,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                          >
                             <option value="">Sem responsável</option>
                             {agents.map(agent => (
-                              <option key={agent.id} value={agent.id}>{agent.nome}</option>
+                              <option key={agent.id} value={agent.id}>{agent.nome || 'Usuário'}</option>
                             ))}
                          </select>
                       </div>
@@ -417,13 +425,13 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                  ) : (
                    <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1">
-                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</span>
+                         <span className="text-xs font-semibold text-slate-500">Status</span>
                          <div className="pt-1">
                             <Badge variant={getStatusVariant(ticket.status || 'aberto')} className="uppercase text-[9px] font-bold border-none">{(ticket.status || 'aberto').replace('_', ' ')}</Badge>
                          </div>
                       </div>
                       <div className="space-y-1">
-                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Prioridade</span>
+                         <span className="text-xs font-semibold text-slate-500">Prioridade</span>
                          <div className="pt-1">
                             <Badge variant={getPriorityVariant(ticket.prioridade || 'media')} className="uppercase text-[9px] font-bold border-none">{ticket.prioridade || 'media'}</Badge>
                          </div>
@@ -433,20 +441,20 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
 
                  <div className="space-y-4 pt-4 border-t border-slate-50">
                     <div className="space-y-2">
-                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Solicitante</span>
+                       <span className="text-xs font-semibold text-slate-500">Solicitante</span>
                        <div className="flex items-center gap-3 bg-slate-50/50 p-2 rounded-lg border border-slate-100/50">
-                          <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-400">
+                          <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-400 shrink-0">
                              <UserIcon size={14} />
                           </div>
                           <div className="min-w-0">
                              <div className="text-xs font-bold text-slate-900 truncate">{clienteNome}</div>
-                             <div className="text-[9px] font-bold text-slate-400 truncate uppercase mt-0.5">{ticket.cliente_email || 'Sem email'}</div>
+                             <div className="text-[10px] font-medium text-slate-400 truncate mt-0.5">{ticket.cliente_email || 'Email não disponível'}</div>
                           </div>
                        </div>
                     </div>
 
                     <div className="space-y-2">
-                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Empresa</span>
+                       <span className="text-xs font-semibold text-slate-500">Empresa</span>
                        <div className="flex items-center gap-3">
                           <Building2 size={14} className="text-slate-300" />
                           <span className="text-xs font-bold text-slate-600 truncate">{empresaNome}</span>
@@ -454,43 +462,43 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                     </div>
 
                     <div className="space-y-2">
-                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Categoria</span>
+                       <span className="text-xs font-semibold text-slate-500">Categoria</span>
                        <div className="flex items-center gap-3">
                           <Tag size={14} className="text-slate-300" />
-                          <span className="text-xs font-bold text-slate-600 uppercase tracking-tight">{(ticket.categoria || 'suporte').replace('_', ' ')}</span>
+                          <span className="text-xs font-bold text-slate-600 uppercase tracking-tight">{(ticket.categoria || 'Não informada').replace('_', ' ')}</span>
                        </div>
                     </div>
 
                     <div className="space-y-2">
-                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Origem</span>
+                       <span className="text-xs font-semibold text-slate-500">Origem</span>
                        <div className="flex items-center gap-3">
                           <Calendar size={14} className="text-slate-300" />
-                          <span className="text-xs font-bold text-slate-600 uppercase tracking-tight">{origemLabel}</span>
+                          <span className="text-xs font-bold text-slate-600">{origemLabel}</span>
                        </div>
                     </div>
                  </div>
 
                  <div className="space-y-3 pt-4 border-t border-slate-50">
-                    <div className="flex justify-between items-center text-[10px] font-bold">
-                       <span className="text-slate-400 uppercase tracking-widest">Criado em</span>
-                       <span className="text-slate-600">{new Date(ticket.created_at).toLocaleDateString()}</span>
+                    <div className="flex justify-between items-center text-xs font-medium">
+                       <span className="text-slate-500">Aberto em</span>
+                       <span className="text-slate-800 font-semibold">{new Date(ticket.created_at).toLocaleDateString()}</span>
                     </div>
                     {ticket.updated_at && ticket.updated_at !== ticket.created_at && (
-                      <div className="flex justify-between items-center text-[10px] font-bold">
-                         <span className="text-slate-400 uppercase tracking-widest">Atualizado</span>
-                         <span className="text-slate-600">{new Date(ticket.updated_at).toLocaleDateString()}</span>
+                      <div className="flex justify-between items-center text-xs font-medium">
+                         <span className="text-slate-500">Atualizado</span>
+                         <span className="text-slate-800 font-semibold">{new Date(ticket.updated_at).toLocaleDateString()}</span>
                       </div>
                     )}
                     {ticket.prazo_sla && (
-                      <div className="flex justify-between items-center text-[10px] font-bold">
-                         <span className="text-slate-400 uppercase tracking-widest">Prazo SLA</span>
-                         <span className="text-amber-600">{new Date(ticket.prazo_sla).toLocaleDateString()}</span>
+                      <div className="flex justify-between items-center text-xs font-medium">
+                         <span className="text-slate-500">Prazo SLA</span>
+                         <span className="text-amber-600 font-bold">{new Date(ticket.prazo_sla).toLocaleDateString()}</span>
                       </div>
                     )}
                     {ticket.status === 'fechado' && (ticket.finalizado_em || ticket.updated_at) && (
-                      <div className="flex justify-between items-center text-[10px] font-bold">
-                         <span className="text-slate-400 uppercase tracking-widest">Finalizado em</span>
-                         <span className="text-emerald-600">{new Date(ticket.finalizado_em || ticket.updated_at).toLocaleDateString()}</span>
+                      <div className="flex justify-between items-center text-xs font-medium">
+                         <span className="text-slate-500">Finalizado</span>
+                         <span className="text-emerald-600 font-bold">{new Date(ticket.finalizado_em || ticket.updated_at).toLocaleDateString()}</span>
                       </div>
                     )}
                  </div>
