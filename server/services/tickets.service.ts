@@ -7,42 +7,56 @@ class TicketsService {
     const searchTerm = search;
     
     let baseWhere = 'WHERE 1=1';
+    let summaryWhere = 'WHERE 1=1';
     const params: (string | number)[] = [];
 
     // ACL
     if (!is_dev) {
       if (is_admin) {
         baseWhere += ' AND t.empresa_id = ?';
+        summaryWhere += ' AND t.empresa_id = ?';
         params.push(empresa_id);
       } else {
         baseWhere += ' AND t.usuario_id = ?';
+        summaryWhere += ' AND t.usuario_id = ?';
         params.push(usuario_id);
       }
     } else if (filters.empresa_id_filter) {
        baseWhere += ' AND t.empresa_id = ?';
+       summaryWhere += ' AND t.empresa_id = ?';
        params.push(filters.empresa_id_filter);
     }
 
-    // Filters
-    if (status) {
-      baseWhere += ' AND t.status = ?';
-      params.push(status);
-    }
+    // Common Filters (for both items and summary)
     if (prioridade) {
       baseWhere += ' AND t.prioridade = ?';
+      summaryWhere += ' AND t.prioridade = ?';
       params.push(prioridade);
     }
     if (categoria) {
       baseWhere += ' AND t.categoria = ?';
+      summaryWhere += ' AND t.categoria = ?';
       params.push(categoria);
     }
     if (responsavel_id) {
       baseWhere += ' AND t.responsavel_id = ?';
+      summaryWhere += ' AND t.responsavel_id = ?';
       params.push(Number(responsavel_id));
     }
     if (searchTerm) {
-      baseWhere += ' AND (t.titulo LIKE ? OR t.descricao LIKE ? OR CAST(t.id AS CHAR) = ?)';
-      params.push(`%${searchTerm}%`, `%${searchTerm}%`, searchTerm);
+      const searchPattern = `%${searchTerm}%`;
+      const searchParts = ' AND (t.titulo LIKE ? OR t.descricao LIKE ? OR CAST(t.id AS CHAR) = ? OR u.nome LIKE ?)';
+      baseWhere += searchParts;
+      summaryWhere += searchParts;
+      params.push(searchPattern, searchPattern, searchTerm, searchPattern);
+    }
+
+    // Status is only for items in list view
+    const summaryParams = [...params]; // copy params for summary
+    
+    if (status) {
+      baseWhere += ' AND t.status = ?';
+      params.push(status);
     }
 
     // Summary calculation
@@ -55,8 +69,9 @@ class TicketsService {
         SUM(CASE WHEN t.status = 'resolvido' THEN 1 ELSE 0 END) as resolvido,
         SUM(CASE WHEN t.status = 'fechado' THEN 1 ELSE 0 END) as fechado
       FROM tickets t
-      ${baseWhere}
-    `, params);
+      LEFT JOIN usuarios u ON t.usuario_id = u.id
+      ${summaryWhere}
+    `, summaryParams);
 
     const summary = summaryRows[0] || { total: 0, aberto: 0, em_andamento: 0, aguardando_cliente: 0, resolvido: 0, fechado: 0 };
     const total = Number(summary.total || 0);
@@ -94,29 +109,60 @@ class TicketsService {
   }
 
   async getKanban(filters: any) {
-    const { empresa_id, usuario_id, is_dev, is_admin, responsavel_id } = filters;
+    const { empresa_id, usuario_id, is_dev, is_admin, responsavel_id, search, prioridade, categoria, status } = filters;
+    const searchTerm = search;
     
     let baseWhere = 'WHERE 1=1';
+    let summaryWhere = 'WHERE 1=1';
     const params: (string | number)[] = [];
 
     // ACL
     if (!is_dev) {
       if (is_admin) {
         baseWhere += ' AND t.empresa_id = ?';
+        summaryWhere += ' AND t.empresa_id = ?';
         params.push(empresa_id);
       } else {
         baseWhere += ' AND t.usuario_id = ?';
+        summaryWhere += ' AND t.usuario_id = ?';
         params.push(usuario_id);
       }
     } else if (filters.empresa_id_filter) {
        baseWhere += ' AND t.empresa_id = ?';
+       summaryWhere += ' AND t.empresa_id = ?';
        params.push(filters.empresa_id_filter);
     }
     
+    // Common Filters
     if (responsavel_id) {
        baseWhere += ' AND t.responsavel_id = ?';
+       summaryWhere += ' AND t.responsavel_id = ?';
        params.push(Number(responsavel_id));
     }
+    if (prioridade) {
+       baseWhere += ' AND t.prioridade = ?';
+       summaryWhere += ' AND t.prioridade = ?';
+       params.push(prioridade);
+    }
+    if (categoria) {
+       baseWhere += ' AND t.categoria = ?';
+       summaryWhere += ' AND t.categoria = ?';
+       params.push(categoria);
+    }
+    if (searchTerm) {
+       const searchPattern = `%${searchTerm}%`;
+       baseWhere += ' AND (t.titulo LIKE ? OR t.descricao LIKE ? OR CAST(t.id AS CHAR) = ? OR u.nome LIKE ?)';
+       summaryWhere += ' AND (t.titulo LIKE ? OR t.descricao LIKE ? OR CAST(t.id AS CHAR) = ? OR u.nome LIKE ?)';
+       params.push(searchPattern, searchPattern, searchTerm, searchPattern);
+    }
+
+    if (status) {
+       baseWhere += ' AND t.status = ?';
+       summaryWhere += ' AND t.status = ?';
+       params.push(status);
+    }
+
+    const summaryParams = [...params];
 
     const [tickets]: any = await pool.query(`
       SELECT t.id, t.titulo, t.status, t.prioridade, t.categoria, t.created_at, t.empresa_id,
@@ -128,6 +174,20 @@ class TicketsService {
       ${baseWhere}
       ORDER BY t.created_at DESC
     `, params);
+
+    const [summaryRows]: any = await pool.query(`
+      SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN t.status = 'aberto' THEN 1 ELSE 0 END) as aberto,
+        SUM(CASE WHEN t.status = 'em_andamento' THEN 1 ELSE 0 END) as em_andamento,
+        SUM(CASE WHEN t.status = 'aguardando_cliente' THEN 1 ELSE 0 END) as aguardando_cliente,
+        SUM(CASE WHEN t.status = 'resolvido' THEN 1 ELSE 0 END) as resolvido,
+        SUM(CASE WHEN t.status = 'fechado' THEN 1 ELSE 0 END) as fechado
+      FROM tickets t
+      LEFT JOIN usuarios u ON t.usuario_id = u.id
+      ${summaryWhere}
+    `, summaryParams);
+    const summary = summaryRows[0] || { total: 0, aberto: 0, em_andamento: 0, aguardando_cliente: 0, resolvido: 0, fechado: 0 };
 
     const columnsConfig = [
       { id: 'aberto', title: 'Aberto' },
@@ -142,18 +202,18 @@ class TicketsService {
       return {
         id: c.id,
         title: c.title,
-        count: colTickets.length,
+        count: Number(summary[c.id] || 0),
         tickets: colTickets
       };
     });
 
     const totals = {
-      total: tickets.length,
-      aberto: columns[0].count,
-      em_andamento: columns[1].count,
-      aguardando_cliente: columns[2].count,
-      resolvido: columns[3].count,
-      fechado: columns[4].count
+      total: Number(summary.total || 0),
+      aberto: Number(summary.aberto || 0),
+      em_andamento: Number(summary.em_andamento || 0),
+      aguardando_cliente: Number(summary.aguardando_cliente || 0),
+      resolvido: Number(summary.resolvido || 0),
+      fechado: Number(summary.fechado || 0)
     };
 
     return { columns, totals };
@@ -196,6 +256,20 @@ class TicketsService {
     }
 
     return ticketId;
+  }
+
+  async getByIdForUser(id: number, currentUser: any) {
+    const ticket = await this.getById(id);
+    if (!ticket) return null;
+
+    if (!currentUser.desenvolvedor) {
+      if (currentUser.administrador) {
+        if (ticket.empresa_id !== currentUser.empresa_id) return { error: 'forbidden' };
+      } else {
+        if (ticket.usuario_id !== currentUser.id) return { error: 'forbidden' };
+      }
+    }
+    return ticket;
   }
 
   async getById(id: number) {

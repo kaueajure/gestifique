@@ -10,14 +10,16 @@ interface ApiResponse<T = any> {
 }
 
 class ApiService {
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  private async request<T>(endpoint: string, options: RequestInit = {}, isFormData: boolean = false): Promise<T> {
+    const headers: Record<string, string> = { ...options.headers } as any;
+    if (!isFormData) {
+       headers['Content-Type'] = 'application/json';
+    }
+
     const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
       credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
+      headers,
     });
 
     if (response.status === 401) {
@@ -61,17 +63,19 @@ class ApiService {
   }
 
   post<T>(endpoint: string, body: any) {
+    const isFormData = body instanceof FormData;
     return this.request<T>(endpoint, {
       method: 'POST',
-      body: JSON.stringify(body),
-    });
+      body: isFormData ? body : JSON.stringify(body),
+    }, isFormData);
   }
 
   patch<T>(endpoint: string, body: any) {
+    const isFormData = body instanceof FormData;
     return this.request<T>(endpoint, {
       method: 'PATCH',
-      body: JSON.stringify(body),
-    });
+      body: isFormData ? body : JSON.stringify(body),
+    }, isFormData);
   }
 
   delete<T>(endpoint: string) {

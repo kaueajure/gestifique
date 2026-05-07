@@ -85,14 +85,24 @@ export const TicketConversation = ({
         </div>
         
         {/* Campo de Resposta */}
-        <div className="p-5 bg-white rounded-b-xl">
-            <TicketReplyBox 
-               onSendMessage={onSendMessage}
-               loadingSend={loadingSend}
-               actionError={actionError}
-               actionSuccess={actionSuccess}
-               canAddInternalNote={canAddInternalNote}
-            />
+        <div className="p-5 bg-white rounded-b-xl border-t border-slate-100">
+           {ticket.status === 'fechado' ? (
+              <div className="text-center p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                 <p className="text-sm font-semibold text-slate-600 mb-2">Este atendimento está fechado.</p>
+                 <p className="text-xs font-medium text-slate-500">
+                   Você não pode enviar novas mensagens. 
+                   {canAddInternalNote && " Altere o status para reabrir o atendimento se necessário."}
+                 </p>
+              </div>
+           ) : (
+             <TicketReplyBox 
+                onSendMessage={onSendMessage}
+                loadingSend={loadingSend}
+                actionError={actionError}
+                actionSuccess={actionSuccess}
+                canAddInternalNote={canAddInternalNote}
+             />
+           )}
         </div>
     </div>
   );

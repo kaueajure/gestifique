@@ -6,6 +6,7 @@ import  { isAdmin } from  '../middlewares/permissions.js';
 import  { sendSuccess, sendError } from  '../utils/response.js';
 import  { logSystemAction } from  '../utils/logger.js';
 import { ticketUpload } from '../middlewares/upload.js';
+import pool from '../db/connection.js';
 
 const router = Router();
 
@@ -42,7 +43,11 @@ router.get('/kanban', async (req: AuthRequest, res) => {
       is_dev: currentUser.desenvolvedor,
       is_admin: currentUser.administrador,
       responsavel_id: req.query.responsavel_id,
-      empresa_id_filter: req.query.empresa_id
+      empresa_id_filter: req.query.empresa_id,
+      search: req.query.search,
+      status: req.query.status,
+      prioridade: req.query.prioridade,
+      categoria: req.query.categoria
     };
     
     const kanbanData = await ticketsService.getKanban(filters);
@@ -59,18 +64,12 @@ router.get('/:id', async (req: AuthRequest, res) => {
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
 
     const id = parseInt(req.params.id);
-    const ticket = await ticketsService.getById(id);
+    const result: any = await ticketsService.getByIdForUser(id, currentUser);
     
-    if (!ticket) return sendError(res, 'Ticket não encontrado', 404);
-    
-    // ACL
-    if (!currentUser.desenvolvedor && ticket.empresa_id !== currentUser.empresa_id) {
-      if (ticket.usuario_id !== currentUser.id) {
-        return sendError(res, 'Permissão negada', 403);
-      }
-    }
+    if (!result) return sendError(res, 'Ticket não encontrado', 404);
+    if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
-    sendSuccess(res, ticket);
+    sendSuccess(res, result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erro ao buscar ticket';
     sendError(res, message);
@@ -82,19 +81,30 @@ router.post('/', async (req: AuthRequest, res) => {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
 
-    const { titulo, descricao, prioridade, categoria } = req.body;
-    if (!titulo) return sendError(res, 'Título é obrigatório', 400);
+    let { titulo, descricao, prioridade, categoria } = req.body;
+    
+    // Validations
+    if (!titulo || titulo.trim().length < 3) return sendError(res, 'Título obrigatório (min 3 caracteres)', 400);
+    if (!descricao || descricao.trim().length < 5) return sendError(res, 'Descrição obrigatória (min 5 caracteres)', 400);
 
-    const targetEmpresaId = currentUser.desenvolvedor && req.body.empresa_id
+    const validPriorities = ['baixa', 'media', 'alta', 'urgente'];
+    const validCategories = ['suporte_tecnico', 'financeiro', 'recursos_humanos', 'comercial', 'outros'];
+
+    if (!prioridade || !validPriorities.includes(prioridade)) prioridade = 'media';
+    if (!categoria || !validCategories.includes(categoria)) categoria = 'suporte_tecnico';
+
+    const targetEmpresaId = req.body.empresa_id && currentUser.desenvolvedor
       ? Number(req.body.empresa_id)
       : currentUser.empresa_id;
 
     if (!targetEmpresaId) {
-      if (currentUser.desenvolvedor) {
-        return sendError(res, 'Selecione uma empresa para abrir o atendimento.', 400);
-      } else {
-        return sendError(res, 'Sua conta não possui empresa vinculada para abrir atendimento.', 400);
-      }
+       return sendError(res, 'Sua conta não possui empresa vinculada para abrir atendimento.', 400);
+    }
+
+    // Check if empresa exists and is active
+    const [empresaRows]: any = await pool.query('SELECT situacao FROM empresas WHERE id = ?', [targetEmpresaId]);
+    if (empresaRows.length === 0 || empresaRows[0].situacao !== 'ativa') {
+       return sendError(res, 'Empresa inválida ou inativa.', 400);
     }
 
     const ticketId = await ticketsService.create({
@@ -121,16 +131,15 @@ router.patch('/:id/status', async (req: AuthRequest, res) => {
     const { status } = req.body;
     if (!status) return sendError(res, 'Status é obrigatório', 400);
 
-    const ticket = await ticketsService.getById(id);
-    if (!ticket) return sendError(res, 'Ticket não encontrado', 404);
+    const result: any = await ticketsService.getByIdForUser(id, currentUser);
+    if (!result) return sendError(res, 'Ticket não encontrado', 404);
+    if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
+
+    const ticket = result;
 
     const canManage = currentUser.administrador || currentUser.desenvolvedor;
     if (!canManage) {
         return sendError(res, 'Permissão negada', 403);
-    }
-
-    if (!currentUser.desenvolvedor && ticket.empresa_id !== currentUser.empresa_id) {
-        return sendError(res, 'Permissão negada para atualizar chamados de outra empresa.', 403);
     }
 
     const updateResult = await ticketsService.updateStatus(id, status, currentUser.id, req);
@@ -151,8 +160,11 @@ router.patch('/:id', async (req: AuthRequest, res) => {
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
 
     const id = parseInt(req.params.id);
-    const ticket = await ticketsService.getById(id);
-    if (!ticket) return sendError(res, 'Ticket não encontrado', 404);
+    const result: any = await ticketsService.getByIdForUser(id, currentUser);
+    if (!result) return sendError(res, 'Ticket não encontrado', 404);
+    if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
+
+    const ticket = result;
 
     const canManage = currentUser.administrador || currentUser.desenvolvedor;
     if (!canManage && ticket.usuario_id !== currentUser.id) {
@@ -166,21 +178,41 @@ router.patch('/:id', async (req: AuthRequest, res) => {
         delete req.body.responsavel_id;
     }
 
-    const oldTicket = await ticketsService.getById(id);
+    // Prevent duplicated status loop: If status was sent, we update status separately or ignore it here if we want route separation 
+    // We already have a /status route, better to call updateStatus from service here if it was passed, so we notify correctly and then log.
+    // However, the rule requested: 'no PATCH /:id, se vier status, chamar updateStatus ou impedir status ali para evitar duplicação'
+    let oldStatus = ticket.status;
+    let oldResp = ticket.responsavel_id;
+    let oldPrio = ticket.prioridade;
+    
+    if (req.body.status && req.body.status !== ticket.status) {
+       const updateResult = await ticketsService.updateStatus(id, req.body.status, currentUser.id, req);
+       if (updateResult && updateResult.oldStatus !== updateResult.newStatus) {
+         await logSystemAction(req, currentUser.id, ticket.empresa_id, 'TICKET_STATUS_CHANGE', `Status do chamado #${id} alterado de ${updateResult.oldStatus} para ${updateResult.newStatus}`);
+       }
+    }
+    
+    // Always remove status from body so it's not updated twice by ticketsService.update
+    if ('status' in req.body) {
+       delete req.body.status;
+    }
+
     await ticketsService.update(id, req.body);
     
     let descriptions = [];
-    if (req.body.status && req.body.status !== oldTicket.status) descriptions.push(`status para ${req.body.status}`);
-    if (req.body.prioridade && req.body.prioridade !== oldTicket.prioridade) descriptions.push(`prioridade para ${req.body.prioridade}`);
-    if (req.body.responsavel_id !== undefined && req.body.responsavel_id !== oldTicket.responsavel_id) {
+    if (req.body.prioridade && req.body.prioridade !== oldPrio) descriptions.push(`prioridade para ${req.body.prioridade}`);
+    if (req.body.responsavel_id !== undefined && req.body.responsavel_id !== oldResp) {
        descriptions.push(`responsável atualizado`);
     }
 
-    const logMsg = descriptions.length > 0 
-      ? `Atualizou chamado #${id}: ${descriptions.join(', ')}`
-      : `Atualizou detalhes do chamado #${id}`;
-
-    await logSystemAction(req, currentUser.id, currentUser.empresa_id, 'TICKET_UPDATE', logMsg);
+    // Since status logs itself, we only log here if other fields materially changed
+    if (descriptions.length > 0) {
+      const logMsg = `Atualizou chamado #${id}: ${descriptions.join(', ')}`;
+      await logSystemAction(req, currentUser.id, ticket.empresa_id, 'TICKET_UPDATE', logMsg);
+    } else if (Object.keys(req.body).length > 0 && !Object.keys(req.body).every(k => k === 'status')) {
+      const logMsg = `Atualizou detalhes do chamado #${id}`;
+      await logSystemAction(req, currentUser.id, ticket.empresa_id, 'TICKET_UPDATE', logMsg);
+    }
     
     sendSuccess(res, null, 'Ticket atualizado com sucesso');
   } catch (error: unknown) {
@@ -195,6 +227,10 @@ router.get('/:id/messages', async (req: AuthRequest, res) => {
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
 
     const id = parseInt(req.params.id);
+    const result: any = await ticketsService.getByIdForUser(id, currentUser);
+    if (!result) return sendError(res, 'Ticket não encontrado', 404);
+    if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
+
     const isAdminOrDev = currentUser.administrador || currentUser.desenvolvedor;
     const messages = await ticketsService.getMessages(id, isAdminOrDev);
     
@@ -217,6 +253,11 @@ router.post('/:id/messages', async (req: AuthRequest, res) => {
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
 
     const id = parseInt(req.params.id);
+    
+    const result: any = await ticketsService.getByIdForUser(id, currentUser);
+    if (!result) return sendError(res, 'Ticket não encontrado', 404);
+    if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
+
     const { mensagem, interno } = req.body;
     
     const isAdminOrDev = currentUser.administrador || currentUser.desenvolvedor;
@@ -244,6 +285,10 @@ router.get('/:id/attachments', async (req: AuthRequest, res) => {
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
 
     const id = parseInt(req.params.id);
+    const result: any = await ticketsService.getByIdForUser(id, currentUser);
+    if (!result) return sendError(res, 'Ticket não encontrado', 404);
+    if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
+
     const isAdminOrDev = currentUser.administrador || currentUser.desenvolvedor;
     const attachments = await attachmentsService.listByTicket(id, isAdminOrDev);
     sendSuccess(res, attachments);
@@ -269,35 +314,19 @@ router.post('/:id/attachments', ticketUpload.array('files', 5), async (req: Auth
       return sendError(res, 'Nenhum arquivo enviado', 400);
     }
 
-    const ticket = await ticketsService.getById(id);
-    if (!ticket) {
+    const ticketResult: any = await ticketsService.getByIdForUser(id, currentUser);
+    if (!ticketResult) {
       await attachmentsService.deleteMultiple(files);
       return sendError(res, 'Ticket não encontrado', 404);
     }
-
-    // ACL Check
-    const isAdminOrDev = !!(currentUser.administrador || currentUser.desenvolvedor);
-    const isOwner = ticket.usuario_id === currentUser.id;
-    const isSameEnterprise = ticket.empresa_id === currentUser.empresa_id;
-
-    // Desenvolvedor: tudo
-    // Administrador: tickets da empresa
-    // Usuário comum: apenas tickets próprios
-    if (!currentUser.desenvolvedor) {
-       if (currentUser.administrador) {
-          if (!isSameEnterprise) {
-            await attachmentsService.deleteMultiple(files);
-            return sendError(res, 'Permissão negada para anexar arquivos neste ticket (Admin)', 403);
-          }
-       } else {
-          // Usuário comum
-          if (!isOwner) {
-            await attachmentsService.deleteMultiple(files);
-            return sendError(res, 'Permissão negada para anexar arquivos neste ticket (Comum)', 403);
-          }
-       }
+    if (ticketResult.error === 'forbidden') {
+      await attachmentsService.deleteMultiple(files);
+      return sendError(res, 'Permissão negada', 403);
     }
 
+    const ticket = ticketResult;
+
+    const isAdminOrDev = !!(currentUser.administrador || currentUser.desenvolvedor);
     const isInternal = isAdminOrDev ? (interno === 'true' || interno === true) : false;
 
     const createdAttachments = await Promise.all(files.map(async (file) => {
