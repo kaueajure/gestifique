@@ -5,6 +5,28 @@ import { sendSuccess, sendError } from '../utils/response.js';
 
 const router = Router();
 
+router.get('/unread-count', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1] || req.cookies?.token;
+    if (!token) return sendSuccess(res, { count: 0 });
+
+    const { env } = await import('../config/env.js');
+    const jwt = (await import('jsonwebtoken')).default;
+    
+    try {
+      const decoded: any = jwt.verify(token, env.JWT_SECRET);
+      if (!decoded || !decoded.id) return sendSuccess(res, { count: 0 });
+      
+      const count = await notificationsService.countUnread(decoded.id);
+      return sendSuccess(res, { count });
+    } catch (e) {
+      return sendSuccess(res, { count: 0 });
+    }
+  } catch (error: unknown) {
+    return sendSuccess(res, { count: 0 });
+  }
+});
+
 router.use(authMiddleware);
 
 router.get('/', async (req, res) => {
@@ -26,20 +48,6 @@ router.get('/', async (req, res) => {
     sendSuccess(res, { items, unread_count });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erro ao listar notificações';
-    sendError(res, message);
-  }
-});
-
-router.get('/unread-count', async (req, res) => {
-  try {
-    const currentUser = (req as AuthRequest).user;
-    if (!currentUser) return sendError(res, 'Não autenticado', 401);
-
-    const userId = currentUser.id;
-    const count = await notificationsService.countUnread(userId);
-    sendSuccess(res, { count });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Erro ao buscar contagem';
     sendError(res, message);
   }
 });

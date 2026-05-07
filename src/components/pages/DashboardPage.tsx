@@ -151,7 +151,7 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
                  <Badge variant="blue" className="text-[10px] py-0 px-2">Total: {counts.total}</Badge>
               </CardHeader>
               <CardContent className="pb-6">
-                <div className="h-48 w-full">
+                <div className="h-[200px] w-full min-w-0">
                   {statusData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={statusData}>
@@ -249,7 +249,7 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
                  <CardTitle className="text-sm font-bold">Prioridades</CardTitle>
               </CardHeader>
               <CardContent className="pb-6">
-                <div className="h-44 w-full flex items-center justify-center">
+                <div className="h-[180px] w-full min-w-0 flex items-center justify-center">
                   {priorityData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>

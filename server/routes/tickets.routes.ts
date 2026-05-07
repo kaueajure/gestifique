@@ -49,12 +49,28 @@ router.get('/kanban', async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
-
+    
+    // Explicit validation for query parameters
     const empresaIdFilter = currentUser.desenvolvedor
       ? toPositiveInt(req.query.empresa_id)
       : undefined;
 
     const responsavelId = toPositiveInt(req.query.responsavel_id);
+
+    const validStatuses = ['aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado', 'todos'];
+    const validPriorities = ['baixa', 'media', 'alta', 'urgente', 'todas'];
+    
+    const status = typeof req.query.status === 'string' && validStatuses.includes(req.query.status) 
+      ? (req.query.status === 'todos' ? undefined : req.query.status) 
+      : undefined;
+      
+    const prioridade = typeof req.query.prioridade === 'string' && validPriorities.includes(req.query.prioridade)
+      ? (req.query.prioridade === 'todas' ? undefined : req.query.prioridade)
+      : undefined;
+      
+    const categoria = typeof req.query.categoria === 'string' && req.query.categoria !== 'todas' 
+      ? req.query.categoria 
+      : undefined;
 
     const filters = {
       empresa_id: currentUser.empresa_id,
@@ -64,9 +80,9 @@ router.get('/kanban', async (req: AuthRequest, res) => {
       responsavel_id: responsavelId,
       empresa_id_filter: empresaIdFilter,
       search: typeof req.query.search === 'string' ? req.query.search.trim() : undefined,
-      status: typeof req.query.status === 'string' && req.query.status !== 'todos' ? req.query.status : undefined,
-      prioridade: typeof req.query.prioridade === 'string' && req.query.prioridade !== 'todas' ? req.query.prioridade : undefined,
-      categoria: typeof req.query.categoria === 'string' && req.query.categoria !== 'todas' ? req.query.categoria : undefined
+      status,
+      prioridade,
+      categoria
     };
     
     const kanbanData = await ticketsService.getKanban(filters);

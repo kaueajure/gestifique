@@ -288,7 +288,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                     <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
                     Volume por Status
                   </h3>
-                  <div className="h-[250px]">
+                  <div className="h-[250px] min-w-0">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -317,7 +317,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                     <div className="w-1 h-4 bg-orange-500 rounded-full"></div>
                     Distribuição por Prioridade
                   </h3>
-                  <div className="h-[250px]">
+                  <div className="h-[250px] min-w-0">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={data.by_priority}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
@@ -336,7 +336,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                     <div className="w-1 h-4 bg-emerald-500 rounded-full"></div>
                     Atendimentos por Categoria
                   </h3>
-                  <div className="h-[250px]">
+                  <div className="h-[250px] min-w-0">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -366,7 +366,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                     <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
                     Evolução Diária (Criados x Resolvidos)
                   </h3>
-                  <div className="h-[300px]">
+                  <div className="h-[300px] min-w-0">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={data.by_day}>
                         <defs>
