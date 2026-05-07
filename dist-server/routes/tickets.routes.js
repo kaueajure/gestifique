@@ -1,0 +1,124 @@
+import { Router } from 'express';
+import ticketsService from '../services/tickets.service.js';
+import { authMiddleware } from '../middlewares/auth.js';
+import { sendSuccess, sendError } from '../utils/response.js';
+import { logSystemAction } from '../utils/logger.js';
+const router = Router();
+router.use(authMiddleware);
+router.get('/', async (req, res) => {
+    try {
+        const filters = {
+            ...req.query,
+            empresa_id: req.user.empresa_id,
+            usuario_id: req.user.id,
+            is_dev: req.user.desenvolvedor,
+            is_admin: req.user.administrador
+        };
+        const tickets = await ticketsService.list(filters);
+        sendSuccess(res, tickets);
+    }
+    catch (error) {
+        sendError(res, error.message);
+    }
+});
+router.get('/:id', async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const ticket = await ticketsService.getById(id);
+        if (!ticket)
+            return sendError(res, 'Ticket não encontrado', 404);
+        // ACL
+        if (!req.user.desenvolvedor && ticket.empresa_id !== req.user.empresa_id) {
+            if (ticket.usuario_id !== req.user.id) {
+                return sendError(res, 'Permissão negada', 403);
+            }
+        }
+        sendSuccess(res, ticket);
+    }
+    catch (error) {
+        sendError(res, error.message);
+    }
+});
+router.post('/', async (req, res) => {
+    try {
+        const { titulo, descricao, prioridade, categoria } = req.body;
+        if (!titulo)
+            return sendError(res, 'Título é obrigatório', 400);
+        const ticketId = await ticketsService.create({
+            empresa_id: req.user.empresa_id,
+            usuario_id: req.user.id,
+            titulo, descricao, prioridade, categoria
+        });
+        await logSystemAction(req, req.user.id, req.user.empresa_id, 'TICKET_CREATE', `Novo chamado criado: #${ticketId}`);
+        sendSuccess(res, { id: ticketId }, 'Ticket aberto com sucesso', 201);
+    }
+    catch (error) {
+        sendError(res, error.message);
+    }
+});
+router.patch('/:id', async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const ticket = await ticketsService.getById(id);
+        if (!ticket)
+            return sendError(res, 'Ticket não encontrado', 404);
+        const canManage = req.user.administrador || req.user.desenvolvedor;
+        if (!canManage && ticket.usuario_id !== req.user.id) {
+            return sendError(res, 'Permissão negada', 403);
+        }
+        // Common users can't change status/priority/technician
+        if (!canManage) {
+            delete req.body.status;
+            delete req.body.prioridade;
+            delete req.body.responsavel_id;
+        }
+        const oldTicket = await ticketsService.getById(id);
+        await ticketsService.update(id, req.body);
+        let descriptions = [];
+        if (req.body.status && req.body.status !== oldTicket.status)
+            descriptions.push(`status para ${req.body.status}`);
+        if (req.body.prioridade && req.body.prioridade !== oldTicket.prioridade)
+            descriptions.push(`prioridade para ${req.body.prioridade}`);
+        if (req.body.responsavel_id !== undefined && req.body.responsavel_id !== oldTicket.responsavel_id) {
+            descriptions.push(`responsável atualizado`);
+        }
+        const logMsg = descriptions.length > 0
+            ? `Atualizou chamado #${id}: ${descriptions.join(', ')}`
+            : `Atualizou detalhes do chamado #${id}`;
+        await logSystemAction(req, req.user.id, req.user.empresa_id, 'TICKET_UPDATE', logMsg);
+        sendSuccess(res, null, 'Ticket atualizado com sucesso');
+    }
+    catch (error) {
+        sendError(res, error.message);
+    }
+});
+router.get('/:id/messages', async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const isAdminOrDev = req.user.administrador || req.user.desenvolvedor;
+        const messages = await ticketsService.getMessages(id, isAdminOrDev);
+        sendSuccess(res, messages);
+    }
+    catch (error) {
+        sendError(res, error.message);
+    }
+});
+router.post('/:id/messages', async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const { mensagem, interno } = req.body;
+        const isAdminOrDev = req.user.administrador || req.user.desenvolvedor;
+        await ticketsService.addMessage({
+            ticket_id: id,
+            usuario_id: req.user.id,
+            mensagem,
+            interno: isAdminOrDev ? interno : false
+        });
+        await logSystemAction(req, req.user.id, req.user.empresa_id, 'MESSAGE_SEND', `Nova mensagem no chamado #${id}`);
+        sendSuccess(res, null, 'Mensagem enviada');
+    }
+    catch (error) {
+        sendError(res, error.message);
+    }
+});
+export default router;

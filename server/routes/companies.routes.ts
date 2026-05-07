@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import companiesService from '../services/companies.service';
-import { authMiddleware } from '../middlewares/auth';
-import { isDev } from '../middlewares/permissions';
-import { sendSuccess, sendError } from '../utils/response';
-import { logSystemAction } from '../utils/logger';
+import  companiesService from  '../services/companies.service.js';
+import  { authMiddleware } from  '../middlewares/auth.js';
+import  { isDev } from  '../middlewares/permissions.js';
+import  { sendSuccess, sendError } from  '../utils/response.js';
+import  { logSystemAction } from  '../utils/logger.js';
 
 const router = Router();
 

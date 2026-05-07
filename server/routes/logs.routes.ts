@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import logsService from '../services/logs.service';
-import { authMiddleware } from '../middlewares/auth';
-import { isAdmin } from '../middlewares/permissions';
-import { sendSuccess, sendError } from '../utils/response';
+import  logsService from  '../services/logs.service.js';
+import  { authMiddleware } from  '../middlewares/auth.js';
+import  { isAdmin } from  '../middlewares/permissions.js';
+import  { sendSuccess, sendError } from  '../utils/response.js';
 
 const router = Router();
 

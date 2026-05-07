@@ -53,14 +53,21 @@ export default function App() {
     checkAuth();
 
     // Global event listener for unauthorized requests
-    const handleUnauthorized = () => {
+    const handleUnauthorized = (e: Event) => {
+      const customEvent = e as CustomEvent<{ endpoint?: string }>;
+      const endpoint = customEvent.detail?.endpoint;
+
+      if (endpoint === '/profile' || endpoint === '/auth/login') {
+        return;
+      }
+
       setCurrentUser(null);
       setView('login');
       setAuthError('Sessão expirada. Faça login novamente.');
     };
 
-    window.addEventListener('api:unauthorized', handleUnauthorized);
-    return () => window.removeEventListener('api:unauthorized', handleUnauthorized);
+    window.addEventListener('api:unauthorized', handleUnauthorized as EventListener);
+    return () => window.removeEventListener('api:unauthorized', handleUnauthorized as EventListener);
   }, []);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {

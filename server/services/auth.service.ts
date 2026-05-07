@@ -1,7 +1,7 @@
-import pool from '../db/connection';
+import  pool from  '../db/connection.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { env } from '../config/env';
+import  { env } from  '../config/env.js';
 
 const SECRET = env.JWT_SECRET;
 

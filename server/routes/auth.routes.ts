@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import authService from '../services/auth.service';
-import { sendSuccess, sendError } from '../utils/response';
-import { logSystemAction } from '../utils/logger';
-import { env } from '../config/env';
+import  authService from  '../services/auth.service.js';
+import  { sendSuccess, sendError } from  '../utils/response.js';
+import  { logSystemAction } from  '../utils/logger.js';
+import  { env } from  '../config/env.js';
 
 const router = Router();
 

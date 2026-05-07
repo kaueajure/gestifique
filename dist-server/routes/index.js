@@ -1,0 +1,17 @@
+import { Router } from 'express';
+import authRoutes from './auth.routes.js';
+import userRoutes from './users.routes.js';
+import ticketRoutes from './tickets.routes.js';
+import companyRoutes from './companies.routes.js';
+import dashboardRoutes from './dashboard.routes.js';
+import profileRoutes from './profile.routes.js';
+import logsRoutes from './logs.routes.js';
+const router = Router();
+router.use('/auth', authRoutes);
+router.use('/users', userRoutes);
+router.use('/tickets', ticketRoutes);
+router.use('/companies', companyRoutes);
+router.use('/dashboard', dashboardRoutes);
+router.use('/profile', profileRoutes);
+router.use('/logs', logsRoutes);
+export default router;

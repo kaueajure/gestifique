@@ -1,4 +1,4 @@
-import pool from '../db/connection';
+import  pool from  '../db/connection.js';
 import bcrypt from 'bcryptjs';
 
 class UsersService {

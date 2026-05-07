@@ -1,5 +1,5 @@
 import { Request } from 'express';
-import pool from '../db/connection';
+import  pool from  '../db/connection.js';
 
 export const logSystemAction = async (
   req: Request | null,

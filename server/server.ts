@@ -3,10 +3,10 @@ import path from 'path';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { createServer as createViteServer } from 'vite';
-import { initDB } from './db/init-db';
-import apiRoutes from './routes';
-import { errorHandler } from './middlewares/error-handler';
-import { env } from './config/env';
+import  { initDB } from  './db/init-db.js';
+import  apiRoutes from  './routes/index.js';
+import  { errorHandler } from  './middlewares/error-handler.js';
+import  { env } from  './config/env.js';
 
 async function startServer() {
   const app = express();
