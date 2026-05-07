@@ -22,11 +22,31 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req: any, file: any, cb: any) => {
-  const blockedExtensions = ['.exe', '.bat', '.cmd', '.sh', '.js', '.ts', '.php', '.html', '.svg', '.htm'];
+  const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.csv', '.txt', '.zip', '.rar', '.7z'];
+  const allowedMimetypes = [
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'text/csv',
+    'text/plain',
+    'application/zip',
+    'application/x-rar-compressed',
+    'application/x-7z-compressed'
+  ];
+
   const ext = path.extname(file.originalname).toLowerCase();
   
-  if (blockedExtensions.includes(ext) || !ext) {
-    return cb(new Error('Tipo de arquivo não permitido ou inválido.'), false);
+  if (!allowedExtensions.includes(ext)) {
+    return cb(new Error('Extensão de arquivo não permitida.'), false);
+  }
+
+  if (!allowedMimetypes.includes(file.mimetype)) {
+    return cb(new Error('Tipo de arquivo (MIME) não permitido.'), false);
   }
   
   cb(null, true);

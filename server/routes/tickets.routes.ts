@@ -114,7 +114,7 @@ router.get('/:id/messages', async (req: any, res) => {
     
     // Fetch attachments for each message
     const messagesWithAttachments = await Promise.all((messages as any[]).map(async (msg: any) => {
-      const attachments = await attachmentsService.getByMessage(msg.id);
+      const attachments = await attachmentsService.getByMessage(msg.id, isAdminOrDev);
       return { ...msg, attachments };
     }));
 
@@ -159,19 +159,34 @@ router.get('/:id/attachments', async (req: any, res) => {
 });
 
 router.post('/:id/attachments', ticketUpload.array('files', 5), async (req: any, res) => {
+  const files = req.files as Express.Multer.File[];
   try {
     const id = parseInt(req.params.id);
     const { mensagem_id, interno } = req.body;
-    const files = req.files as Express.Multer.File[];
 
     if (!files || files.length === 0) {
       return sendError(res, 'Nenhum arquivo enviado', 400);
     }
 
     const ticket = await ticketsService.getById(id);
-    if (!ticket) return sendError(res, 'Ticket não encontrado', 404);
+    if (!ticket) {
+      await attachmentsService.deleteMultiple(files);
+      return sendError(res, 'Ticket não encontrado', 404);
+    }
 
-    const isInternal = req.user.administrador || req.user.desenvolvedor ? (interno === 'true' || interno === true) : false;
+    // ACL Check
+    const isAdminOrDev = req.user.administrador || req.user.desenvolvedor;
+    const isOwner = ticket.usuario_id === req.user.id;
+    const isSameEnterprise = ticket.empresa_id === req.user.empresa_id;
+
+    if (!isAdminOrDev && !isOwner) {
+       if (!isSameEnterprise) {
+          await attachmentsService.deleteMultiple(files);
+          return sendError(res, 'Permissão negada para anexar arquivos neste ticket', 403);
+       }
+    }
+
+    const isInternal = isAdminOrDev ? (interno === 'true' || interno === true) : false;
 
     const createdAttachments = await Promise.all(files.map(async (file) => {
       const attachmentId = await attachmentsService.create({
@@ -200,6 +215,9 @@ router.post('/:id/attachments', ticketUpload.array('files', 5), async (req: any,
 
     sendSuccess(res, createdAttachments, 'Arquivos enviados com sucesso', 201);
   } catch (error: any) {
+    if (files && files.length > 0) {
+      await attachmentsService.deleteMultiple(files);
+    }
     sendError(res, error.message);
   }
 });

@@ -1,17 +1,17 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import attachmentsService from '../services/attachments.service.js';
 import ticketsService from '../services/tickets.service.js';
 import { authMiddleware } from '../middlewares/auth.js';
 import { sendSuccess, sendError } from '../utils/response.js';
 import { logSystemAction } from '../utils/logger.js';
-import fs from 'fs';
+import { promises as fs } from 'fs';
 import path from 'path';
 
 const router = Router();
 
 router.use(authMiddleware);
 
-router.get('/:id/download', async (req: any, res) => {
+router.get('/:id/download', async (req: any, res: Response) => {
   try {
     const id = parseInt(req.params.id);
     const attachment = await attachmentsService.getById(id);
@@ -30,8 +30,6 @@ router.get('/:id/download', async (req: any, res) => {
        if (!isSameEnterprise) {
           return sendError(res, 'Acesso negado ao ticket', 403);
        }
-       // If same enterprise but not admin, they can see shared tickets if implemented, 
-       // but for now we follow the ticket route's logic.
     }
     
     // Internal attachment check
@@ -39,17 +37,27 @@ router.get('/:id/download', async (req: any, res) => {
        return sendError(res, 'Acesso negado a anexo interno', 403);
     }
 
-    if (!fs.existsSync(attachment.caminho)) {
+    // Path safety check
+    const absolutePath = path.resolve(attachment.caminho);
+    const uploadsDir = path.resolve(process.cwd(), 'uploads', 'tickets');
+    
+    if (!absolutePath.startsWith(uploadsDir)) {
+       return sendError(res, 'Caminho de arquivo inválido', 400);
+    }
+
+    try {
+      await fs.access(absolutePath);
+    } catch {
        return sendError(res, 'Arquivo físico não encontrado no servidor', 404);
     }
 
-    res.download(attachment.caminho, attachment.nome_original);
+    res.download(absolutePath, attachment.nome_original);
   } catch (error: any) {
     sendError(res, error.message);
   }
 });
 
-router.delete('/:id', async (req: any, res) => {
+router.delete('/:id', async (req: any, res: Response) => {
   try {
     const id = parseInt(req.params.id);
     const attachment = await attachmentsService.getById(id);
