@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { User } from '../../types';
 import { api } from '../../lib/api';
-import { Building2, Keyboard, ShieldCheck, Database, Cpu, Lock, Save, Loader2, AlertCircle, CheckCircle2, Layout, Zap, Globe, Palette } from 'lucide-react';
+import { Building2, Keyboard, ShieldCheck, Database, Cpu, Lock, Save, Zap, Palette, ChevronRight, CheckCircle2, AlertCircle, Layout, Globe } from 'lucide-react';
 import { Badge } from '../ui/Badge';
+import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
+import { Card } from '../ui/Card';
 import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -41,8 +44,6 @@ export const SettingsPage = ({ currentUser, onNavigate }: SettingsPageProps) => 
     const data = Object.fromEntries(formData.entries());
 
     try {
-      // Assuming developers can update any, admins only their own
-      // For now, we'll hit an endpoint that handles this logic
       await api.patch(`/companies/${currentUser.empresa_id}`, data);
       setSuccess('Configurações da empresa atualizadas!');
       setTimeout(() => setSuccess(null), 3000);
@@ -54,20 +55,20 @@ export const SettingsPage = ({ currentUser, onNavigate }: SettingsPageProps) => 
   };
 
   return (
-    <div className="max-w-6xl space-y-10">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+    <div className="max-w-5xl space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-4xl font-black text-slate-900 tracking-tight">Configurações</h2>
-          <p className="text-slate-500 font-medium text-lg">Personalize sua experiência e gerencie os parâmetros da instância.</p>
+          <h2 className="text-2xl font-semibold text-slate-950 tracking-tight">Configurações</h2>
+          <p className="text-sm text-slate-500">Personalize sua experiência e gerencie os parâmetros da instância.</p>
         </div>
       </div>
 
-      <div className="flex gap-2 p-1.5 bg-white border border-slate-200 rounded-[24px] w-fit shadow-sm">
+      <div className="flex flex-wrap gap-1 p-1 bg-white border border-slate-200 rounded-xl w-fit shadow-sm">
         <button 
           onClick={() => setActiveSubTab('general')}
           className={cn(
-            "h-11 px-6 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2",
-            activeSubTab === 'general' ? "bg-slate-900 text-white shadow-lg shadow-slate-200" : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
+            "h-9 px-4 rounded-lg text-xs font-semibold transition-all flex items-center gap-2",
+            activeSubTab === 'general' ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:text-slate-950 hover:bg-slate-50"
           )}
         >
           <Palette size={14} /> Preferências
@@ -76,8 +77,8 @@ export const SettingsPage = ({ currentUser, onNavigate }: SettingsPageProps) => 
           <button 
             onClick={() => setActiveSubTab('company')}
             className={cn(
-              "h-11 px-6 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2",
-              activeSubTab === 'company' ? "bg-slate-900 text-white shadow-lg shadow-slate-200" : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
+              "h-9 px-4 rounded-lg text-xs font-semibold transition-all flex items-center gap-2",
+              activeSubTab === 'company' ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:text-slate-950 hover:bg-slate-50"
             )}
           >
             <Building2 size={14} /> Empresa
@@ -87,8 +88,8 @@ export const SettingsPage = ({ currentUser, onNavigate }: SettingsPageProps) => 
           <button 
             onClick={() => setActiveSubTab('system')}
             className={cn(
-              "h-11 px-6 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2",
-              activeSubTab === 'system' ? "bg-slate-900 text-white shadow-lg shadow-slate-200" : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
+              "h-9 px-4 rounded-lg text-xs font-semibold transition-all flex items-center gap-2",
+              activeSubTab === 'system' ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:text-slate-950 hover:bg-slate-50"
             )}
           >
             <Cpu size={14} /> Sistema
@@ -96,264 +97,274 @@ export const SettingsPage = ({ currentUser, onNavigate }: SettingsPageProps) => 
         )}
       </div>
 
-      <AnimatePresence mode="wait">
-        <motion.div
-           key={activeSubTab}
-           initial={{ opacity: 0, y: 10 }}
-           animate={{ opacity: 1, y: 0 }}
-           exit={{ opacity: 0, y: -10 }}
-           className="space-y-8"
-        >
-          {activeSubTab === 'general' && (
-            <div className="grid md:grid-cols-2 gap-8">
-               <div className="bg-white p-10 rounded-[40px] border border-slate-200 shadow-sm space-y-8">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
-                       <ShieldCheck size={20} />
+      <div className="min-h-[400px]">
+        <AnimatePresence mode="wait">
+          <motion.div
+             key={activeSubTab}
+             initial={{ opacity: 0, y: 5 }}
+             animate={{ opacity: 1, y: 0 }}
+             exit={{ opacity: 0, y: -5 }}
+             transition={{ duration: 0.15 }}
+             className="space-y-6"
+          >
+            {activeSubTab === 'general' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <Card className="p-6 space-y-6">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
+                         <ShieldCheck size={18} />
+                      </div>
+                      <h4 className="text-sm font-semibold text-slate-900">Minha Conta</h4>
                     </div>
-                    <h4 className="font-black text-slate-900">Minha Conta</h4>
-                  </div>
-                  
-                  <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-100 space-y-4">
-                     <p className="text-sm font-medium text-slate-500">Gerencie suas informações pessoais, altere sua senha e personalize sua identidade na plataforma.</p>
-                     <button 
-                       onClick={() => onNavigate('profile')}
-                       className="w-full h-12 bg-white border border-slate-200 rounded-xl text-xs font-black uppercase tracking-widest text-slate-700 hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
-                     >
-                       Ir para Meu Perfil <Zap size={14} className="text-orange-500" />
-                     </button>
-                  </div>
-
-                  <div className="space-y-6">
-                    <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-100 flex items-center justify-between group cursor-pointer hover:border-slate-200 transition-all">
-                       <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-slate-900">
-                             <Layout size={24} />
-                          </div>
-                          <div>
-                             <div className="text-sm font-black text-slate-900">Sidebar Compacta</div>
-                             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Otimizar espaço de trabalho</div>
-                          </div>
-                       </div>
-                       <div className="w-12 h-6 bg-slate-200 rounded-full relative">
-                          <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-all"></div>
-                       </div>
-                    </div>
-                  </div>
-               </div>
-
-               <div className="bg-white p-10 rounded-[40px] border border-slate-200 shadow-sm space-y-8">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center">
-                       <Keyboard size={20} />
-                    </div>
-                    <h4 className="font-black text-slate-900">Acesso Rápido</h4>
-                  </div>
-                  <div className="space-y-4">
-                     {[
-                       { id: 'tickets', desc: 'Central de Chamados', icon: <Layout size={16} /> },
-                       { id: 'profile', desc: 'Configurar Perfil', icon: <ShieldCheck size={16} /> },
-                       { id: 'dashboard', desc: 'Dashboard Principal', icon: <Zap size={16} /> },
-                     ].map(nav => (
-                       <button 
-                         key={nav.id} 
-                         onClick={() => onNavigate(nav.id)}
-                         className="w-full flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:bg-slate-100 transition-all group"
+                    
+                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-4">
+                       <p className="text-xs font-medium text-slate-500 leading-relaxed">Gerencie suas informações pessoais, altere sua senha e personalize sua identidade na plataforma.</p>
+                       <Button 
+                         variant="outline"
+                         size="sm"
+                         onClick={() => onNavigate('profile')}
+                         className="w-full justify-between"
                        >
-                          <div className="flex items-center gap-3">
-                             <div className="text-slate-400 group-hover:text-blue-600 transition-colors">{nav.icon}</div>
-                             <span className="text-sm font-bold text-slate-600">{nav.desc}</span>
-                          </div>
-                          <Badge variant="slate" className="font-black">IR</Badge>
-                       </button>
-                     ))}
-                  </div>
-               </div>
-            </div>
-          )}
+                         Acessar Perfil <Zap size={14} className="text-amber-500" />
+                       </Button>
+                    </div>
 
-          {activeSubTab === 'company' && (
-            <div className="bg-white p-10 rounded-[40px] border border-slate-200 shadow-sm">
-               <form onSubmit={handleSaveCompany} className="space-y-10">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center border border-blue-100">
-                         <Building2 size={32} />
-                      </div>
-                      <div>
-                         <h4 className="text-xl font-black text-slate-900">Perfil da Empresa</h4>
-                         <p className="text-sm font-medium text-slate-500">Dados públicos da sua instância no Gestifique.</p>
+                    <div className="space-y-4 pt-2">
+                      <div className="flex items-center justify-between p-3 rounded-lg border border-slate-100 bg-white">
+                         <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-600">
+                               <Layout size={18} />
+                            </div>
+                            <div>
+                               <div className="text-xs font-semibold text-slate-900">Navegação Compacta</div>
+                               <div className="text-[10px] font-medium text-slate-400 uppercase tracking-tight">Otimizar espaço</div>
+                            </div>
+                         </div>
+                         <div className="w-8 h-4 bg-slate-200 rounded-full relative cursor-pointer">
+                            <div className="absolute left-0.5 top-0.5 w-3 h-3 bg-white rounded-full transition-all"></div>
+                         </div>
                       </div>
                     </div>
-                    {(success || error) && (
-                      <div className={cn(
-                        "px-6 py-3 rounded-2xl text-xs font-bold flex items-center gap-2",
-                        success ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-red-50 text-red-600 border border-red-100"
-                      )}>
-                        {success ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-                        {success || error}
+                 </Card>
+
+                 <Card className="p-6 space-y-6">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center">
+                         <Keyboard size={18} />
                       </div>
-                    )}
-                  </div>
+                      <h4 className="text-sm font-semibold text-slate-900">Atalhos de Trabalho</h4>
+                    </div>
+                    <div className="grid gap-2.5">
+                       {[
+                         { id: 'tickets', desc: 'Central de Chamados', icon: <Layout size={16} /> },
+                         { id: 'profile', desc: 'Dados do Perfil', icon: <ShieldCheck size={16} /> },
+                         { id: 'dashboard', desc: 'Dashboard de Indicadores', icon: <Zap size={16} /> },
+                       ].map(nav => (
+                         <button 
+                           key={nav.id} 
+                           onClick={() => onNavigate(nav.id)}
+                           className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100 hover:bg-slate-100 hover:border-slate-200 transition-all group"
+                         >
+                            <div className="flex items-center gap-3">
+                               <div className="text-slate-400 group-hover:text-blue-600 transition-colors">{nav.icon}</div>
+                               <span className="text-xs font-semibold text-slate-600">{nav.desc}</span>
+                            </div>
+                            <ChevronRight size={14} className="text-slate-300 group-hover:text-slate-600" />
+                         </button>
+                       ))}
+                    </div>
+                 </Card>
+              </div>
+            )}
 
-                  <div className="grid md:grid-cols-2 gap-8 pt-6 border-t border-slate-50">
-                     <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Razão Social / Nome</label>
-                        <input name="nome" defaultValue={currentUser.empresa_nome || ''} className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold focus:ring-4 focus:ring-blue-100 transition-all outline-none" />
-                     </div>
-                     <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">CNPJ (Opcional)</label>
-                        <input name="cnpj" placeholder="00.000.000/0000-00" className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold focus:ring-4 focus:ring-blue-100 transition-all outline-none" />
-                     </div>
-                     <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">E-mail de Contato</label>
-                        <input name="email" defaultValue={currentUser.empresa_email || ''} placeholder="contato@empresa.com" className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold focus:ring-4 focus:ring-blue-100 transition-all outline-none" />
-                     </div>
-                     <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Telefone Suporte</label>
-                        <input name="telefone" defaultValue={currentUser.empresa_telefone || ''} placeholder="Não informado" className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold focus:ring-4 focus:ring-blue-100 transition-all outline-none" />
-                     </div>
-                  </div>
-
-                  <div className="space-y-4">
-                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Endereço da Sede</label>
-                     <textarea name="endereco" rows={3} className="w-full bg-slate-50 border-none rounded-2xl p-6 text-sm font-bold focus:ring-4 focus:ring-blue-100 transition-all outline-none resize-none" />
-                  </div>
-
-                  <div className="pt-6 border-t border-slate-50 space-y-6">
-                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
-                           <Layout size={20} />
+            {activeSubTab === 'company' && (
+              <Card className="p-6">
+                 <form onSubmit={handleSaveCompany} className="space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center border border-blue-100">
+                           <Building2 size={24} />
                         </div>
-                        <h4 className="font-black text-slate-900">Gestão Rápida</h4>
-                     </div>
-                     <div className="grid md:grid-cols-3 gap-4">
-                        <button 
-                          onClick={() => onNavigate('users')}
-                          className="h-16 px-6 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 flex items-center justify-between hover:bg-slate-100 transition-all"
-                        >
-                           Colaboradores
-                           <ShieldCheck size={16} />
-                        </button>
-                        <button 
-                          onClick={() => onNavigate('logs')}
-                          className="h-16 px-6 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 flex items-center justify-between hover:bg-slate-100 transition-all"
-                        >
-                           Auditoria
-                           <Database size={16} />
-                        </button>
-                        <button 
-                          onClick={() => onNavigate('tickets')}
-                          className="h-16 px-6 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 flex items-center justify-between hover:bg-slate-100 transition-all"
-                        >
-                           Chamados
-                           <Layout size={16} />
-                        </button>
-                     </div>
-                  </div>
-
-                  <div className="pt-6 flex justify-end">
-                     <button 
-                      disabled={loading}
-                      className="h-14 px-12 bg-slate-900 text-white font-black rounded-2xl shadow-xl hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center gap-3 active:scale-95"
-                     >
-                        {loading ? <Loader2 size={24} className="animate-spin" /> : <Save size={24} />}
-                        Salvar Empresa
-                     </button>
-                  </div>
-               </form>
-            </div>
-          )}
-
-          {activeSubTab === 'system' && (
-            <div className="space-y-8">
-               <div className="grid md:grid-cols-3 gap-6">
-                  <div className="bg-slate-900 p-8 rounded-[40px] text-white space-y-4 shadow-2xl">
-                     <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-blue-400">
-                        <Database size={24} />
-                     </div>
-                     <div>
-                        <div className="text-2xl font-black">MySQL Pro</div>
-                        <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Database Engine</div>
-                     </div>
-                     <div className="pt-4 border-t border-white/5 flex items-center justify-between">
-                        <Badge variant={dbStatus === 'CONNECTED' ? 'emerald' : dbStatus === 'ERROR' ? 'red' : 'slate'} className="rounded-full">
-                           {dbStatus || 'CHECKING...'}
-                        </Badge>
-                        <span className="text-[10px] font-mono text-white/30 text-right">v8.0.32</span>
-                     </div>
-                  </div>
-
-                  <div className="bg-white p-8 rounded-[40px] border border-slate-200 space-y-4 shadow-sm">
-                     <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
-                        <Globe size={24} />
-                     </div>
-                     <div>
-                        <div className="text-2xl font-black">Node.js API</div>
-                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Runtime Environment</div>
-                     </div>
-                     <div className="pt-4 border-t border-slate-50 flex items-center justify-between">
-                        <Badge variant="indigo" className="rounded-full">STABLE</Badge>
-                        <span className="text-[10px] font-mono text-slate-400 text-right">v20+</span>
-                     </div>
-                  </div>
-
-                  <div className="bg-white p-8 rounded-[40px] border border-slate-200 space-y-4 shadow-sm">
-                     <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-600">
-                        <ShieldCheck size={24} />
-                     </div>
-                     <div>
-                        <div className="text-2xl font-black">JWT Auth</div>
-                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Protection Layer</div>
-                     </div>
-                     <div className="pt-4 border-t border-slate-50 flex items-center justify-between">
-                        <Badge variant="orange" className="rounded-full">SECURED</Badge>
-                        <span className="text-[10px] font-mono text-slate-400 text-right">HTTPOnly</span>
-                     </div>
-                  </div>
-               </div>
-
-               <div className="bg-white p-10 rounded-[40px] border border-slate-200 shadow-sm space-y-8">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center">
-                         <Lock size={20} />
+                        <div>
+                           <h4 className="text-sm font-semibold text-slate-900">Perfil Corporativo</h4>
+                           <p className="text-xs text-slate-500 font-medium">Dados fundamentais da sua instância Gestifique.</p>
+                        </div>
                       </div>
-                      <h4 className="font-black text-slate-900">Developer Actions</h4>
+                      {(success || error) && (
+                        <div className={cn(
+                          "px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 animate-in fade-in slide-in-from-top-1",
+                          success ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-red-50 text-red-600 border border-red-100"
+                        )}>
+                          {success ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
+                          {success || error}
+                        </div>
+                      )}
                     </div>
-                    <Badge variant="slate" className="font-black">EXPERIMENTAL</Badge>
-                  </div>
-                  
-                  <p className="text-sm font-medium text-slate-500 max-w-2xl">Acesso restrito para manutenção técnica do núcleo Gestifique. Use com cautela.</p>
 
-                  <div className="grid md:grid-cols-3 gap-4">
-                     <button 
-                       onClick={() => onNavigate('companies')}
-                       className="h-16 px-6 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 flex items-center justify-between hover:bg-slate-100 transition-all"
-                     >
-                        Gestão de Empresas
-                        <Building2 size={16} />
-                     </button>
-                     <button 
-                       onClick={() => onNavigate('users')}
-                       className="h-16 px-6 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 flex items-center justify-between hover:bg-slate-100 transition-all"
-                     >
-                        Gestão de Usuários
-                        <ShieldCheck size={16} />
-                     </button>
-                     <button 
-                       onClick={() => onNavigate('logs')}
-                       className="h-16 px-6 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 flex items-center justify-between hover:bg-slate-100 transition-all"
-                     >
-                        Logs de Auditoria
-                        <Layout size={16} />
-                     </button>
-                  </div>
-               </div>
-            </div>
-          )}
-        </motion.div>
-      </AnimatePresence>
+                    <div className="grid md:grid-cols-2 gap-4 pt-2">
+                       <Input 
+                         label="Razão Social / Nome Fantasia"
+                         name="nome" 
+                         defaultValue={currentUser.empresa_nome || ''} 
+                         required
+                       />
+                       <Input 
+                         label="Documento (CNPJ/CPF)"
+                         name="cnpj" 
+                         placeholder="00.000.000/0000-00" 
+                       />
+                       <Input 
+                         label="E-mail de Contato Principal"
+                         name="email" 
+                         type="email"
+                         defaultValue={currentUser.empresa_email || ''} 
+                       />
+                       <Input 
+                         label="Telefone de Suporte"
+                         name="telefone" 
+                         defaultValue={currentUser.empresa_telefone || ''} 
+                       />
+                    </div>
+
+                    <div className="space-y-1.5 flex flex-col">
+                       <label className="text-sm font-medium text-slate-700">Endereço da Sede</label>
+                       <textarea 
+                        name="endereco" 
+                        rows={3} 
+                        className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-blue-100 transition-all outline-none resize-none" 
+                       />
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-100 space-y-4">
+                       <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 bg-slate-100 text-slate-600 rounded-md flex items-center justify-center">
+                             <Layout size={14} />
+                          </div>
+                          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-tight">Atalhos Administrativos</h4>
+                       </div>
+                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <Button 
+                            variant="outline"
+                            onClick={() => onNavigate('users')}
+                            className="bg-slate-50 border-slate-200 text-slate-600 justify-between h-12 text-xs"
+                          >
+                             Colaboradores <ShieldCheck size={14} className="text-blue-600" />
+                          </Button>
+                          <Button 
+                            variant="outline"
+                            onClick={() => onNavigate('logs')}
+                            className="bg-slate-50 border-slate-200 text-slate-600 justify-between h-12 text-xs"
+                          >
+                             Audit Logs <Database size={14} className="text-indigo-600" />
+                          </Button>
+                          <Button 
+                            variant="outline"
+                            onClick={() => onNavigate('tickets')}
+                            className="bg-slate-50 border-slate-200 text-slate-600 justify-between h-12 text-xs"
+                          >
+                             Tickets <Layout size={14} className="text-emerald-600" />
+                          </Button>
+                       </div>
+                    </div>
+
+                    <div className="pt-2 flex justify-end">
+                       <Button type="submit" loading={loading} className="w-full sm:w-auto">
+                          <Save size={16} className="mr-2" /> Salvar Alterações
+                       </Button>
+                    </div>
+                 </form>
+              </Card>
+            )}
+
+            {activeSubTab === 'system' && (
+              <div className="space-y-6">
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Card className="p-5 space-y-4 bg-slate-900 border-slate-800 text-white">
+                       <div className="w-10 h-10 bg-white/5 rounded-lg flex items-center justify-center text-blue-400 border border-white/10">
+                          <Database size={20} />
+                       </div>
+                       <div>
+                          <div className="text-lg font-bold">MySQL Engine</div>
+                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Database Core</div>
+                       </div>
+                       <div className="pt-3 border-t border-white/5 flex items-center justify-between">
+                          <Badge variant={dbStatus === 'CONNECTED' ? 'emerald' : dbStatus === 'ERROR' ? 'red' : 'slate'} className="font-bold text-[10px]">
+                             {dbStatus || 'CHECKING...'}
+                          </Badge>
+                          <span className="text-[10px] font-mono text-slate-600">v8.0.32</span>
+                       </div>
+                    </Card>
+
+                    <Card className="p-5 space-y-4">
+                       <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600">
+                          <Globe size={20} />
+                       </div>
+                       <div>
+                          <div className="text-lg font-bold text-slate-900">Node.js API</div>
+                          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Environment</div>
+                       </div>
+                       <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                          <Badge variant="indigo" className="font-bold text-[10px]">OPERATIONAL</Badge>
+                          <span className="text-[10px] font-mono text-slate-400">v20.x</span>
+                       </div>
+                    </Card>
+
+                    <Card className="p-5 space-y-4">
+                       <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600">
+                          <ShieldCheck size={20} />
+                       </div>
+                       <div>
+                          <div className="text-lg font-bold text-slate-900">Security Layers</div>
+                          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Auth Infrastructure</div>
+                       </div>
+                       <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                          <Badge variant="emerald" className="font-bold text-[10px]">ACTIVE</Badge>
+                          <span className="text-[10px] font-mono text-slate-400">JWT / BCrypt</span>
+                       </div>
+                    </Card>
+                 </div>
+
+                 <Card className="p-6 space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 bg-slate-950 text-white rounded-lg flex items-center justify-center">
+                           <Lock size={18} />
+                        </div>
+                        <h4 className="text-sm font-semibold text-slate-900">Painel de Manutenção</h4>
+                      </div>
+                      <Badge variant="slate" className="font-bold text-[10px] opacity-50 uppercase tracking-tighter">Dev Ops Only</Badge>
+                    </div>
+                    
+                    <p className="text-xs font-medium text-slate-500 leading-relaxed max-w-2xl">Acesso restrito para diagnóstico e manutenção estrutural do ecossistema Gestifique. Ações aqui impactam múltiplos módulos.</p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                       {[
+                         { id: 'companies', desc: 'Instâncias Ativas', icon: <Building2 className="text-blue-600" /> },
+                         { id: 'users', desc: 'Contas Globais', icon: <ShieldCheck className="text-indigo-600" /> },
+                         { id: 'logs', desc: 'Trilha de Auditoria', icon: <Database className="text-emerald-600" /> },
+                       ].map(action => (
+                         <Button 
+                           key={action.id}
+                           variant="outline"
+                           onClick={() => onNavigate(action.id)}
+                           className="bg-slate-50 border-slate-200 text-slate-700 h-14 justify-between"
+                         >
+                            <div className="flex flex-col items-start gap-0.5">
+                               <span className="text-xs font-bold leading-tight">{action.desc}</span>
+                               <span className="text-[10px] font-medium text-slate-400 uppercase tracking-tight">Gerenciar</span>
+                            </div>
+                            <div className="p-1.5 rounded-md bg-white border border-slate-100">
+                               {React.cloneElement(action.icon as React.ReactElement, { size: 14 })}
+                            </div>
+                         </Button>
+                       ))}
+                    </div>
+                 </Card>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
     </div>
   );
 };

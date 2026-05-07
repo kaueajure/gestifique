@@ -16,6 +16,8 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { Badge } from '../ui/Badge';
+import { Button } from '../ui/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { cn } from '../../lib/utils';
 import { 
   ResponsiveContainer, 
@@ -69,15 +71,10 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
   const recentActivities = stats?.recentActivities || [];
 
   const mainMetrics = [
-    { label: 'Total de Chamados', value: counts.total || 0, icon: <TicketIcon size={20} />, color: 'blue' as const },
-    { label: 'Em Aberto', value: counts.aberto || 0, icon: <AlertCircle size={20} />, color: 'amber' as const },
-    { label: 'Tempo Médio', value: counts.tempo_medio_resolucao || '0h', icon: <Clock size={20} />, color: 'indigo' as const },
-    { label: 'Resolvidos', value: counts.resolvido || 0, icon: <CheckCircle2 size={20} />, color: 'emerald' as const },
-  ];
-
-  const secondaryMetrics = [
-    { label: 'Aguardando Cliente', value: counts.aguardando_cliente || 0, icon: <PauseCircle size={16} />, color: 'slate' as const },
-    { label: 'Status Urgente', value: counts.urgente || 0, icon: <AlertTriangle size={16} />, color: 'red' as const },
+    { label: 'Total de Chamados', value: counts.total || 0, icon: <TicketIcon size={18} />, color: 'blue' as const },
+    { label: 'Em Aberto', value: counts.aberto || 0, icon: <AlertCircle size={18} />, color: 'amber' as const },
+    { label: 'Tempo Médio', value: counts.tempo_medio_resolucao || '0h', icon: <Clock size={18} />, color: 'indigo' as const },
+    { label: 'Resolvidos', value: counts.resolvido || 0, icon: <CheckCircle2 size={18} />, color: 'emerald' as const },
   ];
 
   const statusData = stats?.byStatus?.map((s) => ({
@@ -90,46 +87,47 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
     value: p.qtd
   })) || [];
 
-  const COLORS = ['#3b82f6', '#6366f1', '#f59e0b', '#10b981', '#64748b'];
+  const COLORS = ['#1d4ed8', '#4f46e5', '#d97706', '#059669', '#475569'];
   const PRIO_COLORS: Record<string, string> = {
-    urgente: '#ef4444',
-    alta: '#f97316',
-    media: '#f59e0b',
-    baixa: '#3b82f6'
+    urgente: '#dc2626',
+    alta: '#ea580c',
+    media: '#d97706',
+    baixa: '#2563eb'
   };
 
   if (error) {
     return (
-      <div className="bg-red-50 p-12 rounded-[40px] border border-red-100 flex flex-col items-center justify-center text-center">
-         <div className="w-20 h-20 bg-red-100 text-red-600 rounded-3xl flex items-center justify-center mb-6">
-            <AlertCircle size={40} />
-         </div>
-         <h4 className="text-xl font-black text-red-900 mb-2">Ops! Algo deu errado</h4>
-         <p className="text-red-600 font-medium max-w-sm mb-8">{error}</p>
-         <button 
-           onClick={() => window.location.reload()}
-           className="h-12 px-8 bg-red-600 text-white font-black rounded-2xl hover:bg-red-700 transition-all shadow-xl shadow-red-100 active:scale-95"
-         >
-           Tentar Novamente
-         </button>
-      </div>
+      <Card className="border-red-100 bg-red-50/30">
+        <CardContent className="p-12 flex flex-col items-center text-center">
+           <div className="w-16 h-16 bg-red-100 text-red-600 rounded-xl flex items-center justify-center mb-4">
+              <AlertCircle size={32} />
+           </div>
+           <h3 className="text-xl font-semibold text-slate-900 mb-2">Ops! Algo deu errado</h3>
+           <p className="text-slate-500 max-w-sm mb-6">{error}</p>
+           <Button variant="danger" onClick={() => window.location.reload()}>
+             Tentar Novamente
+           </Button>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="space-y-10">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-4xl font-black text-slate-900 tracking-tight">Painel de Controle</h2>
-          <p className="text-slate-500 font-medium text-lg">Visão estratégica da sua operação de suporte.</p>
+          <h2 className="text-2xl font-semibold text-slate-950 tracking-tight">Dashboard</h2>
+          <p className="text-sm text-slate-500">Visão geral do sistema e indicadores de performance.</p>
         </div>
-        <div className="flex items-center gap-3 p-1.5 bg-slate-100 rounded-2xl">
-           <button className="h-10 px-6 rounded-xl bg-white shadow-sm text-slate-900 font-black text-xs transition-all">Geral</button>
-           <button className="h-10 px-6 rounded-xl text-slate-400 hover:text-slate-600 font-black text-xs transition-all">Este Mês</button>
+        <div className="flex items-center gap-2">
+           <Button variant="outline" size="sm">PDF Report</Button>
+           <Button size="sm" onClick={() => onNavigate?.('tickets')}>
+              <Plus size={16} className="mr-2" /> Novo Ticket
+           </Button>
         </div>
       </div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {mainMetrics.map((card, i) => (
           <MetricCard 
             key={i}
@@ -142,181 +140,163 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
         ))}
       </div>
 
-      <div className="grid sm:grid-cols-2 gap-6">
-        {secondaryMetrics.map((card, i) => (
-          <MetricCard 
-            key={i}
-            label={card.label} 
-            value={card.value} 
-            icon={card.icon} 
-            color={card.color} 
-            loading={loading} 
-          />
-        ))}
-      </div>
+      <div className="grid lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+           <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                 <CardTitle>Chamados por Status</CardTitle>
+                 <Badge variant="blue">Total: {counts.total}</Badge>
+              </CardHeader>
+              <CardContent>
+                <div className="h-64 w-full">
+                  {statusData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={statusData}>
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 11, fontWeight: 500}} dy={10} />
+                        <YAxis hide />
+                        <Tooltip 
+                          cursor={{fill: '#f1f5f9'}} 
+                          contentStyle={{borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}
+                        />
+                        <Bar dataKey="value" radius={[4, 4, 4, 4]} barSize={32}>
+                          {statusData.map((entry: any, index: number) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-sm text-slate-400">Nenhum dado disponível.</div>
+                  )}
+                </div>
+              </CardContent>
+           </Card>
 
-      <div className="grid lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
-           <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm">
-              <div className="flex items-center justify-between mb-8">
-                 <h3 className="text-xl font-black text-slate-900">Distribuição por Status</h3>
-                 <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                    <span className="w-3 h-3 bg-blue-500 rounded-full"></span> Ativos
-                 </div>
-              </div>
-              <div className="h-[300px] w-full flex items-center justify-center">
-                {statusData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={statusData}>
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}} dy={10} />
-                      <YAxis hide />
-                      <Tooltip 
-                        cursor={{fill: '#f8fafc'}} 
-                        contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
-                      />
-                      <Bar dataKey="value" radius={[10, 10, 10, 10]} barSize={40}>
-                        {statusData.map((entry: { name: string; value: number }, index: number) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <p className="text-slate-400 font-medium">Nenhum dado de status disponível.</p>
-                )}
-              </div>
-           </div>
-
-           <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden">
-              <div className="p-8 border-b border-slate-50 flex items-center justify-between">
-                <h3 className="text-xl font-black text-slate-900">Chamados Recentes</h3>
-                <button 
-                  onClick={() => onNavigate?.('tickets')}
-                  className="text-xs font-black text-blue-600 uppercase tracking-widest hover:underline"
-                >
-                  Ver Todos
-                </button>
-              </div>
-              <div className="divide-y divide-slate-50">
+           <Card className="overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 bg-slate-50/50">
+                <CardTitle>Chamados Recentes</CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => onNavigate?.('tickets')}>
+                  Ver Todos <ChevronRight size={14} className="ml-1" />
+                </Button>
+              </CardHeader>
+              <div className="divide-y divide-slate-100">
                 {loading ? (
                   Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="p-8 animate-pulse flex items-center gap-6">
-                      <div className="w-14 h-14 rounded-2xl bg-slate-100"></div>
-                      <div className="flex-1 space-y-3">
-                        <div className="w-1/3 h-5 bg-slate-100 rounded-lg"></div>
-                        <div className="w-1/2 h-3 bg-slate-100 rounded-lg"></div>
+                    <div key={i} className="p-4 animate-pulse flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-lg bg-slate-100"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="w-1/4 h-4 bg-slate-100 rounded"></div>
+                        <div className="w-1/2 h-3 bg-slate-100 rounded"></div>
                       </div>
                     </div>
                   ))
                 ) : recentTickets && recentTickets.length > 0 ? (
                   recentTickets.map((ticket: Ticket) => {
-                    const tStatus = ticket.status || 'aberto';
-                    const tPrio = ticket.prioridade || 'media';
-                    const tClient = ticket.cliente_nome || 'Usuário';
-
+                    const statusMap: Record<string, 'blue' | 'emerald' | 'amber' | 'indigo' | 'slate'> = {
+                      aberto: 'blue',
+                      em_andamento: 'indigo',
+                      aguardando_cliente: 'amber',
+                      resolvido: 'emerald',
+                      fechado: 'slate'
+                    };
                     return (
-                      <div key={ticket.id} onClick={() => onNavigate?.('tickets')} className="p-8 flex items-center gap-6 hover:bg-slate-50/50 transition-colors cursor-pointer group">
-                        <div className={cn(
-                          "w-14 h-14 rounded-[24px] flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm",
-                          tStatus === 'resolvido' ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"
-                        )}>
-                          <TicketIcon size={24} />
+                      <div key={ticket.id} onClick={() => onNavigate?.('tickets')} className="p-4 flex items-center gap-4 hover:bg-slate-50 transition-colors cursor-pointer group">
+                        <div className="w-10 h-10 rounded-lg border border-slate-100 bg-slate-50 flex items-center justify-center text-slate-400 group-hover:text-blue-600 transition-colors">
+                          <TicketIcon size={18} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 mb-1.5">
-                            <span className="text-lg font-black text-slate-900 truncate">{ticket.titulo}</span>
-                            <Badge variant={tStatus === 'resolvido' ? 'emerald' : 'blue'}>{tStatus.replace('_', ' ')}</Badge>
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-sm font-semibold text-slate-900 truncate">{ticket.titulo}</span>
+                            <Badge variant={statusMap[ticket.status || 'aberto']}>{ticket.status?.replace('_', ' ')}</Badge>
                           </div>
-                          <div className="flex items-center gap-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                            <span className="flex items-center gap-1.5 text-blue-600">#{ticket.id}</span>
-                            <span className="flex items-center gap-1.5"><Calendar size={14} /> {new Date(ticket.created_at).toLocaleDateString()}</span>
-                            <span className="flex items-center gap-1.5"><UserIcon size={14} /> {tClient}</span>
+                          <div className="flex items-center gap-3 text-[11px] font-medium text-slate-400">
+                            <span className="text-blue-700 font-bold">#{ticket.id}</span>
+                            <span className="flex items-center gap-1"><Calendar size={12} /> {new Date(ticket.created_at).toLocaleDateString()}</span>
+                            <span className="truncate flex items-center gap-1"><UserIcon size={12} /> {ticket.cliente_nome || 'Usuário'}</span>
                           </div>
                         </div>
                         <div className="hidden sm:block">
-                           <div className={cn(
-                             "text-[10px] font-black uppercase px-4 py-1.5 rounded-xl border-2",
-                             tPrio === 'urgente' ? "text-red-600 bg-red-50 border-red-100" : "text-slate-500 bg-slate-100 border-slate-200"
-                           )}>
-                             {tPrio}
-                           </div>
+                           <Badge variant={ticket.prioridade === 'urgente' ? 'red' : 'slate'} className="font-semibold px-2">
+                             {ticket.prioridade}
+                           </Badge>
                         </div>
-                        <ChevronRight className="text-slate-200 group-hover:text-blue-500 transition-colors" size={24} />
+                        <ChevronRight className="text-slate-300 group-hover:text-slate-600 ml-2" size={16} />
                       </div>
                     );
                   })
                 ) : (
-                  <div className="p-24 text-center flex flex-col items-center">
-                    <div className="w-24 h-24 bg-blue-50 text-blue-500 rounded-[30px] flex items-center justify-center mb-6">
-                      <TicketIcon size={48} />
+                  <div className="p-12 text-center flex flex-col items-center">
+                    <div className="w-12 h-12 bg-slate-50 text-slate-300 rounded-xl flex items-center justify-center mb-4 border border-slate-100">
+                      <TicketIcon size={24} />
                     </div>
-                    <h4 className="text-2xl font-black text-slate-900 mb-2">Tudo em dia!</h4>
-                    <p className="text-slate-500 font-medium max-w-xs mx-auto mb-10">Nenhum chamado pendente no momento. Que tal começar um novo trabalho?</p>
-                    <button 
-                      onClick={() => onNavigate?.('tickets')}
-                      className="h-14 px-10 bg-slate-900 text-white font-black rounded-2xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200 active:scale-95 flex items-center gap-3"
-                    >
-                      <Plus size={24} /> Novo Chamado
-                    </button>
+                    <h4 className="text-base font-semibold text-slate-900 mb-1">Tudo em dia!</h4>
+                    <p className="text-xs text-slate-500 max-w-[200px] mb-6">Nenhum chamado pendente no momento.</p>
+                    <Button size="sm" onClick={() => onNavigate?.('tickets')}>
+                       <Plus size={14} className="mr-2" /> Novo Ticket
+                    </Button>
                   </div>
                 )}
               </div>
-           </div>
+           </Card>
         </div>
 
-        <div className="space-y-8">
-           <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm h-fit">
-              <h3 className="text-xl font-black text-slate-900 mb-8">Prioridades</h3>
-              <div className="h-[250px] w-full flex flex-col items-center justify-center">
-                {priorityData.length > 0 ? (
-                  <>
+        <div className="space-y-6">
+           <Card>
+              <CardHeader>
+                 <CardTitle>Prioridades</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-56 w-full flex items-center justify-center">
+                  {priorityData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
                           data={priorityData}
-                          innerRadius={60}
-                          outerRadius={100}
-                          paddingAngle={5}
+                          innerRadius={50}
+                          outerRadius={80}
+                          paddingAngle={4}
                           dataKey="value"
                         >
-                          {priorityData.map((entry: { name: string; value: number }, index: number) => (
-                            <Cell key={`cell-${index}`} fill={PRIO_COLORS[entry.name] || '#cbd5e1'} />
+                          {priorityData.map((entry: any, index: number) => (
+                            <Cell key={`cell-${index}`} fill={PRIO_COLORS[entry.name] || '#94a3b8'} />
                           ))}
                         </Pie>
                         <Tooltip 
-                          contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
+                          contentStyle={{borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}
                         />
                       </PieChart>
                     </ResponsiveContainer>
-                  </>
-                ) : (
-                  <p className="text-slate-400 font-medium my-auto text-center">Nenhum dado de prioridade disponível.</p>
-                )}
-              </div>
-              
-              {priorityData.length > 0 && (
-                <div className="grid grid-cols-2 gap-4 mt-6">
-                   {priorityData.map((p: { name: string; value: number }, i: number) => (
-                     <div key={i} className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                        <div className="flex items-center gap-2 mb-1">
-                           <div className="w-2 h-2 rounded-full" style={{backgroundColor: PRIO_COLORS[p.name] || '#cbd5e1'}}></div>
-                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{p.name}</span>
-                        </div>
-                        <div className="text-xl font-black text-slate-900">{p.value}</div>
-                     </div>
-                   ))}
+                  ) : (
+                    <div className="text-sm text-slate-400">Sem dados.</div>
+                  )}
                 </div>
-              )}
-           </div>
+                
+                {priorityData.length > 0 && (
+                  <div className="grid grid-cols-2 gap-2 mt-4">
+                     {priorityData.map((p: any, i: number) => (
+                       <div key={i} className="bg-slate-50 border border-slate-100 p-2.5 rounded-lg">
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                             <div className="w-2 h-2 rounded-full" style={{backgroundColor: PRIO_COLORS[p.name] || '#94a3b8'}}></div>
+                             <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-tight">{p.name}</span>
+                          </div>
+                          <div className="text-lg font-bold text-slate-900 leading-tight">{p.value}</div>
+                       </div>
+                     ))}
+                  </div>
+                )}
+              </CardContent>
+           </Card>
 
-           <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm h-fit">
-              <h3 className="text-xl font-black text-slate-900 mb-8">Atividades Recentes</h3>
-              <div className="space-y-6">
+           <Card>
+              <CardHeader>
+                 <CardTitle>Atividades</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-5">
                 {loading ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="flex gap-4 animate-pulse">
-                      <div className="w-10 h-10 rounded-xl bg-slate-100"></div>
-                      <div className="flex-1 space-y-2">
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="flex gap-3 animate-pulse">
+                      <div className="w-8 h-8 rounded-lg bg-slate-50"></div>
+                      <div className="flex-1 space-y-1.5">
                         <div className="h-3 bg-slate-100 rounded-full w-full"></div>
                         <div className="h-2 bg-slate-100 rounded-full w-2/3"></div>
                       </div>
@@ -324,20 +304,20 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
                   ))
                 ) : recentActivities && recentActivities.length > 0 ? (
                   recentActivities.map((act: Log) => (
-                    <div key={act.id} className="flex gap-4 group">
-                      <div className="relative">
-                        <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
-                           <ActivityIcon size={18} />
+                    <div key={act.id} className="flex gap-3 relative group">
+                      <div className="flex flex-col items-center">
+                        <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-blue-600 group-hover:bg-blue-50 transition-colors z-10">
+                           <ActivityIcon size={14} />
                         </div>
-                        <div className="absolute top-10 bottom-[-24px] left-1/2 -translate-x-1/2 w-px bg-slate-100 last:hidden"></div>
+                        <div className="absolute top-8 bottom-[-20px] left-4 w-px bg-slate-100 last:hidden"></div>
                       </div>
-                      <div className="flex-1 pb-4">
-                        <p className="text-sm font-bold text-slate-700 leading-tight mb-0.5">{act.acao}</p>
+                      <div className="flex-1 min-w-0 pb-4">
+                        <p className="text-xs font-semibold text-slate-800 leading-snug mb-0.5 line-clamp-1">{act.acao}</p>
                         {act.descricao && (
-                          <p className="text-xs text-slate-500 mb-1.5">{act.descricao}</p>
+                          <p className="text-[11px] text-slate-500 truncate">{act.descricao}</p>
                         )}
-                        <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                          <span className="text-blue-600">{act.usuario_nome || 'Sistema'}</span>
+                        <div className="flex items-center gap-2 mt-1 text-[10px] font-medium text-slate-400">
+                          <span className="text-blue-600">{act.usuario_nome?.split(' ')[0] || 'Sistema'}</span>
                           <span>•</span>
                           <span>{new Date(act.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
@@ -345,10 +325,10 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
                     </div>
                   ))
                 ) : (
-                  <p className="text-center py-10 text-slate-400 font-medium">Nenhuma atividade registrada.</p>
+                  <div className="text-center py-6 text-sm text-slate-400">Sem atividades recentes.</div>
                 )}
-              </div>
-           </div>
+              </CardContent>
+           </Card>
         </div>
       </div>
     </div>

@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { User } from '../../types';
 import { api } from '../../lib/api';
-import { UserCircle as UserIcon, Building2, Key, Eye, EyeOff, Save, Loader2, AlertCircle, CheckCircle2, Lock } from 'lucide-react';
+import { UserCircle as UserIcon, Building2, Key, Eye, EyeOff, Save, Lock, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Badge } from '../ui/Badge';
+import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
+import { Card } from '../ui/Card';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface ProfilePageProps {
@@ -73,20 +76,20 @@ export const ProfilePage = ({ currentUser, onUpdate }: ProfilePageProps) => {
   };
 
   return (
-    <div className="max-w-6xl space-y-10">
+    <div className="max-w-5xl space-y-6">
       <div>
-        <h2 className="text-4xl font-black text-slate-900 tracking-tight">Meu Perfil</h2>
-        <p className="text-slate-500 font-medium text-lg">Gerencie como você aparece para o time e configure sua segurança.</p>
+        <h2 className="text-2xl font-semibold text-slate-950 tracking-tight">Meu Perfil</h2>
+        <p className="text-sm text-slate-500">Gerencie como você aparece para o time e configure sua segurança.</p>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-10">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Lado Esquerdo: Info Fixa */}
-        <div className="space-y-8">
-           <div className="bg-white p-10 rounded-[40px] border border-slate-200 shadow-sm text-center relative overflow-hidden group">
-              <div className="absolute top-0 inset-x-0 h-32 bg-slate-900 -z-0"></div>
-              <div className="relative z-10 space-y-6">
-                <div className="relative inline-block">
-                   <div className="w-36 h-36 rounded-[48px] bg-white border-8 border-white shadow-2xl flex items-center justify-center text-blue-600 font-black text-5xl uppercase overflow-hidden transition-transform group-hover:scale-105 duration-500">
+        <div className="lg:col-span-4 space-y-6">
+           <Card className="text-center overflow-hidden">
+              <div className="h-20 bg-slate-100" />
+              <div className="px-6 pb-6 -mt-10 relative">
+                <div className="inline-block relative">
+                   <div className="w-24 h-24 rounded-2xl bg-white border-4 border-white shadow-sm flex items-center justify-center text-blue-600 font-bold text-3xl uppercase overflow-hidden">
                       {currentUser.foto ? (
                         <img src={currentUser.foto} alt="" className="w-full h-full object-cover" />
                       ) : (
@@ -94,195 +97,197 @@ export const ProfilePage = ({ currentUser, onUpdate }: ProfilePageProps) => {
                       )}
                    </div>
                 </div>
-                <div>
-                   <h3 className="font-black text-slate-900 text-2xl leading-tight mb-1">{currentUser.nome}</h3>
-                   <div className="flex flex-col items-center gap-2">
-                      <Badge variant="indigo" className="font-black tracking-[0.2em] px-4 py-1.5 uppercase text-[10px]">{currentUser.cargo || 'Membro do Time'}</Badge>
-                      <span className="text-xs font-bold text-slate-400">{currentUser.email}</span>
+                <div className="mt-4">
+                   <h3 className="font-semibold text-slate-950 text-lg leading-tight mb-1">{currentUser.nome}</h3>
+                   <p className="text-xs text-slate-500 font-medium mb-3">{currentUser.email}</p>
+                   <div className="flex flex-wrap justify-center gap-1.5">
+                      <Badge variant="indigo" className="text-[10px] font-bold uppercase tracking-tight">{currentUser.cargo || 'Membro'}</Badge>
+                      {currentUser.administrador && <Badge variant="blue">Admin</Badge>}
                    </div>
                 </div>
-                <div className="flex flex-wrap justify-center gap-2 pt-2">
-                   {currentUser.desenvolvedor && <Badge variant="indigo" className="rounded-full shadow-sm">Developer</Badge>}
-                   {currentUser.administrador && <Badge variant="blue" className="rounded-full shadow-sm">Admin</Badge>}
-                   <Badge variant="emerald" className="rounded-full shadow-sm">Conta Ativa</Badge>
-                </div>
               </div>
-           </div>
+           </Card>
 
-           <div className="bg-slate-900 p-8 rounded-[40px] text-white space-y-6 shadow-2xl shadow-slate-200">
-              <h4 className="text-[10px] font-black text-white/40 uppercase tracking-widest flex items-center gap-2">
+           <Card className="p-5 bg-slate-950 text-white border-slate-900 shadow-md">
+              <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2 mb-4">
                  <Building2 size={12} className="text-blue-400" /> Vínculo Empresarial
               </h4>
-              <div className="flex items-center gap-4">
-                 <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center text-blue-400 border border-white/10">
-                    <Building2 size={28} />
+              <div className="flex items-center gap-3">
+                 <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-blue-400">
+                    <Building2 size={20} />
                  </div>
-                 <div className="flex-1 min-w-0">
-                    <div className="text-lg font-black truncate">{currentUser.empresa_nome || 'Gestifique Master'}</div>
-                    <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Instância Ativa</div>
+                 <div className="min-w-0">
+                    <div className="text-sm font-semibold truncate leading-tight">{currentUser.empresa_nome || 'Gestifique Master'}</div>
+                    <div className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Workspace Ativo</div>
                  </div>
               </div>
-              <div className="pt-6 border-t border-white/5 grid grid-cols-2 gap-4">
-                 <div className="space-y-1">
-                    <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">ID Membro</span>
-                    <div className="text-sm font-mono font-bold text-blue-400">#000{currentUser.id}</div>
+              <div className="mt-5 pt-4 border-t border-white/5 grid grid-cols-2 gap-4">
+                 <div className="space-y-0.5">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Membro ID</span>
+                    <div className="text-xs font-mono font-bold text-blue-400">#{currentUser.id?.toString().padStart(4, '0')}</div>
                  </div>
-                 <div className="space-y-1">
-                    <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Desde</span>
-                    <div className="text-sm font-mono font-bold text-blue-400">
+                 <div className="space-y-0.5">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Desde</span>
+                    <div className="text-xs font-mono font-bold text-blue-400">
                       {currentUser.created_at ? new Date(currentUser.created_at).toLocaleDateString() : '---'}
                     </div>
                  </div>
               </div>
-           </div>
+           </Card>
         </div>
 
         {/* Lado Direito: Formulários */}
-        <div className="lg:col-span-2 space-y-8">
+        <div className="lg:col-span-8 space-y-6">
            <AnimatePresence mode="wait">
              {error && (
                <motion.div 
-                 initial={{ opacity: 0, height: 0 }}
-                 animate={{ opacity: 1, height: 'auto' }}
-                 exit={{ opacity: 0, height: 0 }}
-                 className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600 text-xs font-bold overflow-hidden"
+                 initial={{ opacity: 0, y: -10 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 exit={{ opacity: 0, y: -10 }}
+                 className="p-3 bg-red-50 border border-red-100 rounded-lg flex items-center gap-2.5 text-red-600 text-xs font-semibold"
                >
-                 <AlertCircle size={18} /> {error}
+                 <AlertCircle size={16} /> {error}
                </motion.div>
              )}
              {success && (
                <motion.div 
-                 initial={{ opacity: 0, height: 0 }}
-                 animate={{ opacity: 1, height: 'auto' }}
-                 exit={{ opacity: 0, height: 0 }}
-                 className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center gap-3 text-emerald-600 text-xs font-bold overflow-hidden"
+                 initial={{ opacity: 0, y: -10 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 exit={{ opacity: 0, y: -10 }}
+                 className="p-3 bg-emerald-50 border border-emerald-100 rounded-lg flex items-center gap-2.5 text-emerald-600 text-xs font-semibold"
                >
-                 <CheckCircle2 size={18} /> {success}
+                 <CheckCircle2 size={16} /> {success}
                </motion.div>
              )}
            </AnimatePresence>
 
            {/* Meus Dados */}
-           <form onSubmit={handleUpdateProfile} className="bg-white p-10 rounded-[40px] border border-slate-200 shadow-sm space-y-8">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
-                   <UserIcon size={20} />
+           <Card>
+              <form onSubmit={handleUpdateProfile} className="p-6 space-y-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
+                     <UserIcon size={18} />
+                  </div>
+                  <h4 className="text-sm font-semibold text-slate-900">Informações Pessoais</h4>
                 </div>
-                <h4 className="font-black text-slate-900">Informações Pessoais</h4>
-              </div>
 
-              <div className="grid md:grid-cols-2 gap-8">
-                 <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 pl-1">Nome Completo</label>
-                    <input 
-                      name="nome" 
-                      defaultValue={currentUser.nome} 
-                      className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold focus:ring-4 focus:ring-blue-100 transition-all outline-none" 
-                    />
-                 </div>
-                 <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 pl-1">E-mail Corporativo</label>
-                    <input value={currentUser.email} readOnly className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold text-slate-400 cursor-not-allowed outline-none" />
-                    <p className="text-[9px] font-bold text-slate-400 pl-1 uppercase tracking-tighter">* O e-mail não pode ser alterado diretamente</p>
-                 </div>
-                 <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 pl-1">Telefone / WhatsApp</label>
-                    <input 
-                      name="telefone" 
-                      defaultValue={currentUser.telefone || ''} 
-                      placeholder="Não informado"
-                      className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold focus:ring-4 focus:ring-blue-100 transition-all outline-none" 
-                    />
-                 </div>
-                 <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 pl-1">Cargo / Função</label>
-                    <input 
-                      value={currentUser.cargo || 'Membro do Time'} 
-                      readOnly
-                      className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold text-slate-400 cursor-not-allowed outline-none" 
-                    />
-                    <p className="text-[9px] font-bold text-slate-400 pl-1 uppercase tracking-tighter">* O cargo é atribuído por um administrador</p>
-                 </div>
-              </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                   <Input 
+                     label="Nome Completo"
+                     name="nome" 
+                     defaultValue={currentUser.nome} 
+                     required
+                     placeholder="Ex: João Silva"
+                   />
+                   <div className="space-y-1.5 flex flex-col">
+                      <label className="text-sm font-medium text-slate-700">E-mail Corporativo</label>
+                      <input 
+                        value={currentUser.email} 
+                        readOnly 
+                        className="h-10 bg-slate-50 border border-slate-200 rounded-lg px-3 text-sm font-medium text-slate-400 cursor-not-allowed outline-none" 
+                      />
+                      <p className="text-[10px] text-slate-400 font-medium px-1">O e-mail é gerido pelo administrador.</p>
+                   </div>
+                   <Input 
+                     label="Telefone / WhatsApp"
+                     name="telefone" 
+                     defaultValue={currentUser.telefone || ''} 
+                     placeholder="(00) 00000-0000"
+                   />
+                   <div className="space-y-1.5 flex flex-col">
+                      <label className="text-sm font-medium text-slate-700">Cargo / Função</label>
+                      <input 
+                        value={currentUser.cargo || 'Membro do Time'} 
+                        readOnly
+                        className="h-10 bg-slate-50 border border-slate-200 rounded-lg px-3 text-sm font-medium text-slate-400 cursor-not-allowed outline-none" 
+                      />
+                   </div>
+                </div>
 
-              <div className="pt-4 flex justify-end">
-                 <button 
-                  disabled={loading}
-                  className="h-14 px-12 bg-slate-900 text-white font-black rounded-2xl shadow-xl hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center gap-3 active:scale-95"
-                 >
-                    {loading ? <Loader2 size={24} className="animate-spin" /> : <Save size={24} />}
-                    Atualizar Dados
-                 </button>
-              </div>
-           </form>
+                <div className="pt-2 flex justify-end">
+                   <Button type="submit" loading={loading} className="w-full sm:w-auto">
+                      <Save size={16} className="mr-2" /> Salvar Alterações
+                   </Button>
+                </div>
+              </form>
+           </Card>
 
            {/* Segurança */}
-           <form onSubmit={handleChangePassword} className="bg-white p-10 rounded-[40px] border border-slate-200 shadow-sm space-y-8">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
-                   <Key size={20} />
+           <Card>
+              <form onSubmit={handleChangePassword} className="p-6 space-y-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-8 h-8 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center">
+                     <Key size={18} />
+                  </div>
+                  <h4 className="text-sm font-semibold text-slate-900">Segurança & Senha</h4>
                 </div>
-                <h4 className="font-black text-slate-900">Segurança da Conta</h4>
-              </div>
 
-              <div className="space-y-6">
-                 <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Senha Atual</label>
-                    <div className="relative">
-                       <input 
-                         name="currentPassword" 
-                         type={showPwd.current ? 'text' : 'password'} 
-                         required
-                         className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold focus:ring-4 focus:ring-indigo-100 transition-all outline-none" 
-                       />
-                       <button type="button" onClick={() => setShowPwd(s => ({...s, current: !s.current}))} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600">
-                          {showPwd.current ? <EyeOff size={20} /> : <Eye size={20} />}
-                       </button>
-                    </div>
-                 </div>
+                <div className="space-y-4">
+                   <div className="relative">
+                      <Input 
+                        label="Senha Atual"
+                        name="currentPassword" 
+                        type={showPwd.current ? 'text' : 'password'} 
+                        required
+                        placeholder="••••••••"
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => setShowPwd(s => ({...s, current: !s.current}))} 
+                        className="absolute right-3 top-9 text-slate-400 hover:text-slate-600"
+                      >
+                         {showPwd.current ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                   </div>
 
-                 <div className="grid md:grid-cols-2 gap-8">
-                    <div className="space-y-2">
-                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Nova Senha</label>
-                       <div className="relative">
-                          <input 
-                            name="newPassword" 
-                            type={showPwd.new ? 'text' : 'password'} 
-                            required
-                            className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold focus:ring-4 focus:ring-indigo-100 transition-all outline-none" 
-                          />
-                          <button type="button" onClick={() => setShowPwd(s => ({...s, new: !s.new}))} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600">
-                             {showPwd.new ? <EyeOff size={20} /> : <Eye size={20} />}
-                          </button>
-                       </div>
-                    </div>
-                    <div className="space-y-2">
-                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Confirmar Nova Senha</label>
-                       <div className="relative">
-                          <input 
-                            name="confirmPassword" 
-                            type={showPwd.confirm ? 'text' : 'password'} 
-                            required
-                            className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold focus:ring-4 focus:ring-indigo-100 transition-all outline-none" 
-                          />
-                          <button type="button" onClick={() => setShowPwd(s => ({...s, confirm: !s.confirm}))} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600">
-                             {showPwd.confirm ? <EyeOff size={20} /> : <Eye size={20} />}
-                          </button>
-                       </div>
-                    </div>
-                 </div>
-              </div>
+                   <div className="grid md:grid-cols-2 gap-4">
+                      <div className="relative">
+                         <Input 
+                           label="Nova Senha"
+                           name="newPassword" 
+                           type={showPwd.new ? 'text' : 'password'} 
+                           required
+                           placeholder="••••••••"
+                         />
+                         <button 
+                           type="button" 
+                           onClick={() => setShowPwd(s => ({...s, new: !s.new}))} 
+                           className="absolute right-3 top-9 text-slate-400 hover:text-slate-600"
+                         >
+                            {showPwd.new ? <EyeOff size={16} /> : <Eye size={16} />}
+                         </button>
+                      </div>
+                      <div className="relative">
+                         <Input 
+                           label="Confirmar Nova Senha"
+                           name="confirmPassword" 
+                           type={showPwd.confirm ? 'text' : 'password'} 
+                           required
+                           placeholder="••••••••"
+                         />
+                         <button 
+                           type="button" 
+                           onClick={() => setShowPwd(s => ({...s, confirm: !s.confirm}))} 
+                           className="absolute right-3 top-9 text-slate-400 hover:text-slate-600"
+                         >
+                            {showPwd.confirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                         </button>
+                      </div>
+                   </div>
+                </div>
 
-              <div className="pt-4 flex justify-end">
-                 <button 
-                  disabled={pwdLoading}
-                  className="h-14 px-12 bg-indigo-600 text-white font-black rounded-2xl shadow-xl hover:bg-indigo-700 disabled:opacity-50 transition-all flex items-center gap-3 active:scale-95"
-                 >
-                    {pwdLoading ? <Loader2 size={24} className="animate-spin" /> : <Lock size={24} />}
-                    Alterar Senha
-                 </button>
-              </div>
-           </form>
+                <div className="pt-2 flex justify-end">
+                   <Button 
+                    type="submit" 
+                    loading={pwdLoading}
+                    variant="outline"
+                    className="w-full sm:w-auto border-amber-200 hover:bg-amber-50 text-amber-700"
+                   >
+                      <Lock size={16} className="mr-2" /> Atualizar Senha
+                   </Button>
+                </div>
+              </form>
+           </Card>
         </div>
       </div>
     </div>

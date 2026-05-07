@@ -13,12 +13,16 @@ import {
   CheckCircle2, 
   AlertCircle,
   Loader2,
+  Trash2,
   Target
 } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { Modal } from '../ui/Modal';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { MetricCard } from '../ui/MetricCard';
+import { Card } from '../ui/Card';
+import { Input } from '../ui/Input';
+import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
 import { motion } from 'motion/react';
 
@@ -117,290 +121,273 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
   };
 
   return (
-    <div className="space-y-10">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-4xl font-black text-slate-900 tracking-tight">Workspaces</h2>
-          <p className="text-slate-500 font-medium text-lg">Gerencie empresas clientes e instâncias do sistema.</p>
+          <h2 className="text-2xl font-semibold text-slate-950 tracking-tight">Workspaces</h2>
+          <p className="text-sm text-slate-500">Gerencie empresas clientes e instâncias do sistema.</p>
         </div>
-        <button 
-          onClick={() => { setSelectedCompany(null); setSaveError(null); setIsModalOpen(true); }}
-          className="h-14 px-10 bg-blue-600 text-white font-black rounded-2xl shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95 flex items-center gap-3 w-full md:w-auto justify-center"
-        >
-          <Plus size={24} /> Novo Workspace
-        </button>
+        <Button onClick={() => { setSelectedCompany(null); setSaveError(null); setIsModalOpen(true); }}>
+          <Plus size={18} className="mr-2" /> Novo Workspace
+        </Button>
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
          <MetricCard 
           label="Total de Empresas"
           value={stats.total.toString()}
-          icon={<Building2 />}
-          color="slate"
+          icon={<Building2 size={20} />}
           loading={loading && companies.length === 0}
          />
          <MetricCard 
           label="Empresas Ativas"
           value={stats.ativas.toString()}
-          icon={<CheckCircle2 />}
-          color="emerald"
+          icon={<CheckCircle2 size={20} />}
           loading={loading && companies.length === 0}
          />
          <MetricCard 
           label="Empresas Inativas"
           value={stats.inativas.toString()}
-          icon={<AlertCircle />}
-          color="red"
+          icon={<AlertCircle size={20} />}
           loading={loading && companies.length === 0}
          />
          <MetricCard 
           label="Total de Usuários"
           value={stats.usuarios.toString()}
-          icon={<Users />}
-          color="indigo"
+          icon={<Users size={20} />}
           loading={loading && companies.length === 0}
          />
       </div>
 
-      <div className="bg-white p-6 rounded-[32px] border border-slate-200 shadow-sm flex flex-col lg:flex-row gap-4 items-center">
-        <div className="relative flex-1 group w-full">
-           <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
-           <input 
-            type="text" 
-            placeholder="Buscar por nome, CNPJ ou e-mail..." 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full h-14 bg-slate-50 border-none rounded-2xl pl-14 pr-6 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-100 transition-all" 
-           />
+      <Card className="p-4">
+        <div className="flex flex-col lg:flex-row gap-3">
+          <div className="relative flex-1 group">
+             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={16} />
+             <input 
+               type="text" 
+               placeholder="Buscar por nome, CNPJ ou e-mail..." 
+               value={searchTerm}
+               onChange={(e) => setSearchTerm(e.target.value)}
+               className="w-full h-9 bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all" 
+             />
+          </div>
+          <div className="flex bg-slate-100 p-1 rounded-lg w-full lg:w-auto">
+             <button 
+              onClick={() => setStatusFilter('todos')}
+              className={cn(
+                "h-7 px-4 rounded-md text-xs font-semibold transition-all",
+                statusFilter === 'todos' ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+              )}
+             >
+              Todas
+             </button>
+             <button 
+              onClick={() => setStatusFilter('ativo')}
+              className={cn(
+                "h-7 px-4 rounded-md text-xs font-semibold transition-all",
+                statusFilter === 'ativo' ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+              )}
+             >
+              Ativas
+             </button>
+             <button 
+              onClick={() => setStatusFilter('inativo')}
+              className={cn(
+                "h-7 px-4 rounded-md text-xs font-semibold transition-all",
+                statusFilter === 'inativo' ? "bg-white text-red-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+              )}
+             >
+              Inativas
+             </button>
+          </div>
         </div>
-        <div className="flex bg-slate-100 p-1.5 rounded-[20px] w-full lg:w-auto">
-           <button 
-            onClick={() => setStatusFilter('todos')}
-            className={cn(
-              "h-11 px-6 rounded-[14px] font-black text-xs transition-all",
-              statusFilter === 'todos' ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"
-            )}
-           >
-            Todas
-           </button>
-           <button 
-            onClick={() => setStatusFilter('ativo')}
-            className={cn(
-              "h-11 px-6 rounded-[14px] font-black text-xs transition-all",
-              statusFilter === 'ativo' ? "bg-white text-emerald-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
-            )}
-           >
-            Ativas
-           </button>
-           <button 
-            onClick={() => setStatusFilter('inativo')}
-            className={cn(
-              "h-11 px-6 rounded-[14px] font-black text-xs transition-all",
-              statusFilter === 'inativo' ? "bg-white text-red-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
-            )}
-           >
-            Inativas
-           </button>
-        </div>
-      </div>
+      </Card>
 
       {successMsg && (
-        <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl text-emerald-600 text-sm font-bold shadow-sm animate-in fade-in slide-in-from-top-2">
+        <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-lg text-emerald-600 text-sm font-medium animate-in fade-in slide-in-from-top-2">
           {successMsg}
         </div>
       )}
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {loading && companies.length === 0 ? (
           Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-64 bg-white rounded-[40px] border border-slate-100 shadow-sm animate-pulse" />
+            <div key={i} className="h-64 bg-white rounded-xl border border-slate-100 shadow-sm animate-pulse" />
           ))
         ) : error ? (
            <div className="md:col-span-3 p-20 text-center flex flex-col items-center">
-             <AlertCircle className="w-16 h-16 text-red-500 mb-4" />
-             <p className="text-slate-500">{error}</p>
+             <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
+             <p className="text-sm text-slate-500">{error}</p>
+             <Button variant="outline" size="sm" onClick={fetchCompanies} className="mt-4">Tentar novamente</Button>
            </div>
         ) : companies.length === 0 ? (
            <div className="md:col-span-3 p-20 text-center flex flex-col items-center">
-             <div className="w-20 h-20 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 mb-6">
-                <Building2 size={40} />
+             <div className="w-16 h-16 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300 mb-4">
+                <Building2 size={32} />
              </div>
-             <h3 className="text-xl font-black text-slate-900 mb-2">Nenhum workspace encontrado</h3>
-             <p className="text-slate-500 max-w-xs mx-auto mb-8">Crie uma nova empresa para começar a gerenciar instâncias do sistema.</p>
-             <button 
+             <h3 className="text-base font-semibold text-slate-900 mb-1">Nenhum workspace encontrado</h3>
+             <p className="text-xs text-slate-500 max-w-xs mx-auto mb-6">Crie uma nova empresa para começar a gerenciar instâncias do sistema.</p>
+             <Button 
                onClick={() => { setSelectedCompany(null); setSaveError(null); setIsModalOpen(true); }}
-               className="h-12 px-8 bg-slate-900 text-white font-black rounded-xl hover:bg-slate-800 transition-all flex items-center gap-2"
+               size="sm"
              >
-                <Plus size={18} /> Novo Workspace
-             </button>
+                <Plus size={16} className="mr-2" /> Novo Workspace
+             </Button>
            </div>
         ) : companies.map((company) => (
-          <motion.div 
+          <Card 
             key={company.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="group relative bg-white rounded-[40px] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-8"
+            className="group relative hover:shadow-md hover:-translate-y-0.5 transition-all duration-300"
           >
-             <div className="flex items-start justify-between mb-8">
-                <div className={cn(
-                  "w-16 h-16 rounded-[24px] flex items-center justify-center text-white shadow-lg transition-transform group-hover:scale-110",
-                  company.ativo ? "bg-slate-900" : "bg-slate-200"
-                )}>
-                   <Building2 size={32} />
-                </div>
-                <div className="flex items-center gap-2">
-                   <button 
-                     onClick={() => { setSelectedCompany(company); setSaveError(null); setIsModalOpen(true); }}
-                     className="w-10 h-10 flex items-center justify-center bg-slate-50 text-slate-400 hover:text-blue-600 rounded-xl transition-all"
-                   >
-                      <Edit2 size={18} />
-                   </button>
-                   <button 
-                     onClick={() => { setSelectedCompany(company); setIsStatusConfirmOpen(true); }}
-                     className={cn(
-                       "w-10 h-10 flex items-center justify-center rounded-xl transition-all",
-                       company.ativo ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
-                     )}
-                   >
-                      <CheckCircle2 size={18} />
-                   </button>
-                </div>
-             </div>
-
-             <div className="space-y-1 mb-8">
-                <h3 className="text-xl font-black text-slate-900 leading-tight">{company.nome}</h3>
-                <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                   <Target size={12} className="text-blue-500" /> CNPJ: {company.cnpj || '----------'}
-                </div>
-             </div>
-
-             <div className="grid grid-cols-2 gap-4 mb-8">
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                   <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                      <Users size={12} className="text-indigo-500" /> Usuários
-                   </div>
-                   <div className="text-2xl font-black text-slate-900">{company.total_usuarios || 0}</div>
-                </div>
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                   <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                      <Ticket size={12} className="text-amber-500" /> Chamados
-                   </div>
-                   <div className="text-2xl font-black text-slate-900">{company.total_tickets || 0}</div>
-                </div>
-             </div>
-
-             <div className="pt-6 border-t border-slate-50 space-y-3">
-                <div className="flex items-center gap-3 text-xs font-bold text-slate-500">
-                   <Mail size={14} className="text-blue-400" /> {company.email || 'Email não informado'}
-                </div>
-                <div className="flex items-center gap-3 text-xs font-bold text-slate-500">
-                   <Phone size={14} className="text-blue-400" /> {company.telefone || 'Telefone não informado'}
-                </div>
-             </div>
-             
-             {!company.ativo && (
-               <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] rounded-[40px] flex items-center justify-center p-8 pointer-events-none">
-                  <div className="bg-white px-6 py-3 rounded-2xl shadow-xl shadow-slate-200 border border-slate-100 transform -rotate-2">
-                     <span className="text-xs font-black text-red-600 uppercase tracking-widest">Workspace Inativo</span>
+             <div className="p-6">
+               <div className="flex items-start justify-between mb-6">
+                  <div className={cn(
+                    "w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-sm transition-transform group-hover:scale-105",
+                    company.ativo ? "bg-slate-900" : "bg-slate-200"
+                  )}>
+                     <Building2 size={24} />
+                  </div>
+                  <div className="flex items-center gap-1">
+                     <Button 
+                       variant="ghost"
+                       size="icon"
+                       onClick={() => { setSelectedCompany(company); setSaveError(null); setIsModalOpen(true); }}
+                       className="h-8 w-8 text-slate-400 hover:text-blue-600"
+                     >
+                        <Edit2 size={14} />
+                     </Button>
+                     <Button 
+                       variant="ghost"
+                       size="icon"
+                       onClick={() => { setSelectedCompany(company); setIsStatusConfirmOpen(true); }}
+                       className={cn(
+                         "h-8 w-8",
+                         company.ativo ? "text-slate-400 hover:text-red-600" : "text-slate-400 hover:text-emerald-600"
+                       )}
+                     >
+                        <CheckCircle2 size={14} />
+                     </Button>
                   </div>
                </div>
-             )}
-          </motion.div>
+
+               <div className="space-y-1 mb-6">
+                  <h3 className="text-lg font-semibold text-slate-950 leading-tight">{company.nome}</h3>
+                  <div className="flex items-center gap-2 text-[11px] font-medium text-slate-500 tracking-tight">
+                     <Target size={12} className="text-slate-400" /> CNPJ: {company.cnpj || '----------'}
+                  </div>
+               </div>
+
+               <div className="grid grid-cols-2 gap-3 mb-6">
+                  <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                     <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                        <Users size={12} className="text-indigo-500" /> Usuários
+                     </div>
+                     <div className="text-xl font-semibold text-slate-950">{company.total_usuarios || 0}</div>
+                  </div>
+                  <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                     <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                        <Ticket size={12} className="text-amber-500" /> Chamados
+                     </div>
+                     <div className="text-xl font-semibold text-slate-950">{company.total_tickets || 0}</div>
+                  </div>
+               </div>
+
+               <div className="pt-4 border-t border-slate-50 space-y-2">
+                  <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                     <Mail size={14} className="text-slate-400" /> 
+                     <span className="truncate">{company.email || 'Email não informado'}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                     <Phone size={14} className="text-slate-400" /> 
+                     <span>{company.telefone || 'Telefone não informado'}</span>
+                  </div>
+               </div>
+               
+               {!company.ativo && (
+                 <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] rounded-xl flex items-center justify-center p-6 pointer-events-none">
+                    <div className="bg-white px-4 py-2 rounded-lg shadow-md border border-slate-200 transform -rotate-1">
+                       <span className="text-[10px] font-bold text-red-600 uppercase tracking-widest">Workspace Inativo</span>
+                    </div>
+                 </div>
+               )}
+             </div>
+          </Card>
         ))}
       </div>
 
-      {/* Company Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={selectedCompany ? 'Configurar Workspace' : 'Novo Workspace'}
         size="lg"
       >
-        <form onSubmit={handleSaveCompany} className="space-y-6">
+        <form onSubmit={handleSaveCompany} className="space-y-4">
            {saveError && (
-             <div className="p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-xs font-bold mb-4">
+             <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-xs font-semibold mb-4">
                 {saveError}
              </div>
            )}
-           <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Nome Fantasia / Razão Social</label>
-              <input 
-                name="nome" 
-                defaultValue={selectedCompany?.nome} 
-                required 
-                className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold focus:ring-2 focus:ring-blue-100 transition-all outline-none" 
+           
+           <Input 
+             label="Nome Fantasia / Razão Social"
+             name="nome" 
+             defaultValue={selectedCompany?.nome} 
+             required 
+             placeholder="Ex: Minha Empresa LTDA"
+           />
+
+           <div className="grid md:grid-cols-2 gap-4">
+              <Input 
+                label="CNPJ"
+                name="cnpj" 
+                defaultValue={selectedCompany?.cnpj || ''} 
+                placeholder="00.000.000/0000-00"
+              />
+              <Input 
+                label="E-mail de Contato"
+                name="email" 
+                type="email" 
+                defaultValue={selectedCompany?.email || ''} 
+                placeholder="contato@empresa.com"
               />
            </div>
 
-           <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">CNPJ</label>
-                <input 
-                  name="cnpj" 
-                  defaultValue={selectedCompany?.cnpj || ''} 
-                  className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold focus:ring-2 focus:ring-blue-100 transition-all outline-none" 
-                  placeholder="00.000.000/0000-00"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">E-mail de Contato</label>
-                <input 
-                  name="email" 
-                  type="email" 
-                  defaultValue={selectedCompany?.email || ''} 
-                  className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold focus:ring-2 focus:ring-blue-100 transition-all outline-none" 
-                  placeholder="contato@empresa.com"
-                />
-              </div>
-           </div>
+           <Input 
+             label="Telefone Principal"
+             name="telefone" 
+             defaultValue={selectedCompany?.telefone || ''} 
+             placeholder="(00) 00000-0000"
+           />
 
-           <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Telefone Principal</label>
-              <input 
-                name="telefone" 
-                defaultValue={selectedCompany?.telefone || ''} 
-                className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold focus:ring-2 focus:ring-blue-100 transition-all outline-none" 
-                placeholder="(00) 00000-0000"
+           <div className="grid md:grid-cols-2 gap-4">
+              <Input 
+                label="Cor Principal (Hex)"
+                name="cor_principal" 
+                defaultValue={selectedCompany?.cor_principal || '#2563eb'} 
+                placeholder="#000000"
+              />
+              <Input 
+                label="URL da Logo"
+                name="logo" 
+                defaultValue={selectedCompany?.logo || ''} 
+                placeholder="https://exemplo.com/logo.png"
               />
            </div>
 
-           <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Cor Principal (Hex)</label>
-                <input 
-                  name="cor_principal" 
-                  defaultValue={selectedCompany?.cor_principal || '#2563eb'} 
-                  className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold focus:ring-2 focus:ring-blue-100 transition-all outline-none" 
-                  placeholder="#000000"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">URL da Logo</label>
-                <input 
-                  name="logo" 
-                  defaultValue={selectedCompany?.logo || ''} 
-                  className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold focus:ring-2 focus:ring-blue-100 transition-all outline-none" 
-                  placeholder="https://exemplo.com/logo.png"
-                />
-              </div>
-           </div>
-
-           <div className="pt-6 flex justify-end gap-3 font-black text-sm uppercase tracking-widest">
-              <button 
+           <div className="pt-4 flex justify-end gap-2">
+              <Button 
+                variant="ghost"
                 type="button" 
                 onClick={() => setIsModalOpen(false)}
-                className="h-14 px-8 text-slate-400 hover:text-slate-600"
               >
                 Cancelar
-              </button>
-              <button 
+              </Button>
+              <Button 
                 type="submit" 
-                disabled={loadingSave}
-                className="h-14 px-12 bg-slate-900 text-white rounded-2xl shadow-xl shadow-slate-200 hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center gap-3"
+                loading={loadingSave}
               >
-                {loadingSave ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
-                {selectedCompany ? 'Salvar Configurações' : 'Criar Workspace'}
-              </button>
+                {selectedCompany ? 'Salvar Alterações' : 'Criar Workspace'}
+              </Button>
            </div>
         </form>
       </Modal>
@@ -411,9 +398,9 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
         title={selectedCompany?.ativo ? 'Desativar Workspace' : 'Ativar Workspace'}
         description={`Tem certeza que deseja ${selectedCompany?.ativo ? 'desativar' : 'ativar'} o workspace: ${selectedCompany?.nome}? Todos os usuários da empresa perderão o acesso.`}
         confirmLabel={selectedCompany?.ativo ? 'Desativar' : 'Ativar'}
-        cancelLabel="Cancelar"
         variant={selectedCompany?.ativo ? 'danger' : 'info'}
       />
     </div>
   );
 };
+

@@ -14,6 +14,9 @@ import { AccessDenied } from './components/ui/AccessDenied';
 import { LandingPage } from './components/public/LandingPage';
 import { User } from './types';
 import { api } from './lib/api';
+import { Card } from './components/ui/Card';
+import { Input } from './components/ui/Input';
+import { Button } from './components/ui/Button';
 import { 
   ArrowRight, 
   Shield, 
@@ -22,7 +25,8 @@ import {
   Lock,
   Mail,
   Ticket as TicketIcon,
-  Settings
+  Settings,
+  AlertCircle
 } from 'lucide-react';
 
 type ViewState = 'landing' | 'login' | 'register' | 'dashboard';
@@ -111,65 +115,62 @@ export default function App() {
 
   if (view === 'login') {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-blue-50/50 via-transparent to-transparent">
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md"
+          className="w-full max-w-sm"
         >
           <div className="text-center mb-8">
-             <div className="inline-flex w-16 h-16 bg-blue-600 rounded-[28px] items-center justify-center shadow-xl shadow-blue-100 mb-6">
-                <TicketIcon className="text-white" size={32} />
+             <div className="inline-flex w-12 h-12 bg-slate-900 rounded-xl items-center justify-center shadow-lg shadow-slate-200 mb-6">
+                <TicketIcon className="text-white" size={24} />
              </div>
-             <h2 className="text-3xl font-black text-slate-900 tracking-tight">Bem-vindo de volta</h2>
-             <p className="text-slate-500 font-medium">Acesse sua conta Gestifique</p>
+             <h2 className="text-2xl font-semibold text-slate-950 tracking-tight">Bem-vindo</h2>
+             <p className="text-sm text-slate-500 font-medium">Acesse o portal do cliente Gestifique</p>
           </div>
 
-          <div className="bg-white p-10 rounded-[40px] border border-slate-200 shadow-2xl shadow-slate-100">
-             <form onSubmit={handleLogin} className="space-y-6">
+          <Card className="p-8 shadow-xl shadow-slate-200/50">
+             <form onSubmit={handleLogin} className="space-y-5">
                 {authError && (
-                  <div className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600 text-xs font-bold">
-                    <Lock size={16} /> {authError}
+                  <div className="p-3 bg-red-50 border border-red-100 rounded-lg flex items-center gap-2.5 text-red-600 text-xs font-semibold animate-in fade-in slide-in-from-top-1">
+                    <AlertCircle size={14} /> {authError}
                   </div>
                 )}
-                <div className="space-y-1.5">
-                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">E-mail Corporativo</label>
-                   <div className="relative group">
-                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={20} />
-                      <input 
-                        name="email"
-                        type="email" 
-                        required 
-                        className="w-full h-14 bg-slate-50 border-none rounded-2xl pl-12 pr-4 text-sm font-bold focus:ring-2 focus:ring-blue-100 transition-all outline-none" 
-                        placeholder="nome@empresa.com"
-                      />
+                
+                <Input 
+                   label="E-mail Corporativo"
+                   name="email"
+                   type="email" 
+                   required 
+                   placeholder="exemplo@empresa.com"
+                />
+
+                <div className="space-y-1">
+                   <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-slate-700">Senha</label>
+                      <button type="button" className="text-[10px] font-bold text-blue-600 hover:text-blue-700 uppercase tracking-tight">Esqueceu?</button>
                    </div>
+                   <input 
+                      name="password"
+                      type="password" 
+                      required 
+                      className="w-full h-10 bg-white border border-slate-200 rounded-lg px-4 text-sm font-medium focus:ring-4 focus:ring-blue-100 focus:border-blue-200 transition-all outline-none" 
+                      placeholder="••••••••"
+                   />
                 </div>
-                <div className="space-y-1.5">
-                   <div className="flex items-center justify-between px-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Senha de Acesso</label>
-                      <button type="button" className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline">Esqueceu?</button>
-                   </div>
-                   <div className="relative group">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={20} />
-                      <input 
-                        name="password"
-                        type="password" 
-                        required 
-                        className="w-full h-14 bg-slate-50 border-none rounded-2xl pl-12 pr-4 text-sm font-bold focus:ring-2 focus:ring-blue-100 transition-all outline-none" 
-                        placeholder="••••••••"
-                      />
-                   </div>
-                </div>
-                <button className="w-full h-14 bg-blue-600 text-white font-black rounded-2xl shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95 flex items-center justify-center gap-3">
-                   Entrar no Painel <ArrowRight size={20} />
-                </button>
+
+                <Button type="submit" className="w-full h-11 text-sm">
+                   Entrar <ArrowRight size={16} className="ml-2" />
+                </Button>
              </form>
-          </div>
+          </Card>
           
           <div className="mt-8 text-center">
-             <button onClick={() => setView('landing')} className="text-sm font-bold text-slate-400 hover:text-slate-600 flex items-center gap-2 mx-auto transition-all">
-                ← Voltar para a página inicial
+             <button 
+                onClick={() => setView('landing')} 
+                className="text-xs font-semibold text-slate-400 hover:text-slate-900 flex items-center gap-2 mx-auto transition-all"
+             >
+                ← Voltar ao início
              </button>
           </div>
         </motion.div>

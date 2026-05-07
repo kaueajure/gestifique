@@ -10,16 +10,18 @@ import {
   CheckCircle2, 
   Filter, 
   ChevronRight,
-  MoreVertical,
   Calendar,
   User as UserIcon,
   Loader2,
-  Tag
+  Tag,
+  X
 } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { Modal } from '../ui/Modal';
+import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
+import { Card } from '../ui/Card';
 import { cn } from '../../lib/utils';
-import { motion, AnimatePresence } from 'motion/react';
 
 interface TicketsPageProps {
   onSelectTicket: (id: number) => void;
@@ -42,7 +44,6 @@ export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
     setLoading(true);
     setError(null);
     try {
-      // API supports searching and filtering via query params
       const query = new URLSearchParams();
       if (searchTerm) query.append('search', searchTerm);
       if (statusFilter !== 'todos') query.append('status', statusFilter);
@@ -83,187 +84,191 @@ export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'aberto': return <AlertCircle size={16} className="text-amber-500" />;
-      case 'em_andamento': return <Clock size={16} className="text-blue-500" />;
-      case 'resolvido': return <CheckCircle2 size={16} className="text-emerald-500" />;
-      default: return <Clock size={16} className="text-slate-400" />;
-    }
+  const statusMap: Record<string, 'blue' | 'emerald' | 'amber' | 'red' | 'indigo' | 'slate'> = {
+    aberto: 'blue',
+    em_andamento: 'indigo',
+    aguardando_cliente: 'amber',
+    resolvido: 'emerald',
+    fechado: 'slate'
   };
 
-  const getPriorityColor = (prio: string) => {
+  const getPriorityVariant = (prio: string): 'red' | 'orange' | 'amber' | 'blue' | 'slate' => {
     switch (prio) {
-      case 'urgente': return 'text-red-600 bg-red-50 border-red-100';
-      case 'alta': return 'text-orange-600 bg-orange-50 border-orange-100';
-      case 'media': return 'text-amber-600 bg-amber-50 border-amber-100';
-      case 'baixa': return 'text-blue-600 bg-blue-50 border-blue-100';
-      default: return 'text-slate-500 bg-slate-50 border-slate-100';
+      case 'urgente': return 'red';
+      case 'alta': return 'orange';
+      case 'media': return 'amber';
+      case 'baixa': return 'blue';
+      default: return 'slate';
     }
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-4xl font-black text-slate-900 tracking-tight">Atendimentos</h2>
-          <p className="text-slate-500 font-medium text-lg">Gerencie e acompanhe todas as solicitações de suporte.</p>
+          <h2 className="text-2xl font-semibold text-slate-950 tracking-tight">Atendimentos</h2>
+          <p className="text-sm text-slate-500">Gerencie e acompanhe todas as solicitações de suporte.</p>
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="h-14 px-10 bg-blue-600 text-white font-black rounded-2xl shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95 flex items-center gap-3 w-full md:w-auto justify-center"
-        >
-          <Plus size={24} /> Novo Chamado
-        </button>
+        <Button onClick={() => setIsModalOpen(true)}>
+          <Plus size={18} className="mr-2" /> Novo Atendimento
+        </Button>
       </div>
 
-      <div className="bg-white p-6 rounded-[32px] border border-slate-200 shadow-sm flex flex-col lg:flex-row gap-4 items-center">
-        <div className="relative flex-1 group w-full">
-           <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
-           <input 
-             type="text" 
-             placeholder="Buscar por título, ID ou cliente..." 
-             className="w-full h-14 bg-slate-50 border-none rounded-2xl pl-14 pr-6 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-100 transition-all"
-             value={searchTerm}
-             onChange={(e) => setSearchTerm(e.target.value)}
-           />
+      <Card className="p-4">
+        <div className="flex flex-col lg:flex-row gap-3">
+          <div className="relative flex-1 group">
+             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={16} />
+             <input 
+               type="text" 
+               placeholder="Buscar ticket..." 
+               className="w-full h-9 bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+               value={searchTerm}
+               onChange={(e) => setSearchTerm(e.target.value)}
+             />
+          </div>
+          <div className="grid grid-cols-2 lg:flex items-center gap-2">
+            <select 
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="h-9 px-3 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
+            >
+              <option value="todas">Todas Categorias</option>
+              <option value="suporte_tecnico">Suporte Técnico</option>
+              <option value="financeiro">Financeiro</option>
+              <option value="recursos_humanos">Recursos Humanos</option>
+              <option value="comercial">Comercial</option>
+              <option value="outros">Outros</option>
+            </select>
+            <select 
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="h-9 px-3 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
+            >
+              <option value="todos">Todos Status</option>
+              <option value="aberto">Aberto</option>
+              <option value="em_andamento">Em Andamento</option>
+              <option value="aguardando_cliente">Aguardando Cliente</option>
+              <option value="resolvido">Resolvido</option>
+            </select>
+            <select 
+              value={priorityFilter}
+              onChange={(e) => setPriorityFilter(e.target.value)}
+              className="h-9 px-3 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer col-span-2 lg:col-span-1"
+            >
+              <option value="todas">Todas Prioridades</option>
+              <option value="urgente">Urgente</option>
+              <option value="alta">Alta</option>
+              <option value="media">Média</option>
+              <option value="baixa">Baixa</option>
+            </select>
+            {(searchTerm || statusFilter !== 'todos' || priorityFilter !== 'todas' || categoryFilter !== 'todas') && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => {
+                  setSearchTerm('');
+                  setStatusFilter('todos');
+                  setPriorityFilter('todas');
+                  setCategoryFilter('todas');
+                }}
+                className="h-9 px-2"
+              >
+                <X size={14} className="mr-1" /> Limpar
+              </Button>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-3 w-full lg:w-auto">
-          <select 
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="h-14 px-6 bg-slate-50 border-none rounded-2xl text-sm font-black text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 transition-all appearance-none cursor-pointer flex-1 lg:flex-none"
-          >
-            <option value="todas">Todas Categorias</option>
-            <option value="suporte_tecnico">Suporte Técnico</option>
-            <option value="financeiro">Financeiro</option>
-            <option value="recursos_humanos">Recursos Humanos</option>
-            <option value="comercial">Comercial</option>
-            <option value="outros">Outros</option>
-          </select>
-          <select 
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-14 px-6 bg-slate-50 border-none rounded-2xl text-sm font-black text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 transition-all appearance-none cursor-pointer flex-1 lg:flex-none"
-          >
-            <option value="todos">Todos Status</option>
-            <option value="aberto">Aberto</option>
-            <option value="em_andamento">Em Andamento</option>
-            <option value="aguardando_cliente">Aguardando Cliente</option>
-            <option value="resolvido">Resolvido</option>
-          </select>
-          <select 
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
-            className="h-14 px-6 bg-slate-50 border-none rounded-2xl text-sm font-black text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 transition-all appearance-none cursor-pointer flex-1 lg:flex-none"
-          >
-            <option value="todas">Todas Prioridades</option>
-            <option value="urgente">Urgente</option>
-            <option value="alta">Alta</option>
-            <option value="media">Média</option>
-            <option value="baixa">Baixa</option>
-          </select>
-        </div>
-      </div>
+      </Card>
 
-      <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden">
+      <Card className="overflow-hidden">
         {loading && tickets.length === 0 ? (
-          <div className="p-20 flex flex-col items-center justify-center space-y-4">
-             <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
-             <p className="text-slate-400 font-black uppercase tracking-widest text-xs">Sincronizando Chamados...</p>
+          <div className="p-20 flex flex-col items-center justify-center space-y-3">
+             <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+             <p className="text-sm text-slate-500 font-medium tracking-tight">Carregando chamados...</p>
           </div>
         ) : error ? (
           <div className="p-20 text-center flex flex-col items-center">
-             <div className="w-20 h-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mb-6">
-                <AlertCircle size={40} />
+             <div className="w-12 h-12 bg-red-50 text-red-500 rounded-xl flex items-center justify-center mb-4 border border-red-100">
+                <AlertCircle size={24} />
              </div>
-             <h4 className="text-xl font-black text-slate-800">Falha na conexão</h4>
-             <p className="text-slate-500 font-medium mb-8 max-w-xs">{error}</p>
-             <button onClick={fetchTickets} className="text-xs font-black text-blue-600 uppercase tracking-widest hover:underline">Tentar novamente</button>
+             <h4 className="text-base font-semibold text-slate-900 mb-1">Falha na listagem</h4>
+             <p className="text-xs text-slate-500 mb-6">{error}</p>
+             <Button variant="outline" size="sm" onClick={fetchTickets}>Tentar novamente</Button>
           </div>
         ) : tickets.length > 0 ? (
-          <div className="divide-y divide-slate-50">
+          <div className="divide-y divide-slate-100">
             {tickets.map((ticket) => (
-              <motion.div 
+              <div 
                 key={ticket.id}
-                layout
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
                 onClick={() => onSelectTicket(ticket.id)}
-                className="p-8 flex flex-col lg:flex-row lg:items-center gap-6 hover:bg-slate-50/50 transition-all cursor-pointer group"
+                className="p-4 flex flex-col sm:flex-row sm:items-center gap-4 hover:bg-slate-50 transition-colors cursor-pointer group"
               >
                 <div className={cn(
-                  "w-16 h-16 rounded-[28px] flex items-center justify-center transition-all group-hover:scale-110 shadow-sm",
-                  ticket.status === 'resolvido' ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"
+                  "w-10 h-10 rounded-lg flex items-center justify-center border transition-colors",
+                  ticket.status === 'resolvido' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-blue-50 text-blue-700 border-blue-100"
                 )}>
-                  <MessageSquare size={28} />
+                  <MessageSquare size={20} />
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-3 mb-2">
-                    <span className="text-xl font-black text-slate-900 truncate group-hover:text-blue-600 transition-colors">{ticket.titulo}</span>
-                    <Badge variant={ticket.status === 'resolvido' ? 'emerald' : 'blue'}>{ticket.status.replace('_', ' ')}</Badge>
+                  <div className="flex flex-wrap items-center gap-2 mb-0.5">
+                    <span className="text-sm font-semibold text-slate-900 truncate group-hover:text-blue-700 transition-colors">{ticket.titulo}</span>
+                    <Badge variant={statusMap[ticket.status || 'aberto']}>{ticket.status.replace('_', ' ')}</Badge>
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                    <span className="flex items-center gap-2 text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg">#{ticket.id}</span>
-                    <span className="flex items-center gap-2"><UserIcon size={14} className="text-slate-300" /> {ticket.cliente_nome}</span>
-                    <span className="flex items-center gap-2 font-mono"><Tag size={14} className="text-slate-300" /> {ticket.categoria}</span>
-                    <span className="flex items-center gap-2"><Calendar size={14} className="text-slate-300" /> {new Date(ticket.created_at).toLocaleDateString()}</span>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-medium text-slate-500">
+                    <span className="text-blue-700 font-bold">#{ticket.id}</span>
+                    <span className="flex items-center gap-1.5"><UserIcon size={12} className="text-slate-400" /> {ticket.cliente_nome}</span>
+                    <span className="flex items-center gap-1.5"><Tag size={12} className="text-slate-400" /> {ticket.categoria?.replace('_', ' ')}</span>
+                    <span className="flex items-center gap-1.5"><Calendar size={12} className="text-slate-400" /> {new Date(ticket.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-6 self-end lg:self-center">
-                  <div className={cn(
-                    "px-6 py-2.5 rounded-2xl border-2 font-black text-xs uppercase tracking-widest transition-all",
-                    getPriorityColor(ticket.prioridade)
-                  )}>
+                <div className="flex items-center gap-4 ml-auto sm:ml-0">
+                  <Badge variant={getPriorityVariant(ticket.prioridade)} className="font-semibold uppercase text-[10px]">
                     {ticket.prioridade}
-                  </div>
-                  <div className="h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
-                    <ChevronRight size={20} />
+                  </Badge>
+                  <div className="h-8 w-8 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 group-hover:bg-blue-700 group-hover:text-white group-hover:border-blue-700 transition-all">
+                    <ChevronRight size={16} />
                   </div>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         ) : (
-          <div className="p-32 text-center flex flex-col items-center">
-            <div className="w-24 h-24 bg-slate-50 text-slate-200 rounded-[36px] flex items-center justify-center mb-6">
-              <Search size={48} />
+          <div className="p-24 text-center flex flex-col items-center">
+            <div className="w-16 h-16 bg-slate-50 text-slate-300 rounded-2xl flex items-center justify-center mb-4 border border-slate-100">
+              <Search size={32} />
             </div>
-            <h4 className="text-2xl font-black text-slate-900 mb-2">Nenhum resultado encontrado</h4>
-            <p className="text-slate-500 font-medium max-w-sm mx-auto">Tente ajustar seus filtros ou termos de pesquisa para encontrar o que procura.</p>
+            <h4 className="text-base font-semibold text-slate-900 mb-1">Nenhum resultado</h4>
+            <p className="text-xs text-slate-500 max-w-[240px] mx-auto">Tente ajustar seus filtros ou termos de pesquisa para encontrar o que procura.</p>
           </div>
         )}
-      </div>
+      </Card>
 
-      {/* New Ticket Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Abrir Novo Atendimento"
+        title="Novo Atendimento"
         size="lg"
       >
-        <form onSubmit={handleCreateTicket} className="space-y-6">
+        <form onSubmit={handleCreateTicket} className="space-y-5">
           {createError && (
-             <div className="p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-xs font-bold mb-4">
+             <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-xs font-semibold mb-4">
                 {createError}
              </div>
            )}
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Assunto do Chamado</label>
-            <input 
-              name="titulo" 
-              required 
-              placeholder="Ex: Não consigo acessar o painel financeiro"
-              className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold focus:ring-2 focus:ring-blue-100 transition-all outline-none" 
-            />
-          </div>
+          
+          <Input 
+            label="Assunto do Atendimento"
+            name="titulo" 
+            required 
+            placeholder="Descreva o assunto brevemente" 
+          />
 
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Categoria</label>
-              <select name="categoria" className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold focus:ring-2 focus:ring-blue-100 transition-all outline-none appearance-none">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700">Categoria</label>
+              <select name="categoria" className="w-full h-10 bg-white border border-slate-200 rounded-lg px-3 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all appearance-none">
                 <option value="suporte_tecnico">Suporte Técnico</option>
                 <option value="financeiro">Financeiro</option>
                 <option value="recursos_humanos">Recursos Humanos</option>
@@ -271,44 +276,35 @@ export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
                 <option value="outros">Outros</option>
               </select>
             </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Prioridade</label>
-              <select name="prioridade" className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold focus:ring-2 focus:ring-blue-100 transition-all outline-none appearance-none">
-                <option value="urgente">Urgente</option>
-                <option value="alta">Alta</option>
-                <option value="media">Média</option>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700">Prioridade</label>
+              <select name="prioridade" className="w-full h-10 bg-white border border-slate-200 rounded-lg px-3 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all appearance-none">
                 <option value="baixa">Baixa</option>
+                <option value="media">Média</option>
+                <option value="alta">Alta</option>
+                <option value="urgente">Urgente</option>
               </select>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Descrição Detalhada</label>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-slate-700">Descrição</label>
             <textarea 
               name="descricao" 
               required 
               rows={5}
-              placeholder="Descreva o problema com o máximo de detalhes possível..."
-              className="w-full bg-slate-50 border-none rounded-2xl p-6 text-sm font-bold focus:ring-2 focus:ring-blue-100 transition-all outline-none resize-none"
+              placeholder="Descreva os detalhes da sua solicitação..."
+              className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all resize-none"
             ></textarea>
           </div>
 
-          <div className="pt-4 flex justify-end gap-3">
-             <button 
-               type="button"
-               onClick={() => setIsModalOpen(false)}
-               className="h-14 px-8 text-slate-400 font-black text-sm uppercase tracking-widest hover:text-slate-600 transition-colors"
-             >
+          <div className="pt-4 flex justify-end gap-2">
+             <Button variant="ghost" type="button" onClick={() => setIsModalOpen(false)}>
                Cancelar
-             </button>
-             <button 
-               type="submit"
-               disabled={loadingCreate}
-               className="h-14 px-10 bg-slate-900 text-white font-black rounded-2xl shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-3"
-             >
-               {loadingCreate ? <Loader2 className="animate-spin" size={20} /> : <Plus size={20} />}
-               Abrir Ticket
-             </button>
+             </Button>
+             <Button type="submit" loading={loadingCreate}>
+               Criar Ticket
+             </Button>
           </div>
         </form>
       </Modal>

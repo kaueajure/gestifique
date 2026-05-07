@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
-import { Search, Calendar, Info, Loader2, AlertCircle, ChevronLeft, ChevronRight, RefreshCw, FilterX } from 'lucide-react';
+import { Search, Calendar, Info, Loader2, AlertCircle, ChevronLeft, ChevronRight, RefreshCw, FilterX, Building2 } from 'lucide-react';
 import { Badge } from '../ui/Badge';
+import { Button } from '../ui/Button';
+import { Card } from '../ui/Card';
 import { cn } from '../../lib/utils';
 import { SystemLog } from '../../types';
 
@@ -84,38 +86,39 @@ export const LogsPage = () => {
   };
 
   return (
-    <div className="space-y-10">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-4xl font-black text-slate-900 tracking-tight">Audit Log</h2>
-          <p className="text-slate-500 font-medium text-lg">Transparência total e conformidade em cada ação realizada no núcleo do sistema.</p>
+          <h2 className="text-2xl font-semibold text-slate-950 tracking-tight">Audit Log</h2>
+          <p className="text-sm text-slate-500">Transparência total e conformidade em cada ação realizada no núcleo do sistema.</p>
         </div>
-        <button 
+        <Button 
+          variant="outline"
           onClick={fetchLogs}
-          className="h-12 px-6 bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm"
+          disabled={loading}
         >
-          <RefreshCw size={18} className={loading ? 'animate-spin' : ''} /> Atualizar
-        </button>
+          <RefreshCw size={16} className={cn("mr-2", loading ? "animate-spin" : "")} /> Atualizar
+        </Button>
       </div>
 
-      <div className="space-y-4">
-        <form onSubmit={handleSearch} className="bg-white p-6 rounded-[32px] border border-slate-200 shadow-sm flex flex-col gap-6">
-          <div className="flex flex-col md:flex-row gap-4 items-center">
-            <div className="relative flex-1 group w-full">
-               <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+      <Card className="p-4">
+        <form onSubmit={handleSearch} className="space-y-4">
+          <div className="flex flex-col lg:flex-row gap-3">
+            <div className="relative flex-1 group">
+               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={16} />
                <input 
                  type="text" 
                  placeholder="Buscar por descrição, ação, usuário ou empresa..." 
-                 className="w-full h-14 bg-slate-50 border-none rounded-2xl pl-14 pr-6 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+                 className="w-full h-9 bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all"
                  value={filters.search}
                  onChange={(e) => setFilters(f => ({ ...f, search: e.target.value }))}
                />
             </div>
-            <div className="flex gap-2 w-full md:w-auto">
+            <div className="flex gap-2">
               <select 
                 value={filters.action}
                 onChange={(e) => setFilters(f => ({ ...f, action: e.target.value, page: 1 }))}
-                className="h-14 px-6 bg-slate-50 border-none rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-blue-100 transition-all appearance-none min-w-[160px]"
+                className="h-9 px-3 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer min-w-[140px]"
               >
                 <option value="">Todas as Ações</option>
                 <option value="LOGIN">Login</option>
@@ -125,56 +128,52 @@ export const LogsPage = () => {
                 <option value="PROFILE_UPDATE">Perfil</option>
                 <option value="PASSWORD_CHANGE">Senha</option>
               </select>
-              <button type="submit" className="h-14 px-8 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all active:scale-95">
-                Buscar
-              </button>
+              <Button type="submit" size="sm">Buscar</Button>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-slate-50">
+          <div className="flex flex-wrap items-center gap-4 pt-3 border-t border-slate-100">
              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Período de</span>
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">De</span>
                 <input 
                   type="date" 
                   value={filters.start_date}
                   onChange={(e) => setFilters(f => ({ ...f, start_date: e.target.value, page: 1 }))}
-                  className="h-10 px-4 bg-slate-50 border-none rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+                  className="h-8 px-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-medium outline-none focus:ring-1 focus:ring-blue-400 transition-all"
                 />
              </div>
              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Até</span>
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Até</span>
                 <input 
                   type="date" 
                   value={filters.end_date}
                   onChange={(e) => setFilters(f => ({ ...f, end_date: e.target.value, page: 1 }))}
-                  className="h-10 px-4 bg-slate-50 border-none rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+                  className="h-8 px-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-medium outline-none focus:ring-1 focus:ring-blue-400 transition-all"
                 />
              </div>
              <button 
                type="button"
                onClick={clearFilters}
-               className="h-10 px-4 flex items-center gap-2 text-xs font-black text-slate-400 hover:text-red-500 transition-colors ml-auto"
+               className="h-8 px-3 flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-red-600 transition-colors ml-auto translate-y-0.5"
              >
-                <FilterX size={16} /> Limpar Filtros
+                <FilterX size={14} /> Limpar Filtros
              </button>
           </div>
         </form>
-      </div>
+      </Card>
 
-      <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden font-medium">
+      <Card className="overflow-hidden">
         {loading && logs.length === 0 ? (
-          <div className="p-20 flex flex-col items-center justify-center space-y-4">
-             <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
-             <p className="text-slate-400 font-black uppercase tracking-widest text-xs">Acessando Arquivos de Log...</p>
+          <div className="p-20 flex flex-col items-center justify-center space-y-3">
+             <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+             <p className="text-sm text-slate-500 font-medium tracking-tight text-center">Acessando registros de log...</p>
           </div>
         ) : error ? (
-          <div className="p-24 text-center flex flex-col items-center">
-             <div className="w-20 h-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mb-6">
-                <AlertCircle size={40} />
-             </div>
-             <h4 className="text-xl font-black text-slate-800">Falha na Auditoria</h4>
-             <p className="text-slate-500 font-medium mb-8 max-w-sm">{error}</p>
-             <button onClick={fetchLogs} className="h-12 px-8 bg-slate-900 text-white font-black rounded-xl hover:bg-slate-800 transition-all">Sincronizar Novamente</button>
+          <div className="p-20 text-center flex flex-col items-center">
+             <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
+             <h4 className="text-base font-semibold text-slate-900 mb-1">Falha na Auditoria</h4>
+             <p className="text-sm text-slate-500 mb-6 max-w-sm">{error}</p>
+             <Button variant="outline" size="sm" onClick={fetchLogs}>Sincronizar Novamente</Button>
           </div>
         ) : (
           <>
@@ -182,54 +181,60 @@ export const LogsPage = () => {
               <table className="w-full text-left">
                 <thead className="bg-slate-50/50 border-b border-slate-100">
                   <tr>
-                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 tracking-widest uppercase">Ação / Evento</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 tracking-widest uppercase">Descrição Detalhada</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 tracking-widest uppercase">Operador / Instância</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 tracking-widest uppercase">Cronologia</th>
+                    <th className="px-6 py-3 text-[11px] font-semibold text-slate-500 tracking-wider uppercase">Ação</th>
+                    <th className="px-6 py-3 text-[11px] font-semibold text-slate-500 tracking-wider uppercase">Evento</th>
+                    <th className="px-6 py-3 text-[11px] font-semibold text-slate-500 tracking-wider uppercase">Operador</th>
+                    <th className="px-6 py-3 text-[11px] font-semibold text-slate-500 tracking-wider uppercase">Data / IP</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-slate-100">
                   {logs.map((log) => (
-                    <tr key={log.id} className="hover:bg-slate-50/50 transition-all group">
-                      <td className="px-8 py-6">
-                        <Badge variant={getActionColor(log.acao) as any} className="px-4 py-1.5 uppercase font-black text-[10px] tracking-widest">{log.acao}</Badge>
+                    <tr key={log.id} className="hover:bg-slate-50/50 transition-colors group">
+                      <td className="px-6 py-4">
+                        <Badge variant={getActionColor(log.acao) as any} className="px-2 py-0.5 font-bold text-[10px] tracking-tight">{log.acao}</Badge>
                       </td>
-                      <td className="px-8 py-6 max-w-md">
-                         <div className="flex items-start gap-3">
-                            <Info size={16} className="text-blue-400 mt-0.5 flex-shrink-0" />
-                            <span className="text-sm font-bold text-slate-700 leading-relaxed">{log.descricao || 'Sem descrição'}</span>
+                      <td className="px-6 py-4 max-w-md">
+                         <div className="flex items-start gap-2.5">
+                            <Info size={14} className="text-slate-400 mt-0.5 flex-shrink-0" />
+                            <span className="text-sm font-medium text-slate-600 leading-normal">{log.descricao || 'Sem descrição'}</span>
                          </div>
                       </td>
-                      <td className="px-8 py-6">
+                      <td className="px-6 py-4">
                          <div className="flex items-center gap-3">
                             <div className={cn(
-                              "w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs uppercase",
+                              "w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs uppercase shadow-sm",
                               log.usuario_nome ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-400"
                             )}>
                                {log.usuario_nome?.charAt(0) || 'S'}
                             </div>
                             <div>
-                               <div className="text-sm font-black text-slate-800 leading-tight">{log.usuario_nome || 'Sistema'}</div>
-                               <div className="text-[10px] font-bold text-blue-500 uppercase tracking-tighter">{log.empresa_nome || 'Gestifique Master'}</div>
+                               <div className="text-sm font-semibold text-slate-900 leading-tight">{log.usuario_nome || 'Sistema'}</div>
+                               <div className="text-[10px] font-medium text-blue-600 leading-tight flex items-center gap-1">
+                                  <Building2 size={10} /> {log.empresa_nome || 'Gestifique Master'}
+                               </div>
                             </div>
                          </div>
                       </td>
-                      <td className="px-8 py-6">
-                         <div className="flex flex-col gap-1">
-                            <span className="text-xs font-black text-slate-700 flex items-center gap-1.5"><Calendar size={14} className="text-slate-300" /> {new Date(log.created_at).toLocaleString('pt-BR')}</span>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 w-fit px-2 py-0.5 rounded-lg border border-slate-100" title={log.user_agent || 'Não informado'}>IP: {log.ip || 'Local / Interno'}</span>
+                      <td className="px-6 py-4">
+                         <div className="flex flex-col gap-0.5">
+                            <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5 whitespace-nowrap">
+                               <Calendar size={12} className="text-slate-400" /> {new Date(log.created_at).toLocaleString('pt-BR')}
+                            </span>
+                            <span className="text-[10px] font-medium text-slate-400 truncate max-w-[120px]" title={log.ip || 'Local'}>
+                               IP: {log.ip || '127.0.0.1'}
+                            </span>
                          </div>
                       </td>
                     </tr>
                   ))}
                   {logs.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="px-8 py-32 text-center">
+                      <td colSpan={4} className="px-6 py-20 text-center">
                          <div className="flex flex-col items-center">
-                            <div className="w-20 h-20 bg-slate-50 text-slate-200 rounded-3xl flex items-center justify-center mb-4">
-                               <Search size={32} />
+                            <div className="w-12 h-12 bg-slate-50 text-slate-200 rounded-xl flex items-center justify-center mb-4">
+                               <Search size={24} />
                             </div>
-                            <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">Nenhum registro encontrado.</p>
+                            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Nenhum registro encontrado.</p>
                          </div>
                       </td>
                     </tr>
@@ -240,45 +245,65 @@ export const LogsPage = () => {
 
             {/* Paginação */}
             {pagination && pagination.totalPages > 1 && (
-              <div className="p-6 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
-                <div className="text-sm text-slate-500">
-                  Mostrando <span className="font-bold text-slate-900">{logs.length}</span> de <span className="font-bold text-slate-900">{pagination.total}</span> registros
+              <div className="p-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
+                <div className="text-xs text-slate-500 font-medium">
+                  Mostrando <span className="font-semibold text-slate-900">{logs.length}</span> de <span className="font-semibold text-slate-900">{pagination.total}</span> registros
                 </div>
-                <div className="flex items-center gap-2">
-                  <button 
+                <div className="flex items-center gap-1.5">
+                  <Button 
+                    variant="outline"
+                    size="sm"
                     disabled={filters.page === 1}
                     onClick={() => setFilters(f => ({ ...f, page: f.page - 1 }))}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 disabled:opacity-40 transition-all hover:bg-slate-50"
+                    className="h-8 w-8 p-0 flex items-center justify-center"
                   >
-                    <ChevronLeft size={20} />
-                  </button>
-                  {[...Array(pagination.totalPages)].map((_, i) => (
-                    <button
-                      key={i + 1}
-                      onClick={() => setFilters(f => ({ ...f, page: i + 1 }))}
-                      className={cn(
-                        "w-10 h-10 rounded-xl font-bold text-sm transition-all",
-                        filters.page === i + 1 
-                          ? "bg-blue-600 text-white shadow-lg shadow-blue-100" 
-                          : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-                      )}
-                    >
-                      {i + 1}
-                    </button>
-                  ))}
-                  <button 
+                    <ChevronLeft size={16} />
+                  </Button>
+                  
+                  <div className="flex items-center gap-1">
+                    {[...Array(pagination.totalPages)].map((_, i) => {
+                      const isPageVisible = 
+                        pagination.totalPages <= 5 || 
+                        Math.abs(filters.page - (i + 1)) <= 1 || 
+                        i === 0 || 
+                        i === pagination.totalPages - 1;
+                      
+                      if (!isPageVisible) {
+                        if (i > 0 && Math.abs(filters.page - i) > 1 && i < pagination.totalPages - 2) {
+                           // This is handled by simple logic usually, but let's just show pages for now to be safe
+                        }
+                        return null;
+                      }
+
+                      return (
+                        <Button
+                          key={i + 1}
+                          variant={filters.page === i + 1 ? 'primary' : 'outline'}
+                          size="sm"
+                          onClick={() => setFilters(f => ({ ...f, page: i + 1 }))}
+                          className="h-8 w-8 p-0 text-xs font-bold"
+                        >
+                          {i + 1}
+                        </Button>
+                      );
+                    })}
+                  </div>
+
+                  <Button 
+                    variant="outline"
+                    size="sm"
                     disabled={filters.page === pagination.totalPages}
                     onClick={() => setFilters(f => ({ ...f, page: f.page + 1 }))}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 disabled:opacity-40 transition-all hover:bg-slate-50"
+                    className="h-8 w-8 p-0 flex items-center justify-center"
                   >
-                    <ChevronRight size={20} />
-                  </button>
+                    <ChevronRight size={16} />
+                  </Button>
                 </div>
               </div>
             )}
           </>
         )}
-      </div>
+      </Card>
     </div>
   );
 };
