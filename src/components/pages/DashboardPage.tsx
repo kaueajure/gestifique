@@ -1,22 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
-import { DashboardStats, Ticket } from '../../types';
+import { DashboardData } from '../../types';
 import { MetricCard } from '../ui/MetricCard';
 import { 
   Ticket as TicketIcon, 
   Clock, 
   CheckCircle2, 
   AlertCircle,
-  TrendingUp,
-  MessageSquare,
   Calendar,
   ChevronRight,
   User as UserIcon,
   Plus,
-  Activity as ActivityIcon
+  Activity as ActivityIcon,
+  PauseCircle,
+  AlertTriangle
 } from 'lucide-react';
 import { Badge } from '../ui/Badge';
-import { motion } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { 
   ResponsiveContainer, 
@@ -30,8 +29,12 @@ import {
   Pie
 } from 'recharts';
 
-export const DashboardPage = () => {
-  const [stats, setStats] = useState<any | null>(null);
+interface DashboardPageProps {
+  onNavigate?: (tab: 'dashboard' | 'tickets' | 'users' | 'companies' | 'logs' | 'profile' | 'settings') => void;
+}
+
+export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
+  const [stats, setStats] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,7 +43,7 @@ export const DashboardPage = () => {
       setLoading(true);
       setError(null);
       try {
-        const data = await api.get<any>('/dashboard');
+        const data = await api.get<DashboardData>('/dashboard');
         setStats(data);
       } catch (err: any) {
         setError(err.message || 'Ocorreu um erro ao carregar o dashboard.');
@@ -51,23 +54,38 @@ export const DashboardPage = () => {
     fetchData();
   }, []);
 
-  const counts = stats?.counts || {};
+  const counts = stats?.counts || {
+    total: 0,
+    aberto: 0,
+    em_andamento: 0,
+    aguardando_cliente: 0,
+    resolvido: 0,
+    fechado: 0,
+    urgente: 0,
+    tempo_medio_resolucao: '0h'
+  };
+  
   const recentTickets = stats?.recentTickets || [];
   const recentActivities = stats?.recentActivities || [];
 
-  const metricCards = [
+  const mainMetrics = [
     { label: 'Total de Chamados', value: counts.total || 0, icon: <TicketIcon size={20} />, color: 'blue' as const },
     { label: 'Em Aberto', value: counts.aberto || 0, icon: <AlertCircle size={20} />, color: 'amber' as const },
     { label: 'Tempo Médio', value: counts.tempo_medio_resolucao || '0h', icon: <Clock size={20} />, color: 'indigo' as const },
     { label: 'Resolvidos', value: counts.resolvido || 0, icon: <CheckCircle2 size={20} />, color: 'emerald' as const },
   ];
 
-  const statusData = stats?.byStatus?.map((s: any) => ({
+  const secondaryMetrics = [
+    { label: 'Aguardando Cliente', value: counts.aguardando_cliente || 0, icon: <PauseCircle size={16} />, color: 'slate' as const },
+    { label: 'Status Urgente', value: counts.urgente || 0, icon: <AlertTriangle size={16} />, color: 'red' as const },
+  ];
+
+  const statusData = stats?.byStatus?.map((s) => ({
     name: s.status.replace('_', ' '),
     value: s.qtd
   })) || [];
 
-  const priorityData = stats?.byPriority?.map((p: any) => ({
+  const priorityData = stats?.byPriority?.map((p) => ({
     name: p.prioridade,
     value: p.qtd
   })) || [];
@@ -112,13 +130,26 @@ export const DashboardPage = () => {
       </div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {metricCards.map((card, i) => (
+        {mainMetrics.map((card, i) => (
           <MetricCard 
             key={i}
             label={card.label} 
             value={card.value} 
             icon={card.icon} 
             color={card.color} 
+            loading={loading} 
+          />
+        ))}
+      </div>
+
+      <div className="grid sm:grid-cols-2 gap-6">
+        {secondaryMetrics.map((card, i) => (
+          <MetricCard 
+            key={i}
+            label={card.label} 
+            value={card.value} 
+            icon={card.icon} 
+            color={card.color as any} 
             loading={loading} 
           />
         ))}
@@ -133,29 +164,38 @@ export const DashboardPage = () => {
                     <span className="w-3 h-3 bg-blue-500 rounded-full"></span> Ativos
                  </div>
               </div>
-              <div className="h-[300px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={statusData}>
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}} dy={10} />
-                    <YAxis hide />
-                    <Tooltip 
-                      cursor={{fill: '#f8fafc'}} 
-                      contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
-                    />
-                    <Bar dataKey="value" radius={[10, 10, 10, 10]} barSize={40}>
-                      {statusData.map((entry: any, index: number) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+              <div className="h-[300px] w-full flex items-center justify-center">
+                {statusData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={statusData}>
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}} dy={10} />
+                      <YAxis hide />
+                      <Tooltip 
+                        cursor={{fill: '#f8fafc'}} 
+                        contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
+                      />
+                      <Bar dataKey="value" radius={[10, 10, 10, 10]} barSize={40}>
+                        {statusData.map((entry: any, index: number) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p className="text-slate-400 font-medium">Nenhum dado de status disponível.</p>
+                )}
               </div>
            </div>
 
            <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden">
               <div className="p-8 border-b border-slate-50 flex items-center justify-between">
                 <h3 className="text-xl font-black text-slate-900">Chamados Recentes</h3>
-                <button className="text-xs font-black text-blue-600 uppercase tracking-widest hover:underline">Ver Todos</button>
+                <button 
+                  onClick={() => onNavigate?.('tickets')}
+                  className="text-xs font-black text-blue-600 uppercase tracking-widest hover:underline"
+                >
+                  Ver Todos
+                </button>
               </div>
               <div className="divide-y divide-slate-50">
                 {loading ? (
@@ -169,36 +209,42 @@ export const DashboardPage = () => {
                     </div>
                   ))
                 ) : recentTickets && recentTickets.length > 0 ? (
-                  recentTickets.map((ticket: any) => (
-                    <div key={ticket.id} className="p-8 flex items-center gap-6 hover:bg-slate-50/50 transition-colors cursor-pointer group">
-                      <div className={cn(
-                        "w-14 h-14 rounded-[24px] flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm",
-                        ticket.status === 'resolvido' ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"
-                      )}>
-                        <TicketIcon size={24} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-1.5">
-                          <span className="text-lg font-black text-slate-900 truncate">{ticket.titulo}</span>
-                          <Badge variant={ticket.status === 'resolvido' ? 'emerald' : 'blue'}>{ticket.status.replace('_', ' ')}</Badge>
+                  recentTickets.map((ticket: any) => {
+                    const tStatus = ticket.status || 'aberto';
+                    const tPrio = ticket.prioridade || 'media';
+                    const tClient = ticket.cliente_nome || 'Usuário';
+
+                    return (
+                      <div key={ticket.id} onClick={() => onNavigate?.('tickets')} className="p-8 flex items-center gap-6 hover:bg-slate-50/50 transition-colors cursor-pointer group">
+                        <div className={cn(
+                          "w-14 h-14 rounded-[24px] flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm",
+                          tStatus === 'resolvido' ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"
+                        )}>
+                          <TicketIcon size={24} />
                         </div>
-                        <div className="flex items-center gap-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                          <span className="flex items-center gap-1.5 text-blue-600">#{ticket.id}</span>
-                          <span className="flex items-center gap-1.5"><Calendar size={14} /> {new Date(ticket.created_at).toLocaleDateString()}</span>
-                          <span className="flex items-center gap-1.5"><UserIcon size={14} /> {ticket.cliente_nome}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-1.5">
+                            <span className="text-lg font-black text-slate-900 truncate">{ticket.titulo}</span>
+                            <Badge variant={tStatus === 'resolvido' ? 'emerald' : 'blue'}>{tStatus.replace('_', ' ')}</Badge>
+                          </div>
+                          <div className="flex items-center gap-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                            <span className="flex items-center gap-1.5 text-blue-600">#{ticket.id}</span>
+                            <span className="flex items-center gap-1.5"><Calendar size={14} /> {new Date(ticket.created_at).toLocaleDateString()}</span>
+                            <span className="flex items-center gap-1.5"><UserIcon size={14} /> {tClient}</span>
+                          </div>
                         </div>
+                        <div className="hidden sm:block">
+                           <div className={cn(
+                             "text-[10px] font-black uppercase px-4 py-1.5 rounded-xl border-2",
+                             tPrio === 'urgente' ? "text-red-600 bg-red-50 border-red-100" : "text-slate-500 bg-slate-100 border-slate-200"
+                           )}>
+                             {tPrio}
+                           </div>
+                        </div>
+                        <ChevronRight className="text-slate-200 group-hover:text-blue-500 transition-colors" size={24} />
                       </div>
-                      <div className="hidden sm:block">
-                         <div className={cn(
-                           "text-[10px] font-black uppercase px-4 py-1.5 rounded-xl border-2",
-                           ticket.prioridade === 'urgente' ? "text-red-600 bg-red-50 border-red-100" : "text-slate-500 bg-slate-100 border-slate-200"
-                         )}>
-                           {ticket.prioridade}
-                         </div>
-                      </div>
-                      <ChevronRight className="text-slate-200 group-hover:text-blue-500 transition-colors" size={24} />
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="p-24 text-center flex flex-col items-center">
                     <div className="w-24 h-24 bg-blue-50 text-blue-500 rounded-[30px] flex items-center justify-center mb-6">
@@ -206,7 +252,10 @@ export const DashboardPage = () => {
                     </div>
                     <h4 className="text-2xl font-black text-slate-900 mb-2">Tudo em dia!</h4>
                     <p className="text-slate-500 font-medium max-w-xs mx-auto mb-10">Nenhum chamado pendente no momento. Que tal começar um novo trabalho?</p>
-                    <button className="h-14 px-10 bg-slate-900 text-white font-black rounded-2xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200 active:scale-95 flex items-center gap-3">
+                    <button 
+                      onClick={() => onNavigate?.('tickets')}
+                      className="h-14 px-10 bg-slate-900 text-white font-black rounded-2xl hover:bg-slate-800 transition-all shadow-2xl shadow-slate-200 active:scale-95 flex items-center gap-3"
+                    >
                       <Plus size={24} /> Novo Chamado
                     </button>
                   </div>
@@ -218,37 +267,46 @@ export const DashboardPage = () => {
         <div className="space-y-8">
            <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm h-fit">
               <h3 className="text-xl font-black text-slate-900 mb-8">Prioridades</h3>
-              <div className="h-[250px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={priorityData}
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {priorityData.map((entry: any, index: number) => (
-                        <Cell key={`cell-${index}`} fill={(PRIO_COLORS as any)[entry.name] || '#cbd5e1'} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
+              <div className="h-[250px] w-full flex flex-col items-center justify-center">
+                {priorityData.length > 0 ? (
+                  <>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={priorityData}
+                          innerRadius={60}
+                          outerRadius={100}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          {priorityData.map((entry: any, index: number) => (
+                            <Cell key={`cell-${index}`} fill={(PRIO_COLORS as any)[entry.name] || '#cbd5e1'} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </>
+                ) : (
+                  <p className="text-slate-400 font-medium my-auto text-center">Nenhum dado de prioridade disponível.</p>
+                )}
               </div>
-              <div className="grid grid-cols-2 gap-4 mt-6">
-                 {priorityData.map((p: any, i: number) => (
-                   <div key={i} className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                      <div className="flex items-center gap-2 mb-1">
-                         <div className="w-2 h-2 rounded-full" style={{backgroundColor: (PRIO_COLORS as any)[p.name]}}></div>
-                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{p.name}</span>
-                      </div>
-                      <div className="text-xl font-black text-slate-900">{p.value}</div>
-                   </div>
-                 ))}
-              </div>
+              
+              {priorityData.length > 0 && (
+                <div className="grid grid-cols-2 gap-4 mt-6">
+                   {priorityData.map((p: any, i: number) => (
+                     <div key={i} className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                        <div className="flex items-center gap-2 mb-1">
+                           <div className="w-2 h-2 rounded-full" style={{backgroundColor: (PRIO_COLORS as any)[p.name]}}></div>
+                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{p.name}</span>
+                        </div>
+                        <div className="text-xl font-black text-slate-900">{p.value}</div>
+                     </div>
+                   ))}
+                </div>
+              )}
            </div>
 
            <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm h-fit">
@@ -274,9 +332,12 @@ export const DashboardPage = () => {
                         <div className="absolute top-10 bottom-[-24px] left-1/2 -translate-x-1/2 w-px bg-slate-100 last:hidden"></div>
                       </div>
                       <div className="flex-1 pb-4">
-                        <p className="text-sm font-bold text-slate-700 leading-tight mb-1">{act.acao}</p>
+                        <p className="text-sm font-bold text-slate-700 leading-tight mb-0.5">{act.acao}</p>
+                        {act.descricao && (
+                          <p className="text-xs text-slate-500 mb-1.5">{act.descricao}</p>
+                        )}
                         <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                          <span className="text-blue-600">{act.usuario_nome}</span>
+                          <span className="text-blue-600">{act.usuario_nome || 'Sistema'}</span>
                           <span>•</span>
                           <span>{new Date(act.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>

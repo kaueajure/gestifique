@@ -80,13 +80,33 @@ export interface Message {
   created_at: string;
 }
 
-export interface DashboardStats {
-  total: number;
-  aberto: number;
-  em_andamento: number;
-  aguardando_cliente: number;
-  resolvido: number;
-  fechado: number;
-  urgente: number;
-  tempo_medio_resolucao: string;
+export interface Log {
+  id: number;
+  acao: string;
+  descricao?: string;
+  usuario_nome?: string;
+  created_at: string;
+}
+
+export interface DashboardData {
+  counts: {
+    total: number;
+    aberto: number;
+    em_andamento: number;
+    aguardando_cliente: number;
+    resolvido: number;
+    fechado: number;
+    urgente: number;
+    tempo_medio_resolucao: string;
+  };
+  recentTickets: Ticket[];
+  recentActivities: Log[];
+  byStatus: Array<{
+    status: string;
+    qtd: number;
+  }>;
+  byPriority: Array<{
+    prioridade: string;
+    qtd: number;
+  }>;
 }
