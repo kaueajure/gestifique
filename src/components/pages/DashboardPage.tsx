@@ -124,7 +124,6 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
           <p className="text-sm text-slate-500 font-medium">Visão geral do sistema e indicadores de performance.</p>
         </div>
         <div className="flex items-center gap-2">
-           <Button variant="outline" size="sm" className="h-9">Relatório</Button>
            <Button size="sm" className="h-9" onClick={() => onNavigate?.('tickets')}>
               <Plus size={16} className="mr-2" /> Novo Ticket
            </Button>

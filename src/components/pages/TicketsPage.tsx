@@ -121,39 +121,39 @@ export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
              <input 
                type="text" 
                placeholder="Buscar por ID ou assunto..." 
-               className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 text-xs font-semibold outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+               className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-100 transition-all font-sans"
                value={searchTerm}
                onChange={(e) => setSearchTerm(e.target.value)}
              />
           </div>
-          <div className="grid grid-cols-2 lg:flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <select 
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
+              className="h-8 px-2 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-600 uppercase tracking-tight outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
             >
               <option value="todas">Categorias</option>
-              <option value="suporte_tecnico">Suporte Técnico</option>
+              <option value="suporte_tecnico">Suporte</option>
               <option value="financeiro">Financeiro</option>
-              <option value="recursos_humanos">Recursos Humanos</option>
+              <option value="recursos_humanos">RH</option>
               <option value="comercial">Comercial</option>
               <option value="outros">Outros</option>
             </select>
             <select 
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
+              className="h-8 px-2 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-600 uppercase tracking-tight outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
             >
               <option value="todos">Status</option>
               <option value="aberto">Aberto</option>
-              <option value="em_andamento">Em Andamento</option>
-              <option value="aguardando_cliente">Aguardando Cliente</option>
+              <option value="em_andamento">Andamento</option>
+              <option value="aguardando_cliente">Aguardando</option>
               <option value="resolvido">Resolvido</option>
             </select>
             <select 
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
-              className="h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
+              className="h-8 px-2 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-600 uppercase tracking-tight outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
             >
               <option value="todas">Prioridades</option>
               <option value="urgente">Urgente</option>
@@ -171,9 +171,10 @@ export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
                   setPriorityFilter('todas');
                   setCategoryFilter('todas');
                 }}
-                className="h-8 px-2 text-[10px] font-bold"
+                className="h-8 w-8 p-0 text-slate-400 hover:text-red-600"
+                title="Limpar Filtros"
               >
-                <X size={12} className="mr-1" /> Limpar
+                <X size={14} />
               </Button>
             )}
           </div>
@@ -192,33 +193,33 @@ export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
               <div 
                 key={ticket.id}
                 onClick={() => onSelectTicket(ticket.id)}
-                className="p-3 px-4 flex flex-col sm:flex-row sm:items-center gap-4 hover:bg-slate-50/50 transition-colors cursor-pointer group"
+                className="p-3 px-5 flex flex-col sm:flex-row sm:items-center gap-3 hover:bg-slate-50/50 transition-colors cursor-pointer group"
               >
                 <div className={cn(
-                  "w-9 h-9 rounded-lg flex items-center justify-center border transition-colors shadow-sm bg-white",
-                  ticket.status === 'resolvido' ? "text-emerald-600 border-emerald-100" : "text-slate-400 group-hover:text-blue-600 border-slate-100 group-hover:border-blue-100"
+                  "w-8 h-8 rounded-lg flex items-center justify-center border transition-colors shadow-sm bg-white",
+                  ticket.status === 'resolvido' ? "text-emerald-500 border-emerald-50" : "text-slate-400 group-hover:text-blue-600 border-slate-100 group-hover:border-blue-100"
                 )}>
-                  <MessageSquare size={16} />
+                  <MessageSquare size={14} />
                 </div>
 
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-0.5">
-                    <span className="text-sm font-semibold text-slate-800 truncate group-hover:text-slate-950 transition-colors">{ticket.titulo}</span>
-                    <Badge variant={statusMap[ticket.status || 'aberto']} className="text-[9px] py-0 px-1.5">{ticket.status.replace('_', ' ')}</Badge>
+                    <span className="text-sm font-bold text-slate-900 truncate group-hover:text-blue-700 transition-colors leading-tight">{ticket.titulo}</span>
+                    <Badge variant={statusMap[ticket.status || 'aberto']} className="text-[9px] py-0 px-1.5 font-bold uppercase tracking-tighter">{ticket.status.replace('_', ' ')}</Badge>
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] font-medium text-slate-400">
-                    <span className="text-blue-600 font-bold">#{ticket.id}</span>
-                    <span className="flex items-center gap-1.5"><UserIcon size={10} /> {ticket.cliente_nome}</span>
-                    <span className="flex items-center gap-1.5"><Tag size={10} /> {ticket.categoria?.replace('_', ' ')}</span>
-                    <span className="flex items-center gap-1.5"><Calendar size={10} /> {new Date(ticket.created_at).toLocaleDateString()}</span>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] font-bold text-slate-400">
+                    <span className="text-blue-600 tracking-tighter">#{ticket.id}</span>
+                    <span className="flex items-center gap-1.5 tracking-tight uppercase"><UserIcon size={10} className="text-slate-300" /> {ticket.cliente_nome}</span>
+                    <span className="flex items-center gap-1.5 tracking-tight uppercase italic"><Tag size={10} className="text-slate-300" /> {ticket.categoria?.replace('_', ' ')}</span>
+                    <span className="flex items-center gap-1.5 tracking-tight uppercase"><Calendar size={10} className="text-slate-300" /> {new Date(ticket.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-4 ml-auto sm:ml-0">
-                  <Badge variant={getPriorityVariant(ticket.prioridade)} className="font-bold uppercase text-[9px] px-1.5 py-0">
+                  <Badge variant={getPriorityVariant(ticket.prioridade)} className="font-bold uppercase text-[9px] px-1.5 py-0 tracking-widest border-none">
                     {ticket.prioridade}
                   </Badge>
-                  <div className="h-7 w-7 rounded-lg border border-slate-100 flex items-center justify-center text-slate-300 group-hover:bg-slate-900 group-hover:text-white group-hover:border-slate-900 transition-all">
+                  <div className="h-7 w-7 rounded-lg border border-slate-100 flex items-center justify-center text-slate-300 opacity-40 group-hover:opacity-100 group-hover:bg-slate-900 group-hover:text-white group-hover:border-slate-900 transition-all">
                     <ChevronRight size={14} />
                   </div>
                 </div>
