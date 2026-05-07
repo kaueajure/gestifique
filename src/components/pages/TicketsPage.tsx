@@ -178,6 +178,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
               <option value="em_andamento">Andamento</option>
               <option value="aguardando_cliente">Aguardando</option>
               <option value="resolvido">Resolvido</option>
+              <option value="fechado">Fechado</option>
             </select>
             <select 
               value={priorityFilter}
