@@ -11,6 +11,8 @@ export interface User {
   foto: string | null;
   ultimo_login: string | null;
   empresa_nome?: string;
+  empresa_telefone?: string;
+  empresa_email?: string;
   created_at: string;
 }
 

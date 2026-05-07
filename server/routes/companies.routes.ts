@@ -1,16 +1,16 @@
 import { Router } from 'express';
 import  companiesService from  '../services/companies.service.js';
 import  { authMiddleware } from  '../middlewares/auth.js';
-import  { isDev } from  '../middlewares/permissions.js';
+import { isDev, isAdmin } from  '../middlewares/permissions.js';
 import  { sendSuccess, sendError } from  '../utils/response.js';
 import  { logSystemAction } from  '../utils/logger.js';
 
 const router = Router();
 
 router.use(authMiddleware);
-router.use(isDev);
 
-router.get('/', async (req, res) => {
+// Listar e Criar empresas apenas para Devs
+router.get('/', isDev, async (req, res) => {
   try {
     const { search, status } = req.query;
     const companies = await companiesService.list({ 
@@ -23,7 +23,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.post('/', async (req: any, res) => {
+router.post('/', isDev, async (req: any, res) => {
   try {
     if (!req.body.nome) return sendError(res, 'Nome é obrigatório', 400);
     const id = await companiesService.create(req.body);
@@ -34,18 +34,26 @@ router.post('/', async (req: any, res) => {
   }
 });
 
+// Update company: Devs can update any, Admins only their own
 router.patch('/:id', async (req: any, res) => {
   try {
     const id = parseInt(req.params.id);
+    
+    if (!req.user.desenvolvedor) {
+      if (!req.user.administrador || req.user.empresa_id !== id) {
+        return sendError(res, 'Acesso negado', 403);
+      }
+    }
+
     await companiesService.update(id, req.body);
-    await logSystemAction(req, req.user.id, null, 'COMPANY_UPDATE', `Atualizou empresa ID: ${id}`);
+    await logSystemAction(req, req.user.id, id, 'COMPANY_UPDATE', `Atualizou informações da empresa ID: ${id}`);
     sendSuccess(res, null, 'Empresa atualizada com sucesso');
   } catch (error: any) {
     sendError(res, error.message);
   }
 });
 
-router.patch('/:id/status', async (req: any, res) => {
+router.patch('/:id/status', isDev, async (req: any, res) => {
   try {
     const id = parseInt(req.params.id);
     const { ativo } = req.body;

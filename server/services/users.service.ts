@@ -88,6 +88,17 @@ class UsersService {
     params.push(id);
     await pool.query(`UPDATE usuarios SET ${fields.join(', ')} WHERE id = ?`, params);
   }
+
+  async updatePassword(id: number, currentPassword: string, newPassword: string) {
+    const [rows]: any = await pool.query('SELECT senha_hash FROM usuarios WHERE id = ?', [id]);
+    if (rows.length === 0) throw new Error('Usuário não encontrado');
+
+    const isValid = await bcrypt.compare(currentPassword, rows[0].senha_hash);
+    if (!isValid) throw new Error('Senha atual incorreta');
+
+    const hash = await bcrypt.hash(newPassword, 10);
+    await pool.query('UPDATE usuarios SET senha_hash = ? WHERE id = ?', [hash, id]);
+  }
 }
 
 export default new UsersService();

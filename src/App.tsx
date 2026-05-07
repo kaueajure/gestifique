@@ -9,6 +9,7 @@ import { UsersPage } from './components/pages/UsersPage';
 import { CompaniesPage } from './components/pages/CompaniesPage';
 import { LogsPage } from './components/pages/LogsPage';
 import { ProfilePage } from './components/pages/ProfilePage';
+import { SettingsPage } from './components/pages/SettingsPage';
 import { AccessDenied } from './components/ui/AccessDenied';
 import { LandingPage } from './components/public/LandingPage';
 import { User } from './types';
@@ -251,26 +252,13 @@ export default function App() {
                   ) : (
                     <AccessDenied />
                   ))}
-                  
+
                   {activeTab === 'profile' && (
-                    <ProfilePage 
-                      currentUser={currentUser} 
-                      onUpdate={setCurrentUser} 
-                    />
+                    <ProfilePage currentUser={currentUser} onUpdate={setCurrentUser} />
                   )}
 
                   {activeTab === 'settings' && (
-                    <div className="max-w-2xl space-y-8">
-                       <div>
-                          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Configurações Gerais</h2>
-                          <p className="text-slate-500 font-medium">Personalize sua experiência na plataforma.</p>
-                       </div>
-                       <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm text-center py-20">
-                          <Settings className="w-16 h-16 text-slate-200 mx-auto mb-4" />
-                          <h4 className="font-bold text-slate-800">Módulo em Construção</h4>
-                          <p className="text-sm text-slate-500">Estamos preparando novas opções de personalização para você.</p>
-                       </div>
-                    </div>
+                    <SettingsPage currentUser={currentUser} />
                   )}
                 </motion.div>
               </AnimatePresence>

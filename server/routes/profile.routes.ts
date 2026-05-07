@@ -35,4 +35,29 @@ router.patch('/', async (req: any, res) => {
   }
 });
 
+router.patch('/password', async (req: any, res) => {
+  try {
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return sendError(res, 'Todos os campos são obrigatórios');
+    }
+
+    if (newPassword.length < 8) {
+      return sendError(res, 'A nova senha deve ter no mínimo 8 caracteres');
+    }
+
+    if (newPassword !== confirmPassword) {
+      return sendError(res, 'A confirmação de senha não confere');
+    }
+
+    await usersService.updatePassword(req.user.id, currentPassword, newPassword);
+    await logSystemAction(req, req.user.id, req.user.empresa_id, 'PASSWORD_CHANGE', 'Usuário alterou a senha');
+
+    sendSuccess(res, null, 'Senha alterada com sucesso');
+  } catch (error: any) {
+    sendError(res, error.message);
+  }
+});
+
 export default router;
