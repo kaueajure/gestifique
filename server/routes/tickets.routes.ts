@@ -368,7 +368,13 @@ router.post('/:id/attachments', ticketUpload.array('files', 5), async (req: Auth
 
     // Validate mensagem_id belongs to ticket
     if (mensagem_id) {
-      const [msgRows]: any = await pool.query('SELECT ticket_id FROM mensagens_bilhetes WHERE id = ?', [mensagem_id]);
+      const msgIdNum = Number(mensagem_id);
+      if (isNaN(msgIdNum)) {
+        await attachmentsService.deleteMultiple(files);
+        return sendError(res, 'ID da mensagem inválido.', 400);
+      }
+      
+      const [msgRows]: any = await pool.query('SELECT ticket_id FROM ticket_mensagens WHERE id = ?', [msgIdNum]);
       if (msgRows.length === 0 || msgRows[0].ticket_id !== id) {
         await attachmentsService.deleteMultiple(files);
         return sendError(res, 'A mensagem informada não pertence a este ticket.', 400);
