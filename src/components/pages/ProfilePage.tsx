@@ -27,10 +27,14 @@ export const ProfilePage = ({ currentUser, onUpdate }: ProfilePageProps) => {
     setError(null);
 
     const formData = new FormData(e.currentTarget as HTMLFormElement);
-    const data = Object.fromEntries(formData.entries());
-
+    
     try {
-      await api.patch('/profile', data);
+      const payload = {
+        nome: String(formData.get('nome') || ''),
+        telefone: String(formData.get('telefone') || '')
+      };
+
+      await api.patch('/profile', payload);
       const updated = await api.get<User>('/profile');
       onUpdate(updated);
       setSuccess('Dados de perfil atualizados com sucesso!');
@@ -95,13 +99,13 @@ export const ProfilePage = ({ currentUser, onUpdate }: ProfilePageProps) => {
                       {currentUser.foto ? (
                         <img src={currentUser.foto} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        currentUser.nome.charAt(0)
+                        (currentUser.nome || 'U').charAt(0)
                       )}
                    </div>
                 </div>
                 <div className="mt-3">
-                   <h3 className="font-bold text-slate-900 text-base leading-tight mb-0.5">{currentUser.nome}</h3>
-                   <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-3 truncate">{currentUser.email}</p>
+                   <h3 className="font-bold text-slate-900 text-base leading-tight mb-0.5">{currentUser.nome || 'Usuário'}</h3>
+                   <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-3 truncate">{currentUser.email || 'Email não informado'}</p>
                    <div className="flex flex-wrap justify-center gap-1.5">
                       <Badge variant="indigo" className="text-[9px] font-bold uppercase px-2 py-0">{currentUser.cargo || 'Membro'}</Badge>
                       {currentUser.administrador && <Badge variant="blue" className="text-[9px] font-bold uppercase px-2 py-0">Admin</Badge>}
@@ -112,7 +116,7 @@ export const ProfilePage = ({ currentUser, onUpdate }: ProfilePageProps) => {
 
            <Card className="p-4 bg-slate-900 text-white border-slate-900 shadow-lg">
               <h4 className="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 mb-3">
-                 <Building2 size={10} className="text-blue-500" /> workspace
+                 <Building2 size={10} className="text-blue-500" /> Empresa
               </h4>
               <div className="flex items-center gap-3">
                  <div className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-blue-500">
@@ -171,14 +175,14 @@ export const ProfilePage = ({ currentUser, onUpdate }: ProfilePageProps) => {
                    <Input 
                      label="Nome Completo"
                      name="nome" 
-                     defaultValue={currentUser.nome} 
+                     defaultValue={currentUser.nome || ''} 
                      required
                      placeholder="Ex: João Silva"
                    />
                    <div className="space-y-1.5 flex flex-col">
                       <label className="text-sm font-medium text-slate-700">E-mail Corporativo</label>
                       <input 
-                        value={currentUser.email} 
+                        value={currentUser.email || ''} 
                         readOnly 
                         className="h-10 bg-slate-50 border border-slate-200 rounded-lg px-3 text-sm font-medium text-slate-400 cursor-not-allowed outline-none" 
                       />
