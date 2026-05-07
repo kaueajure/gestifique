@@ -1,0 +1,207 @@
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Bell, Check, Clock, Inbox, ChevronRight } from 'lucide-react';
+import { api } from '../../lib/api';
+import { Notification, User } from '../../types';
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Badge } from './Badge';
+import { Button } from './Button';
+
+interface NotificationsDropdownProps {
+  currentUser: User;
+  onNavigate: (link: string) => void;
+}
+
+export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({ currentUser, onNavigate }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const fetchUnreadCount = useCallback(async () => {
+    try {
+      const res = await api.get<{ count: number }>('/notifications/unread-count');
+      setUnreadCount(res.count || 0);
+    } catch (err) {
+      console.error('Erro ao buscar contagem de notificações:', err);
+    }
+  }, []);
+
+  const fetchNotifications = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get<{ items: Notification[]; unread_count: number }>('/notifications?limit=10');
+      setNotifications(res.items || []);
+      setUnreadCount(res.unread_count || 0);
+    } catch (err) {
+      console.error('Erro ao buscar notificações:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 30000); // Polling 30s
+
+    return () => clearInterval(interval);
+  }, [currentUser, fetchUnreadCount]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  const toggleDropdown = () => {
+    const nextState = !isOpen;
+    setIsOpen(nextState);
+    if (nextState) {
+      fetchNotifications();
+    }
+  };
+
+  const markAsRead = async (id: number) => {
+    try {
+      await api.patch(`/notifications/${id}/read`, {});
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, lida: true } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (err) {
+      console.error('Erro ao marcar como lida:', err);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      await api.patch('/notifications/read-all', {});
+      setNotifications(prev => prev.map(n => ({ ...n, lida: true })));
+      setUnreadCount(0);
+    } catch (err) {
+      console.error('Erro ao marcar todas como lidas:', err);
+    }
+  };
+
+  const handleNotificationClick = (notification: Notification) => {
+    if (!notification.lida) {
+      markAsRead(notification.id);
+    }
+    if (notification.link) {
+      onNavigate(notification.link);
+    }
+    setIsOpen(false);
+  };
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        onClick={toggleDropdown}
+        className="relative p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all focus:outline-none"
+        title="Notificações"
+      >
+        <Bell size={20} />
+        {unreadCount > 0 && (
+          <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden animate-in fade-in zoom-in duration-200 origin-top-right">
+          <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <h3 className="font-bold text-slate-800 flex items-center gap-2">
+              Notificações
+              {unreadCount > 0 && (
+                <Badge variant="blue" className="px-1.5 py-0">
+                  {unreadCount} novas
+                </Badge>
+              )}
+            </h3>
+            {unreadCount > 0 && (
+              <button
+                onClick={markAllAsRead}
+                className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 transition-colors"
+              >
+                <Check size={14} />
+                Ler tudo
+              </button>
+            )}
+          </div>
+
+          <div className="max-h-[70vh] overflow-y-auto">
+            {loading && notifications.length === 0 ? (
+              <div className="p-8 text-center">
+                <div className="inline-block animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full mb-2"></div>
+                <p className="text-sm text-slate-400">Carregando...</p>
+              </div>
+            ) : notifications.length > 0 ? (
+              <div className="divide-y divide-slate-50">
+                {notifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    onClick={() => handleNotificationClick(notification)}
+                    className={`p-4 hover:bg-blue-50/50 cursor-pointer transition-all flex gap-3 relative group ${
+                      !notification.lida ? 'bg-blue-50/20' : ''
+                    }`}
+                  >
+                    {!notification.lida && (
+                      <div className="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-500 rounded-full"></div>
+                    )}
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between mb-1">
+                        <p className={`text-sm tracking-tight truncate pr-2 ${!notification.lida ? 'font-bold text-slate-900' : 'font-medium text-slate-600'}`}>
+                          {notification.titulo}
+                        </p>
+                        <div className="flex items-center text-[10px] text-slate-400 whitespace-nowrap mt-0.5">
+                          <Clock size={10} className="mr-1" />
+                          {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: ptBR })}
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                        {notification.mensagem}
+                      </p>
+                    </div>
+                    
+                    <div className="self-center text-slate-300 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all">
+                      <ChevronRight size={16} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-12 text-center">
+                <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
+                  <Inbox size={24} />
+                </div>
+                <p className="text-slate-500 font-medium">Nenhuma notificação</p>
+                <p className="text-xs text-slate-400 mt-1">Você está em dia com tudo!</p>
+              </div>
+            )}
+          </div>
+
+          {notifications.length > 0 && (
+            <div className="p-3 bg-slate-50/50 border-t border-slate-100 text-center">
+              <button 
+                className="text-xs font-bold text-slate-500 hover:text-blue-600 transition-colors"
+                onClick={() => setIsOpen(false)}
+              >
+                Fechar
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};

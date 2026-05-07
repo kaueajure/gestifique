@@ -143,3 +143,17 @@ export interface DashboardData {
     qtd: number;
   }>;
 }
+
+export interface Notification {
+  id: number;
+  usuario_id: number;
+  empresa_id?: number | null;
+  tipo: string;
+  titulo: string;
+  mensagem?: string | null;
+  link?: string | null;
+  lida: boolean;
+  metadata?: Record<string, unknown> | null;
+  created_at: string;
+  read_at?: string | null;
+}

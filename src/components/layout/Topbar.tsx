@@ -1,14 +1,16 @@
 import React from 'react';
-import { Search, Bell, Menu, BellDot } from 'lucide-react';
+import { Search, Menu } from 'lucide-react';
 import { User } from '../../types';
+import { NotificationsDropdown } from '../ui/NotificationsDropdown';
 
 interface TopbarProps {
   title: string;
   onMenuClick: () => void;
   currentUser: User;
+  onNavigate: (link: string) => void;
 }
 
-export const Topbar = ({ title, onMenuClick, currentUser }: TopbarProps) => {
+export const Topbar = ({ title, onMenuClick, currentUser, onNavigate }: TopbarProps) => {
   return (
     <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-8 sticky top-0 z-30">
       <div className="flex items-center gap-4">
@@ -35,10 +37,7 @@ export const Topbar = ({ title, onMenuClick, currentUser }: TopbarProps) => {
       </div>
 
       <div className="flex items-center gap-4">
-        <button className="p-2 text-slate-400 hover:bg-slate-50 hover:text-blue-600 rounded-xl transition-all relative">
-          <BellDot size={20} className="text-blue-600" />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-        </button>
+        <NotificationsDropdown currentUser={currentUser} onNavigate={onNavigate} />
 
         <div className="flex items-center gap-3 pl-4 border-l border-slate-100">
            <div className="text-right hidden sm:block">

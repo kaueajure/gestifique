@@ -76,6 +76,19 @@ export default function App() {
     return () => window.removeEventListener('api:unauthorized', handleUnauthorized as EventListener);
   }, []);
 
+  const handleNotificationNavigate = (link: string) => {
+    if (link.startsWith('ticket:')) {
+      const ticketId = parseInt(link.split(':')[1]);
+      if (!isNaN(ticketId)) {
+        setSelectedTicketId(ticketId);
+        setActiveTab('tickets');
+      }
+    } else if (link === 'tickets') {
+      setActiveTab('tickets');
+      setSelectedTicketId(null);
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setAuthError(null);
@@ -213,6 +226,7 @@ export default function App() {
             title={getPageTitle()} 
             onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} 
             currentUser={currentUser}
+            onNavigate={handleNotificationNavigate}
           />
 
           <main className="flex-1 overflow-y-auto custom-scrollbar">

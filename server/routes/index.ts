@@ -8,6 +8,7 @@ import  profileRoutes from  './profile.routes.js';
 import  logsRoutes from  './logs.routes.js';
 import  attachmentRoutes from  './attachments.routes.js';
 import  reportsRoutes from  './reports.routes.js';
+import  notificationsRoutes from  './notifications.routes.js';
 
 const router = Router();
 
@@ -20,5 +21,6 @@ router.use('/profile', profileRoutes);
 router.use('/logs', logsRoutes);
 router.use('/attachments', attachmentRoutes);
 router.use('/reports', reportsRoutes);
+router.use('/notifications', notificationsRoutes);
 
 export default router;

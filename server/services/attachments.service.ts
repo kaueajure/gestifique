@@ -1,5 +1,6 @@
 import pool from '../db/connection.js';
 import { promises as fs } from 'fs';
+import notificationsService from './notifications.service.js';
 
 export interface AttachmentData {
   id: number;
@@ -73,8 +74,57 @@ class AttachmentsService {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [ticket_id, mensagem_id || null, usuario_id, empresa_id, nome_original, nome_arquivo, caminho, mime_type, tamanho_bytes, interno ? 1 : 0]
     );
+    const attachmentId = result.insertId;
+
+    // Notificações
+    try {
+      const [ticketRows]: any = await pool.query('SELECT * FROM tickets WHERE id = ?', [ticket_id]);
+      const ticket = ticketRows[0];
+
+      if (ticket) {
+        const [author]: any = await pool.query('SELECT nome FROM usuarios WHERE id = ?', [usuario_id]);
+        const authorName = author[0]?.nome || 'Alguém';
+
+        const recipients = new Set<number>();
+        
+        // 1. Notificar solicitante se não for ele e não for interno
+        if (!interno && ticket.usuario_id && ticket.usuario_id !== usuario_id) {
+          recipients.add(ticket.usuario_id);
+        }
+
+        // 2. Notificar responsável se não for ele
+        if (ticket.responsavel_id && ticket.responsavel_id !== usuario_id) {
+           recipients.add(ticket.responsavel_id);
+        }
+
+        // 3. Se for interno, notificar admins/devs da empresa (que não sejam o autor)
+        if (interno) {
+           const [admins]: any = await pool.query(
+             'SELECT id FROM usuarios WHERE (empresa_id = ? AND administrador = 1) OR desenvolvedor = 1',
+             [ticket.empresa_id]
+           );
+           admins.forEach((a: any) => {
+             if (a.id !== usuario_id) recipients.add(a.id);
+           });
+        }
+
+        const recipientIds = Array.from(recipients);
+        if (recipientIds.length > 0) {
+          await notificationsService.createMany(recipientIds, {
+            empresa_id: ticket.empresa_id,
+            tipo: 'TICKET_ATTACHMENT',
+            titulo: interno ? 'Anexo interno enviado' : 'Novo anexo no chamado',
+            mensagem: `${authorName} enviou o arquivo: ${nome_original}`,
+            link: `ticket:${ticket_id}`,
+            metadata: { ticketId: ticket_id, attachmentId }
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Erro ao notificar novo anexo:', e);
+    }
     
-    return result.insertId;
+    return attachmentId;
   }
 
   async delete(id: number): Promise<boolean> {

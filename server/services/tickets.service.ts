@@ -1,4 +1,5 @@
 import  pool from  '../db/connection.js';
+import notificationsService from './notifications.service.js';
 
 class TicketsService {
   async list(filters: any) {
@@ -60,7 +61,37 @@ class TicketsService {
       'INSERT INTO tickets (empresa_id, usuario_id, titulo, descricao, prioridade, categoria) VALUES (?, ?, ?, ?, ?, ?)',
       [empresa_id, usuario_id, titulo, descricao, prioridade || 'media', categoria || 'suporte']
     );
-    return result.insertId;
+    const ticketId = result.insertId;
+
+    // Notificações: Admins e Devs
+    try {
+      const [admins]: any = await pool.query(
+        'SELECT id FROM usuarios WHERE (empresa_id = ? AND administrador = 1) OR desenvolvedor = 1',
+        [empresa_id]
+      );
+      
+      const adminIds = admins
+        .filter((a: any) => a.id !== usuario_id)
+        .map((a: any) => a.id);
+
+      const [author]: any = await pool.query('SELECT nome FROM usuarios WHERE id = ?', [usuario_id]);
+      const authorName = author[0]?.nome || 'Usuário';
+
+      if (adminIds.length > 0) {
+        await notificationsService.createMany(adminIds, {
+          empresa_id,
+          tipo: 'TICKET_CREATED',
+          titulo: 'Novo atendimento criado',
+          mensagem: `${authorName} abriu o chamado #${ticketId}: ${titulo}`,
+          link: `ticket:${ticketId}`,
+          metadata: { ticketId }
+        });
+      }
+    } catch (e) {
+      console.error('Erro ao notificar criação de ticket:', e);
+    }
+
+    return ticketId;
   }
 
   async getById(id: number) {
@@ -83,8 +114,11 @@ class TicketsService {
   }
 
   async update(id: number, data: any) {
+    const oldTicket = await this.getById(id);
+    if (!oldTicket) return;
+
     const fields: string[] = [];
-    const params: any[] = [];
+    const paramsList: any[] = [];
 
     // Finalizado_em logic
     if (data.status) {
@@ -98,14 +132,60 @@ class TicketsService {
     Object.keys(data).forEach(key => {
       if (['titulo', 'descricao', 'status', 'prioridade', 'responsavel_id', 'categoria', 'origem', 'prazo_sla'].includes(key)) {
         fields.push(`${key} = ?`);
-        params.push(data[key]);
+        paramsList.push(data[key]);
       }
     });
 
     if (fields.length === 0) return;
 
-    params.push(id);
-    await pool.query(`UPDATE tickets SET ${fields.join(', ')} WHERE id = ?`, params);
+    paramsList.push(id);
+    await pool.query(`UPDATE tickets SET ${fields.join(', ')} WHERE id = ?`, paramsList);
+
+    // Notificações de Status ou Responsável
+    try {
+      if (data.responsavel_id && data.responsavel_id !== oldTicket.responsavel_id) {
+        await notificationsService.create({
+          usuario_id: Number(data.responsavel_id),
+          empresa_id: oldTicket.empresa_id,
+          tipo: 'TICKET_ASSIGNED',
+          titulo: 'Chamado atribuído a você',
+          mensagem: `Você é o novo responsável pelo chamado #${id}: ${oldTicket.titulo}`,
+          link: `ticket:${id}`
+        });
+      }
+
+      if (data.status && data.status !== oldTicket.status) {
+        const translateStatus: any = { aberto: 'Aberto', em_andamento: 'Em Andamento', aguardando_cliente: 'Aguardando Cliente', resolvido: 'Resolvido', fechado: 'Fechado' };
+        const newStatusText = translateStatus[data.status] || data.status;
+
+        // Notificar cliente
+        if (oldTicket.usuario_id) {
+          await notificationsService.create({
+            usuario_id: oldTicket.usuario_id,
+            empresa_id: oldTicket.empresa_id,
+            tipo: 'TICKET_STATUS_CHANGED',
+            titulo: 'Status atualizado',
+            mensagem: `O status do seu chamado #${id} mudou para: ${newStatusText}`,
+            link: `ticket:${id}`
+          });
+        }
+
+        // Notificar responsável (se existir e for diferente do cliente)
+        const currentRespId = data.responsavel_id || oldTicket.responsavel_id;
+        if (currentRespId && currentRespId !== oldTicket.usuario_id) {
+          await notificationsService.create({
+            usuario_id: Number(currentRespId),
+            empresa_id: oldTicket.empresa_id,
+            tipo: 'TICKET_STATUS_CHANGED',
+            titulo: 'Status atualizado',
+            mensagem: `O chamado #${id} sob sua responsabilidade mudou para: ${newStatusText}`,
+            link: `ticket:${id}`
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Erro ao notificar atualização de ticket:', e);
+    }
   }
 
   async getMessages(ticketId: number, includeInternal: boolean) {
@@ -129,8 +209,56 @@ class TicketsService {
       'INSERT INTO ticket_mensagens (ticket_id, usuario_id, mensagem, interno) VALUES (?, ?, ?, ?)',
       [ticket_id, usuario_id, mensagem, interno ? 1 : 0]
     );
+    const messageId = result.insertId;
     await pool.query('UPDATE tickets SET updated_at = NOW() WHERE id = ?', [ticket_id]);
-    return result.insertId;
+
+    // Notificações
+    try {
+      const ticket = await this.getById(ticket_id);
+      if (ticket) {
+        const [author]: any = await pool.query('SELECT nome FROM usuarios WHERE id = ?', [usuario_id]);
+        const authorName = author[0]?.nome || 'Alguém';
+
+        const recipients = new Set<number>();
+        
+        // 1. Notificar solicitante se não for ele e não for interno
+        if (!interno && ticket.usuario_id && ticket.usuario_id !== usuario_id) {
+          recipients.add(ticket.usuario_id);
+        }
+
+        // 2. Notificar responsável se não for ele
+        if (ticket.responsavel_id && ticket.responsavel_id !== usuario_id) {
+           recipients.add(ticket.responsavel_id);
+        }
+
+        // 3. Se for interno, notificar admins/devs da empresa (que não sejam o autor)
+        if (interno) {
+           const [admins]: any = await pool.query(
+             'SELECT id FROM usuarios WHERE (empresa_id = ? AND administrador = 1) OR desenvolvedor = 1',
+             [ticket.empresa_id]
+           );
+           admins.forEach((a: any) => {
+             if (a.id !== usuario_id) recipients.add(a.id);
+           });
+        }
+
+        const recipientIds = Array.from(recipients);
+        if (recipientIds.length > 0) {
+          await notificationsService.createMany(recipientIds, {
+            empresa_id: ticket.empresa_id,
+            tipo: 'TICKET_MESSAGE',
+            titulo: interno ? 'Nota interna no chamado' : 'Nova resposta no chamado',
+            mensagem: `${authorName}: ${mensagem.substring(0, 100)}${mensagem.length > 100 ? '...' : ''}`,
+            link: `ticket:${ticket_id}`,
+            metadata: { ticketId: ticket_id, messageId }
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Erro ao notificar nova mensagem:', e);
+    }
+
+    return messageId;
   }
 }
 

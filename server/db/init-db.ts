@@ -138,6 +138,29 @@ async function initDB() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    // Notificacoes
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS notificacoes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        usuario_id INT NOT NULL,
+        empresa_id INT NULL,
+        tipo VARCHAR(80) NOT NULL,
+        titulo VARCHAR(180) NOT NULL,
+        mensagem TEXT NULL,
+        link VARCHAR(255) NULL,
+        lida TINYINT(1) DEFAULT 0,
+        metadata JSON NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        read_at TIMESTAMP NULL,
+        KEY idx_notificacoes_usuario (usuario_id),
+        KEY idx_notificacoes_empresa (empresa_id),
+        KEY idx_notificacoes_lida (lida),
+        KEY idx_notificacoes_created_at (created_at),
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+        FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
     console.log('[BOOT] 📚 Tabelas validadas com sucesso.');
 
     // Seed Initial Developer
