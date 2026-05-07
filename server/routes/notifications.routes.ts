@@ -54,7 +54,7 @@ router.patch('/read-all', async (req, res) => {
     await notificationsService.markAllAsRead(userId);
     sendSuccess(res, null, 'Notificações marcadas como lidas');
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Erro ao marcar tarefas como lidas';
+    const message = error instanceof Error ? error.message : 'Erro ao marcar notificações como lidas';
     sendError(res, message);
   }
 });
@@ -71,7 +71,7 @@ router.patch('/:id/read', async (req, res) => {
     }
     sendSuccess(res, null, 'Notificação marcada como lida');
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Erro ao marcar as lida';
+    const message = error instanceof Error ? error.message : 'Erro ao marcar notificação como lida';
     sendError(res, message);
   }
 });

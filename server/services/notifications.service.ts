@@ -20,7 +20,7 @@ interface NotificationRow extends RowDataPacket {
   mensagem: string | null;
   link: string | null;
   lida: number;
-  metadata: string | any | null;
+  metadata: string | Record<string, unknown> | null;
   created_at: string | Date;
   read_at: string | Date | null;
 }

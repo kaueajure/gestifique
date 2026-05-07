@@ -7,6 +7,14 @@ import { ptBR } from 'date-fns/locale';
 import { Badge } from './Badge';
 import { Button } from './Button';
 
+type UnreadCountResponse =
+  | { count: number }
+  | { success?: boolean; data?: { count: number } };
+
+type NotificationsListResponse =
+  | { items: Notification[]; unread_count: number }
+  | { success?: boolean; data?: { items: Notification[]; unread_count: number } };
+
 interface NotificationsDropdownProps {
   currentUser: User;
   onNavigate: (link: string) => void;
@@ -21,8 +29,15 @@ export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({ cu
 
   const fetchUnreadCount = useCallback(async () => {
     try {
-      const res = await api.get<any>('/notifications/unread-count');
-      const count = res?.data?.count !== undefined ? res.data.count : res?.count;
+      const res = await api.get<UnreadCountResponse>('/notifications/unread-count');
+      let count = 0;
+      if (res) {
+        if ('count' in res) {
+          count = res.count;
+        } else if (res.success && res.data) {
+          count = res.data.count;
+        }
+      }
       setUnreadCount(count || 0);
     } catch (err) {
       console.error('Erro ao buscar contagem de notificações:', err);
@@ -32,10 +47,22 @@ export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({ cu
   const fetchNotifications = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get<any>('/notifications?limit=10');
-      const data = res?.data || res;
-      setNotifications(data.items || []);
-      setUnreadCount(data.unread_count || 0);
+      const res = await api.get<NotificationsListResponse>('/notifications?limit=10');
+      let items: Notification[] = [];
+      let unread_count = 0;
+
+      if (res) {
+        if ('items' in res) {
+          items = res.items;
+          unread_count = res.unread_count;
+        } else if (res.success && res.data) {
+          items = res.data.items;
+          unread_count = res.data.unread_count;
+        }
+      }
+
+      setNotifications(Array.isArray(items) ? items : []);
+      setUnreadCount(unread_count || 0);
     } catch (err) {
       console.error('Erro ao buscar notificações:', err);
     } finally {
