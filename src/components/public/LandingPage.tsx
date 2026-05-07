@@ -108,10 +108,10 @@ export const LandingPage = ({ onLogin }: LandingPageProps) => {
             <div className="space-y-8">
               <div className="space-y-6">
                 <h1 className="text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1]">
-                  Centralize tickets e comunicação em <span className="text-blue-600">um único lugar.</span>
+                  Centralize tickets, atendimentos e comunicação em <span className="text-blue-600">um único lugar.</span>
                 </h1>
                 <p className="text-lg text-slate-500 font-medium leading-relaxed max-w-xl">
-                  A Gestifique ajuda empresas a organizar demandas, acelerar respostas e manter equipes e clientes conectados em uma operação clara e rastreável.
+                  A plataforma definitiva para organizar demandas, acelerar respostas e conectar sua equipe em uma operação clara e rastreável.
                 </p>
               </div>
 
@@ -131,17 +131,17 @@ export const LandingPage = ({ onLogin }: LandingPageProps) => {
               </div>
 
               <div className="flex items-center gap-10 pt-6 border-t border-slate-100">
-                <div className="space-y-1">
-                  <div className="text-xl font-bold tracking-tight">96%</div>
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">SLA Cumprido</div>
+                <div className="space-y-0.5">
+                  <div className="text-lg font-bold tracking-tight text-slate-700">96%</div>
+                  <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">SLA Cumprido</div>
                 </div>
-                <div className="space-y-1">
-                  <div className="text-xl font-bold tracking-tight">4min</div>
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tempo Médio</div>
+                <div className="space-y-0.5">
+                  <div className="text-lg font-bold tracking-tight text-slate-700">4min</div>
+                  <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Tempo Médio</div>
                 </div>
-                <div className="space-y-1">
-                  <div className="text-xl font-bold tracking-tight">24/7</div>
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Operação Ativa</div>
+                <div className="space-y-0.5">
+                  <div className="text-lg font-bold tracking-tight text-slate-700">24/7</div>
+                  <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Operação Ativa</div>
                 </div>
               </div>
             </div>
@@ -186,39 +186,43 @@ export const LandingPage = ({ onLogin }: LandingPageProps) => {
 
                     <div className="grid grid-cols-3 gap-3">
                       {[
-                        { label: 'Tickets Abertos', val: '124', color: 'text-blue-600' },
-                        { label: 'SLA Médio', val: '98%', color: 'text-emerald-600' },
-                        { label: 'Tempo Resposta', val: '4m', color: 'text-slate-900' }
+                        { label: 'Tickets Abertos', val: '12', color: 'text-blue-600' },
+                        { label: 'Em andamento', val: '8', color: 'text-amber-600' },
+                        { label: 'Resolvidos', val: '142', color: 'text-emerald-600' }
                       ].map((card, i) => (
-                        <div key={i} className="bg-slate-50/50 rounded-xl border border-slate-100 p-3 space-y-1">
-                          <div className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{card.label}</div>
-                          <div className={`text-lg font-bold ${card.color}`}>{card.val}</div>
+                        <div key={i} className="bg-slate-50/50 rounded-xl border border-slate-100 p-3 space-y-0.5">
+                          <div className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">{card.label}</div>
+                          <div className={`text-base font-bold ${card.color}`}>{card.val}</div>
                         </div>
                       ))}
                     </div>
 
                     <div className="border border-slate-100 rounded-xl overflow-hidden">
-                      <table className="w-full text-[10px]">
+                      <table className="w-full text-[9px]">
                         <thead>
                           <tr className="bg-slate-50 border-b border-slate-100">
-                            <th className="px-3 py-2 text-left font-bold text-slate-400 uppercase">Ticket</th>
-                            <th className="px-3 py-2 text-left font-bold text-slate-400 uppercase">Status</th>
-                            <th className="px-3 py-2 text-left font-bold text-slate-400 uppercase">Prioridade</th>
+                            <th className="px-3 py-1.5 text-left font-bold text-slate-400 uppercase">Ticket</th>
+                            <th className="px-3 py-1.5 text-left font-bold text-slate-400 uppercase">Status</th>
+                            <th className="px-3 py-1.5 text-left font-bold text-slate-400 uppercase">Responsável</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
                           {[
-                            { title: 'Falha no acesso ao portal', status: 'Em andamento', priority: 'Alta', pColor: 'text-red-500' },
-                            { title: 'Solicitação de suporte técnico', status: 'Aguardando', priority: 'Média', pColor: 'text-amber-500' },
-                            { title: 'Dúvida sobre cobrança', status: 'Resolvido', priority: 'Baixa', pColor: 'text-slate-400' },
-                            { title: 'Erro de integração API', status: 'Em análise', priority: 'Alta', pColor: 'text-red-500' }
+                            { title: 'Falha no acesso ao portal', status: 'Em andamento', owner: 'Carlos M.' },
+                            { title: 'Solicitação de suporte', status: 'Aguardando', owner: 'Ana P.' },
+                            { title: 'Dúvida sobre permissões', status: 'Resolvido', owner: 'Roberto S.' },
+                            { title: 'Erro de integração', status: 'Em análise', owner: 'Juliana F.' }
                           ].map((row, i) => (
                             <tr key={i}>
-                              <td className="px-3 py-2.5 font-semibold text-slate-700">{row.title}</td>
-                              <td className="px-3 py-2.5">
-                                <span className="px-2 py-0.5 bg-slate-100 rounded-full text-slate-500">{row.status}</span>
+                              <td className="px-3 py-2 font-semibold text-slate-700 truncate max-w-[100px]">{row.title}</td>
+                              <td className="px-3 py-2">
+                                <span className={`px-1.5 py-0.5 rounded-full text-[8px] font-bold ${
+                                  row.status === 'Resolvido' ? 'bg-emerald-50 text-emerald-600' : 
+                                  row.status === 'Em andamento' ? 'bg-blue-50 text-blue-600' : 
+                                  'bg-slate-100 text-slate-500'
+                                }`}>{row.status}</span>
                               </td>
-                              <td className={`px-3 py-2.5 font-bold ${row.pColor}`}>{row.priority}</td>
+                              <td className="px-3 py-2 text-slate-500">{row.owner}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -259,12 +263,12 @@ export const LandingPage = ({ onLogin }: LandingPageProps) => {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { icon: Ticket, title: 'Gestão de Tickets', desc: 'Centralize chamados internos e externos com priorização clara e fluxos organizados.' },
-              { icon: MessagesSquare, title: 'Comunicação Interna', desc: 'Registre notas e discussões internas nos tickets para manter o contexto da equipe.' },
-              { icon: Users, title: 'Atendimento ao Cliente', desc: 'Ofereça transparência aos seus clientes com acompanhamento real de solicitações.' },
-              { icon: LayoutDashboard, title: 'Dashboard de Controle', desc: 'Monitore métricas vitais como tempo de resposta e volume de atendimentos.' },
-              { icon: Building2, title: 'Gestão Multi-empresa', desc: 'Estrutura preparada para gerenciar diferentes unidades de negócio ou clientes corporativos.' },
-              { icon: History, title: 'Rastreabilidade Total', desc: 'Histórico completo de cada interação para auditoria e controle de qualidade.' }
+              { icon: Ticket, title: 'Gestão de Tickets', desc: 'Centralize chamados com priorização clara e fluxos organizados.' },
+              { icon: MessagesSquare, title: 'Comunicação Interna', desc: 'Notas e discussões internas para manter o contexto da equipe.' },
+              { icon: Users, title: 'Atendimento ao Cliente', desc: 'Ofereça transparência com acompanhamento real de solicitações.' },
+              { icon: LayoutDashboard, title: 'Dashboard de Controle', desc: 'Monitore métricas vitais como tempo de resposta e volume.' },
+              { icon: Building2, title: 'Gestão Multi-empresa', desc: 'Gerencie diferentes unidades de negócio ou clientes corporativos.' },
+              { icon: History, title: 'Rastreabilidade Total', desc: 'Histórico completo de cada interação para auditoria e controle.' }
             ].map((feature, i) => (
               <div 
                 key={i}
@@ -289,13 +293,14 @@ export const LandingPage = ({ onLogin }: LandingPageProps) => {
             <p className="text-slate-500 font-medium">Uma estrutura lógica que traz ordem ao atendimento da sua empresa.</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-8 relative">
+            <div className="hidden lg:block absolute top-1/2 left-1/4 right-1/4 h-px bg-slate-200 -translate-y-1/2 z-0"></div>
             {[
-              { num: '01', title: 'Receba chamados', desc: 'Solicitações chegam de forma organizada, com todas as informações necessárias para o atendimento.' },
-              { num: '02', title: 'Organize prioridades', desc: 'Sua equipe tria as demandas e define o que deve ser resolvido primeiro com base no SLA.' },
-              { num: '03', title: 'Resolva com histórico', desc: 'A resolução é registrada com contexto total, facilitando consultas futuras e auditoria.' }
+              { num: '01', title: 'Receba chamados', desc: 'Solicitações chegam de forma organizada, com todas as informações necessárias.' },
+              { num: '02', title: 'Organize prioridades', desc: 'Sua equipe tria as demandas e define o que deve ser resolvido primeiro.' },
+              { num: '03', title: 'Resolva com histórico', desc: 'A resolução é registrada com contexto total, facilitando consultas futuras.' }
             ].map((step, i) => (
-              <div key={i} className="p-8 bg-white rounded-2xl border border-slate-100 space-y-6">
+              <div key={i} className="p-8 bg-white rounded-2xl border border-slate-100 space-y-6 relative z-10">
                 <div className="text-2xl font-bold text-blue-600">{step.num}</div>
                 <div className="space-y-2">
                   <h3 className="text-lg font-bold">{step.title}</h3>
@@ -339,7 +344,7 @@ export const LandingPage = ({ onLogin }: LandingPageProps) => {
                   onClick={onLogin}
                   className="h-11 px-6 bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-800 transition-all flex items-center gap-2 text-sm"
                 >
-                  Saiba mais <ArrowRight size={16} />
+                  Acessar plataforma <ArrowRight size={16} />
                 </button>
               </div>
             </div>
@@ -412,11 +417,12 @@ export const LandingPage = ({ onLogin }: LandingPageProps) => {
           </div>
 
           <div className="space-y-4">
-            <h4 className="font-bold text-slate-900">Plataforma</h4>
+            <h4 className="font-bold text-slate-900">Navegação</h4>
             <div className="flex flex-col gap-3 text-slate-500">
               <a href="#recursos" className="hover:text-blue-600">Recursos</a>
               <a href="#como-funciona" className="hover:text-blue-600">Como funciona</a>
               <a href="#benefícios" className="hover:text-blue-600">Benefícios</a>
+              <button onClick={onLogin} className="text-left hover:text-blue-600">Entrar</button>
             </div>
           </div>
 
