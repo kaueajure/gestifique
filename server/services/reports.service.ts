@@ -237,15 +237,21 @@ class ReportsService {
   }
 
   async getDashboardStats(user: any) {
-    const isDev = user.desenvolvedor;
+    const isDev = !!user.desenvolvedor;
+    const userId = user.id;
     const empresaId = user.empresa_id;
 
     let whereClause = '';
     let params: any[] = [];
 
     if (!isDev) {
-      whereClause = 'WHERE empresa_id = ?';
-      params.push(empresaId);
+      if (empresaId) {
+        whereClause = 'WHERE empresa_id = ? OR usuario_id = ?';
+        params.push(empresaId, userId);
+      } else {
+        whereClause = 'WHERE usuario_id = ?';
+        params.push(userId);
+      }
     }
 
     // 1. Counts
@@ -257,13 +263,13 @@ class ReportsService {
         SUM(CASE WHEN status = 'aguardando_cliente' THEN 1 ELSE 0 END) as aguardando_cliente,
         SUM(CASE WHEN status = 'resolvido' THEN 1 ELSE 0 END) as resolvido,
         SUM(CASE WHEN status = 'fechado' THEN 1 ELSE 0 END) as fechado,
-        SUM(CASE WHEN prioridade = 'urgente' THEN 1 ELSE 0 END) as urgente,
+        SUM(CASE WHEN prioridade = 'urgente' THEN 1 ELSE 0 END) as urgent,
         AVG(CASE WHEN status IN ('resolvido', 'fechado') AND finalizado_em IS NOT NULL THEN TIMESTAMPDIFF(HOUR, created_at, finalizado_em) ELSE NULL END) as avg_res
       FROM tickets
       ${whereClause}
     `, params);
 
-    const counts = countsRows[0];
+    const counts = countsRows[0] || {};
     
     // 2. By Status Chart
     const [byStatus]: any = await pool.query(`
@@ -284,21 +290,35 @@ class ReportsService {
 
     // 4. Recent Tickets
     const [recentTickets]: any = await pool.query(`
-      SELECT id, titulo, status, prioridade, created_at, (SELECT nome FROM usuarios WHERE id = tickets.usuario_id) as cliente_nome
-      FROM tickets
-      ${whereClause}
-      ORDER BY created_at DESC
+      SELECT t.id, t.titulo, t.status, t.prioridade, t.created_at, u.nome as cliente_nome
+      FROM tickets t
+      LEFT JOIN usuarios u ON t.usuario_id = u.id
+      ${whereClause.replace(/empresa_id/g, 't.empresa_id').replace(/usuario_id/g, 't.usuario_id')}
+      ORDER BY t.created_at DESC
       LIMIT 5
     `, params);
 
-    // 5. Recent Activities (logs_sistema)
+    // 5. Recent Activities (logs_sistema) - Consistent logic with logs.service
+    let logWhere = 'WHERE 1=1';
+    let logParams = [];
+    if (!isDev) {
+      if (empresaId) {
+        logWhere += ' AND (l.empresa_id = ? OR l.usuario_id = ?)';
+        logParams.push(empresaId, userId);
+      } else {
+        logWhere += ' AND l.usuario_id = ?';
+        logParams.push(userId);
+      }
+    }
+
     const [recentActivities]: any = await pool.query(`
-      SELECT id, acao, created_at, (SELECT nome FROM usuarios WHERE id = logs_sistema.usuario_id) as usuario_nome
-      FROM logs_sistema
-      ${isDev ? '' : 'WHERE empresa_id = ?'}
-      ORDER BY created_at DESC
+      SELECT l.id, l.acao, l.created_at, u.nome as usuario_nome
+      FROM logs_sistema l
+      LEFT JOIN usuarios u ON l.usuario_id = u.id
+      ${logWhere}
+      ORDER BY l.created_at DESC
       LIMIT 5
-    `, isDev ? [] : [empresaId]);
+    `, logParams);
 
     return {
       counts: {

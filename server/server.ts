@@ -37,6 +37,14 @@ async function startServer() {
   // API Routes
   app.use('/api', apiRoutes);
 
+  // API 404 Fallback
+  app.use('/api', (req, res) => {
+    res.status(404).json({
+      success: false,
+      message: `Rota API não encontrada: ${req.originalUrl}`
+    });
+  });
+
   // Health Checks
   app.get('/health', (req, res) => {
     res.json({ success: true, status: 'UP', timestamp: new Date().toISOString() });

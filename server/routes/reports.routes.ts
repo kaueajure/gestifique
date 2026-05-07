@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import reportsService from '../services/reports.service.js';
+import reportsService, { ReportFilters } from '../services/reports.service.js';
 import { authMiddleware, AuthRequest } from '../middlewares/auth.js';
 import { isAdmin } from '../middlewares/permissions.js';
 import { sendSuccess, sendError } from '../utils/response.js';
@@ -16,12 +16,12 @@ router.get('/summary', async (req: AuthRequest, res) => {
 
     const { start_date, end_date, empresa_id, responsavel_id, status, prioridade } = req.query;
 
-    const filters: any = {
-      start_date,
-      end_date,
+    const filters: ReportFilters = {
+      start_date: start_date as string | undefined,
+      end_date: end_date as string | undefined,
       responsavel_id: responsavel_id ? parseInt(responsavel_id as string) : undefined,
-      status,
-      prioridade
+      status: status as string | undefined,
+      prioridade: prioridade as string | undefined
     };
 
     // Permission check for empresa_id

@@ -63,13 +63,25 @@ router.post('/', async (req: AuthRequest, res) => {
     const { titulo, descricao, prioridade, categoria } = req.body;
     if (!titulo) return sendError(res, 'Título é obrigatório', 400);
 
+    const targetEmpresaId = currentUser.desenvolvedor && req.body.empresa_id
+      ? Number(req.body.empresa_id)
+      : currentUser.empresa_id;
+
+    if (!targetEmpresaId) {
+      if (currentUser.desenvolvedor) {
+        return sendError(res, 'Selecione uma empresa para abrir o atendimento.', 400);
+      } else {
+        return sendError(res, 'Sua conta não possui empresa vinculada para abrir atendimento.', 400);
+      }
+    }
+
     const ticketId = await ticketsService.create({
-      empresa_id: currentUser.empresa_id,
+      empresa_id: targetEmpresaId,
       usuario_id: currentUser.id,
       titulo, descricao, prioridade, categoria
     });
 
-    await logSystemAction(req, currentUser.id, currentUser.empresa_id, 'TICKET_CREATE', `Novo chamado criado: #${ticketId}`);
+    await logSystemAction(req, currentUser.id, targetEmpresaId, 'TICKET_CREATE', `Novo chamado criado: #${ticketId}`);
     
     sendSuccess(res, { id: ticketId }, 'Ticket aberto com sucesso', 201);
   } catch (error: unknown) {

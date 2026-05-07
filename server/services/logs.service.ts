@@ -17,81 +17,61 @@ class LogsService {
 
     const offset = (page - 1) * limit;
 
-    let query = `
-      SELECT l.*, u.nome as usuario_nome, e.nome as empresa_nome
+    let queryBase = `
       FROM logs_sistema l
       LEFT JOIN usuarios u ON l.usuario_id = u.id
       LEFT JOIN empresas e ON l.empresa_id = e.id
       WHERE 1=1
     `;
-    let countQuery = `SELECT COUNT(*) as total FROM logs_sistema l WHERE 1=1`;
     const params: any[] = [];
-    const countParams: any[] = [];
 
+    // ACL Logic
     if (!is_dev) {
-      const filter = ' AND l.empresa_id = ?';
-      query += filter;
-      countQuery += filter;
-      params.push(empresa_id);
-      countParams.push(empresa_id);
+      if (empresa_id) {
+        queryBase += ' AND (l.empresa_id = ? OR l.usuario_id = ?)';
+        params.push(empresa_id, user_id);
+      } else {
+        queryBase += ' AND l.usuario_id = ?';
+        params.push(user_id);
+      }
     } else if (company_id) {
-      const filter = ' AND l.empresa_id = ?';
-      query += filter;
-      countQuery += filter;
+      queryBase += ' AND l.empresa_id = ?';
       params.push(company_id);
-      countParams.push(company_id);
     }
 
-    if (user_id) {
-      const filter = ' AND l.usuario_id = ?';
-      query += filter;
-      countQuery += filter;
-      params.push(user_id);
-      countParams.push(user_id);
+    if (user_id && !(!is_dev && !empresa_id)) { // Already handled in ACL if !is_dev
+      if (is_dev) {
+        queryBase += ' AND l.usuario_id = ?';
+        params.push(user_id);
+      }
     }
 
     if (action) {
-      const filter = ' AND l.acao = ?';
-      query += filter;
-      countQuery += filter;
+      queryBase += ' AND l.acao = ?';
       params.push(action);
-      countParams.push(action);
     }
 
     if (search) {
-      const filter = ' AND (l.descricao LIKE ? OR l.acao LIKE ? OR u.nome LIKE ? OR e.nome LIKE ?)';
-      query += filter;
-      countQuery += `
-        LEFT JOIN usuarios u ON l.usuario_id = u.id
-        LEFT JOIN empresas e ON l.empresa_id = e.id
-        ${filter}
-      `;
+      queryBase += ' AND (l.descricao LIKE ? OR l.acao LIKE ? OR u.nome LIKE ? OR e.nome LIKE ?)';
       const searchVal = `%${search}%`;
       params.push(searchVal, searchVal, searchVal, searchVal);
-      countParams.push(searchVal, searchVal, searchVal, searchVal);
     }
 
     if (start_date) {
-      const filter = ' AND l.created_at >= ?';
-      query += filter;
-      countQuery += filter;
-      params.push(start_date);
-      countParams.push(start_date);
+      queryBase += ' AND l.created_at >= ?';
+      params.push(`${start_date} 00:00:00`);
     }
 
     if (end_date) {
-      const filter = ' AND l.created_at <= ?';
-      query += filter;
-      countQuery += filter;
-      params.push(end_date);
-      countParams.push(end_date);
+      queryBase += ' AND l.created_at <= ?';
+      params.push(`${end_date} 23:59:59`);
     }
 
-    query += ' ORDER BY l.created_at DESC LIMIT ? OFFSET ?';
-    params.push(Number(limit), Number(offset));
+    const countQuery = `SELECT COUNT(*) as total ${queryBase}`;
+    const [[{ total }]]: any = await pool.query(countQuery, params);
 
-    const [[{ total }]]: any = await pool.query(countQuery, countParams);
-    const [rows]: any = await pool.query(query, params);
+    const selectQuery = `SELECT l.*, u.nome as usuario_nome, e.nome as empresa_nome ${queryBase} ORDER BY l.created_at DESC LIMIT ? OFFSET ?`;
+    const [rows]: any = await pool.query(selectQuery, [...params, Number(limit), Number(offset)]);
 
     return {
       items: rows,

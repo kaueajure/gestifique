@@ -161,7 +161,42 @@ async function initDB() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
-    console.log('[BOOT] 📚 Tabelas validadas com sucesso.');
+    console.log('[BOOT] 📚 Tabelas base validadas. Iniciando migrações de colunas...');
+
+    // Migrações Horizontais (Garantir colunas novas em bancos antigos)
+    async function ensureColumn(table: string, column: string, definition: string) {
+      const [cols]: any = await connection.query(`
+        SELECT COUNT(*) as count 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+        AND TABLE_NAME = ? 
+        AND COLUMN_NAME = ?
+      `, [table, column]);
+      
+      if (cols[0].count === 0) {
+        console.log(`[MIGRATE] ➕ Adicionando coluna ${column} na tabela ${table}...`);
+        await connection.query(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+      }
+    }
+
+    // Tickets Migrations
+    await ensureColumn('tickets', 'prazo_sla', 'DATETIME NULL');
+    await ensureColumn('tickets', 'finalizado_em', 'DATETIME NULL');
+    await ensureColumn('tickets', 'origem', 'VARCHAR(50) NULL');
+    await ensureColumn('tickets', 'responsavel_id', 'INT NULL');
+    
+    // Status enum check/update
+    await connection.query(`
+      ALTER TABLE tickets MODIFY status ENUM('aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado') DEFAULT 'aberto'
+    `);
+
+    // Ticket Mensagens / Anexos Migrations
+    await ensureColumn('ticket_mensagens', 'interno', 'TINYINT(1) DEFAULT 0');
+    await ensureColumn('ticket_mensagens', 'anexo', 'VARCHAR(255) NULL');
+    await ensureColumn('logs_sistema', 'ip', 'VARCHAR(45) NULL');
+    await ensureColumn('logs_sistema', 'user_agent', 'TEXT NULL');
+
+    console.log('[BOOT] ✅ Estrutura do banco de dados atualizada.');
 
     // Seed Initial Developer
     const [devs]: any = await connection.query('SELECT id FROM usuarios WHERE desenvolvedor = 1 LIMIT 1');

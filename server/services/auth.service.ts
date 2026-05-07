@@ -34,7 +34,7 @@ class AuthService {
 
     const payload = {
       id: user.id,
-      empresa_id: user.id === 1 ? null : user.empresa_id, // System dev id 1 bypass
+      empresa_id: user.empresa_id,
       nome: user.nome,
       email: user.email,
       administrador: !!user.administrador,

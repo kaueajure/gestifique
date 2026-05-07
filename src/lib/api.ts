@@ -33,7 +33,21 @@ class ApiService {
       throw new Error('Sessão expirada. Faça login novamente.');
     }
 
-    const result: ApiResponse<T> = await response.json();
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      const text = await response.text();
+      if (text.trim().startsWith('<')) {
+        throw new Error(`A API retornou HTML em vez de JSON para ${endpoint}. Verifique se o backend está rodando e se a rota existe.`);
+      }
+      throw new Error('Resposta inválida da API (não é JSON).');
+    }
+
+    let result: ApiResponse<T>;
+    try {
+      result = await response.json();
+    } catch (e) {
+      throw new Error('Erro ao processar resposta JSON da API.');
+    }
 
     if (!result.success) {
       throw new Error(result.message || 'Erro na requisição');
