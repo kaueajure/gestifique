@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import  ticketsService from  '../services/tickets.service.js';
 import  attachmentsService from  '../services/attachments.service.js';
-import  { authMiddleware } from  '../middlewares/auth.js';
+import  { authMiddleware, AuthRequest } from  '../middlewares/auth.js';
 import  { isAdmin } from  '../middlewares/permissions.js';
 import  { sendSuccess, sendError } from  '../utils/response.js';
 import  { logSystemAction } from  '../utils/logger.js';
@@ -11,7 +11,7 @@ const router = Router();
 
 router.use(authMiddleware);
 
-router.get('/', async (req: any, res) => {
+router.get('/', async (req: AuthRequest, res) => {
   try {
     const filters = {
       ...req.query,
@@ -28,7 +28,7 @@ router.get('/', async (req: any, res) => {
   }
 });
 
-router.get('/:id', async (req: any, res) => {
+router.get('/:id', async (req: AuthRequest, res) => {
   try {
     const id = parseInt(req.params.id);
     const ticket = await ticketsService.getById(id);
@@ -49,7 +49,7 @@ router.get('/:id', async (req: any, res) => {
   }
 });
 
-router.post('/', async (req: any, res) => {
+router.post('/', async (req: AuthRequest, res) => {
   try {
     const { titulo, descricao, prioridade, categoria } = req.body;
     if (!titulo) return sendError(res, 'Título é obrigatório', 400);
@@ -63,12 +63,13 @@ router.post('/', async (req: any, res) => {
     await logSystemAction(req, req.user.id, req.user.empresa_id, 'TICKET_CREATE', `Novo chamado criado: #${ticketId}`);
     
     sendSuccess(res, { id: ticketId }, 'Ticket aberto com sucesso', 201);
-  } catch (error: any) {
-    sendError(res, error.message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao criar ticket';
+    sendError(res, message);
   }
 });
 
-router.patch('/:id', async (req: any, res) => {
+router.patch('/:id', async (req: AuthRequest, res) => {
   try {
     const id = parseInt(req.params.id);
     const ticket = await ticketsService.getById(id);
@@ -109,7 +110,7 @@ router.patch('/:id', async (req: any, res) => {
   }
 });
 
-router.get('/:id/messages', async (req: any, res) => {
+router.get('/:id/messages', async (req: AuthRequest, res) => {
   try {
     const id = parseInt(req.params.id);
     const isAdminOrDev = req.user.administrador || req.user.desenvolvedor;
@@ -128,7 +129,7 @@ router.get('/:id/messages', async (req: any, res) => {
   }
 });
 
-router.post('/:id/messages', async (req: any, res) => {
+router.post('/:id/messages', async (req: AuthRequest, res) => {
   try {
     const id = parseInt(req.params.id);
     const { mensagem, interno } = req.body;
@@ -145,24 +146,26 @@ router.post('/:id/messages', async (req: any, res) => {
     await logSystemAction(req, req.user.id, req.user.empresa_id, 'MESSAGE_SEND', `Nova mensagem no chamado #${id}`);
     
     sendSuccess(res, { id: messageId }, 'Mensagem enviada');
-  } catch (error: any) {
-    sendError(res, error.message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao enviar mensagem';
+    sendError(res, message);
   }
 });
 
 // Attachment routes
-router.get('/:id/attachments', async (req: any, res) => {
+router.get('/:id/attachments', async (req: AuthRequest, res) => {
   try {
     const id = parseInt(req.params.id);
     const isAdminOrDev = req.user.administrador || req.user.desenvolvedor;
     const attachments = await attachmentsService.listByTicket(id, isAdminOrDev);
     sendSuccess(res, attachments);
-  } catch (error: any) {
-    sendError(res, error.message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao listar anexos';
+    sendError(res, message);
   }
 });
 
-router.post('/:id/attachments', ticketUpload.array('files', 5), async (req: any, res) => {
+router.post('/:id/attachments', ticketUpload.array('files', 5), async (req: AuthRequest, res) => {
   const files = req.files as Express.Multer.File[];
   try {
     const id = parseInt(req.params.id);

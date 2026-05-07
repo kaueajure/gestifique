@@ -22,8 +22,9 @@ router.post('/login', async (req, res, next) => {
     await logSystemAction(req, data.user.id, data.user.empresa_id, 'LOGIN', 'Usuário realizou login com sucesso');
     
     sendSuccess(res, data, 'Login realizado com sucesso');
-  } catch (error: any) {
-    sendError(res, error.message, 401);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'E-mail ou senha inválidos';
+    sendError(res, message, 401);
   }
 });
 

@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
 import attachmentsService from '../services/attachments.service.js';
 import ticketsService from '../services/tickets.service.js';
-import { authMiddleware } from '../middlewares/auth.js';
+import { authMiddleware, AuthRequest } from '../middlewares/auth.js';
 import { sendSuccess, sendError } from '../utils/response.js';
 import { logSystemAction } from '../utils/logger.js';
 import { promises as fs } from 'fs';
@@ -11,7 +11,7 @@ const router = Router();
 
 router.use(authMiddleware);
 
-router.get('/:id/download', async (req: any, res: Response) => {
+router.get('/:id/download', async (req: AuthRequest, res: Response) => {
   try {
     const id = parseInt(req.params.id);
     const attachment = await attachmentsService.getById(id);
@@ -68,7 +68,7 @@ router.get('/:id/download', async (req: any, res: Response) => {
   }
 });
 
-router.delete('/:id', async (req: any, res: Response) => {
+router.delete('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const id = parseInt(req.params.id);
     const attachment = await attachmentsService.getById(id);

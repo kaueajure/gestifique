@@ -4,8 +4,18 @@ import  { env } from  '../config/env.js';
 
 const SECRET = env.JWT_SECRET;
 
+export interface UserPayload {
+  id: number;
+  nome: string;
+  email: string;
+  empresa_id: number | null;
+  administrador: boolean;
+  desenvolvedor: boolean;
+  ativo: boolean;
+}
+
 export interface AuthRequest extends Request {
-  user?: any;
+  user?: UserPayload;
 }
 
 export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -16,7 +26,7 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
   }
 
   try {
-    const decoded = jwt.verify(token, SECRET);
+    const decoded = jwt.verify(token, SECRET) as UserPayload;
     req.user = decoded;
     next();
   } catch (error) {

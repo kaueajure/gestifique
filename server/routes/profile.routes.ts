@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import  usersService from  '../services/users.service.js';
-import  { authMiddleware } from  '../middlewares/auth.js';
+import  { authMiddleware, AuthRequest } from  '../middlewares/auth.js';
 import  { sendSuccess, sendError } from  '../utils/response.js';
 import  { logSystemAction } from  '../utils/logger.js';
 
@@ -8,19 +8,21 @@ const router = Router();
 
 router.use(authMiddleware);
 
-router.get('/', async (req: any, res) => {
+router.get('/', async (req: AuthRequest, res) => {
   try {
-    const profile = await usersService.getById(req.user.id);
+    const profile = await usersService.getById(req.user!.id);
     sendSuccess(res, profile);
-  } catch (error: any) {
-    sendError(res, error.message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao buscar perfil';
+    sendError(res, message);
   }
 });
 
-router.patch('/', async (req: any, res) => {
+router.patch('/', async (req: AuthRequest, res) => {
   try {
+    const currentUser = req.user!;
     // Prevent privilege escalation - Only allow specific fields
-    const safeData: any = {};
+    const safeData: Partial<{nome: string; telefone: string; foto: string}> = {};
     if (req.body.nome) safeData.nome = req.body.nome;
     if (req.body.telefone) safeData.telefone = req.body.telefone;
     if (req.body.foto) safeData.foto = req.body.foto;
@@ -29,17 +31,19 @@ router.patch('/', async (req: any, res) => {
       return sendError(res, 'Nenhum dado válido para atualização');
     }
 
-    await usersService.update(req.user.id, safeData);
-    await logSystemAction(req, req.user.id, req.user.empresa_id, 'PROFILE_UPDATE', 'Usuário atualizou o próprio perfil');
+    await usersService.update(currentUser.id, safeData);
+    await logSystemAction(req, currentUser.id, currentUser.empresa_id, 'PROFILE_UPDATE', 'Usuário atualizou o próprio perfil');
     
     sendSuccess(res, null, 'Perfil atualizado com sucesso');
-  } catch (error: any) {
-    sendError(res, error.message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao atualizar perfil';
+    sendError(res, message);
   }
 });
 
-router.patch('/password', async (req: any, res) => {
+router.patch('/password', async (req: AuthRequest, res) => {
   try {
+    const currentUser = req.user!;
     const { currentPassword, newPassword, confirmPassword } = req.body;
 
     if (!currentPassword || !newPassword || !confirmPassword) {
@@ -54,12 +58,13 @@ router.patch('/password', async (req: any, res) => {
       return sendError(res, 'A confirmação de senha não confere');
     }
 
-    await usersService.updatePassword(req.user.id, currentPassword, newPassword);
-    await logSystemAction(req, req.user.id, req.user.empresa_id, 'PASSWORD_CHANGE', 'Usuário alterou a senha');
+    await usersService.updatePassword(currentUser.id, currentPassword, newPassword);
+    await logSystemAction(req, currentUser.id, currentUser.empresa_id, 'PASSWORD_CHANGE', 'Usuário alterou a senha');
 
     sendSuccess(res, null, 'Senha alterada com sucesso');
-  } catch (error: any) {
-    sendError(res, error.message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao alterar senha';
+    sendError(res, message);
   }
 });
 
