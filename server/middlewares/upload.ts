@@ -45,7 +45,11 @@ const fileFilter = (req: any, file: any, cb: any) => {
     return cb(new Error('Extensão de arquivo não permitida.'), false);
   }
 
-  if (!allowedMimetypes.includes(file.mimetype)) {
+  // Robust MIME check: allow if it's in the primary list OR if it's a generic identification for an allowed extension
+  const isSpecificAllowed = allowedMimetypes.includes(file.mimetype);
+  const isGenericAllowed = ['application/octet-stream', 'application/x-download'].includes(file.mimetype);
+  
+  if (!isSpecificAllowed && !isGenericAllowed) {
     return cb(new Error('Tipo de arquivo (MIME) não permitido.'), false);
   }
   

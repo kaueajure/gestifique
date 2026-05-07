@@ -22,8 +22,9 @@ router.get('/', async (req: any, res) => {
     };
     const tickets = await ticketsService.list(filters);
     sendSuccess(res, tickets);
-  } catch (error: any) {
-    sendError(res, error.message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao listar tickets';
+    sendError(res, message);
   }
 });
 
@@ -42,8 +43,9 @@ router.get('/:id', async (req: any, res) => {
     }
 
     sendSuccess(res, ticket);
-  } catch (error: any) {
-    sendError(res, error.message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao buscar ticket';
+    sendError(res, message);
   }
 });
 
@@ -101,8 +103,9 @@ router.patch('/:id', async (req: any, res) => {
     await logSystemAction(req, req.user.id, req.user.empresa_id, 'TICKET_UPDATE', logMsg);
     
     sendSuccess(res, null, 'Ticket atualizado com sucesso');
-  } catch (error: any) {
-    sendError(res, error.message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao atualizar ticket';
+    sendError(res, message);
   }
 });
 
@@ -119,8 +122,9 @@ router.get('/:id/messages', async (req: any, res) => {
     }));
 
     sendSuccess(res, messagesWithAttachments);
-  } catch (error: any) {
-    sendError(res, error.message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao listar mensagens';
+    sendError(res, message);
   }
 });
 
@@ -175,14 +179,25 @@ router.post('/:id/attachments', ticketUpload.array('files', 5), async (req: any,
     }
 
     // ACL Check
-    const isAdminOrDev = req.user.administrador || req.user.desenvolvedor;
+    const isAdminOrDev = !!(req.user.administrador || req.user.desenvolvedor);
     const isOwner = ticket.usuario_id === req.user.id;
     const isSameEnterprise = ticket.empresa_id === req.user.empresa_id;
 
-    if (!isAdminOrDev && !isOwner) {
-       if (!isSameEnterprise) {
-          await attachmentsService.deleteMultiple(files);
-          return sendError(res, 'Permissão negada para anexar arquivos neste ticket', 403);
+    // Desenvolvedor: tudo
+    // Administrador: tickets da empresa
+    // Usuário comum: apenas tickets próprios
+    if (!req.user.desenvolvedor) {
+       if (req.user.administrador) {
+          if (!isSameEnterprise) {
+            await attachmentsService.deleteMultiple(files);
+            return sendError(res, 'Permissão negada para anexar arquivos neste ticket (Admin)', 403);
+          }
+       } else {
+          // Usuário comum
+          if (!isOwner) {
+            await attachmentsService.deleteMultiple(files);
+            return sendError(res, 'Permissão negada para anexar arquivos neste ticket (Comum)', 403);
+          }
        }
     }
 
@@ -214,11 +229,12 @@ router.post('/:id/attachments', ticketUpload.array('files', 5), async (req: any,
     await logSystemAction(req, req.user.id, req.user.empresa_id, 'ATTACHMENT_UPLOAD', `Anexo(s) enviado(s) para o chamado #${id}`);
 
     sendSuccess(res, createdAttachments, 'Arquivos enviados com sucesso', 201);
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (files && files.length > 0) {
       await attachmentsService.deleteMultiple(files);
     }
-    sendError(res, error.message);
+    const message = error instanceof Error ? error.message : 'Erro ao enviar anexos';
+    sendError(res, message);
   }
 });
 

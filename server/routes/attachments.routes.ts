@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import attachmentsService from '../services/attachments.service.js';
 import ticketsService from '../services/tickets.service.js';
 import { authMiddleware } from '../middlewares/auth.js';
@@ -25,11 +25,21 @@ router.get('/:id/download', async (req: any, res: Response) => {
     const isOwner = ticket.usuario_id === req.user.id;
     const isSameEnterprise = ticket.empresa_id === req.user.empresa_id;
 
-    // Basic access check
-    if (!isAdminOrDev && !isOwner) {
-       if (!isSameEnterprise) {
-          return sendError(res, 'Acesso negado ao ticket', 403);
-       }
+    // ACL Check
+    // Desenvolvedor: tudo
+    // Administrador: tickets da empresa
+    // Usuário comum: apenas tickets próprios
+    if (!req.user.desenvolvedor) {
+      if (req.user.administrador) {
+        if (!isSameEnterprise) {
+          return sendError(res, 'Acesso negado ao ticket (Admin)', 403);
+        }
+      } else {
+        // Usuário comum
+        if (!isOwner) {
+          return sendError(res, 'Acesso negado ao ticket (Comum)', 403);
+        }
+      }
     }
     
     // Internal attachment check
@@ -52,8 +62,9 @@ router.get('/:id/download', async (req: any, res: Response) => {
     }
 
     res.download(absolutePath, attachment.nome_original);
-  } catch (error: any) {
-    sendError(res, error.message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao processar download';
+    sendError(res, message);
   }
 });
 
@@ -80,8 +91,9 @@ router.delete('/:id', async (req: any, res: Response) => {
     await logSystemAction(req, req.user.id, req.user.empresa_id, 'ATTACHMENT_DELETE', `Anexo excluído: ${attachment.nome_original} (ID: ${id})`);
     
     sendSuccess(res, null, 'Anexo excluído com sucesso');
-  } catch (error: any) {
-    sendError(res, error.message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao excluir anexo';
+    sendError(res, message);
   }
 });
 

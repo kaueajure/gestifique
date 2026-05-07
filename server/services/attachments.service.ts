@@ -1,6 +1,5 @@
 import pool from '../db/connection.js';
 import { promises as fs } from 'fs';
-import path from 'path';
 
 export interface AttachmentData {
   id: number;
@@ -33,8 +32,8 @@ class AttachmentsService {
     }
     query += ' ORDER BY a.created_at DESC';
     
-    const [rows] = await pool.query(query, [ticketId]);
-    return (rows as any[]).map(row => ({
+    const [rows]: any = await pool.query(query, [ticketId]);
+    return (rows as AttachmentData[]).map(row => ({
       ...row,
       interno: !!row.interno,
       url: `/api/attachments/${row.id}/download`
@@ -46,10 +45,11 @@ class AttachmentsService {
       'SELECT a.*, t.empresa_id as ticket_empresa_id FROM ticket_anexos a JOIN tickets t ON a.ticket_id = t.id WHERE a.id = ?',
       [id]
     );
-    if (!rows[0]) return null;
+    const data = rows[0];
+    if (!data) return null;
     return {
-      ...rows[0],
-      interno: !!rows[0].interno
+      ...data,
+      interno: !!data.interno
     };
   }
 
@@ -102,8 +102,8 @@ class AttachmentsService {
       query += ' AND interno = 0';
     }
 
-    const [rows] = await pool.query(query, [messageId]);
-    return (rows as any[]).map(row => ({
+    const [rows]: any = await pool.query(query, [messageId]);
+    return (rows as AttachmentData[]).map(row => ({
       ...row,
       interno: !!row.interno,
       url: `/api/attachments/${row.id}/download`
