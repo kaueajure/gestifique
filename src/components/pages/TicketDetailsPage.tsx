@@ -62,7 +62,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
     fetchData();
   }, [ticketId]);
 
-  const handleSendMessage = async (mensagem: string, isInternal: boolean, files: File[]) => {
+  const handleSendMessage = async (mensagem: string, isInternal: boolean, files: File[]): Promise<boolean> => {
     setLoadingSend(true);
     setActionError(null);
     setActionSuccess(null);
@@ -91,9 +91,11 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
       fetchData();
       
       setTimeout(() => setActionSuccess(null), 3000);
+      return true;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao enviar mensagem.';
       setActionError(message);
+      return false;
     } finally {
       setLoadingSend(false);
     }

@@ -102,8 +102,8 @@ router.post('/', async (req: AuthRequest, res) => {
     }
 
     // Check if empresa exists and is active
-    const [empresaRows]: any = await pool.query('SELECT situacao FROM empresas WHERE id = ?', [targetEmpresaId]);
-    if (empresaRows.length === 0 || empresaRows[0].situacao !== 'ativa') {
+    const [empresaRows]: any = await pool.query('SELECT ativo FROM empresas WHERE id = ?', [targetEmpresaId]);
+    if (empresaRows.length === 0 || Number(empresaRows[0].ativo) !== 1) {
        return sendError(res, 'Empresa inválida ou inativa.', 400);
     }
 
@@ -262,6 +262,7 @@ router.post('/:id/messages', async (req: AuthRequest, res) => {
     
     const isAdminOrDev = currentUser.administrador || currentUser.desenvolvedor;
     
+    const ticket = result;
     const messageId = await ticketsService.addMessage({
       ticket_id: id,
       usuario_id: currentUser.id,
@@ -269,7 +270,7 @@ router.post('/:id/messages', async (req: AuthRequest, res) => {
       interno: isAdminOrDev ? interno : false
     });
 
-    await logSystemAction(req, currentUser.id, currentUser.empresa_id, 'MESSAGE_SEND', `Nova mensagem no chamado #${id}`);
+    await logSystemAction(req, currentUser.id, ticket.empresa_id, 'MESSAGE_SEND', `Nova mensagem no chamado #${id}`);
     
     sendSuccess(res, { id: messageId }, 'Mensagem enviada');
   } catch (error: unknown) {
@@ -334,7 +335,7 @@ router.post('/:id/attachments', ticketUpload.array('files', 5), async (req: Auth
         ticket_id: id,
         mensagem_id: mensagem_id ? parseInt(mensagem_id) : null,
         usuario_id: currentUser.id,
-        empresa_id: currentUser.empresa_id,
+        empresa_id: ticket.empresa_id,
         nome_original: file.originalname,
         nome_arquivo: file.filename,
         caminho: file.path,
@@ -352,7 +353,7 @@ router.post('/:id/attachments', ticketUpload.array('files', 5), async (req: Auth
       };
     }));
 
-    await logSystemAction(req, currentUser.id, currentUser.empresa_id, 'ATTACHMENT_UPLOAD', `Anexo(s) enviado(s) para o chamado #${id}`);
+    await logSystemAction(req, currentUser.id, ticket.empresa_id, 'ATTACHMENT_UPLOAD', `Anexo(s) enviado(s) para o chamado #${id}`);
 
     sendSuccess(res, createdAttachments, 'Arquivos enviados com sucesso', 201);
   } catch (error: unknown) {

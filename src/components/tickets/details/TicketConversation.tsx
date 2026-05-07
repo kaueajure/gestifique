@@ -9,7 +9,7 @@ import { TicketReplyBox } from './TicketReplyBox';
 interface TicketConversationProps {
   ticket: Ticket;
   messages: Message[];
-  onSendMessage: (mensagem: string, isInternal: boolean, files: File[]) => Promise<void>;
+  onSendMessage: (mensagem: string, isInternal: boolean, files: File[]) => Promise<boolean>;
   onDeleteAttachment: (id: number) => Promise<void>;
   loadingSend: boolean;
   actionError: string | null;

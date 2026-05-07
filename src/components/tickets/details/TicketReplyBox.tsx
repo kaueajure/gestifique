@@ -6,7 +6,7 @@ import { FileUpload } from '../../ui/FileUpload';
 import { AnimatePresence, motion } from 'motion/react';
 
 interface TicketReplyBoxProps {
-  onSendMessage: (mensagem: string, isInternal: boolean, files: File[]) => Promise<void>;
+  onSendMessage: (mensagem: string, isInternal: boolean, files: File[]) => Promise<boolean>;
   loadingSend: boolean;
   actionError: string | null;
   actionSuccess: string | null;
@@ -22,10 +22,10 @@ export const TicketReplyBox = ({ onSendMessage, loadingSend, actionError, action
     e.preventDefault();
     if ((!newMessage.trim() && selectedFiles.length === 0) || loadingSend) return;
 
-    await onSendMessage(newMessage, isInternal, selectedFiles);
+    const ok = await onSendMessage(newMessage, isInternal, selectedFiles);
     
     // Only reset if successful
-    if (!actionError) {
+    if (ok) {
       setNewMessage('');
       setSelectedFiles([]);
     }
