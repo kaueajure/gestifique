@@ -5,10 +5,6 @@ import {
   Search, 
   Plus, 
   MessageSquare, 
-  Clock, 
-  AlertCircle, 
-  CheckCircle2, 
-  Filter, 
   ChevronRight,
   Calendar,
   User as UserIcon,
@@ -52,8 +48,9 @@ export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
 
       const data = await api.get<Ticket[]>(`/tickets?${query.toString()}`);
       setTickets(data);
-    } catch (err: any) {
-      setError(err.message || 'Erro ao carregar chamados.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao carregar atendimentos.';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -77,8 +74,9 @@ export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
       await api.post('/tickets', data);
       setIsModalOpen(false);
       fetchTickets();
-    } catch (err: any) {
-      setCreateError(err.message || 'Erro ao criar chamado.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao criar atendimento.';
+      setCreateError(message);
     } finally {
       setLoadingCreate(false);
     }
@@ -205,19 +203,19 @@ export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-0.5">
                     <span className="text-sm font-bold text-slate-900 truncate group-hover:text-blue-700 transition-colors leading-tight">{ticket.titulo}</span>
-                    <Badge variant={statusMap[ticket.status || 'aberto']} className="text-[9px] py-0 px-1.5 font-bold uppercase tracking-tighter">{ticket.status.replace('_', ' ')}</Badge>
+                    <Badge variant={statusMap[ticket.status || 'aberto']} className="text-[9px] py-0 px-1.5 font-bold uppercase tracking-tighter">{(ticket.status || 'aberto').replace('_', ' ')}</Badge>
                   </div>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] font-bold text-slate-400">
                     <span className="text-blue-600 tracking-tighter">#{ticket.id}</span>
-                    <span className="flex items-center gap-1.5 tracking-tight uppercase"><UserIcon size={10} className="text-slate-300" /> {ticket.cliente_nome}</span>
-                    <span className="flex items-center gap-1.5 tracking-tight uppercase italic"><Tag size={10} className="text-slate-300" /> {ticket.categoria?.replace('_', ' ')}</span>
+                    <span className="flex items-center gap-1.5 tracking-tight uppercase"><UserIcon size={10} className="text-slate-300" /> {ticket.cliente_nome || 'Usuário'}</span>
+                    <span className="flex items-center gap-1.5 tracking-tight uppercase italic"><Tag size={10} className="text-slate-300" /> {(ticket.categoria || 'suporte').replace('_', ' ')}</span>
                     <span className="flex items-center gap-1.5 tracking-tight uppercase"><Calendar size={10} className="text-slate-300" /> {new Date(ticket.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-4 ml-auto sm:ml-0">
-                  <Badge variant={getPriorityVariant(ticket.prioridade)} className="font-bold uppercase text-[9px] px-1.5 py-0 tracking-widest border-none">
-                    {ticket.prioridade}
+                  <Badge variant={getPriorityVariant(ticket.prioridade || 'media')} className="font-bold uppercase text-[9px] px-1.5 py-0 tracking-widest border-none">
+                    {ticket.prioridade || 'media'}
                   </Badge>
                   <div className="h-7 w-7 rounded-lg border border-slate-100 flex items-center justify-center text-slate-300 opacity-40 group-hover:opacity-100 group-hover:bg-slate-900 group-hover:text-white group-hover:border-slate-900 transition-all">
                     <ChevronRight size={14} />
@@ -231,8 +229,17 @@ export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
             <div className="w-12 h-12 bg-slate-50 text-slate-300 rounded-xl flex items-center justify-center mb-4 border border-slate-100">
               <Search size={24} />
             </div>
-            <h4 className="text-sm font-semibold text-slate-900">Nenhum resultado</h4>
-            <p className="text-xs text-slate-500 max-w-[200px] mx-auto">Tente ajustar seus filtros ou termos de pesquisa.</p>
+            {searchTerm || statusFilter !== 'todos' || priorityFilter !== 'todas' || categoryFilter !== 'todas' ? (
+              <>
+                <h4 className="text-sm font-semibold text-slate-900">Nenhum resultado encontrado</h4>
+                <p className="text-xs text-slate-500 max-w-[200px] mx-auto">Ajuste os filtros ou tente outro termo de busca.</p>
+              </>
+            ) : (
+              <>
+                <h4 className="text-sm font-semibold text-slate-900">Nenhum atendimento criado</h4>
+                <p className="text-xs text-slate-500 max-w-[200px] mx-auto">Crie o primeiro atendimento para começar a organizar as solicitações.</p>
+              </>
+            )}
           </div>
         )}
       </Card>
@@ -295,7 +302,7 @@ export const TicketsPage = ({ onSelectTicket }: TicketsPageProps) => {
                Cancelar
              </Button>
              <Button type="submit" loading={loadingCreate}>
-               Criar Ticket
+               Criar Atendimento
              </Button>
           </div>
         </form>

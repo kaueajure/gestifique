@@ -9,12 +9,9 @@ import {
   User as UserIcon,
   Calendar,
   Building2,
-  Lock,
   Loader2,
   Trash2,
   Tag,
-  Clock,
-  History
 } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { cn } from '../../lib/utils';
@@ -63,8 +60,9 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
         });
         setAgents(filteredAgents);
       }
-    } catch (err: any) {
-      setError(err.message || 'Erro ao carregar detalhes do chamado.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao carregar detalhes do atendimento.';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -95,8 +93,9 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
       const updatedMessages = await api.get<Message[]>(`/tickets/${ticketId}/messages`);
       setMessages(updatedMessages);
       setTimeout(() => setActionSuccess(null), 3000);
-    } catch (err: any) {
-      setActionError(err.message || 'Erro ao enviar mensagem.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao enviar mensagem.';
+      setActionError(message);
     } finally {
       setLoadingSend(false);
     }
@@ -107,11 +106,12 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
     setActionSuccess(null);
     try {
       await api.patch(`/tickets/${ticketId}`, data);
-      setActionSuccess('Chamado atualizado com sucesso!');
+      setActionSuccess('Atendimento atualizado com sucesso!');
       fetchData();
       setTimeout(() => setActionSuccess(null), 3000);
-    } catch (err: any) {
-      setActionError(err.message || 'Erro ao atualizar chamado.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao atualizar atendimento.';
+      setActionError(message);
     }
   };
 
@@ -141,10 +141,10 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
 
   if (error || !ticket) {
     return (
-      <Card className="p-12 border-red-100 bg-red-50/30 flex flex-col items-center justify-center text-center">
+      <Card className="p-12 border-red-100 bg-red-50/30 flex flex-col items-center justify-center text-center rounded-xl">
          <AlertCircle className="w-16 h-16 text-red-500 mb-4" />
-         <h2 className="text-xl font-semibold text-slate-900 mb-2">Chamado não encontrado</h2>
-         <p className="text-slate-500 font-medium mb-8 max-w-sm">{error || 'O ticket solicitado pode ter sido removido ou você não tem acesso.'}</p>
+         <h2 className="text-xl font-semibold text-slate-900 mb-2">Atendimento não encontrado</h2>
+         <p className="text-slate-500 font-medium mb-8 max-w-sm">{error || 'O atendimento solicitado pode ter sido removido ou você não tem acesso.'}</p>
          <Button onClick={onBack}>Voltar para a Lista</Button>
       </Card>
     );
@@ -181,8 +181,8 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
               </button>
               <div className="min-w-0">
                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-[10px] font-bold text-blue-600 uppercase tracking-tighter">chamado #{ticket.id}</span>
-                    <Badge variant={getStatusVariant(ticket.status)} className="text-[9px] py-0 px-1.5 font-bold uppercase border-none tracking-tighter">{ticket.status.replace('_', ' ')}</Badge>
+                    <span className="text-[10px] font-bold text-blue-600 uppercase tracking-tighter">atendimento #{ticket.id}</span>
+                    <Badge variant={getStatusVariant(ticket.status || 'aberto')} className="text-[9px] py-0 px-1.5 font-bold uppercase border-none tracking-tighter">{(ticket.status || 'aberto').replace('_', ' ')}</Badge>
                  </div>
                  <h3 className="text-sm font-bold text-slate-900 truncate max-w-md leading-tight tracking-tight">{ticket.titulo}</h3>
               </div>
@@ -191,12 +191,12 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
            {(currentUser.administrador || currentUser.desenvolvedor) && (
              <div className="flex items-center gap-2">
                 <select 
-                  value={ticket.status}
+                  value={ticket.status || 'aberto'}
                   onChange={(e) => handleUpdateTicket({ status: e.target.value as any })}
                   className="h-8 px-2 bg-slate-50 border border-slate-100 rounded-lg text-[10px] font-bold text-slate-500 uppercase tracking-tight outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer hover:bg-slate-100"
                 >
                    <option value="aberto">Aberto</option>
-                   <option value="em_andamento">Em Andamento</option>
+                   <option value="em_andamento">Andamento</option>
                    <option value="aguardando_cliente">Aguardando</option>
                    <option value="resolvido">Resolvido</option>
                    <option value="fechado">Fechado</option>
@@ -376,7 +376,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Prioridade</span>
                      {currentUser.administrador || currentUser.desenvolvedor ? (
                        <select 
-                         value={ticket.prioridade}
+                         value={ticket.prioridade || 'media'}
                          onChange={(e) => handleUpdateTicket({ prioridade: e.target.value as any })}
                          className="w-full h-8 px-2 bg-white border border-slate-100 rounded-lg text-[10px] font-bold text-slate-600 uppercase tracking-tight outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer hover:bg-slate-50"
                        >
@@ -386,7 +386,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                           <option value="urgente">Urgente</option>
                        </select>
                      ) : (
-                       <Badge variant={ticket.prioridade === 'urgente' ? 'red' : 'blue'} className="px-3 uppercase text-[9px] font-bold border-none">{ticket.prioridade}</Badge>
+                       <Badge variant={(ticket.prioridade || 'media') === 'urgente' ? 'red' : 'blue'} className="px-3 uppercase text-[9px] font-bold border-none">{ticket.prioridade || 'media'}</Badge>
                      )}
                   </div>
                   
