@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { 
   LayoutDashboard, 
   Ticket, 
+  BarChart3,
   Users, 
   Building2, 
   Shield, 
@@ -28,6 +29,7 @@ export const Sidebar = ({ currentUser, activeTab, setActiveTab, isOpen, onClose,
   const menuItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', access: true },
     { id: 'tickets', icon: Ticket, label: 'Atendimentos', access: true },
+    { id: 'reports', icon: BarChart3, label: 'Relatórios', access: currentUser.administrador || currentUser.desenvolvedor },
     { id: 'users', icon: Users, label: 'Usuários', access: currentUser.administrador || currentUser.desenvolvedor },
     { id: 'companies', icon: Building2, label: 'Empresas', access: currentUser.desenvolvedor },
     { id: 'logs', icon: Shield, label: 'Logs do Sistema', access: currentUser.administrador || currentUser.desenvolvedor },

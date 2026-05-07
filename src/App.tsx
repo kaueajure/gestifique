@@ -10,6 +10,7 @@ import { CompaniesPage } from './components/pages/CompaniesPage';
 import { LogsPage } from './components/pages/LogsPage';
 import { ProfilePage } from './components/pages/ProfilePage';
 import { SettingsPage } from './components/pages/SettingsPage';
+import { ReportsPage } from './components/pages/ReportsPage';
 import { AccessDenied } from './components/ui/AccessDenied';
 import { LandingPage } from './components/public/LandingPage';
 import { User } from './types';
@@ -30,7 +31,7 @@ import {
 } from 'lucide-react';
 
 type ViewState = 'landing' | 'login' | 'register' | 'dashboard';
-type ActiveTab = 'dashboard' | 'tickets' | 'users' | 'companies' | 'logs' | 'profile' | 'settings';
+type ActiveTab = 'dashboard' | 'tickets' | 'users' | 'companies' | 'logs' | 'profile' | 'settings' | 'reports';
 
 export default function App() {
   const [view, setView] = useState<ViewState>('landing');
@@ -189,6 +190,7 @@ export default function App() {
         case 'users': return 'Time Gestifique';
         case 'companies': return 'Workspaces Habilitados';
         case 'logs': return 'Histórico de Eventos';
+        case 'reports': return 'Relatórios Gerenciais';
         case 'profile': return 'Configurações de Perfil';
         case 'settings': return 'Preferências';
         default: return 'Gestifique';
@@ -251,6 +253,12 @@ export default function App() {
                   
                   {activeTab === 'logs' && (currentUser.administrador || currentUser.desenvolvedor ? (
                     <LogsPage />
+                  ) : (
+                    <AccessDenied />
+                  ))}
+
+                  {activeTab === 'reports' && (currentUser.administrador || currentUser.desenvolvedor ? (
+                    <ReportsPage currentUser={currentUser} />
                   ) : (
                     <AccessDenied />
                   ))}

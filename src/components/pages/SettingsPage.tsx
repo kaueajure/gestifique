@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User } from '../../types';
 import { api } from '../../lib/api';
-import { Building2, Keyboard, ShieldCheck, Database, Cpu, Lock, Save, Zap, Palette, ChevronRight, CheckCircle2, AlertCircle, Layout, Globe, Building, Shield } from 'lucide-react';
+import { Building2, Keyboard, ShieldCheck, Database, Cpu, Lock, Save, Zap, Palette, ChevronRight, CheckCircle2, AlertCircle, Layout, Globe, Building, Shield, TrendingUp } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -9,7 +9,7 @@ import { Card } from '../ui/Card';
 import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
-type AppTab = 'dashboard' | 'tickets' | 'users' | 'companies' | 'logs' | 'profile' | 'settings';
+type AppTab = 'dashboard' | 'tickets' | 'users' | 'companies' | 'logs' | 'profile' | 'settings' | 'reports';
 
 interface SettingsPageProps {
   currentUser: User;
@@ -192,13 +192,15 @@ export const SettingsPage = ({ currentUser, onNavigate }: SettingsPageProps) => 
                       <h4 className="text-sm font-semibold text-slate-900">Atalhos de Trabalho</h4>
                     </div>
                     <div className="grid gap-2.5">
-                       {(['tickets', 'profile', 'dashboard'] as const).map(id => {
-                         const navMap: Record<string, { desc: string; icon: React.ReactNode }> = {
+                       {(['reports', 'tickets', 'profile', 'dashboard'] as const).map(id => {
+                         const navMap: Record<string, { desc: string; icon: React.ReactNode; access?: boolean }> = {
+                            reports: { desc: 'Análise de Relatórios', icon: <TrendingUp size={16} />, access: currentUser.administrador || currentUser.desenvolvedor },
                             tickets: { desc: 'Central de Chamados', icon: <Layout size={16} /> },
                             profile: { desc: 'Dados do Perfil', icon: <ShieldCheck size={16} /> },
                             dashboard: { desc: 'Indicadores em Tempo Real', icon: <Zap size={16} /> },
                          };
                          const nav = navMap[id];
+                         if (nav.access === false) return null;
                          return (
                            <button 
                              key={id} 
