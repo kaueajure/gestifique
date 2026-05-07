@@ -27,35 +27,41 @@ export interface SummaryData {
 }
 
 class ReportsService {
-  async getSummary(filters: ReportFilters): Promise<SummaryData> {
-    let whereParams: any[] = [];
-    let whereClauses: string[] = [];
+  private buildWhere(filters: ReportFilters, alias: string = ''): { clauses: string[], params: any[] } {
+    const clauses: string[] = [];
+    const params: any[] = [];
+    const prefix = alias ? `${alias}.` : '';
 
     // Default 30 days if no date filter
     const startDate = filters.start_date || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const endDate = filters.end_date || new Date().toISOString().split('T')[0];
 
-    whereClauses.push('created_at >= ? AND created_at <= ?');
-    whereParams.push(`${startDate} 00:00:00`, `${endDate} 23:59:59`);
+    clauses.push(`${prefix}created_at >= ? AND ${prefix}created_at <= ?`);
+    params.push(`${startDate} 00:00:00`, `${endDate} 23:59:59`);
 
     if (filters.empresa_id) {
-      whereClauses.push('empresa_id = ?');
-      whereParams.push(filters.empresa_id);
+      clauses.push(`${prefix}empresa_id = ?`);
+      params.push(filters.empresa_id);
     }
     if (filters.responsavel_id) {
-      whereClauses.push('responsavel_id = ?');
-      whereParams.push(filters.responsavel_id);
+      clauses.push(`${prefix}responsavel_id = ?`);
+      params.push(filters.responsavel_id);
     }
     if (filters.status) {
-      whereClauses.push('status = ?');
-      whereParams.push(filters.status);
+      clauses.push(`${prefix}status = ?`);
+      params.push(filters.status);
     }
     if (filters.prioridade) {
-      whereClauses.push('prioridade = ?');
-      whereParams.push(filters.prioridade);
+      clauses.push(`${prefix}prioridade = ?`);
+      params.push(filters.prioridade);
     }
 
-    const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+    return { clauses, params };
+  }
+
+  async getSummary(filters: ReportFilters): Promise<SummaryData> {
+    const { clauses, params } = this.buildWhere(filters);
+    const whereString = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
 
     // 1. Totals
     const [totalsRows]: any = await pool.query(`
@@ -64,14 +70,14 @@ class ReportsService {
         SUM(CASE WHEN status = 'aberto' THEN 1 ELSE 0 END) as open,
         SUM(CASE WHEN status = 'em_andamento' THEN 1 ELSE 0 END) as in_progress,
         SUM(CASE WHEN status = 'resolvido' THEN 1 ELSE 0 END) as resolved,
-        SUM(CASE WHEN status = 'arquivado' THEN 1 ELSE 0 END) as closed,
+        SUM(CASE WHEN status = 'fechado' THEN 1 ELSE 0 END) as closed,
         SUM(CASE WHEN prioridade = 'urgente' THEN 1 ELSE 0 END) as urgent,
-        AVG(CASE WHEN status IN ('resolvido', 'arquivado') AND finalizado_em IS NOT NULL 
+        AVG(CASE WHEN status IN ('resolvido', 'fechado') AND finalizado_em IS NOT NULL 
             THEN TIMESTAMPDIFF(HOUR, created_at, finalizado_em) 
             ELSE NULL END) as avg_res_hours
       FROM tickets
       ${whereString}
-    `, whereParams);
+    `, params);
 
     const totals = totalsRows[0];
 
@@ -81,7 +87,7 @@ class ReportsService {
       FROM tickets
       ${whereString}
       GROUP BY status
-    `, whereParams);
+    `, params);
 
     // 3. By Priority
     const [priorityRows]: any = await pool.query(`
@@ -89,7 +95,7 @@ class ReportsService {
       FROM tickets
       ${whereString}
       GROUP BY prioridade
-    `, whereParams);
+    `, params);
 
     // 4. By Category
     const [categoryRows]: any = await pool.query(`
@@ -97,51 +103,64 @@ class ReportsService {
       FROM tickets
       ${whereString}
       GROUP BY categoria
-    `, whereParams);
+    `, params);
 
     // 5. By Responsible
+    const { clauses: resClauses, params: resParams } = this.buildWhere(filters, 't');
+    const resWhereString = resClauses.length > 0 ? `WHERE ${resClauses.join(' AND ')}` : '';
+
     const [responsibleRows]: any = await pool.query(`
       SELECT u.nome as name, COUNT(t.id) as value
       FROM tickets t
       LEFT JOIN usuarios u ON t.responsavel_id = u.id
-      ${whereString.replace('WHERE ', 'WHERE t.')}
+      ${resWhereString}
       GROUP BY u.nome
-    `, whereParams);
+    `, resParams);
 
-    // 6. By Day (Last N days based on filter)
+    // 6. By Day
     const [dayRows]: any = await pool.query(`
       SELECT 
         DATE(created_at) as date,
-        COUNT(*) as created,
-        SUM(CASE WHEN status IN ('resolvido', 'arquivado') AND DATE(finalizado_em) = DATE(created_at) THEN 1 ELSE 0 END) as resolved_same_day
+        COUNT(*) as created
       FROM tickets
       ${whereString}
       GROUP BY DATE(created_at)
       ORDER BY date ASC
-    `, whereParams);
+    `, params);
 
-    // Additional query for resolutions by day (might not be same day as creation)
+    // Resolutions by day (separate query for robustness)
+    const startDate = filters.start_date || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const endDate = filters.end_date || new Date().toISOString().split('T')[0];
+    
+    let resClausesList = ['finalizado_em >= ?', 'finalizado_em <= ?'];
+    let resParamsList: any[] = [`${startDate} 00:00:00`, `${endDate} 23:59:59`];
+    
+    if (filters.empresa_id) { resClausesList.push('empresa_id = ?'); resParamsList.push(filters.empresa_id); }
+    if (filters.responsavel_id) { resClausesList.push('responsavel_id = ?'); resParamsList.push(filters.responsavel_id); }
+    if (filters.status) { resClausesList.push('status = ?'); resParamsList.push(filters.status); }
+    if (filters.prioridade) { resClausesList.push('prioridade = ?'); resParamsList.push(filters.prioridade); }
+
     const [resDayRows]: any = await pool.query(`
       SELECT 
         DATE(finalizado_em) as date,
         COUNT(*) as resolved
       FROM tickets
-      ${whereString.replace('created_at', 'finalizado_em')}
+      WHERE ${resClausesList.join(' AND ')}
       AND finalizado_em IS NOT NULL
       GROUP BY DATE(finalizado_em)
       ORDER BY date ASC
-    `, whereParams);
+    `, resParamsList);
 
     // Merge day data
     const dayMap = new Map<string, { date: string; created: number; resolved: number }>();
     
     dayRows.forEach((r: any) => {
-      const d = r.date.toISOString().split('T')[0];
+      const d = r.date instanceof Date ? r.date.toISOString().split('T')[0] : r.date;
       dayMap.set(d, { date: d, created: r.created, resolved: 0 });
     });
 
     resDayRows.forEach((r: any) => {
-      const d = r.date.toISOString().split('T')[0];
+      const d = r.date instanceof Date ? r.date.toISOString().split('T')[0] : r.date;
       if (dayMap.has(d)) {
         dayMap.get(d)!.resolved = r.resolved;
       } else {
@@ -185,8 +204,9 @@ class ReportsService {
     const map: Record<string, string> = {
       'aberto': 'Aberto',
       'em_andamento': 'Em Andamento',
+      'aguardando_cliente': 'Aguardando Cliente',
       'resolvido': 'Resolvido',
-      'arquivado': 'Arquivado'
+      'fechado': 'Fechado'
     };
     return map[status] || status;
   }
@@ -221,9 +241,9 @@ class ReportsService {
         SUM(CASE WHEN status = 'em_andamento' THEN 1 ELSE 0 END) as em_andamento,
         SUM(CASE WHEN status = 'aguardando_cliente' THEN 1 ELSE 0 END) as aguardando_cliente,
         SUM(CASE WHEN status = 'resolvido' THEN 1 ELSE 0 END) as resolvido,
-        SUM(CASE WHEN status = 'arquivado' THEN 1 ELSE 0 END) as fechado,
+        SUM(CASE WHEN status = 'fechado' THEN 1 ELSE 0 END) as fechado,
         SUM(CASE WHEN prioridade = 'urgente' THEN 1 ELSE 0 END) as urgente,
-        AVG(CASE WHEN status IN ('resolvido', 'arquivado') AND finalizado_em IS NOT NULL THEN TIMESTAMPDIFF(HOUR, created_at, finalizado_em) ELSE NULL END) as avg_res
+        AVG(CASE WHEN status IN ('resolvido', 'fechado') AND finalizado_em IS NOT NULL THEN TIMESTAMPDIFF(HOUR, created_at, finalizado_em) ELSE NULL END) as avg_res
       FROM tickets
       ${whereClause}
     `, params);
@@ -256,15 +276,14 @@ class ReportsService {
       LIMIT 5
     `, params);
 
-    // 5. Recent Activities
-    const actParams = isDev ? [] : [empresaId];
+    // 5. Recent Activities (logs_sistema)
     const [recentActivities]: any = await pool.query(`
-      SELECT id, acao, created_at, (SELECT nome FROM usuarios WHERE id = logs.usuario_id) as usuario_nome
-      FROM logs
+      SELECT id, acao, created_at, (SELECT nome FROM usuarios WHERE id = logs_sistema.usuario_id) as usuario_nome
+      FROM logs_sistema
       ${isDev ? '' : 'WHERE empresa_id = ?'}
       ORDER BY created_at DESC
       LIMIT 5
-    `, actParams);
+    `, isDev ? [] : [empresaId]);
 
     return {
       counts: {

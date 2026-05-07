@@ -185,11 +185,11 @@ export default function App() {
   if (view === 'dashboard' && currentUser) {
     const getPageTitle = () => {
       switch (activeTab) {
-        case 'dashboard': return 'Início';
-        case 'tickets': return selectedTicketId ? 'Chamado' : 'Meus Atendimentos';
-        case 'users': return 'Time Gestifique';
-        case 'companies': return 'Workspaces Habilitados';
-        case 'logs': return 'Histórico de Eventos';
+        case 'dashboard': return 'Dashboard de Controle';
+        case 'tickets': return selectedTicketId ? 'Chamado' : 'Central de Chamados';
+        case 'users': return 'Gestão de Usuários';
+        case 'companies': return 'Empresas Ativas';
+        case 'logs': return 'Logs do Sistema';
         case 'reports': return 'Relatórios Gerenciais';
         case 'profile': return 'Configurações de Perfil';
         case 'settings': return 'Preferências';
