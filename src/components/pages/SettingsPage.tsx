@@ -168,19 +168,17 @@ export const SettingsPage = ({ currentUser, onNavigate }: SettingsPageProps) => 
                        </Button>
 
                        <div className="pt-2 border-t border-slate-100">
-                          <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50/50 border border-slate-100">
+                          <div className="p-3 rounded-lg bg-slate-50/50 border border-slate-100 flex items-center justify-between">
                              <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-slate-400 border border-slate-100">
                                    <Palette size={16} />
                                 </div>
                                 <div>
                                    <div className="text-xs font-semibold text-slate-900">Modo Escuro</div>
-                                   <div className="text-[10px] font-medium text-slate-400 uppercase">Em breve</div>
+                                   <p className="text-[10px] font-medium text-slate-500 leading-tight">Personalize cores da interface</p>
                                 </div>
                              </div>
-                             <div className="w-8 h-4 bg-slate-200 rounded-full relative opacity-50">
-                                <div className="absolute left-0.5 top-0.5 w-3 h-3 bg-white rounded-full transition-all"></div>
-                             </div>
+                             <Badge variant="slate" className="text-[9px] font-bold">EM BREVE</Badge>
                           </div>
                        </div>
                     </div>
@@ -222,100 +220,115 @@ export const SettingsPage = ({ currentUser, onNavigate }: SettingsPageProps) => 
 
             {activeSubTab === 'company' && (
               <Card className="p-6">
-                 <form onSubmit={handleSaveCompany} className="space-y-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center border border-blue-100">
-                           <Building2 size={24} />
-                        </div>
-                        <div>
-                           <h4 className="text-sm font-semibold text-slate-900">Perfil Corporativo</h4>
-                           <p className="text-xs text-slate-500 font-medium">Dados fundamentais da sua instância Gestifique.</p>
-                        </div>
+                 {!currentUser.empresa_id ? (
+                   <div className="flex flex-col items-center justify-center py-12 px-4 text-center space-y-4">
+                      <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-2xl flex items-center justify-center">
+                         <AlertCircle size={32} />
                       </div>
-                      {(success || error) && (
-                        <div className={cn(
-                          "px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 animate-in fade-in slide-in-from-top-1",
-                          success ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-red-50 text-red-600 border border-red-100"
-                        )}>
-                          {success ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
-                          {success || error}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-4 pt-2">
-                       <Input 
-                         label="Razão Social / Nome Fantasia"
-                         name="nome" 
-                         defaultValue={currentUser.empresa_nome || ''} 
-                         required
-                       />
-                       <Input 
-                         label="Documento (CNPJ/CPF)"
-                         name="cnpj" 
-                         placeholder="00.000.000/0000-00" 
-                       />
-                       <Input 
-                         label="E-mail de Contato Principal"
-                         name="email" 
-                         type="email"
-                         defaultValue={currentUser.empresa_email || ''} 
-                       />
-                       <Input 
-                         label="Telefone de Suporte"
-                         name="telefone" 
-                         defaultValue={currentUser.empresa_telefone || ''} 
-                       />
-                    </div>
-
-                    <div className="space-y-1.5 flex flex-col">
-                       <label className="text-sm font-medium text-slate-700">Endereço da Sede</label>
-                       <textarea 
-                        name="endereco" 
-                        rows={3} 
-                        className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-blue-100 transition-all outline-none resize-none" 
-                       />
-                    </div>
-
-                    <div className="pt-4 border-t border-slate-100 space-y-4">
-                       <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 bg-slate-100 text-slate-600 rounded-md flex items-center justify-center">
-                             <Layout size={14} />
+                      <div className="space-y-1">
+                         <h4 className="text-base font-semibold text-slate-900">Empresa não vinculada</h4>
+                         <p className="text-sm text-slate-500 max-w-xs mx-auto">Sua conta de usuário não possui uma empresa vinculada para editar configurações corporativas no momento.</p>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => onNavigate('dashboard')}>
+                         Voltar ao Dashboard
+                      </Button>
+                   </div>
+                 ) : (
+                   <form onSubmit={handleSaveCompany} className="space-y-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center border border-blue-100">
+                             <Building2 size={24} />
                           </div>
-                          <h4 className="text-xs font-semibold text-slate-500">Atalhos Administrativos</h4>
-                       </div>
-                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                          <Button 
-                            variant="outline"
-                            onClick={() => onNavigate('users')}
-                            className="bg-slate-50 border-slate-200 text-slate-600 justify-between h-12 text-xs"
-                          >
-                             Equipe <ShieldCheck size={14} className="text-blue-600" />
-                          </Button>
-                          <Button 
-                            variant="outline"
-                            onClick={() => onNavigate('logs')}
-                            className="bg-slate-50 border-slate-200 text-slate-600 justify-between h-12 text-xs"
-                          >
-                             Auditoria <Database size={14} className="text-indigo-600" />
-                          </Button>
-                          <Button 
-                            variant="outline"
-                            onClick={() => onNavigate('tickets')}
-                            className="bg-slate-50 border-slate-200 text-slate-600 justify-between h-12 text-xs"
-                          >
-                             Atendimentos <Layout size={14} className="text-emerald-600" />
-                          </Button>
-                       </div>
-                    </div>
+                          <div>
+                             <h4 className="text-sm font-semibold text-slate-900">Perfil Corporativo</h4>
+                             <p className="text-xs text-slate-500 font-medium">Dados fundamentais da sua instância Gestifique.</p>
+                          </div>
+                        </div>
+                        {(success || error) && (
+                          <div className={cn(
+                            "px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 animate-in fade-in slide-in-from-top-1",
+                            success ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-red-50 text-red-600 border border-red-100"
+                          )}>
+                            {success ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
+                            {success || error}
+                          </div>
+                        )}
+                      </div>
 
-                    <div className="pt-2 flex justify-end">
-                       <Button type="submit" loading={loading} className="w-full sm:w-auto">
-                          <Save size={16} className="mr-2" /> Salvar Alterações
-                       </Button>
-                    </div>
-                 </form>
+                      <div className="grid md:grid-cols-2 gap-4 pt-2">
+                         <Input 
+                           label="Razão Social / Nome Fantasia"
+                           name="nome" 
+                           defaultValue={currentUser.empresa_nome || ''} 
+                           required
+                         />
+                         <Input 
+                           label="Documento (CNPJ/CPF)"
+                           name="cnpj" 
+                           placeholder="00.000.000/0000-00" 
+                         />
+                         <Input 
+                           label="E-mail de Contato Principal"
+                           name="email" 
+                           type="email"
+                           defaultValue={currentUser.empresa_email || ''} 
+                         />
+                         <Input 
+                           label="Telefone de Suporte"
+                           name="telefone" 
+                           defaultValue={currentUser.empresa_telefone || ''} 
+                         />
+                      </div>
+
+                      <div className="space-y-1.5 flex flex-col">
+                         <label className="text-sm font-medium text-slate-700">Endereço da Sede</label>
+                         <textarea 
+                          name="endereco" 
+                          rows={3} 
+                          className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-blue-100 transition-all outline-none resize-none" 
+                         />
+                      </div>
+
+                      <div className="pt-4 border-t border-slate-100 space-y-4">
+                         <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 bg-slate-100 text-slate-600 rounded-md flex items-center justify-center">
+                               <Layout size={14} />
+                            </div>
+                            <h4 className="text-xs font-semibold text-slate-500">Atalhos Administrativos</h4>
+                         </div>
+                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <Button 
+                              variant="outline"
+                              onClick={() => onNavigate('users')}
+                              className="bg-slate-50 border-slate-200 text-slate-600 justify-between h-12 text-xs"
+                            >
+                               Equipe <ShieldCheck size={14} className="text-blue-600" />
+                            </Button>
+                            <Button 
+                              variant="outline"
+                              onClick={() => onNavigate('logs')}
+                              className="bg-slate-50 border-slate-200 text-slate-600 justify-between h-12 text-xs"
+                            >
+                               Auditoria <Database size={14} className="text-indigo-600" />
+                            </Button>
+                            <Button 
+                              variant="outline"
+                              onClick={() => onNavigate('tickets')}
+                              className="bg-slate-50 border-slate-200 text-slate-600 justify-between h-12 text-xs"
+                            >
+                               Atendimentos <Layout size={14} className="text-emerald-600" />
+                            </Button>
+                         </div>
+                      </div>
+
+                      <div className="pt-2 flex justify-end">
+                         <Button type="submit" loading={loading} className="w-full sm:w-auto">
+                            <Save size={16} className="mr-2" /> Salvar Alterações
+                         </Button>
+                      </div>
+                   </form>
+                 )}
               </Card>
             )}
 
@@ -382,9 +395,9 @@ export const SettingsPage = ({ currentUser, onNavigate }: SettingsPageProps) => 
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                        {[
-                         { id: 'companies' as const, desc: 'Instâncias Ativas', icon: <Building className="text-blue-600" /> },
-                         { id: 'users' as const, desc: 'Contas Globais', icon: <Shield className="text-indigo-600" /> },
-                         { id: 'logs' as const, desc: 'Trilha de Auditoria', icon: <Database className="text-emerald-600" /> },
+                         { id: 'companies' as const, desc: 'Empresas', icon: <Building className="text-blue-600" /> },
+                         { id: 'users' as const, desc: 'Usuários', icon: <Shield className="text-indigo-600" /> },
+                         { id: 'logs' as const, desc: 'Auditoria', icon: <Database className="text-emerald-600" /> },
                        ].map(action => (
                          <Button 
                            key={action.id}
