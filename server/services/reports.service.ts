@@ -1,3 +1,4 @@
+import { RowDataPacket } from 'mysql2';
 import pool from '../db/connection.js';
 
 export interface ReportFilters {
@@ -27,9 +28,9 @@ export interface SummaryData {
 }
 
 class ReportsService {
-  private buildWhere(filters: ReportFilters, alias: string = ''): { clauses: string[], params: any[] } {
+  private buildWhere(filters: ReportFilters, alias: string = ''): { clauses: string[], params: (string | number)[] } {
     const clauses: string[] = [];
-    const params: any[] = [];
+    const params: (string | number)[] = [];
     const prefix = alias ? `${alias}.` : '';
 
     // Default 30 days if no date filter
@@ -63,8 +64,18 @@ class ReportsService {
     const { clauses, params } = this.buildWhere(filters);
     const whereString = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
 
+    interface TotalRow extends RowDataPacket {
+      total: number;
+      open: number;
+      in_progress: number;
+      resolved: number;
+      closed: number;
+      urgent: number;
+      avg_res_hours: number | null;
+    };
+
     // 1. Totals
-    const [totalsRows]: any = await pool.query(`
+    const [totalsRows] = await pool.query<TotalRow[]>(`
       SELECT 
         COUNT(*) as total,
         SUM(CASE WHEN status = 'aberto' THEN 1 ELSE 0 END) as open,
@@ -79,10 +90,12 @@ class ReportsService {
       ${whereString}
     `, params);
 
-    const totals = totalsRows[0];
+    const totals = totalsRows[0] || { total: 0, open: 0, in_progress: 0, resolved: 0, closed: 0, urgent: 0, avg_res_hours: 0 };
+
+    interface GroupedRow extends RowDataPacket { name: string | null; value: number };
 
     // 2. By Status
-    const [statusRows]: any = await pool.query(`
+    const [statusRows] = await pool.query<GroupedRow[]>(`
       SELECT status as name, COUNT(*) as value
       FROM tickets
       ${whereString}
@@ -90,7 +103,7 @@ class ReportsService {
     `, params);
 
     // 3. By Priority
-    const [priorityRows]: any = await pool.query(`
+    const [priorityRows] = await pool.query<GroupedRow[]>(`
       SELECT prioridade as name, COUNT(*) as value
       FROM tickets
       ${whereString}
@@ -98,7 +111,7 @@ class ReportsService {
     `, params);
 
     // 4. By Category
-    const [categoryRows]: any = await pool.query(`
+    const [categoryRows] = await pool.query<GroupedRow[]>(`
       SELECT categoria as name, COUNT(*) as value
       FROM tickets
       ${whereString}
@@ -109,7 +122,7 @@ class ReportsService {
     const { clauses: resClauses, params: resParams } = this.buildWhere(filters, 't');
     const resWhereString = resClauses.length > 0 ? `WHERE ${resClauses.join(' AND ')}` : '';
 
-    const [responsibleRows]: any = await pool.query(`
+    const [responsibleRows] = await pool.query<GroupedRow[]>(`
       SELECT u.nome as name, COUNT(t.id) as value
       FROM tickets t
       LEFT JOIN usuarios u ON t.responsavel_id = u.id
@@ -118,7 +131,8 @@ class ReportsService {
     `, resParams);
 
     // 6. By Day
-    const [dayRows]: any = await pool.query(`
+    interface DayRow extends RowDataPacket { date: Date | string; created: number };
+    const [dayRows] = await pool.query<DayRow[]>(`
       SELECT 
         DATE(created_at) as date,
         COUNT(*) as created
@@ -128,19 +142,20 @@ class ReportsService {
       ORDER BY date ASC
     `, params);
 
-    // Resolutions by day (separate query for robustness)
+    // Resolutions by day
     const startDate = filters.start_date || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const endDate = filters.end_date || new Date().toISOString().split('T')[0];
     
     let resClausesList = ['finalizado_em >= ?', 'finalizado_em <= ?'];
-    let resParamsList: any[] = [`${startDate} 00:00:00`, `${endDate} 23:59:59`];
+    let resParamsList: (string | number)[] = [`${startDate} 00:00:00`, `${endDate} 23:59:59`];
     
     if (filters.empresa_id) { resClausesList.push('empresa_id = ?'); resParamsList.push(filters.empresa_id); }
     if (filters.responsavel_id) { resClausesList.push('responsavel_id = ?'); resParamsList.push(filters.responsavel_id); }
     if (filters.status) { resClausesList.push('status = ?'); resParamsList.push(filters.status); }
     if (filters.prioridade) { resClausesList.push('prioridade = ?'); resParamsList.push(filters.prioridade); }
 
-    const [resDayRows]: any = await pool.query(`
+    interface ResDayRow extends RowDataPacket { date: Date | string; resolved: number };
+    const [resDayRows] = await pool.query<ResDayRow[]>(`
       SELECT 
         DATE(finalizado_em) as date,
         COUNT(*) as resolved
@@ -154,17 +169,17 @@ class ReportsService {
     // Merge day data
     const dayMap = new Map<string, { date: string; created: number; resolved: number }>();
     
-    dayRows.forEach((r: any) => {
-      const d = r.date instanceof Date ? r.date.toISOString().split('T')[0] : r.date;
-      dayMap.set(d, { date: d, created: r.created, resolved: 0 });
+    dayRows.forEach((r) => {
+      const d = r.date instanceof Date ? r.date.toISOString().split('T')[0] : String(r.date);
+      dayMap.set(d, { date: d, created: Number(r.created), resolved: 0 });
     });
 
-    resDayRows.forEach((r: any) => {
-      const d = r.date instanceof Date ? r.date.toISOString().split('T')[0] : r.date;
+    resDayRows.forEach((r) => {
+      const d = r.date instanceof Date ? r.date.toISOString().split('T')[0] : String(r.date);
       if (dayMap.has(d)) {
-        dayMap.get(d)!.resolved = r.resolved;
+        dayMap.get(d)!.resolved = Number(r.resolved);
       } else {
-        dayMap.set(d, { date: d, created: 0, resolved: r.resolved });
+        dayMap.set(d, { date: d, created: 0, resolved: Number(r.resolved) });
       }
     });
 
@@ -180,19 +195,19 @@ class ReportsService {
         urgent_tickets: Number(totals.urgent || 0),
         average_resolution_hours: Math.round(Number(totals.avg_res_hours || 0) * 10) / 10
       },
-      by_status: statusRows.map((r: any) => ({ 
-        name: this.translateStatus(r.name), 
+      by_status: statusRows.map((r) => ({ 
+        name: this.translateStatus(r.name || 'Indefinido'), 
         value: Number(r.value) 
       })),
-      by_priority: priorityRows.map((r: any) => ({ 
-        name: this.translatePriority(r.name), 
+      by_priority: priorityRows.map((r) => ({ 
+        name: this.translatePriority(r.name || 'baixa'), 
         value: Number(r.value) 
       })),
-      by_category: categoryRows.map((r: any) => ({ 
+      by_category: categoryRows.map((r) => ({ 
         name: r.name || 'Sem Categoria', 
         value: Number(r.value) 
       })),
-      by_responsible: responsibleRows.map((r: any) => ({ 
+      by_responsible: responsibleRows.map((r) => ({ 
         name: r.name || 'Sem Responsável', 
         value: Number(r.value) 
       })),

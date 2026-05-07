@@ -30,6 +30,12 @@ interface SummaryData {
   by_day: { date: string; created: number; resolved: number }[];
 }
 
+type ReportsApiResponse = 
+  | SummaryData 
+  | { success?: boolean; data?: SummaryData; message?: string };
+
+type CompanyOption = { id: number; nome: string };
+
 interface ReportsPageProps {
   currentUser: User;
 }
@@ -47,7 +53,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
     status: '',
     prioridade: ''
   });
-  const [companies, setCompanies] = useState<{id: number, nome: string}[]>([]);
+  const [companies, setCompanies] = useState<CompanyOption[]>([]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -58,17 +64,25 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
         if (value) queryParams.append(key, String(value));
       });
 
-      const response = await api.get<any>(`/reports/summary?${queryParams.toString()}`);
-      // Handle both { success, data } and direct data formats
-      const reportData = response.data || response;
+      const response = await api.get<ReportsApiResponse>(`/reports/summary?${queryParams.toString()}`);
+      
+      // Defensively extract data
+      let reportData: SummaryData | null = null;
+      if (response) {
+        if ('totals' in response) {
+          reportData = response;
+        } else if ('data' in response && response.data) {
+          reportData = response.data;
+        }
+      }
       
       if (reportData && reportData.totals) {
         setData(reportData);
       } else {
-        setError('Resposta do servidor inválida');
+        setError('Resposta do servidor inválida ou vazia.');
       }
-    } catch (err: any) {
-      const msg = err.message || 'Erro ao carregar dados do relatório.';
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro ao carregar dados do relatório.';
       setError(msg);
     } finally {
       setLoading(false);
@@ -79,14 +93,14 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
     fetchData();
     
     if (currentUser.desenvolvedor) {
-      api.get<any>('/companies').then(res => {
-        const list = res.data || res;
-        setCompanies(Array.isArray(list) ? list : []);
+      api.get<CompanyOption[] | { data: CompanyOption[] }>('/companies').then(res => {
+        const list = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [];
+        setCompanies(list);
       }).catch(() => {});
     }
   }, [fetchData, currentUser.desenvolvedor]);
 
-  const escapeCsv = (val: any) => {
+  const escapeCsv = (val: string | number | null | undefined) => {
     if (val === null || val === undefined) return '';
     let str = String(val);
     if (str.includes(',') || str.includes('"') || str.includes('\n')) {
@@ -301,7 +315,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                 <Card className="p-6 col-span-1 lg:col-span-1">
                   <h3 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
                     <div className="w-1 h-4 bg-orange-500 rounded-full"></div>
-                    Priorização Médias
+                    Distribuição por Prioridade
                   </h3>
                   <div className="h-[250px]">
                     <ResponsiveContainer width="100%" height="100%">
@@ -386,7 +400,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                   </h3>
                   <div className="space-y-4">
                     {data.by_responsible.length > 0 ? (
-                      data.by_responsible.sort((a, b) => b.value - a.value).map((item, idx) => (
+                      [...data.by_responsible].sort((a, b) => b.value - a.value).map((item, idx) => (
                         <div key={idx} className="flex items-center justify-between group">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600 group-hover:bg-blue-600 group-hover:text-white transition-all">
