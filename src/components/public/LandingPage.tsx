@@ -107,11 +107,11 @@ export const LandingPage = ({ onLogin }: LandingPageProps) => {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-8">
               <div className="space-y-6">
-                <h1 className="text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1]">
-                  Centralize tickets, atendimentos e comunicação em <span className="text-blue-600">um único lugar.</span>
+                <h1 className="text-4xl lg:text-6xl font-bold tracking-tight leading-[1.15]">
+                  A plataforma que ajuda empresas a <span className="text-blue-600">organizar demandas</span>, acelerar respostas e conectar equipes.
                 </h1>
                 <p className="text-lg text-slate-500 font-medium leading-relaxed max-w-xl">
-                  A plataforma definitiva para organizar demandas, acelerar respostas e conectar sua equipe em uma operação clara e rastreável.
+                  Mantenha sua operação clara e rastreável com a Gestifique. Centralize atendimentos e comunicação em um único lugar.
                 </p>
               </div>
 
