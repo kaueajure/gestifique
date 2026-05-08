@@ -167,6 +167,8 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
         status={ticket.status || 'aberto'}
         prioridade={ticket.prioridade || 'media'}
         onBack={onBack}
+        onUpdateStatus={handleUpdateTicket}
+        canEdit={!!(currentUser.administrador || currentUser.desenvolvedor)}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

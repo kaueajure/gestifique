@@ -1,6 +1,8 @@
 import React from 'react';
 import { Badge } from '../../ui/Badge';
+import { Button } from '../../ui/Button';
 import { ArrowLeft } from 'lucide-react';
+import { TicketStatus } from '../../../types';
 
 interface TicketHeaderProps {
   id: number;
@@ -8,9 +10,11 @@ interface TicketHeaderProps {
   status: string;
   prioridade: string;
   onBack: () => void;
+  onUpdateStatus?: (data: { status: TicketStatus }) => void;
+  canEdit?: boolean;
 }
 
-export const TicketHeader = ({ id, titulo, status, prioridade, onBack }: TicketHeaderProps) => {
+export const TicketHeader = ({ id, titulo, status, prioridade, onBack, onUpdateStatus, canEdit }: TicketHeaderProps) => {
   const getStatusVariant = (st: string) => {
     const map: Record<string, 'blue' | 'emerald' | 'amber' | 'red' | 'indigo' | 'slate'> = {
       aberto: 'blue',
@@ -32,6 +36,8 @@ export const TicketHeader = ({ id, titulo, status, prioridade, onBack }: TicketH
     return map[pr] || 'slate';
   };
 
+  const showResolveButton = canEdit && status !== 'resolvido' && status !== 'fechado';
+
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div className="flex items-center gap-3">
@@ -52,6 +58,17 @@ export const TicketHeader = ({ id, titulo, status, prioridade, onBack }: TicketH
           <h2 className="text-lg font-bold text-slate-900 truncate leading-tight tracking-tight">{titulo || 'Atendimento'}</h2>
         </div>
       </div>
+
+      {showResolveButton && onUpdateStatus && (
+        <Button 
+          variant="emerald" 
+          size="sm" 
+          onClick={() => onUpdateStatus({ status: 'resolvido' })}
+          className="h-8 px-4 text-[10px] uppercase font-bold tracking-widest shrink-0"
+        >
+          Marcar como Resolvido
+        </Button>
+      )}
     </div>
   );
 };
