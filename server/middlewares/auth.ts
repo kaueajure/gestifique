@@ -23,7 +23,7 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
   const token = req.headers.authorization?.split(' ')[1] || req.cookies?.token;
 
   if (!token) {
-    return res.status(401).json({ success: false, message: 'Não autorizado' });
+    return res.status(401).json({ success: false, message: 'Token de acesso ausente. Faça login novamente.' });
   }
 
   try {
@@ -31,18 +31,18 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
     
     // Payload validation
     if (!decoded || typeof decoded !== 'object' || !decoded.id || !decoded.email) {
-      return res.status(401).json({ success: false, message: 'Sessão inválida. Faça login novamente.' });
+      return res.status(401).json({ success: false, message: 'Sessão corrompida. Faça login novamente.' });
     }
 
     // Strict validation: check database
     const [rows]: any = await pool.query('SELECT ativo FROM usuarios WHERE id = ?', [decoded.id]);
     
     if (rows.length === 0) {
-      return res.status(401).json({ success: false, message: 'Usuário não encontrado' });
+      return res.status(401).json({ success: false, message: 'Sua conta não foi encontrada no sistema.' });
     }
 
     if (Number(rows[0].ativo) !== 1) {
-      return res.status(403).json({ success: false, message: 'Sua conta está inativada' });
+      return res.status(403).json({ success: false, message: 'Sua conta foi desativada pelo administrador.' });
     }
 
     req.user = decoded;

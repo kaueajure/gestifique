@@ -31,6 +31,17 @@ class ApiService {
       if (!isSilent) {
         window.dispatchEvent(new CustomEvent('api:unauthorized', { detail: { endpoint } }));
       }
+
+      // Try to get message from body
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        try {
+          const result = await response.json();
+          throw new Error(result.message || 'Sessão expirada. Faça login novamente.');
+        } catch (e) {
+          // Fallback if parsing fails
+        }
+      }
       
       throw new Error('Sessão expirada. Faça login novamente.');
     }

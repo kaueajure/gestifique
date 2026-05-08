@@ -11,23 +11,27 @@ class AuthService {
       `SELECT u.*, e.ativo as empresa_ativa 
        FROM usuarios u 
        LEFT JOIN empresas e ON u.empresa_id = e.id 
-       WHERE u.email = ? AND u.ativo = 1`,
+       WHERE u.email = ?`,
       [email]
     );
 
     if (rows.length === 0) {
-      throw new Error('Usuário não encontrado ou inativo');
+      throw new Error('E-mail ou senha incorretos');
     }
 
     const user = rows[0];
 
-    if (user.empresa_id && !user.empresa_ativa) {
-      throw new Error('A empresa vinculada a este usuário está inativa.');
-    }
-
     const validPassword = await bcrypt.compare(password, user.senha_hash);
     if (!validPassword) {
-      throw new Error('Senha incorreta');
+      throw new Error('E-mail ou senha incorretos');
+    }
+
+    if (Number(user.ativo) !== 1) {
+      throw new Error('Sua conta foi desativada pelo administrador');
+    }
+
+    if (user.empresa_id && !user.empresa_ativa) {
+      throw new Error('Acesso bloqueado: Sua empresa está inativa no sistema.');
     }
 
     await pool.query('UPDATE usuarios SET ultimo_login = NOW() WHERE id = ?', [user.id]);
