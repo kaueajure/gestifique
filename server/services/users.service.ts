@@ -2,10 +2,10 @@ import  pool from  '../db/connection.js';
 import bcrypt from 'bcryptjs';
 
 class UsersService {
-  async list(filters: { empresaId?: number; search?: string; status?: string; permission?: string }) {
+  async list(filters: { empresaId?: number; search?: string; status?: string }) {
     let query = `
-      SELECT u.id, u.nome, u.email, u.telefone, u.cargo, u.administrador, u.desenvolvedor, 
-             u.ativo, u.ultimo_login, u.created_at, u.empresa_id, e.nome as empresa_nome 
+      SELECT u.id, u.nome, u.email, u.cargo, u.administrador, u.desenvolvedor, 
+             u.ativo, u.empresa_id, e.nome as empresa_nome 
       FROM usuarios u
       LEFT JOIN empresas e ON u.empresa_id = e.id
       WHERE 1=1
@@ -26,14 +26,6 @@ class UsersService {
       query += ' AND u.ativo = 1';
     } else if (filters.status === 'inativo') {
       query += ' AND u.ativo = 0';
-    }
-
-    if (filters.permission === 'desenvolvedor') {
-      query += ' AND u.desenvolvedor = 1';
-    } else if (filters.permission === 'administrador') {
-      query += ' AND u.administrador = 1 AND u.desenvolvedor = 0';
-    } else if (filters.permission === 'usuario') {
-      query += ' AND u.administrador = 0 AND u.desenvolvedor = 0';
     }
 
     query += ' ORDER BY u.nome ASC';

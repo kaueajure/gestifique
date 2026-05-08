@@ -60,11 +60,10 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
       const query = new URLSearchParams();
       if (searchTerm) query.append('search', searchTerm);
       if (statusFilter !== 'todos') query.append('status', statusFilter);
-      if (permissionFilter !== 'todos') query.append('permission', permissionFilter);
 
       const [usersData, companiesData] = await Promise.all([
         api.get<User[]>(`/users?${query.toString()}`),
-        currentUser.desenvolvedor ? api.get<Empresa[]>('/companies') : Promise.resolve([])
+        currentUser.desenvolvedor ? api.get<Empresa[]>('/companies?status=ativo') : Promise.resolve([])
       ]);
       setUsers(usersData);
       setCompanies(companiesData);
@@ -81,7 +80,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
       fetchData();
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchTerm, statusFilter, permissionFilter]);
+  }, [searchTerm, statusFilter]);
 
   const showSuccess = (msg: string) => {
     setSuccessMsg(msg);
@@ -211,16 +210,6 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
               <option value="todos">Todos os Status</option>
               <option value="ativo">Ativos</option>
               <option value="inativo">Inativos</option>
-            </select>
-            <select 
-              value={permissionFilter}
-              onChange={(e) => setPermissionFilter(e.target.value)}
-              className="h-9 px-3 bg-white border border-slate-100 rounded-lg text-xs font-semibold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer hover:bg-slate-50 transition-all font-sans"
-            >
-              <option value="todos">Todas Permissões</option>
-              <option value="usuario">Usuários Comuns</option>
-              <option value="administrador">Administradores</option>
-              <option value="desenvolvedor">Desenvolvedores</option>
             </select>
           </div>
         </div>

@@ -15,13 +15,12 @@ router.get('/', isAdmin, async (req: AuthRequest, res) => {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
 
-    const { search, status, permission } = req.query;
+    const { search, status } = req.query;
     const empresaId = currentUser.desenvolvedor ? undefined : currentUser.empresa_id;
     const users = await usersService.list({ 
       empresaId, 
       search: search as string, 
-      status: status as string, 
-      permission: permission as string 
+      status: status as string
     });
     sendSuccess(res, users);
   } catch (error: unknown) {
