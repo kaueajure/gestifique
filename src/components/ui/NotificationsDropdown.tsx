@@ -47,7 +47,7 @@ export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({ cu
   const fetchNotifications = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get<NotificationsListResponse>('/notifications?limit=10');
+      const res = await api.get<NotificationsListResponse>('/notifications?limit=10&unread_only=true');
       let items: Notification[] = [];
       let unread_count = 0;
 
