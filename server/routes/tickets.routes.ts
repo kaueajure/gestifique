@@ -153,6 +153,14 @@ router.post('/', async (req: AuthRequest, res) => {
 
     await logSystemAction(req, currentUser.id, targetEmpresaId, 'TICKET_CREATE', `Novo chamado criado: #${ticketId}`);
     
+    try {
+      const fullTicket = await ticketsService.getByIdForUser(ticketId, currentUser);
+      const io = req.app.get('io');
+      if (io && fullTicket) {
+        io.to(`empresa_${targetEmpresaId}`).emit('ticketCreated', fullTicket);
+      }
+    } catch(e) {}
+
     sendSuccess(res, { id: ticketId }, 'Ticket aberto com sucesso', 201);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erro ao criar ticket';
@@ -186,6 +194,14 @@ router.patch('/:id/status', async (req: AuthRequest, res) => {
     const updateResult = await ticketsService.updateStatus(id, status, currentUser.id, req);
     if (updateResult && updateResult.oldStatus !== updateResult.newStatus) {
        await logSystemAction(req, currentUser.id, updateResult.empresa_id, 'TICKET_STATUS_CHANGE', `Status do chamado #${id} alterado de ${updateResult.oldStatus} para ${updateResult.newStatus}`);
+       
+       try {
+         const fullTicket = await ticketsService.getByIdForUser(id, currentUser);
+         const io = req.app.get('io');
+         if (io && fullTicket) {
+           io.to(`empresa_${updateResult.empresa_id}`).emit('ticketUpdated', fullTicket);
+         }
+       } catch(e) {}
     }
 
     sendSuccess(res, null, 'Status atualizado com sucesso');
@@ -264,6 +280,14 @@ router.patch('/:id', async (req: AuthRequest, res) => {
       const logMsg = `Atualizou detalhes do chamado #${id}`;
       await logSystemAction(req, currentUser.id, ticket.empresa_id, 'TICKET_UPDATE', logMsg);
     }
+    
+    try {
+      const fullTicket = await ticketsService.getByIdForUser(id, currentUser);
+      const io = req.app.get('io');
+      if (io && fullTicket) {
+        io.to(`empresa_${ticket.empresa_id}`).emit('ticketUpdated', fullTicket);
+      }
+    } catch(e) {}
     
     sendSuccess(res, null, 'Ticket atualizado com sucesso');
   } catch (error: unknown) {

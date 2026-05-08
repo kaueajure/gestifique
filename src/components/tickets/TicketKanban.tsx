@@ -5,6 +5,7 @@ import { MessageSquare, User as UserIcon, Calendar, Loader2, AlertCircle, Buildi
 import { cn } from '../../lib/utils';
 import { api } from '../../lib/api';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { getSocket } from '../../lib/socket';
 
 const DraggableComp = Draggable as any;
 const DroppableComp = Droppable as any;
@@ -29,6 +30,58 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
   useEffect(() => {
     setLocalData(kanbanData);
   }, [kanbanData]);
+
+  // Real-time updates via WebSockets
+  useEffect(() => {
+    if (!currentUser?.empresa_id) return;
+    
+    const socket = getSocket(currentUser.empresa_id);
+
+    const handleTicketUpdated = (updatedTicket: Ticket) => {
+      setLocalData(currentData => {
+        const newColumns = currentData.columns.map(col => {
+          // Remove from all existing columns first
+          const filteredTickets = col.tickets.filter(t => t.id !== updatedTicket.id);
+          return { ...col, tickets: filteredTickets };
+        });
+
+        // Add to the correct column
+        const targetColIndex = newColumns.findIndex(c => c.id === updatedTicket.status);
+        if (targetColIndex !== -1) {
+          // Find original index if it was in the same column to preserve order,
+          // otherwise put it at the beginning
+          newColumns[targetColIndex].tickets.unshift(updatedTicket);
+        }
+
+        // Update counts
+        newColumns.forEach(c => c.count = c.tickets.length);
+
+        return { ...currentData, columns: newColumns };
+      });
+    };
+
+    const handleTicketCreated = (newTicket: Ticket) => {
+      setLocalData(currentData => {
+        const newColumns = [...currentData.columns];
+        const targetColIndex = newColumns.findIndex(c => c.id === newTicket.status);
+        
+        if (targetColIndex !== -1 && !newColumns[targetColIndex].tickets.some(t => t.id === newTicket.id)) {
+          newColumns[targetColIndex].tickets.unshift(newTicket);
+          newColumns[targetColIndex].count++;
+        }
+        
+        return { ...currentData, columns: newColumns };
+      });
+    };
+
+    socket.on('ticketUpdated', handleTicketUpdated);
+    socket.on('ticketCreated', handleTicketCreated);
+
+    return () => {
+      socket.off('ticketUpdated', handleTicketUpdated);
+      socket.off('ticketCreated', handleTicketCreated);
+    };
+  }, [currentUser]);
 
   const handleStatusUpdate = async (ticketId: number, newStatus: string) => {
     try {

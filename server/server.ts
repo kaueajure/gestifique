@@ -3,6 +3,8 @@ import path from 'path';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { createServer as createViteServer } from 'vite';
+import { createServer } from 'http';
+import { Server as SocketIOServer } from 'socket.io';
 import  { initDB } from  './db/init-db.js';
 import  apiRoutes from  './routes/index.js';
 import  { errorHandler } from  './middlewares/error-handler.js';
@@ -10,6 +12,29 @@ import  { env } from  './config/env.js';
 
 async function startServer() {
   const app = express();
+  const httpServer = createServer(app);
+  const io = new SocketIOServer(httpServer, {
+    cors: {
+      origin: '*',
+      methods: ["GET", "POST", "PATCH", "PUT", "DELETE"]
+    }
+  });
+
+  app.set('io', io);
+
+  io.on('connection', (socket) => {
+    const empresaId = socket.handshake.auth.empresa_id || socket.handshake.query.empresa_id;
+    if (empresaId) {
+      const room = `empresa_${empresaId}`;
+      socket.join(room);
+      console.log(`[Socket] User connected to room: ${room}`);
+    }
+
+    socket.on('disconnect', () => {
+      console.log(`[Socket] User disconnected`);
+    });
+  });
+
   const PORT = env.PORT;
 
   // Initial Config
@@ -103,7 +128,7 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  httpServer.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 Gestifique Server running on http://localhost:${PORT}`);
     console.log(`Environment: ${env.NODE_ENV}`);
   });
