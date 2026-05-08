@@ -11,7 +11,8 @@
     "start": "node dist-server/server.js",
     "preview": "vite preview",
     "clean": "rimraf dist dist-server",
-    "lint": "tsc --noEmit && tsc -p tsconfig.server.json --noEmit"
+    "lint": "tsc --noEmit && tsc -p tsconfig.server.json --noEmit",
+    "postinstall": "npm run build"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
