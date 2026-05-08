@@ -236,6 +236,41 @@ class ReportsService {
     return map[priority] || priority;
   }
 
+  async getReportData(filters: ReportFilters) {
+    const { clauses, params } = this.buildWhere(filters, 't');
+    const whereString = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
+
+    // 1. Get Metrics
+    const [stats]: any = await pool.query(`
+      SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN t.status = 'resolvido' OR t.status = 'fechado' THEN 1 ELSE 0 END) as resolvidos
+      FROM tickets t
+      ${whereString}
+    `, params);
+
+    const metrics = {
+      total: stats[0].total || 0,
+      resolvidos: stats[0].resolvidos || 0,
+      taxaResolucao: stats[0].total > 0 ? Math.round((stats[0].resolvidos / stats[0].total) * 100) : 0
+    };
+
+    // 2. Get Detailed List
+    const [tickets]: any = await pool.query(`
+      SELECT 
+        t.id, t.titulo, t.status, t.prioridade, t.categoria, t.created_at,
+        e.nome as empresa_nome, u.nome as cliente_nome, r.nome as responsavel_nome
+      FROM tickets t
+      LEFT JOIN empresas e ON t.empresa_id = e.id
+      LEFT JOIN usuarios u ON t.usuario_id = u.id
+      LEFT JOIN usuarios r ON t.responsavel_id = r.id
+      ${whereString}
+      ORDER BY t.created_at DESC
+    `, params);
+
+    return { metrics, tickets };
+  }
+
   async getDashboardStats(user: any) {
     const isDev = !!user.desenvolvedor;
     const userId = user.id;

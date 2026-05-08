@@ -39,4 +39,33 @@ router.get('/summary', async (req: AuthRequest, res) => {
   }
 });
 
+router.post('/generate', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
+    const { start_date, end_date, empresa_id, status, prioridade } = req.body;
+
+    const filters: ReportFilters = {
+      start_date,
+      end_date,
+      status,
+      prioridade
+    };
+
+    // Force empresa_id if not developer
+    if (!currentUser.desenvolvedor) {
+      filters.empresa_id = currentUser.empresa_id;
+    } else if (empresa_id) {
+      filters.empresa_id = parseInt(empresa_id as string);
+    }
+
+    const reportData = await reportsService.getReportData(filters);
+    sendSuccess(res, reportData);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao gerar relatório';
+    sendError(res, message);
+  }
+});
+
 export default router;

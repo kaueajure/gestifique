@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import { 
   Download, Filter, RefreshCw, Calendar, TrendingUp, AlertCircle, 
-  Clock, CheckCircle2, Inbox, Activity, ChevronRight, FileText
+  Clock, CheckCircle2, Inbox, Activity, ChevronRight, FileText, Printer
 } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -30,6 +30,27 @@ interface SummaryData {
   by_day: { date: string; created: number; resolved: number }[];
 }
 
+interface DetailedTicket {
+  id: number;
+  titulo: string;
+  status: string;
+  prioridade: string;
+  categoria: string;
+  created_at: string;
+  empresa_nome: string;
+  cliente_nome: string;
+  responsavel_nome: string;
+}
+
+interface DetailedReportData {
+  metrics: {
+    total: number;
+    resolvidos: number;
+    taxaResolucao: number;
+  };
+  tickets: DetailedTicket[];
+}
+
 type ReportsApiResponse = 
   | SummaryData 
   | { success?: boolean; data?: SummaryData; message?: string };
@@ -44,8 +65,10 @@ const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#6366f1', '#ec4899', '#8b5cf6'
 
 export function ReportsPage({ currentUser }: ReportsPageProps) {
   const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<SummaryData | null>(null);
+  const [detailedReport, setDetailedReport] = useState<DetailedReportData | null>(null);
   const [filters, setFilters] = useState({
     start_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     end_date: new Date().toISOString().split('T')[0],
@@ -88,6 +111,20 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
       setLoading(false);
     }
   }, [filters]);
+
+  const handleGenerateReport = async () => {
+    setGenerating(true);
+    setError(null);
+    try {
+      const report = await api.post<DetailedReportData>('/reports/generate', filters);
+      setDetailedReport(report);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro ao gerar relatório detalhado.';
+      setError(msg);
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -177,18 +214,21 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Relatórios</h1>
           <p className="text-slate-500 font-medium">Análise gerencial dos atendimentos da plataforma.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="secondary" onClick={handleExportCSV} disabled={!data || data.totals.total_tickets === 0}>
-            <Download size={18} className="mr-2" /> Exportar CSV
-          </Button>
-          <Button onClick={fetchData}>
-            <RefreshCw size={18} className={`mr-2 ${loading ? 'animate-spin' : ''}`} /> Atualizar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" onClick={() => window.print()} className="print:hidden">
+              <Printer size={18} className="mr-2" /> Imprimir Relatório
+            </Button>
+            <Button variant="secondary" onClick={handleExportCSV} disabled={!data || data.totals.total_tickets === 0} className="print:hidden">
+              <Download size={18} className="mr-2" /> Exportar CSV
+            </Button>
+            <Button onClick={fetchData} className="print:hidden">
+              <RefreshCw size={18} className={`mr-2 ${loading ? 'animate-spin' : ''}`} /> Atualizar Dashboard
+            </Button>
+          </div>
         </div>
-      </div>
 
-      {/* Filters */}
-      <Card className="p-6 bg-slate-50/50 border-slate-200">
+        {/* Filters */}
+        <Card className="p-6 bg-slate-50/50 border-slate-200 print:hidden">
         <div className="flex items-center gap-2 mb-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
           <Filter size={14} /> Filtros de Relatório
         </div>
@@ -253,6 +293,16 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                </select>
              </div>
           )}
+          <div className="flex items-end">
+            <Button 
+              className="w-full h-9" 
+              onClick={handleGenerateReport} 
+              disabled={generating}
+            >
+              {generating ? <RefreshCw size={16} className="animate-spin mr-2" /> : <TrendingUp size={16} className="mr-2" />}
+              Gerar Relatório Detalhado
+            </Button>
+          </div>
         </div>
       </Card>
 
@@ -263,8 +313,73 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
         </Card>
       )}
 
+      {detailedReport && (
+        <div className="space-y-6 mt-8 border-t pt-8 border-slate-200">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-1.5 h-6 bg-blue-600 rounded-full"></div>
+            <h2 className="text-xl font-bold text-slate-900">Resultados Detalhados</h2>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <KPICard title="Chamados Encontrados" value={detailedReport.metrics.total} icon={<Inbox />} color="blue" />
+            <KPICard title="Taxa de Resolução" value={`${detailedReport.metrics.taxaResolucao}%`} icon={<CheckCircle2 />} color="emerald" />
+            <KPICard title="Período" value={`${filters.start_date} a ${filters.end_date}`} icon={<Calendar />} color="indigo" />
+          </div>
+
+          <Card className="overflow-hidden bg-white border-slate-200">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500 tracking-wider">ID</th>
+                    <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500 tracking-wider">Título</th>
+                    {currentUser.desenvolvedor && <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500 tracking-wider">Empresa</th>}
+                    <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500 tracking-wider">Status</th>
+                    <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500 tracking-wider">Prioridade</th>
+                    <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500 tracking-wider">Data</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {detailedReport.tickets.length > 0 ? (
+                    detailedReport.tickets.map((t) => (
+                      <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-4 py-3 text-xs font-bold text-blue-600">#{t.id}</td>
+                        <td className="px-4 py-3">
+                          <div className="text-xs font-bold text-slate-800">{t.titulo}</div>
+                          <div className="text-[10px] text-slate-400 font-medium">{t.categoria}</div>
+                        </td>
+                        {currentUser.desenvolvedor && <td className="px-4 py-3 text-[10px] font-bold text-slate-600">{t.empresa_nome}</td>}
+                        <td className="px-4 py-3 px-4 py-3">
+                          <Badge variant={t.status === 'resolvido' ? 'emerald' : t.status === 'aberto' ? 'blue' : 'slate'}>
+                            {t.status.replace('_', ' ')}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 px-4 py-3">
+                          <Badge variant={t.prioridade === 'urgente' ? 'red' : t.prioridade === 'alta' ? 'orange' : 'slate'}>
+                            {t.prioridade}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-[10px] font-medium text-slate-500">
+                          {new Date(t.created_at).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">
+                        Nenhum registro encontrado para a tabela.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </div>
+      )}
+
       {data && (
-        <>
+        <div className="print:hidden">
           {/* Metrics Boxes */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <KPICard title="Total Enviado" value={data.totals.total_tickets} icon={<Inbox />} color="blue" />
@@ -429,7 +544,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
               </div>
             </>
           )}
-        </>
+        </div>
       )}
     </div>
   );
