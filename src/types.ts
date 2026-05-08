@@ -148,24 +148,13 @@ export interface SystemLog {
 }
 
 export interface DashboardData {
-  counts: {
-    total: number;
-    aberto: number;
-    em_andamento: number;
-    aguardando_cliente: number;
-    resolvido: number;
-    fechado: number;
-    urgente: number;
-    tempo_medio_resolucao: string;
-  };
+  chamadosAtivos: number;
+  resolvidosMes: number;
+  totalEmpresas?: number;
+  totalUsuarios: number;
   recentTickets: Ticket[];
-  recentActivities: Log[];
   byStatus: Array<{
     status: string;
-    qtd: number;
-  }>;
-  byPriority: Array<{
-    prioridade: string;
     qtd: number;
   }>;
 }
