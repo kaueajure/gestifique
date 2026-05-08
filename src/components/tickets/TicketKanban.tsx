@@ -176,12 +176,24 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                                    </div>
                                 )}
                                 <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-tight">
-                                   <span className="flex items-center gap-1 min-w-0"><UserIcon size={10} className="shrink-0" /><span className="truncate">{ticket.cliente_nome?.split(' ')[0] || 'Usuário'}</span></span>
+                                   <span className="flex items-center gap-1 min-w-0">
+                                      <UserIcon size={10} className="shrink-0" />
+                                      {ticket.cliente_nome === 'Usuário Removido' ? (
+                                        <Badge variant="slate" className="text-[8px] px-1 py-0 h-4 border-none bg-slate-100 text-slate-500">Conta Excluída</Badge>
+                                      ) : (
+                                        <span className="truncate">{ticket.cliente_nome?.split(' ')[0] || 'Usuário'}</span>
+                                      )}
+                                   </span>
                                    <span className="flex items-center gap-1 shrink-0"><Calendar size={10} />{new Date(ticket.created_at).toLocaleDateString()}</span>
                                 </div>
                                 {ticket.responsavel_nome && (
                                   <div className="flex items-center gap-1 text-[10px] font-bold text-indigo-400 uppercase tracking-tight">
-                                     <UserIcon size={10} /> {ticket.responsavel_nome}
+                                     <UserIcon size={10} /> 
+                                     {ticket.responsavel_nome === 'Não Atribuído' ? (
+                                       <span className="text-slate-300 italic">Não Atribuído</span>
+                                     ) : (
+                                       ticket.responsavel_nome
+                                     )}
                                   </div>
                                 )}
                              </div>

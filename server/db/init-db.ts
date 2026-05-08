@@ -190,6 +190,27 @@ async function initDB() {
       ALTER TABLE tickets MODIFY status ENUM('aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado') DEFAULT 'aberto'
     `);
 
+    // Ensure tickets columns allow NULL and update foreign keys
+    try {
+      console.log('[BOOT] 🛠️ Ajustando integridade dos tickets...');
+      await connection.query('ALTER TABLE tickets MODIFY COLUMN usuario_id INT NULL');
+      await connection.query('ALTER TABLE tickets MODIFY COLUMN responsavel_id INT NULL');
+      
+      // Cleanup orphaned tickets
+      const [cleanupTickets]: any = await connection.query(`
+        UPDATE tickets SET usuario_id = NULL WHERE usuario_id NOT IN (SELECT id FROM usuarios) AND usuario_id IS NOT NULL
+      `);
+      const [cleanupResponsavel]: any = await connection.query(`
+        UPDATE tickets SET responsavel_id = NULL WHERE responsavel_id NOT IN (SELECT id FROM usuarios) AND responsavel_id IS NOT NULL
+      `);
+      
+      if (cleanupTickets.affectedRows > 0 || cleanupResponsavel.affectedRows > 0) {
+        console.log(`[BOOT] 🧹 Limpeza concluída: ${cleanupTickets.affectedRows} tickets e ${cleanupResponsavel.affectedRows} responsabilidades órfãs corrigidas.`);
+      }
+    } catch (e) {
+      console.warn('[BOOT] ⚠️ Falha ao ajustar colunas de tickets:', e);
+    }
+
     // Ticket Mensagens / Anexos Migrations
     await ensureColumn('ticket_mensagens', 'interno', 'TINYINT(1) DEFAULT 0');
     await ensureColumn('ticket_mensagens', 'anexo', 'VARCHAR(255) NULL');

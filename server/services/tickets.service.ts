@@ -100,7 +100,10 @@ class TicketsService {
     const safeLimit = toPositiveInt(limit) ?? 20;
     const offset = (safePage - 1) * safeLimit;
     const [items]: any = await pool.query(`
-      SELECT t.*, u.nome as cliente_nome, r.nome as responsavel_nome, e.nome as empresa_nome
+      SELECT t.*, 
+             COALESCE(u.nome, 'Usuário Removido') as cliente_nome, 
+             COALESCE(r.nome, 'Não Atribuído') as responsavel_nome, 
+             e.nome as empresa_nome
       FROM tickets t
       LEFT JOIN usuarios u ON t.usuario_id = u.id
       LEFT JOIN empresas e ON t.empresa_id = e.id
@@ -185,7 +188,9 @@ class TicketsService {
 
     const [tickets]: any = await pool.query(`
       SELECT t.id, t.titulo, t.status, t.prioridade, t.categoria, t.created_at, t.empresa_id,
-             u.nome as cliente_nome, r.nome as responsavel_nome, e.nome as empresa_nome
+             COALESCE(u.nome, 'Usuário Removido') as cliente_nome, 
+             COALESCE(r.nome, 'Não Atribuído') as responsavel_nome, 
+             e.nome as empresa_nome
       FROM tickets t
       LEFT JOIN usuarios u ON t.usuario_id = u.id
       LEFT JOIN empresas e ON t.empresa_id = e.id
@@ -292,11 +297,12 @@ class TicketsService {
         t.id, t.empresa_id, t.usuario_id, t.responsavel_id, t.titulo, t.descricao, 
         t.status, t.prioridade, t.categoria, t.origem, t.prazo_sla, t.finalizado_em,
         t.created_at, t.updated_at,
-        u.nome as cliente_nome, u.email as cliente_email, 
-        r.nome as responsavel_nome, 
+        COALESCE(u.nome, 'Usuário Removido') as cliente_nome, 
+        COALESCE(u.email, 'removido@sistema.com') as cliente_email, 
+        COALESCE(r.nome, 'Não Atribuído') as responsavel_nome, 
         e.nome as empresa_nome
        FROM tickets t 
-       JOIN usuarios u ON t.usuario_id = u.id 
+       LEFT JOIN usuarios u ON t.usuario_id = u.id 
        JOIN empresas e ON t.empresa_id = e.id
        LEFT JOIN usuarios r ON t.responsavel_id = r.id 
        WHERE t.id = ?`,
@@ -445,9 +451,9 @@ class TicketsService {
   async getMessages(ticketId: number, includeInternal: boolean) {
     let query = `
       SELECT m.id, m.ticket_id, m.usuario_id, m.mensagem, m.interno, m.anexo, m.created_at,
-             u.nome as usuario_nome 
+             COALESCE(u.nome, 'Usuário Removido') as usuario_nome 
       FROM ticket_mensagens m
-      JOIN usuarios u ON m.usuario_id = u.id
+      LEFT JOIN usuarios u ON m.usuario_id = u.id
       WHERE m.ticket_id = ?
     `;
     if (!includeInternal) query += ' AND m.interno = 0';

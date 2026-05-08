@@ -3,10 +3,12 @@ import { api } from '../../lib/api';
 import { Ticket, Message, User, TicketAttachment } from '../../types';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { Badge } from '../ui/Badge';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { TicketHeader } from '../tickets/details/TicketHeader';
 import { TicketProperties } from '../tickets/details/TicketProperties';
 import { TicketConversation } from '../tickets/details/TicketConversation';
+import { cn } from '../../lib/utils';
 
 interface TicketDetailsPageProps {
   ticketId: number;
@@ -157,7 +159,8 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
     );
   }
 
-  const clienteNome = ticket.cliente_nome || 'Não informado';
+  const isClienteRemovido = ticket.cliente_nome === 'Usuário Removido';
+  const clienteNome = isClienteRemovido ? 'Conta Excluída' : (ticket.cliente_nome || 'Não informado');
 
   return (
     <div className="flex flex-col gap-6">
@@ -181,12 +184,24 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
             </CardHeader>
             <CardContent className="p-5">
                <div className="flex items-start gap-4 mb-4">
-                  <div className="w-9 h-9 rounded-lg bg-slate-900 flex items-center justify-center text-white font-bold text-xs shrink-0">
-                     {clienteNome.charAt(0)}
+                  <div className={cn(
+                    "w-9 h-9 rounded-lg flex items-center justify-center text-white font-bold text-xs shrink-0",
+                    isClienteRemovido ? "bg-slate-300" : "bg-slate-900"
+                  )}>
+                     {isClienteRemovido ? '?' : clienteNome.charAt(0)}
                   </div>
                   <div className="flex-1 min-w-0">
                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <span className="text-sm font-bold text-slate-900">{clienteNome}</span>
+                        <div className="flex items-center gap-2">
+                           <span className={cn("text-sm font-bold", isClienteRemovido ? "text-slate-400" : "text-slate-900")}>
+                             {clienteNome}
+                           </span>
+                           {isClienteRemovido && (
+                             <Badge variant="slate" className="text-[9px] px-1.5 py-0 border-none bg-slate-100 text-slate-500">
+                               Usuário Removido
+                             </Badge>
+                           )}
+                        </div>
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{new Date(ticket.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
                      </div>
                      <div className="text-sm font-medium text-slate-600 leading-relaxed whitespace-pre-wrap">

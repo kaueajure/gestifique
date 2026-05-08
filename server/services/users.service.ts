@@ -91,6 +91,15 @@ class UsersService {
     const hash = await bcrypt.hash(newPassword, 10);
     await pool.query('UPDATE usuarios SET senha_hash = ? WHERE id = ?', [hash, id]);
   }
+
+  async deleteUser(id: number) {
+    // 1. First ensure tickets are de-referenced (orphan recovery)
+    await pool.query('UPDATE tickets SET usuario_id = NULL WHERE usuario_id = ?', [id]);
+    await pool.query('UPDATE tickets SET responsavel_id = NULL WHERE responsavel_id = ?', [id]);
+    
+    // 2. Perform Soft Delete by setting active to 0
+    await pool.query('UPDATE usuarios SET ativo = 0 WHERE id = ?', [id]);
+  }
 }
 
 export default new UsersService();
