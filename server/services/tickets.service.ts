@@ -31,17 +31,11 @@ class TicketsService {
     let summaryWhere = 'WHERE 1=1';
     const params: (string | number)[] = [];
 
-    // ACL
+    // Regra de Negócio: Se não for desenvolvedor, só vê chamados da própria empresa
     if (!is_dev) {
-      if (is_admin) {
-        baseWhere += ' AND t.empresa_id = ?';
-        summaryWhere += ' AND t.empresa_id = ?';
-        params.push(empresa_id);
-      } else {
-        baseWhere += ' AND t.usuario_id = ?';
-        summaryWhere += ' AND t.usuario_id = ?';
-        params.push(usuario_id);
-      }
+      baseWhere += ' AND t.empresa_id = ?';
+      summaryWhere += ' AND t.empresa_id = ?';
+      params.push(empresa_id);
     } else {
       const empresaIdFilter = toPositiveInt(filters.empresa_id_filter);
       if (empresaIdFilter) {
@@ -143,17 +137,11 @@ class TicketsService {
     let summaryWhere = 'WHERE 1=1';
     const params: (string | number)[] = [];
 
-    // ACL
+    // Regra de Negócio: Se não for desenvolvedor, só vê chamados da própria empresa
     if (!is_dev) {
-      if (is_admin) {
-        baseWhere += ' AND t.empresa_id = ?';
-        summaryWhere += ' AND t.empresa_id = ?';
-        params.push(empresa_id);
-      } else {
-        baseWhere += ' AND t.usuario_id = ?';
-        summaryWhere += ' AND t.usuario_id = ?';
-        params.push(usuario_id);
-      }
+      baseWhere += ' AND t.empresa_id = ?';
+      summaryWhere += ' AND t.empresa_id = ?';
+      params.push(empresa_id);
     } else {
       const empresaIdFilter = toPositiveInt(filters.empresa_id_filter);
       if (empresaIdFilter) {
