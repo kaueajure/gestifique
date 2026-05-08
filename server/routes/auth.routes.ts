@@ -33,4 +33,35 @@ router.post('/logout', (req, res) => {
   sendSuccess(res, null, 'Logout realizado com sucesso');
 });
 
+router.post('/forgot-password', async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return sendError(res, 'O e-mail é obrigatório.', 400);
+    }
+    const data = await authService.forgotPassword(email);
+    sendSuccess(res, data, 'Processo iniciado.');
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao processar solicitação de recuperação.';
+    sendError(res, message, 500);
+  }
+});
+
+router.post('/reset-password', async (req, res, next) => {
+  try {
+    const { email, token, newPassword } = req.body;
+    if (!email || !token || !newPassword) {
+      return sendError(res, 'E-mail, token e nova senha são obrigatórios.', 400);
+    }
+    if (newPassword.length < 6) {
+      return sendError(res, 'A senha deve ter pelo menos 6 caracteres.', 400);
+    }
+    const data = await authService.resetPassword(email, token, newPassword);
+    sendSuccess(res, data, 'Senha redefinida com sucesso.');
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao redefinir a senha.';
+    sendError(res, message, 400);
+  }
+});
+
 export default router;

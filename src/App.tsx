@@ -30,7 +30,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 
-type ViewState = 'landing' | 'login' | 'register' | 'dashboard';
+type ViewState = 'landing' | 'login' | 'forgot-password' | 'reset-password' | 'dashboard';
 type ActiveTab = 'dashboard' | 'tickets' | 'users' | 'companies' | 'logs' | 'profile' | 'settings' | 'reports';
 
 export default function App() {
@@ -40,7 +40,9 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [authSuccess, setAuthSuccess] = useState<string | null>(null);
   const [isBooting, setIsBooting] = useState(true);
+  const [resetEmail, setResetEmail] = useState('');
 
   useEffect(() => {
     // Check session on load
@@ -114,6 +116,45 @@ export default function App() {
     setView('landing');
   };
 
+  const handleForgotPassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setAuthError(null);
+    setAuthSuccess(null);
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get('email') as string;
+
+    try {
+      const data = await api.post<{ message: string }>('/auth/forgot-password', { email });
+      setAuthSuccess(data.message);
+      setResetEmail(email);
+      setTimeout(() => setView('reset-password'), 2000);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao solicitar recuperação.';
+      setAuthError(message);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setAuthError(null);
+    setAuthSuccess(null);
+    const formData = new FormData(e.currentTarget);
+    const token = formData.get('token');
+    const newPassword = formData.get('newPassword');
+
+    try {
+      const data = await api.post<{ message: string }>('/auth/reset-password', { email: resetEmail, token, newPassword });
+      setAuthSuccess(data.message);
+      setTimeout(() => {
+        setView('login');
+        setAuthSuccess(null);
+      }, 2000);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao redefinir a senha.';
+      setAuthError(message);
+    }
+  };
+
   if (isBooting) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -163,7 +204,13 @@ export default function App() {
                 <div className="space-y-1">
                    <div className="flex items-center justify-between">
                       <label className="text-xs font-semibold text-slate-700">Senha</label>
-                      <button type="button" className="text-[10px] font-bold text-blue-600 hover:text-blue-700 uppercase tracking-tight">Esqueceu?</button>
+                      <button 
+                        type="button" 
+                        onClick={() => { setView('forgot-password'); setAuthError(null); setAuthSuccess(null); }}
+                        className="text-[10px] font-bold text-blue-600 hover:text-blue-700 uppercase tracking-tight"
+                      >
+                        Esqueceu?
+                      </button>
                    </div>
                    <input 
                       name="password"
@@ -186,6 +233,130 @@ export default function App() {
                 className="text-xs font-semibold text-slate-400 hover:text-slate-900 flex items-center gap-2 mx-auto transition-all"
              >
                 ← Voltar ao início
+             </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (view === 'forgot-password') {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-blue-50/50 via-transparent to-transparent">
+        <motion.div 
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-sm"
+        >
+          <div className="text-center mb-8">
+             <div className="inline-flex w-12 h-12 bg-slate-100 rounded-xl items-center justify-center shadow-inner mb-6">
+                <Mail className="text-blue-600" size={24} />
+             </div>
+             <h2 className="text-2xl font-semibold text-slate-950 tracking-tight">Recuperar Senha</h2>
+             <p className="text-sm text-slate-500 font-medium">Enviaremos um código para o seu e-mail</p>
+          </div>
+
+          <Card className="p-8 shadow-xl shadow-slate-200/50">
+             <form onSubmit={handleForgotPassword} className="space-y-5">
+                {authError && (
+                  <div className="p-3 bg-red-50 border border-red-100 rounded-lg flex items-center gap-2.5 text-red-600 text-xs font-semibold animate-in fade-in slide-in-from-top-1">
+                    <AlertCircle size={14} /> {authError}
+                  </div>
+                )}
+                {authSuccess && (
+                  <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-lg flex items-center gap-2.5 text-emerald-600 text-xs font-semibold animate-in fade-in slide-in-from-top-1">
+                    <Shield size={14} /> {authSuccess}
+                  </div>
+                )}
+                
+                <Input 
+                   label="E-mail Corporativo"
+                   name="email"
+                   type="email" 
+                   required 
+                   placeholder="exemplo@empresa.com"
+                />
+
+                <Button type="submit" className="w-full h-11 text-sm bg-blue-600 hover:bg-blue-700 text-white">
+                   Enviar código
+                </Button>
+             </form>
+          </Card>
+          
+          <div className="mt-8 text-center">
+             <button 
+                onClick={() => { setView('login'); setAuthError(null); setAuthSuccess(null); }} 
+                className="text-xs font-semibold text-slate-400 hover:text-slate-900 flex items-center gap-2 mx-auto transition-all"
+             >
+                ← Voltar ao login
+             </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (view === 'reset-password') {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-blue-50/50 via-transparent to-transparent">
+        <motion.div 
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-sm"
+        >
+          <div className="text-center mb-8">
+             <div className="inline-flex w-12 h-12 bg-slate-100 rounded-xl items-center justify-center shadow-inner mb-6">
+                <Lock className="text-blue-600" size={24} />
+             </div>
+             <h2 className="text-2xl font-semibold text-slate-950 tracking-tight">Nova Senha</h2>
+             <p className="text-sm text-slate-500 font-medium">Digite o código recebido no seu e-mail</p>
+          </div>
+
+          <Card className="p-8 shadow-xl shadow-slate-200/50">
+             <form onSubmit={handleResetPassword} className="space-y-5">
+                {authError && (
+                  <div className="p-3 bg-red-50 border border-red-100 rounded-lg flex items-center gap-2.5 text-red-600 text-xs font-semibold animate-in fade-in slide-in-from-top-1">
+                    <AlertCircle size={14} /> {authError}
+                  </div>
+                )}
+                {authSuccess && (
+                  <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-lg flex items-center gap-2.5 text-emerald-600 text-xs font-semibold animate-in fade-in slide-in-from-top-1">
+                    <Shield size={14} /> {authSuccess}
+                  </div>
+                )}
+                
+                <div className="space-y-1">
+                   <label className="text-xs font-semibold text-slate-700">Código de 6 dígitos</label>
+                   <input 
+                      name="token"
+                      type="text" 
+                      required 
+                      className="w-full h-10 bg-white border border-slate-200 rounded-lg px-4 text-center text-xl font-bold tracking-widest focus:ring-4 focus:ring-blue-100 focus:border-blue-200 transition-all outline-none" 
+                      placeholder="000000"
+                      maxLength={6}
+                   />
+                </div>
+
+                <Input 
+                   label="Nova Senha"
+                   name="newPassword"
+                   type="password" 
+                   required 
+                   placeholder="Mínimo 6 caracteres"
+                />
+
+                <Button type="submit" className="w-full h-11 text-sm bg-blue-600 hover:bg-blue-700 text-white">
+                   Redefinir senha
+                </Button>
+             </form>
+          </Card>
+          
+          <div className="mt-8 text-center">
+             <button 
+                onClick={() => { setView('login'); setAuthError(null); setAuthSuccess(null); }} 
+                className="text-xs font-semibold text-slate-400 hover:text-slate-900 flex items-center gap-2 mx-auto transition-all"
+             >
+                ← Voltar ao login
              </button>
           </div>
         </motion.div>

@@ -179,6 +179,10 @@ async function initDB() {
       }
     }
 
+    // Usuarios Migrations
+    await ensureColumn('usuarios', 'reset_token', 'VARCHAR(255) NULL');
+    await ensureColumn('usuarios', 'reset_token_expires', 'DATETIME NULL');
+
     // Tickets Migrations
     await ensureColumn('tickets', 'prazo_sla', 'DATETIME NULL');
     await ensureColumn('tickets', 'finalizado_em', 'DATETIME NULL');

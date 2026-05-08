@@ -1,5 +1,6 @@
 import  pool from  '../db/connection.js';
 import notificationsService from './notifications.service.js';
+import { sendTicketNotification } from '../utils/mailer.js';
 
 export function toPositiveInt(value: unknown): number | undefined {
   if (value === undefined || value === null || value === '') return undefined;
@@ -261,8 +262,9 @@ class TicketsService {
         .filter((a: any) => a.id !== usuario_id)
         .map((a: any) => a.id);
 
-      const [author]: any = await pool.query('SELECT nome FROM usuarios WHERE id = ?', [usuario_id]);
+      const [author]: any = await pool.query('SELECT nome, email FROM usuarios WHERE id = ?', [usuario_id]);
       const authorName = author[0]?.nome || 'Usuário';
+      const authorEmail = author[0]?.email;
 
       if (adminIds.length > 0) {
         await notificationsService.createMany(adminIds, {
@@ -273,6 +275,14 @@ class TicketsService {
           link: `ticket:${ticketId}`,
           metadata: { ticketId }
         });
+      }
+
+      if (authorEmail) {
+        sendTicketNotification(
+          authorEmail,
+          `Atendimento #${ticketId} Registrado`,
+          `Olá ${authorName}, seu chamado "${titulo}" foi registrado com sucesso e em breve nossa equipe fará o atendimento. Detalhes: ${descricao}`
+        ).catch(err => console.error('Email error:', err));
       }
     } catch (e) {
       console.error('Erro ao notificar criação de ticket:', e);
@@ -484,6 +494,13 @@ class TicketsService {
         // 1. Notificar solicitante se não for ele e não for interno
         if (!interno && ticket.usuario_id && ticket.usuario_id !== usuario_id) {
           recipients.add(ticket.usuario_id);
+          if (ticket.cliente_email && ticket.cliente_email !== 'removido@sistema.com') {
+             sendTicketNotification(
+               ticket.cliente_email,
+               `Nova resposta no Chamado #${ticket_id}`,
+               `Olá ${ticket.cliente_nome}, você tem uma nova resposta de ${authorName} no chamado "${ticket.titulo}":<br><br><i>"${mensagem}"</i>`
+             ).catch(err => console.error('Email error:', err));
+          }
         }
 
         // 2. Notificar responsável se não for ele
