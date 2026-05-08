@@ -211,9 +211,8 @@ class TicketsService {
     const columnsConfig = [
       { id: 'aberto', title: 'Aberto' },
       { id: 'em_andamento', title: 'Em andamento' },
-      { id: 'aguardando_cliente', title: 'Aguardando cliente' },
-      { id: 'resolvido', title: 'Resolvido' },
-      { id: 'fechado', title: 'Fechado' }
+      { id: 'aguardando_cliente', title: 'Aguardando resposta' },
+      { id: 'resolvido', title: 'Finalizado' }
     ];
 
     const columns = columnsConfig.map(c => {
@@ -282,11 +281,7 @@ class TicketsService {
     if (!ticket) return null;
 
     if (!currentUser.desenvolvedor) {
-      if (currentUser.administrador) {
-        if (ticket.empresa_id !== currentUser.empresa_id) return { error: 'forbidden' };
-      } else {
-        if (ticket.usuario_id !== currentUser.id) return { error: 'forbidden' };
-      }
+      if (ticket.empresa_id !== currentUser.empresa_id) return { error: 'forbidden' };
     }
     return ticket;
   }
