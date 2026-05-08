@@ -23,8 +23,8 @@ router.post('/login', async (req, res, next) => {
     
     sendSuccess(res, data, 'Login realizado com sucesso');
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'E-mail ou senha inválidos';
-    sendError(res, message, 401);
+    const message = error instanceof Error ? error.message : 'E-mail ou senha incorretos';
+    res.status(401).json({ success: false, message });
   }
 });
 

@@ -37,9 +37,12 @@ class ApiService {
       if (contentType.includes('application/json')) {
         try {
           const result = await response.json();
-          throw new Error(result.message || 'Sessão expirada. Faça login novamente.');
-        } catch (e) {
-          // Fallback if parsing fails
+          throw new Error(result?.message || result?.error || 'Sessão expirada. Faça login novamente.');
+        } catch (e: any) {
+          if (e instanceof Error && (e.message.includes('Sessão expirada') || e.message.includes('E-mail') || e.message.includes('conta'))) {
+            throw e;
+          }
+          // Fallback if parsing fails or if we didn't throw above
         }
       }
       

@@ -27,7 +27,7 @@ class AuthService {
     }
 
     if (Number(user.ativo) !== 1) {
-      throw new Error('Sua conta foi desativada pelo administrador');
+      throw new Error('Sua conta foi desativada. Entre em contato com o administrador.');
     }
 
     if (user.empresa_id && !user.empresa_ativa) {
