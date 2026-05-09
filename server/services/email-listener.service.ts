@@ -55,6 +55,9 @@ export class EmailListenerService {
         return;
       }
 
+      const [empresas]: any = await pool.query('SELECT id FROM empresas ORDER BY id ASC LIMIT 1');
+      const fallbackEmpresaId = empresas.length > 0 ? empresas[0].id : 1;
+
       console.log(`[Email Listener] Found ${messages.length} unseen emails.`);
 
       for (const item of messages) {
@@ -79,7 +82,7 @@ export class EmailListenerService {
           continue;
         }
 
-        const userId = await this.getOrCreateUser(email, name);
+        const { id: userId, empresa_id: empresaId } = await this.getOrCreateUser(email, name, fallbackEmpresaId);
 
         const match = subject.match(/\[Ticket\s*#(\d+)\]/i);
         if (match) {
@@ -99,7 +102,7 @@ export class EmailListenerService {
         }
 
         const newTicketId = await ticketsService.create({
-          empresa_id: null,
+          empresa_id: empresaId,
           usuario_id: userId,
           titulo: subject,
           descricao: text,
@@ -118,17 +121,22 @@ export class EmailListenerService {
     }
   }
 
-  static async getOrCreateUser(email: string, name: string): Promise<number> {
-    const [rows]: any = await pool.query('SELECT id FROM usuarios WHERE email = ?', [email]);
+  static async getOrCreateUser(email: string, name: string, fallbackEmpresaId: number): Promise<{ id: number, empresa_id: number }> {
+    const [rows]: any = await pool.query('SELECT id, empresa_id FROM usuarios WHERE email = ?', [email]);
     if (rows.length > 0) {
-      return rows[0].id;
+      let user = rows[0];
+      if (!user.empresa_id) {
+         await pool.query('UPDATE usuarios SET empresa_id = ? WHERE id = ?', [fallbackEmpresaId, user.id]);
+         user.empresa_id = fallbackEmpresaId;
+      }
+      return { id: user.id, empresa_id: user.empresa_id };
     }
 
     const defaultPass = await bcrypt.hash(Math.random().toString(), 10);
     const [result]: any = await pool.query(
-      'INSERT INTO usuarios (nome, email, senha_hash, cargo, ativo) VALUES (?, ?, ?, ?, ?)',
-      [name, email, defaultPass, 'Cliente Externo', 1]
+      'INSERT INTO usuarios (nome, email, senha_hash, cargo, ativo, empresa_id) VALUES (?, ?, ?, ?, ?, ?)',
+      [name, email, defaultPass, 'Cliente Externo', 1, fallbackEmpresaId]
     );
-    return result.insertId;
+    return { id: result.insertId, empresa_id: fallbackEmpresaId };
   }
 }
