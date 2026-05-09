@@ -188,9 +188,20 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                        {column.count}
                      </Badge>
                    </div>
-                   
-                   <div className="flex flex-col gap-3 flex-1 overflow-y-auto custom-scrollbar pr-1 pb-1 min-h-[200px]">
-                     {column.tickets.map((ticket, index) => (
+                                        <div className="flex flex-col gap-3 flex-1 overflow-y-auto custom-scrollbar pr-1 pb-1 min-h-[200px]">
+                     {column.tickets.map((ticket, index) => {
+                       const prazoSLA = ticket.prazo_sla ? new Date(ticket.prazo_sla) : null;
+                       const isFinalizado = ticket.status === 'resolvido' || ticket.status === 'fechado';
+                       let slaStatus: 'normal' | 'warning' | 'expired' = 'normal';
+
+                       if (prazoSLA && !isFinalizado) {
+                         const now = new Date();
+                         const diffHours = (prazoSLA.getTime() - now.getTime()) / (1000 * 60 * 60);
+                         if (diffHours < 0) slaStatus = 'expired';
+                         else if (diffHours <= 2) slaStatus = 'warning';
+                       }
+
+                       return (
                        <DraggableComp 
                          key={ticket.id.toString()} 
                          draggableId={ticket.id.toString()} 
@@ -204,14 +215,29 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                              {...provided.dragHandleProps}
                              onClick={() => onSelectTicket(ticket.id)}
                              className={cn(
-                               "bg-white rounded-lg p-3 shadow-sm border border-slate-200 cursor-pointer hover:shadow-md transition-all group relative shrink-0",
-                               snapshot.isDragging ? "shadow-xl border-blue-300 ring-4 ring-blue-50 rotate-2 z-50" : "hover:border-slate-300",
+                               "bg-white rounded-lg p-3 shadow-sm border cursor-pointer hover:shadow-md transition-all group relative shrink-0",
+                               !snapshot.isDragging && slaStatus === 'expired' && "border-red-500 ring-1 ring-red-500",
+                               !snapshot.isDragging && slaStatus === 'warning' && "border-yellow-400",
+                               !snapshot.isDragging && slaStatus === 'normal' && "border-slate-200 hover:border-slate-300",
+                               snapshot.isDragging && "shadow-xl border-blue-300 ring-4 ring-blue-50 rotate-2 z-50",
                                updatingId === ticket.id && "opacity-50 pointer-events-none"
                              )}
                            >
                              <div className="flex items-start justify-between gap-2 mb-2">
                                <div className="flex-1 min-w-0">
-                                 <span className="text-[10px] font-bold text-slate-400 tracking-tighter block mb-1">#{ticket.id}</span>
+                                 <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-[10px] font-bold text-slate-400 tracking-tighter block">#{ticket.id}</span>
+                                    {slaStatus === 'expired' && (
+                                      <span className="text-[8px] font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded-sm uppercase tracking-tight animate-pulse border border-red-200">
+                                        SLA Vencido
+                                      </span>
+                                    )}
+                                    {slaStatus === 'warning' && (
+                                      <span className="text-[8px] font-bold bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-sm uppercase tracking-tight border border-yellow-200">
+                                        Vence em breve
+                                      </span>
+                                    )}
+                                 </div>
                                  <h4 className="font-semibold text-sm leading-tight text-slate-900 group-hover:text-blue-700 transition-colors line-clamp-2">
                                    {ticket.titulo}
                                  </h4>
@@ -253,7 +279,8 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                            </div>
                          )}
                        </DraggableComp>
-                     ))}
+                       );
+                     })}
                      {provided.placeholder}
                      {column.tickets.length === 0 && !snapshot.isDraggingOver && (
                        <div className="flex-1 min-h-[100px] flex items-center justify-center border-2 border-dashed border-slate-200 rounded-lg p-4">

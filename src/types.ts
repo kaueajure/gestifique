@@ -152,6 +152,7 @@ export interface DashboardData {
   resolvidosMes: number;
   totalEmpresas?: number;
   totalUsuarios: number;
+  slaAtrasados?: number;
   recentTickets: Ticket[];
   byStatus: Array<{
     status: string;

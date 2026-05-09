@@ -245,9 +245,19 @@ class TicketsService {
 
   async create(data: any) {
     const { empresa_id, usuario_id, titulo, descricao, prioridade, categoria } = data;
+
+    let horasSla = 24; // media padrão
+    if (prioridade === 'urgente') horasSla = 4;
+    else if (prioridade === 'alta') horasSla = 12;
+    else if (prioridade === 'baixa') horasSla = 48;
+
+    const prazoSla = new Date();
+    prazoSla.setHours(prazoSla.getHours() + horasSla);
+    const prazoSlaFormatado = prazoSla.toISOString().slice(0, 19).replace('T', ' ');
+
     const [result]: any = await pool.query(
-      'INSERT INTO tickets (empresa_id, usuario_id, titulo, descricao, prioridade, categoria) VALUES (?, ?, ?, ?, ?, ?)',
-      [empresa_id, usuario_id, titulo, descricao, prioridade || 'media', categoria || 'suporte']
+      'INSERT INTO tickets (empresa_id, usuario_id, titulo, descricao, prioridade, categoria, prazo_sla) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [empresa_id, usuario_id, titulo, descricao, prioridade || 'media', categoria || 'suporte', prazoSlaFormatado]
     );
     const ticketId = result.insertId;
 

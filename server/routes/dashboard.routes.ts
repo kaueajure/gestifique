@@ -72,11 +72,19 @@ router.get('/summary', async (req: AuthRequest, res) => {
       params
     );
 
+    // 7. SLA Atrasados
+    const [slaAtrasadosResult]: any = await pool.query(
+      `SELECT COUNT(*) as count FROM tickets WHERE status NOT IN ('resolvido', 'fechado') AND prazo_sla < NOW() ${companyFilter}`,
+      params
+    );
+    const slaAtrasados = slaAtrasadosResult[0].count;
+
     const summary = {
       chamadosAtivos,
       resolvidosMes,
       totalEmpresas,
       totalUsuarios,
+      slaAtrasados,
       recentTickets: recentTickets || [],
       byStatus: statusResult || []
     };

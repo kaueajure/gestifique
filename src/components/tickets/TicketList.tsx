@@ -58,11 +58,28 @@ export const TicketList = ({ tickets, onSelectTicket, searchTerm, hasFilters }: 
   return (
     <Card className="overflow-hidden">
       <div className="divide-y divide-slate-100">
-        {tickets.map((ticket) => (
+        {tickets.map((ticket) => {
+          const prazoSLA = ticket.prazo_sla ? new Date(ticket.prazo_sla) : null;
+          const isFinalizado = ticket.status === 'resolvido' || ticket.status === 'fechado';
+          let slaStatus: 'normal' | 'warning' | 'expired' = 'normal';
+
+          if (prazoSLA && !isFinalizado) {
+            const now = new Date();
+            const diffHours = (prazoSLA.getTime() - now.getTime()) / (1000 * 60 * 60);
+            if (diffHours < 0) slaStatus = 'expired';
+            else if (diffHours <= 2) slaStatus = 'warning';
+          }
+
+          return (
           <div 
             key={ticket.id}
             onClick={() => onSelectTicket(ticket.id)}
-            className="p-3 px-5 flex flex-col sm:flex-row sm:items-center gap-3 hover:bg-slate-50/50 transition-colors cursor-pointer group"
+            className={cn(
+              "p-3 px-5 flex flex-col sm:flex-row sm:items-center gap-3 transition-colors cursor-pointer group",
+              slaStatus === 'expired' ? "bg-red-50/50 hover:bg-red-50 border-l-2 border-l-red-500" : 
+              slaStatus === 'warning' ? "bg-yellow-50/50 hover:bg-yellow-50 border-l-2 border-l-yellow-400" :
+              "hover:bg-slate-50/50 border-l-2 border-l-transparent"
+            )}
           >
             <div className={cn(
               "w-8 h-8 rounded-lg flex items-center justify-center border transition-colors shadow-sm bg-white shrink-0",
@@ -75,6 +92,16 @@ export const TicketList = ({ tickets, onSelectTicket, searchTerm, hasFilters }: 
               <div className="flex flex-wrap items-center gap-2 mb-0.5">
                 <span className="text-sm font-bold text-slate-900 truncate group-hover:text-blue-700 transition-colors leading-tight">{ticket.titulo}</span>
                 <Badge variant={statusMap[ticket.status || 'aberto']} className="text-[9px] py-0 px-1.5 font-bold uppercase tracking-tighter">{(ticket.status || 'aberto').replace('_', ' ')}</Badge>
+                {slaStatus === 'expired' && (
+                  <span className="text-[8px] font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded-sm uppercase tracking-tight animate-pulse border border-red-200">
+                    SLA Vencido
+                  </span>
+                )}
+                {slaStatus === 'warning' && (
+                  <span className="text-[8px] font-bold bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-sm uppercase tracking-tight border border-yellow-200">
+                    Vence em breve
+                  </span>
+                )}
               </div>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] font-bold text-slate-400">
                 <span className="text-blue-600 tracking-tighter">#{ticket.id}</span>
@@ -99,7 +126,8 @@ export const TicketList = ({ tickets, onSelectTicket, searchTerm, hasFilters }: 
               </div>
             </div>
           </div>
-        ))}
+        );
+      })}
       </div>
     </Card>
   );

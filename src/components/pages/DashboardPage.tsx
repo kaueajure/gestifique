@@ -58,18 +58,21 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
   const chamadosAtivos = stats?.chamadosAtivos || 0;
   const resolvidosMes = stats?.resolvidosMes || 0;
   const totalUsuarios = stats?.totalUsuarios || 0;
+  const slaAtrasados = stats?.slaAtrasados || 0;
   const totalEmpresas = stats?.totalEmpresas;
   
   const recentTickets = stats?.recentTickets || [];
 
   const mainMetrics: Array<{ label: string, value: number, icon: React.ReactNode, color: 'blue' | 'amber' | 'emerald' | 'indigo' | 'red' | 'slate' }> = [
     { label: 'Chamados Ativos', value: chamadosAtivos, icon: <AlertCircle size={18} />, color: 'amber' as const },
+    { label: 'SLA Atrasados', value: slaAtrasados, icon: <AlertCircle size={18} />, color: 'red' as const },
     { label: 'Resolvidos (Mês)', value: resolvidosMes, icon: <CheckCircle2 size={18} />, color: 'emerald' as const },
-    { label: 'Total Usuários', value: totalUsuarios, icon: <UserIcon size={18} />, color: 'blue' as const },
   ];
 
   if (totalEmpresas !== undefined) {
     mainMetrics.push({ label: 'Total Empresas', value: totalEmpresas, icon: <Building size={18} />, color: 'indigo' as const });
+  } else {
+    mainMetrics.push({ label: 'Total Usuários', value: totalUsuarios, icon: <UserIcon size={18} />, color: 'blue' as const });
   }
 
   const statusData: ChartDataItem[] = stats?.byStatus?.map((s) => ({
