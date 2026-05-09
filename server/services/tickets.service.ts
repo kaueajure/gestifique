@@ -291,8 +291,8 @@ class TicketsService {
         sendTicketNotification(
           authorEmail,
           ticketId,
-          `Atendimento #${ticketId} Registrado`,
-          `Olá ${authorName}, seu chamado "${titulo}" foi registrado com sucesso e em breve nossa equipe fará o atendimento. Detalhes: ${descricao}`
+          titulo,
+          `Olá ${authorName}, seu chamado foi registrado com sucesso e em breve nossa equipe fará o atendimento. Detalhes: ${descricao}`
         ).catch(err => console.error('Email error:', err));
       }
     } catch (e) {
@@ -509,8 +509,8 @@ class TicketsService {
              sendTicketNotification(
                ticket.cliente_email,
                ticket_id,
-               `Nova resposta no Chamado #${ticket_id}`,
-               `Olá ${ticket.cliente_nome}, você tem uma nova resposta de ${authorName} no chamado "${ticket.titulo}":<br><br><i>"${mensagem}"</i>`
+               ticket.titulo,
+               `Olá ${ticket.cliente_nome}, você tem uma nova resposta de ${authorName}:<br><br><i>"${mensagem}"</i>`
              ).catch(err => console.error('Email error:', err));
           }
         }

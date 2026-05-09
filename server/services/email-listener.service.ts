@@ -82,18 +82,17 @@ export class EmailListenerService {
           let text = parsed.text || ''; 
           
           // Limpeza de Texto (Reply Stripping)
+          text = text.split(/Em \d+ de [a-z]{3}\. de \d{4}.*escreveu:/i)[0]; // regex request by user
           text = text.split(/\r?\n\s*>/)[0]; // > quotes
           text = text.split(/\r?\nFrom:\s/)[0]; // English mail
           text = text.split(/\r?\nDe:\s/)[0]; // Portuguese mail
           text = text.split(/On .* wrote:/i)[0]; // English inline
-          text = text.split(/Em .* escreveu:/i)[0]; // Portuguese inline
           text = text.trim();
           if (!text) {
              text = parsed.text || ''; // fallback se a regex cortar demais
           }
 
           if (!email) {
-            await connection.addFlags(id, ['\\Seen']);
             continue;
           }
 
@@ -137,7 +136,6 @@ export class EmailListenerService {
                  }
                }
                
-               await connection.addFlags(id, ['\\Seen']);
                handled = true;
              }
           }
@@ -162,7 +160,7 @@ export class EmailListenerService {
                    fs.writeFileSync(filePath, att.content);
                    await attachmentsService.create({
                       ticket_id: newTicketId,
-                      mensagem_id: null, // Initial ticket description, not a message
+                      mensagem_id: null,
                       usuario_id: userId,
                       empresa_id: empresaId,
                       nome_original: att.filename || 'anexo_email.bin',
@@ -177,11 +175,10 @@ export class EmailListenerService {
             }
             
             console.log(`[Email Listener] Created new Ticket #${newTicketId} from email.`);
-            await connection.addFlags(id, ['\\Seen']);
           }
         } catch (itemError) {
           console.error(`[IMAP ERROR] Falha ao processar email (UID: ${id}):`, itemError);
-          // Marca como lido para evitar loop infinito de erro
+        } finally {
           await connection.addFlags(id, ['\\Seen']);
         }
       }
