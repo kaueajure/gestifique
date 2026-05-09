@@ -9,6 +9,7 @@ import  { initDB } from  './db/init-db.js';
 import  apiRoutes from  './routes/index.js';
 import  { errorHandler } from  './middlewares/error-handler.js';
 import  { env } from  './config/env.js';
+import { EmailListenerService } from './services/email-listener.service.js';
 
 async function startServer() {
   const app = express();
@@ -131,6 +132,7 @@ async function startServer() {
   httpServer.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 Gestifique Server running on http://localhost:${PORT}`);
     console.log(`Environment: ${env.NODE_ENV}`);
+    EmailListenerService.init();
   });
 }
 

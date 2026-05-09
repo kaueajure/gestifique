@@ -32,5 +32,11 @@ export const env = {
   IS_PROD: process.env.NODE_ENV === 'production',
   CORS_ORIGINS: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : [],
   DEV_EMAIL: process.env.DEV_EMAIL,
-  DEV_PASSWORD: process.env.DEV_PASSWORD
+  DEV_PASSWORD: process.env.DEV_PASSWORD,
+  IMAP: {
+    HOST: process.env.IMAP_HOST as string,
+    PORT: parseInt(process.env.IMAP_PORT || '993'),
+    USER: process.env.IMAP_USER as string,
+    PASS: process.env.IMAP_PASS as string,
+  }
 };

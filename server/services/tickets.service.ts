@@ -290,6 +290,7 @@ class TicketsService {
       if (authorEmail) {
         sendTicketNotification(
           authorEmail,
+          ticketId,
           `Atendimento #${ticketId} Registrado`,
           `Olá ${authorName}, seu chamado "${titulo}" foi registrado com sucesso e em breve nossa equipe fará o atendimento. Detalhes: ${descricao}`
         ).catch(err => console.error('Email error:', err));
@@ -507,6 +508,7 @@ class TicketsService {
           if (ticket.cliente_email && ticket.cliente_email !== 'removido@sistema.com') {
              sendTicketNotification(
                ticket.cliente_email,
+               ticket_id,
                `Nova resposta no Chamado #${ticket_id}`,
                `Olá ${ticket.cliente_nome}, você tem uma nova resposta de ${authorName} no chamado "${ticket.titulo}":<br><br><i>"${mensagem}"</i>`
              ).catch(err => console.error('Email error:', err));

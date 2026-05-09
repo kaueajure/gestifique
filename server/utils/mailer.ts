@@ -38,15 +38,16 @@ export const sendPasswordRecoveryEmail = async (email: string, token: string) =>
   }
 };
 
-export const sendTicketNotification = async (email: string, titulo: string, mensagem: string) => {
+export const sendTicketNotification = async (email: string, ticketId: number, titulo: string, mensagem: string) => {
   const mailOptions = {
     from: process.env.MAIL_FROM || '"Gestifique" <suporte@gestifique.com>',
+    replyTo: process.env.MAIL_FROM || '"Gestifique" <suporte@gestifique.com>',
     to: email,
-    subject: `Atualização no Chamado: ${titulo}`,
+    subject: `[Ticket #${ticketId}] Atualização no Chamado: ${titulo}`,
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
         <div style="background-color: #2563eb; padding: 24px; text-align: center;">
-          <h2 style="color: white; margin: 0;">Atualização no Chamado</h2>
+          <h2 style="color: white; margin: 0;">Atualização no Chamado #${ticketId}</h2>
         </div>
         <div style="padding: 32px; color: #334155;">
           <h3 style="margin-top: 0;">${titulo}</h3>
