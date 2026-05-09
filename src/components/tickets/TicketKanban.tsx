@@ -63,9 +63,24 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
     const handleTicketCreated = (newTicket: Ticket) => {
       setLocalData(currentData => {
         const newColumns = [...currentData.columns];
+        
+        // Check if ticket already exists in any column
+        let exists = false;
+        for (const col of newColumns) {
+           if (col.tickets.some(t => t.id === newTicket.id)) {
+             exists = true;
+             break;
+           }
+        }
+        
+        if (exists) {
+           // Proceed with updated logic instead
+           return currentData; // Or maybe forward to handleTicketUpdated, but we'll just ignore for now to avoid duplications
+        }
+
         const targetColIndex = newColumns.findIndex(c => c.id === newTicket.status);
         
-        if (targetColIndex !== -1 && !newColumns[targetColIndex].tickets.some(t => t.id === newTicket.id)) {
+        if (targetColIndex !== -1) {
           newColumns[targetColIndex].tickets.unshift(newTicket);
           newColumns[targetColIndex].count++;
         }
