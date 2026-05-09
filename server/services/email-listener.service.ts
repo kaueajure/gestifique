@@ -20,7 +20,7 @@ export class EmailListenerService {
     });
     
     // Also run once on startup
-    this.processInbox().catch(err => console.error(err));
+    this.processInbox();
   }
 
   static async processInbox() {
@@ -29,15 +29,18 @@ export class EmailListenerService {
         user: env.IMAP.USER,
         password: env.IMAP.PASS,
         host: env.IMAP.HOST,
-        port: env.IMAP.PORT,
+        port: env.IMAP.PORT ? Number(env.IMAP.PORT) : 993,
         tls: true,
-        authTimeout: 3000
+        tlsOptions: { rejectUnauthorized: false },
+        authTimeout: 15000
       }
     };
 
     let connection: any = null;
     try {
+      console.log('[IMAP] A tentar ligar à caixa de entrada...');
       connection = await imaps.connect(config);
+      console.log('[IMAP] Ligação estabelecida. A procurar e-mails não lidos...');
       await connection.openBox('INBOX');
 
       const searchCriteria = ['UNSEEN'];
@@ -110,7 +113,7 @@ export class EmailListenerService {
 
       connection.end();
     } catch (e) {
-      console.error('[Email Listener] Error processing inbox:', e);
+      console.error('[IMAP ERROR] Falha no ouvinte:', e);
       if (connection) connection.end();
     }
   }
