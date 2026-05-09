@@ -35,7 +35,7 @@ router.get('/', async (req: AuthRequest, res) => {
       categoria: typeof req.query.categoria === 'string' && req.query.categoria !== 'todas' ? req.query.categoria : undefined,
       search: typeof req.query.search === 'string' ? req.query.search.trim() : undefined,
       page: toPositiveInt(req.query.page) ?? 1,
-      limit: toPositiveInt(req.query.limit) ?? 20
+      limit: toPositiveInt(req.query.limit) ?? 15
     };
     const tickets = await ticketsService.list(filters);
     sendSuccess(res, tickets);

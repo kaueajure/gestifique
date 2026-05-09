@@ -115,8 +115,8 @@ class TicketsService {
     `, [...params, safeLimit, offset]);
 
     return {
-      items,
-      pagination: {
+      data: items,
+      meta: {
         page: safePage,
         limit: safeLimit,
         total,

@@ -4,15 +4,23 @@ import { MessageSquare, ChevronRight, User as UserIcon, Tag, Calendar, Search } 
 import { Badge } from '../ui/Badge';
 import { cn } from '../../lib/utils';
 import { Card } from '../ui/Card';
+import { Button } from '../ui/Button';
 
 interface TicketListProps {
   tickets: Ticket[];
   onSelectTicket: (id: number) => void;
   searchTerm?: string;
   hasFilters?: boolean;
+  meta?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  onPageChange?: (page: number) => void;
 }
 
-export const TicketList = ({ tickets, onSelectTicket, searchTerm, hasFilters }: TicketListProps) => {
+export const TicketList = ({ tickets, onSelectTicket, searchTerm, hasFilters, meta, onPageChange }: TicketListProps) => {
 
   const statusMap: Record<string, 'blue' | 'emerald' | 'amber' | 'red' | 'indigo' | 'slate'> = {
     aberto: 'blue',
@@ -129,6 +137,31 @@ export const TicketList = ({ tickets, onSelectTicket, searchTerm, hasFilters }: 
         );
       })}
       </div>
+      {meta && meta.totalPages > 1 && (
+        <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100 bg-slate-50/50">
+          <span className="text-xs text-slate-500 font-medium">Página {meta.page} de {meta.totalPages}</span>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-8"
+              disabled={meta.page <= 1} 
+              onClick={(e) => { e.stopPropagation(); onPageChange?.(meta.page - 1); }}
+            >
+              Anterior
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-8"
+              disabled={meta.page >= meta.totalPages} 
+              onClick={(e) => { e.stopPropagation(); onPageChange?.(meta.page + 1); }}
+            >
+              Seguinte
+            </Button>
+          </div>
+        </div>
+      )}
     </Card>
   );
 };

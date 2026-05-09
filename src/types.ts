@@ -54,8 +54,8 @@ export type TicketStatus = 'aberto' | 'em_andamento' | 'aguardando_cliente' | 'r
 export type TicketPriority = 'baixa' | 'media' | 'alta' | 'urgente';
 
 export interface TicketListResponse {
-  items: Ticket[];
-  pagination: {
+  data: Ticket[];
+  meta: {
     page: number;
     limit: number;
     total: number;

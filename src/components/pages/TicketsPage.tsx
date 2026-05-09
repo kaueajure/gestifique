@@ -36,6 +36,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
   const [categoryFilter, setCategoryFilter] = useState('todas');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const fetchData = async () => {
     setLoading(true);
@@ -48,18 +49,21 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
       if (categoryFilter !== 'todas') query.append('categoria', categoryFilter);
 
       if (viewMode === 'list') {
+        query.append('page', currentPage.toString());
+        query.append('limit', '15');
         // Compatibility check in case the backend hasn't been reloaded yet to return the new format
         const response = await api.get(`/tickets?${query.toString()}`);
         if (Array.isArray(response)) {
             setTicketsResponse({
-                items: response as Ticket[],
-                pagination: { page: 1, limit: 100, total: response.length, totalPages: 1 },
+                data: response as Ticket[],
+                meta: { page: 1, limit: 15, total: response.length, totalPages: 1 },
                 summary: { total: 0, aberto: 0, em_andamento:0, aguardando_cliente: 0, resolvido: 0, fechado: 0 }
             });
         } else {
             setTicketsResponse(response as TicketListResponse);
         }
       } else {
+        query.append('limit', '100'); // Limit for Kanban API
         const kanbanData = await api.get<TicketKanbanResponse>(`/tickets/kanban?${query.toString()}`);
         setKanbanResponse(kanbanData);
       }
@@ -72,11 +76,15 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
   };
 
   useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, priorityFilter, categoryFilter, viewMode]);
+
+  useEffect(() => {
     const timer = setTimeout(() => {
       fetchData();
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchTerm, statusFilter, priorityFilter, categoryFilter, viewMode]);
+  }, [searchTerm, statusFilter, priorityFilter, categoryFilter, viewMode, currentPage]);
 
   return (
     <div className="space-y-6">
@@ -135,7 +143,14 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
       ) : viewMode === 'kanban' && kanbanResponse ? (
         <TicketKanban kanbanData={kanbanResponse} onSelectTicket={onSelectTicket} currentUser={currentUser} onStatusChange={() => fetchData()} />
       ) : viewMode === 'list' && ticketsResponse ? (
-        <TicketList tickets={ticketsResponse.items} onSelectTicket={onSelectTicket} searchTerm={searchTerm} hasFilters={searchTerm !== '' || statusFilter !== 'todos' || priorityFilter !== 'todas' || categoryFilter !== 'todas'} />
+        <TicketList 
+          tickets={ticketsResponse.data} 
+          meta={ticketsResponse.meta}
+          onPageChange={setCurrentPage}
+          onSelectTicket={onSelectTicket} 
+          searchTerm={searchTerm} 
+          hasFilters={searchTerm !== '' || statusFilter !== 'todos' || priorityFilter !== 'todas' || categoryFilter !== 'todas'} 
+        />
       ) : null}
 
       <CreateTicketModal 
