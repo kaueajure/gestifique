@@ -14,13 +14,42 @@ import { EmailListenerService } from './services/email-listener.service.js';
 export let io: SocketIOServer;
 
 async function startServer() {
+  const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://gestifique.com.br',
+    'https://www.gestifique.com.br',
+    'https://cornflowerblue-kingfisher-528919.hostingersite.com',
+    ...env.CORS_ORIGINS
+  ];
+
+  const corsOptions = {
+    origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+      if (!origin) return callback(null, true);
+
+      const isLocal = !env.IS_PROD && (
+        origin.startsWith('http://localhost') || 
+        origin.startsWith('http://127.0.0.1') ||
+        origin.includes('.run.app') || 
+        origin.includes('.studio')
+      );
+
+      if (isLocal || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn(`[CORS] Blocked request from unauthorized origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+  };
+
   const app = express();
   const httpServer = createServer(app);
   io = new SocketIOServer(httpServer, {
-    cors: {
-      origin: '*',
-      methods: ["GET", "POST", "PATCH", "PUT", "DELETE"]
-    }
+    cors: corsOptions
   });
 
   app.set('io', io);
@@ -40,38 +69,7 @@ async function startServer() {
 
   const PORT = env.PORT;
 
-  // Initial Config
-  const allowedOrigins = [
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'https://gestifique.com.br',
-    'https://www.gestifique.com.br',
-    'https://cornflowerblue-kingfisher-528919.hostingersite.com',
-    ...env.CORS_ORIGINS
-  ];
-  
-  app.use(cors({
-    origin: function (origin, callback) {
-      if (!origin) return callback(null, true);
-
-      const isLocal = !env.IS_PROD && (
-        origin.startsWith('http://localhost') || 
-        origin.startsWith('http://127.0.0.1') ||
-        origin.includes('.run.app') || 
-        origin.includes('.studio')
-      );
-
-      if (isLocal || allowedOrigins.includes(origin) || origin.endsWith('.hostingersite.com')) {
-        callback(null, true);
-      } else {
-        console.warn(`[CORS] Blocked request from unauthorized origin: ${origin}`);
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-  }));
+  app.use(cors(corsOptions as cors.CorsOptions));
   app.use(express.json());
   app.use(cookieParser());
   

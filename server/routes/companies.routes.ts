@@ -30,10 +30,13 @@ router.post('/', isDev, async (req: AuthRequest, res) => {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
 
-    const { nome, email, cor_principal } = req.body;
+    const { nome, email, email_suporte, cor_principal } = req.body;
     if (!nome) return sendError(res, 'Nome é obrigatório', 400);
     
-    if (email && !isValidEmail(email)) return sendError(res, 'Email inválido', 400);
+    if (!email_suporte) return sendError(res, 'E-mail de suporte é obrigatório', 400);
+    if (!isValidEmail(email_suporte)) return sendError(res, 'E-mail de suporte inválido', 400);
+
+    if (email && !isValidEmail(email)) return sendError(res, 'Email institucional inválido', 400);
     if (cor_principal && !isValidHexColor(cor_principal)) return sendError(res, 'Cor principal inválida (formato #RRGGBB)', 400);
 
     const id = await companiesService.create(req.body);
@@ -59,8 +62,14 @@ router.patch('/:id', async (req: AuthRequest, res) => {
       }
     }
 
-    const { email, cor_principal } = req.body;
-    if (email && !isValidEmail(email)) return sendError(res, 'Email inválido', 400);
+    const { email, email_suporte, cor_principal } = req.body;
+    
+    if (email_suporte !== undefined) {
+      if (!email_suporte) return sendError(res, 'O e-mail de suporte não pode ficar vazio', 400);
+      if (!isValidEmail(email_suporte)) return sendError(res, 'E-mail de suporte inválido', 400);
+    }
+    
+    if (email && !isValidEmail(email)) return sendError(res, 'Email institucional inválido', 400);
     if (cor_principal && !isValidHexColor(cor_principal)) return sendError(res, 'Cor principal inválida (formato #RRGGBB)', 400);
 
     await companiesService.update(id, req.body);

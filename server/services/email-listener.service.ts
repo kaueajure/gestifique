@@ -194,7 +194,26 @@ export class EmailListenerService {
             continue;
           }
 
-          const { id: userId, empresa_id: empresaId } = await this.getOrCreateUser(email, name, targetEmpresaId);
+          let userId, empresaId;
+          try {
+             const userObj = await this.getOrCreateUser(email, name, targetEmpresaId);
+             userId = userObj.id;
+             empresaId = userObj.empresa_id;
+          } catch(err: any) {
+             if (err.message && err.message.startsWith('MISMATCH_COMPANY')) {
+                console.error(`[IMAP] Mismatch de empresa: usuário ${email} pertence à empresa ${err.message.split(':')[1]} mas enviou email para suporte da empresa ${targetEmpresaId}.`);
+                try {
+                  await pool.query(
+                     'INSERT INTO logs_sistema (acao, descricao, user_agent, ip) VALUES (?, ?, ?, ?)',
+                     ['EMAIL_COMPANY_MISMATCH', `O e-mail de ${email} foi recebido no suporte da empresa ${targetEmpresaId}, mas o usuário está vinculado à empresa ${err.message.split(':')[1]}. E-mail ignorado.`, 'SYSTEM_LISTENER', '127.0.0.1']
+                  );
+                } catch(e) {}
+             } else {
+                console.error('[IMAP] Erro no usuário:', err);
+             }
+             await this.connection.addFlags(id, '\\Seen');
+             continue;
+          }
 
           console.log('[IMAP] A tentar criar/atualizar ticket no banco de dados...');
           
@@ -207,8 +226,8 @@ export class EmailListenerService {
           } else {
              // Duplicate check: Look for recent ticket (24h) with same user and subject
              const [recentTickets]: any = await pool.query(
-               'SELECT id FROM tickets WHERE usuario_id = ? AND titulo = ? AND created_at > (NOW() - INTERVAL 1 DAY) AND status != "fechado" ORDER BY created_at DESC LIMIT 1',
-               [userId, subject]
+               'SELECT id FROM tickets WHERE usuario_id = ? AND titulo = ? AND empresa_id = ? AND created_at > (NOW() - INTERVAL 1 DAY) AND status != "fechado" ORDER BY created_at DESC LIMIT 1',
+               [userId, subject, targetEmpresaId]
              );
              if (recentTickets.length > 0) {
                 targetTicketId = recentTickets[0].id;
@@ -219,45 +238,52 @@ export class EmailListenerService {
           if (targetTicketId) {
              const ticket = await ticketsService.getById(targetTicketId);
              if (ticket) {
-               const msgId = await ticketsService.addMessage({
-                 ticket_id: targetTicketId,
-                 usuario_id: userId,
-                 mensagem: text,
-                 interno: 0
-               });
-               console.log(`[Email Listener] Added reply to Ticket #${targetTicketId}`);
-               
-               // Real-time update via WebSocket
-               const updatedTicket = await ticketsService.getById(targetTicketId);
-               if (updatedTicket && io) {
-                 io.to(`empresa_${empresaId}`).emit('ticketUpdated', updatedTicket);
-               }
-               
-               if (parsed.attachments && parsed.attachments.length > 0) {
-                 for (const att of parsed.attachments) {
-                   if (att.size > 5120) {
-                     const filename = `email-${Date.now()}-${Math.round(Math.random() * 1E9)}${path.extname(att.filename || '.bin')}`;
-                     const dir = path.join(process.cwd(), 'uploads', 'tickets');
-                     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-                     const filePath = path.join(dir, filename);
-                     fs.writeFileSync(filePath, att.content);
-                     await attachmentsService.create({
-                        ticket_id: targetTicketId,
-                        mensagem_id: msgId,
-                        usuario_id: userId,
-                        empresa_id: empresaId,
-                        nome_original: att.filename || 'anexo_email.bin',
-                        nome_arquivo: filename,
-                        caminho: filePath,
-                        mime_type: att.contentType || 'application/octet-stream',
-                        tamanho_bytes: att.size,
-                        interno: false
-                     });
+               if (ticket.empresa_id !== targetEmpresaId) {
+                  try {
+                    await pool.query('INSERT INTO logs_sistema (acao, descricao, user_agent, ip) VALUES (?, ?, ?, ?)', ['EMAIL_TICKET_MISMATCH', `Tentativa de adicionar mensagem ao ticket #${targetTicketId} da empresa ${ticket.empresa_id} usando o suporte da empresa ${targetEmpresaId}. Ignorado.`, 'SYSTEM_LISTENER', '127.0.0.1']);
+                  } catch(e){}
+                  handled = true;
+               } else {
+                 const msgId = await ticketsService.addMessage({
+                   ticket_id: targetTicketId,
+                   usuario_id: userId,
+                   mensagem: text,
+                   interno: 0
+                 });
+                 console.log(`[Email Listener] Added reply to Ticket #${targetTicketId}`);
+                 
+                 // Real-time update via WebSocket
+                 const updatedTicket = await ticketsService.getById(targetTicketId);
+                 if (updatedTicket && io) {
+                   io.to(`empresa_${empresaId}`).emit('ticketUpdated', updatedTicket);
+                 }
+                 
+                 if (parsed.attachments && parsed.attachments.length > 0) {
+                   for (const att of parsed.attachments) {
+                     if (att.size > 5120) {
+                       const filename = `email-${Date.now()}-${Math.round(Math.random() * 1E9)}${path.extname(att.filename || '.bin')}`;
+                       const dir = path.join(process.cwd(), 'uploads', 'tickets');
+                       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+                       const filePath = path.join(dir, filename);
+                       fs.writeFileSync(filePath, att.content);
+                       await attachmentsService.create({
+                          ticket_id: targetTicketId,
+                          mensagem_id: msgId,
+                          usuario_id: userId,
+                          empresa_id: empresaId,
+                          nome_original: att.filename || 'anexo_email.bin',
+                          nome_arquivo: filename,
+                          caminho: filePath,
+                          mime_type: att.contentType || 'application/octet-stream',
+                          tamanho_bytes: att.size,
+                          interno: false
+                       });
+                     }
                    }
                  }
+                 
+                 handled = true;
                }
-               
-               handled = true;
              }
           }
 
@@ -268,7 +294,7 @@ export class EmailListenerService {
               titulo: subject,
               descricao: text,
               prioridade: 'media',
-              categoria: 'suporte'
+              categoria: 'suporte_tecnico'
             });
 
             // Real-time update via WebSocket
@@ -317,28 +343,18 @@ export class EmailListenerService {
     }
   }
 
-  static async getOrCreateUser(email: string, name: string, fallbackEmpresaId: number): Promise<{ id: number, empresa_id: number }> {
+  static async getOrCreateUser(email: string, name: string, targetEmpresaId: number): Promise<{ id: number, empresa_id: number }> {
     const [rows]: any = await pool.query('SELECT id, empresa_id FROM usuarios WHERE email = ?', [email]);
     if (rows.length > 0) {
       let user = rows[0];
+      if (user.empresa_id && user.empresa_id !== targetEmpresaId) {
+        throw new Error(`MISMATCH_COMPANY:${user.empresa_id}`);
+      }
       if (!user.empresa_id) {
-         await pool.query('UPDATE usuarios SET empresa_id = ? WHERE id = ?', [fallbackEmpresaId, user.id]);
-         user.empresa_id = fallbackEmpresaId;
+         await pool.query('UPDATE usuarios SET empresa_id = ? WHERE id = ?', [targetEmpresaId, user.id]);
+         user.empresa_id = targetEmpresaId;
       }
       return { id: user.id, empresa_id: user.empresa_id };
-    }
-
-    let targetEmpresaId = fallbackEmpresaId;
-    const domainPart = email.split('@')[1];
-    
-    if (domainPart) {
-      const publicDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'live.com', 'icloud.com'];
-      if (!publicDomains.includes(domainPart.toLowerCase())) {
-        const [domainRows]: any = await pool.query('SELECT empresa_id FROM usuarios WHERE email LIKE ? AND empresa_id IS NOT NULL LIMIT 1', [`%@${domainPart}`]);
-        if (domainRows.length > 0) {
-           targetEmpresaId = domainRows[0].empresa_id;
-        }
-      }
     }
 
     const defaultPass = await bcrypt.hash(Math.random().toString(), 10);
