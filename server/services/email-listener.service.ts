@@ -10,23 +10,29 @@ import path from 'path';
 import fs from 'fs';
 
 export class EmailListenerService {
+  private static connection: any = null;
+  private static isProcessing = false;
+
   static init() {
     if (!env.IMAP.HOST || !env.IMAP.USER || !env.IMAP.PASS) {
       console.warn('[Email Listener] Missing IMAP credentials, skipping init.');
       return;
     }
 
-    // Run every 2 minutes
-    cron.schedule('*/2 * * * *', async () => {
-      console.log('[Email Listener] Checking for new emails...');
-      await this.processInbox();
+    // Connect and start IDLE
+    this.connect();
+
+    // Heartbeat Cron: Run every 15 minutes to ensure connection is alive
+    cron.schedule('*/15 * * * *', async () => {
+      console.log('[Email Listener] Heartbeat check...');
+      if (!this.connection || !this.connection.imap || this.connection.imap.state === 'disconnected') {
+        console.warn('[Email Listener] Connection dead in heartbeat. Reconnecting...');
+        this.reconnect();
+      }
     });
-    
-    // Also run once on startup
-    this.processInbox();
   }
 
-  static async processInbox() {
+  static async connect() {
     const config = {
       imap: {
         user: env.IMAP.USER,
@@ -35,36 +41,83 @@ export class EmailListenerService {
         port: env.IMAP.PORT ? Number(env.IMAP.PORT) : 993,
         tls: true,
         tlsOptions: { rejectUnauthorized: false },
-        authTimeout: 15000
+        authTimeout: 15000,
+        keepalive: true
       }
     };
 
-    let connection: any = null;
     try {
-      console.log('[IMAP] A iniciar verificação de caixa de correio...');
-      console.log('[IMAP] A tentar ligar à caixa de entrada...');
-      connection = await imaps.connect(config);
-      console.log('[IMAP] Ligação estabelecida. A procurar e-mails não lidos...');
-      await connection.openBox('INBOX');
+      console.log('[IMAP] A tentar ligar à caixa de entrada (IDLE mode)...');
+      this.connection = await imaps.connect(config);
+      
+      await this.connection.openBox('INBOX');
+      console.log('[IMAP] Ligação estabelecida e IDLE ativo.');
 
+      // Process existing unseen emails on startup
+      await this.processInbox();
+
+      // Listen for new mail
+      this.connection.imap.on('mail', (numNewMsgs: number) => {
+        console.log(`[IMAP IDLE] ⚡ ${numNewMsgs} novo(s) e-mail(s) detetado(s) em tempo real!`);
+        this.processInbox();
+      });
+
+      // Handle connection issues
+      this.connection.imap.on('error', (err: any) => {
+        console.error('[IMAP ERROR] Erro na conexão imap:', err);
+        this.reconnect();
+      });
+
+      this.connection.imap.on('end', () => {
+        console.warn('[IMAP WARN] Conexão encerrada pelo servidor.');
+        this.reconnect();
+      });
+
+    } catch (e) {
+      console.error('[IMAP ERROR] Falha ao conectar:', e);
+      this.reconnect();
+    }
+  }
+
+  static reconnect() {
+    // If already has a connection, try to end it and remove listeners
+    if (this.connection) {
+      try {
+        this.connection.imap.removeAllListeners();
+        this.connection.end();
+      } catch (e) {}
+      this.connection = null;
+    }
+
+    console.log('[IMAP] A agendar reconexão em 10 segundos...');
+    setTimeout(() => {
+      this.connect();
+    }, 10000);
+  }
+
+  static async processInbox() {
+    if (this.isProcessing) return;
+    if (!this.connection) return;
+
+    this.isProcessing = true;
+    try {
+      console.log('[IMAP] A processar e-mails não lidos...');
+      
       const searchCriteria = ['UNSEEN'];
       const fetchOptions = {
         bodies: ['HEADER', 'TEXT', ''],
         markSeen: false 
       };
 
-      const messages = await connection.search(searchCriteria, fetchOptions);
+      const messages = await this.connection.search(searchCriteria, fetchOptions);
       console.log(`[IMAP] Encontrados ${messages.length} e-mails não lidos (UNSEEN).`);
       
       if (messages.length === 0) {
-        connection.end();
         return;
       }
 
       const [empresas]: any = await pool.query('SELECT id FROM empresas ORDER BY id ASC LIMIT 1');
       const fallbackEmpresaId = empresas.length > 0 ? empresas[0].id : 1;
-
-      console.log(`[Email Listener] Found ${messages.length} unseen emails.`);
 
       for (const item of messages) {
         const id = item.attributes.uid;
@@ -214,15 +267,14 @@ export class EmailListenerService {
         } catch (itemError) {
           console.error('[IMAP TICKET ERROR] Falha ao criar/atualizar:', itemError);
         } finally {
-          await connection.addFlags(id, ['\\Seen']);
+          await this.connection.addFlags(id, ['\\Seen']);
           console.log('[IMAP] E-mail marcado como Lido.');
         }
       }
-
-      connection.end();
     } catch (e) {
-      console.error('[IMAP ERROR] Falha no ouvinte:', e);
-      if (connection) connection.end();
+      console.error('[IMAP ERROR] Falha ao processar inbox:', e);
+    } finally {
+      this.isProcessing = false;
     }
   }
 
