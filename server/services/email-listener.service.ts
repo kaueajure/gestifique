@@ -134,28 +134,79 @@ export class EmailListenerService {
           const name = fromObj?.name || email || 'Sem Nome';
           const subject = parsed.subject || 'Sem Assunto';
           
-          const toAddresses = Array.isArray(parsed.to) 
+          let potentialAddresses: string[] = [];
+          
+          const toArr = Array.isArray(parsed.to) 
               ? parsed.to.flatMap((t: any) => t.value?.map((v: any) => v.address) || [])
               : (parsed.to as any)?.value?.map((v: any) => v.address) || [];
-          let targetEmpresaId = null;
+          potentialAddresses.push(...toArr);
 
-          if (toAddresses.length > 0) {
-              const [empresasMatch]: any = await pool.query(
-                  'SELECT id FROM empresas WHERE email_suporte IN (?) LIMIT 1',
-                  [toAddresses]
+          const ccArr = Array.isArray(parsed.cc) 
+              ? parsed.cc.flatMap((t: any) => t.value?.map((v: any) => v.address) || [])
+              : (parsed.cc as any)?.value?.map((v: any) => v.address) || [];
+          potentialAddresses.push(...ccArr);
+
+          const headerKeys = ['delivered-to', 'x-original-to', 'envelope-to', 'x-forwarded-to', 'apparently-to'];
+          for (const key of headerKeys) {
+             const val = parsed.headers.get(key) as any;
+             if (val) {
+                if (typeof val === 'string') potentialAddresses.push(val);
+                else if (Array.isArray(val)) potentialAddresses.push(...val.map(v => typeof v === 'string' ? v : v.address));
+                else if (val.value && Array.isArray(val.value)) potentialAddresses.push(...val.value.map((v: any) => v.address));
+             }
+          }
+          
+          potentialAddresses = potentialAddresses.filter(a => !!a).map(a => a.toLowerCase());
+          
+          let targetEmpresaId = null;
+          let matchedChannelId = null;
+
+          if (potentialAddresses.length > 0) {
+              const [canaisMatch]: any = await pool.query(
+                  'SELECT id, empresa_id, status FROM empresa_email_canais WHERE inbound_address IN (?) LIMIT 1',
+                  [potentialAddresses]
               );
-              if (empresasMatch.length > 0) {
-                  targetEmpresaId = empresasMatch[0].id;
+              
+              if (canaisMatch.length > 0) {
+                  matchedChannelId = canaisMatch[0].id;
+                  targetEmpresaId = canaisMatch[0].empresa_id;
+                  
+                  // Atualizar o canal
+                  await pool.query(
+                     'UPDATE empresa_email_canais SET last_received_at = NOW(), ultimo_erro = NULL WHERE id = ?',
+                     [matchedChannelId]
+                  );
+                  if (canaisMatch[0].status === 'pendente' || canaisMatch[0].status === 'erro') {
+                     await pool.query(
+                        'UPDATE empresa_email_canais SET status = ?, verified_at = NOW() WHERE id = ?',
+                        ['ativo', matchedChannelId]
+                     );
+                     try {
+                        await pool.query('INSERT INTO logs_sistema (acao, descricao, user_agent, ip) VALUES (?, ?, ?, ?)', ['EMAIL_CHANNEL_VERIFIED', `Canal de e-mail ID ${matchedChannelId} verificado/ativado pelo recebimento de email.`, 'SYSTEM_LISTENER', '127.0.0.1']);
+                     } catch(e) {}
+                  }
+              } else {
+                  // Fallback para lógica legada (email_suporte)
+                  const [empresasMatch]: any = await pool.query(
+                      'SELECT id FROM empresas WHERE email_suporte IN (?) LIMIT 1',
+                      [potentialAddresses]
+                  );
+                  if (empresasMatch.length > 0) {
+                      targetEmpresaId = empresasMatch[0].id;
+                      try {
+                         await pool.query('INSERT INTO logs_sistema (acao, descricao, user_agent, ip) VALUES (?, ?, ?, ?)', ['EMAIL_WITHOUT_CHANNEL', `E-mail de ${email} processado pela lógica legada de email_suporte. Considere configurar um canal HTTPS/Encaminhamento para a empresa ${targetEmpresaId}.`, 'SYSTEM_LISTENER', '127.0.0.1']);
+                      } catch(e) {}
+                  }
               }
           }
 
           if (!targetEmpresaId) {
-             console.error(`[IMAP] CRITICAL: Não foi possível identificar a empresa via destinatário ${JSON.stringify(toAddresses)}. E-mail de ${email} ignorado.`);
+             console.error(`[IMAP] CRITICAL: Não foi possível identificar a empresa via destinatário ${JSON.stringify(potentialAddresses)}. E-mail de ${email} ignorado.`);
              
              try {
                 await pool.query(
                    'INSERT INTO logs_sistema (acao, descricao, user_agent, ip) VALUES (?, ?, ?, ?)',
-                   ['EMAIL_WITHOUT_COMPANY', `Falha ao processar email de ${email} para ${JSON.stringify(toAddresses)}. Nenhuma empresa encontrada.`, 'SYSTEM_LISTENER', '127.0.0.1']
+                   ['EMAIL_WITHOUT_COMPANY', `Falha ao processar email de ${email} para ${JSON.stringify(potentialAddresses)}. Nenhuma empresa encontrada.`, 'SYSTEM_LISTENER', '127.0.0.1']
                 );
              } catch(e) {}
              

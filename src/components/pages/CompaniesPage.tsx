@@ -25,6 +25,7 @@ import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
 
 import { AccessDenied } from '../ui/AccessDenied';
+import { EmailChannelsManager } from '../companies/EmailChannelsManager';
 
 type CompanyPayload = {
   nome: string;
@@ -459,6 +460,12 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
               </Button>
            </div>
         </form>
+
+        {selectedCompany && (
+           <div className="mt-8 pt-8 border-t border-slate-100">
+             <EmailChannelsManager empresaId={selectedCompany.id} />
+           </div>
+        )}
       </Modal>
 
       <ConfirmDialog 

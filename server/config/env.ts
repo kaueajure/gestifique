@@ -33,6 +33,8 @@ export const env = {
   CORS_ORIGINS: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : [],
   DEV_EMAIL: process.env.DEV_EMAIL,
   DEV_PASSWORD: process.env.DEV_PASSWORD,
+  INBOUND_EMAIL_DOMAIN: process.env.INBOUND_EMAIL_DOMAIN || 'inbound.gestifique.com.br',
+  INBOUND_EMAIL_PREFIX: process.env.INBOUND_EMAIL_PREFIX || 'canal',
   IMAP: {
     HOST: process.env.IMAP_HOST as string,
     PORT: parseInt(process.env.IMAP_PORT || '993'),

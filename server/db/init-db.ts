@@ -25,6 +25,29 @@ async function initDB() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    // Canais de e-mail por empresa
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS empresa_email_canais (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        empresa_id INT NOT NULL,
+        nome VARCHAR(120) NULL,
+        email_publico VARCHAR(255) NOT NULL,
+        inbound_address VARCHAR(255) NOT NULL UNIQUE,
+        verification_token VARCHAR(100) NOT NULL,
+        status ENUM('pendente','verificado','ativo','erro') DEFAULT 'pendente',
+        ultimo_erro TEXT NULL,
+        last_received_at DATETIME NULL,
+        verified_at DATETIME NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        KEY idx_canais_empresa (empresa_id),
+        KEY idx_canais_email (email_publico),
+        KEY idx_canais_inbound (inbound_address),
+        KEY idx_canais_status (status),
+        FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
     // Usuarios
     await connection.query(`
       CREATE TABLE IF NOT EXISTS usuarios (

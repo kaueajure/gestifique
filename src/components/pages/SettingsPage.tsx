@@ -8,6 +8,7 @@ import { Input } from '../ui/Input';
 import { Card } from '../ui/Card';
 import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
+import { EmailChannelsManager } from '../companies/EmailChannelsManager';
 
 type AppTab = 'dashboard' | 'tickets' | 'users' | 'companies' | 'logs' | 'profile' | 'settings' | 'reports';
 
@@ -332,6 +333,12 @@ export const SettingsPage = ({ currentUser, onNavigate }: SettingsPageProps) => 
                    </form>
                  )}
               </Card>
+            )}
+
+            {activeSubTab === 'company' && !!currentUser.empresa_id && (
+               <Card className="p-6">
+                 <EmailChannelsManager empresaId={currentUser.empresa_id} />
+               </Card>
             )}
 
             {activeSubTab === 'system' && (
