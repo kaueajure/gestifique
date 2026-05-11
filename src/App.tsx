@@ -18,6 +18,7 @@ import { api } from './lib/api';
 import { Card } from './components/ui/Card';
 import { Input } from './components/ui/Input';
 import { Button } from './components/ui/Button';
+import { AppLogo } from './components/ui/Logo';
 import { 
   ArrowRight, 
   Shield, 
@@ -25,7 +26,6 @@ import {
   Loader2,
   Lock,
   Mail,
-  Ticket as TicketIcon,
   Settings,
   AlertCircle
 } from 'lucide-react';
@@ -178,9 +178,7 @@ export default function App() {
           className="w-full max-w-sm"
         >
           <div className="text-center mb-8">
-             <div className="inline-flex w-12 h-12 bg-slate-900 rounded-xl items-center justify-center shadow-lg shadow-slate-200 mb-6">
-                <TicketIcon className="text-white" size={24} />
-             </div>
+             <AppLogo size={48} className="mb-6 mx-auto" />
              <h2 className="text-2xl font-semibold text-slate-950 tracking-tight">Bem-vindo</h2>
              <p className="text-sm text-slate-500 font-medium">Acesse o portal do cliente Gestifique</p>
           </div>
