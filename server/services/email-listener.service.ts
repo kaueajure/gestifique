@@ -180,7 +180,7 @@ export class EmailListenerService {
           } else {
              // Duplicate check: Look for recent ticket (24h) with same user and subject
              const [recentTickets]: any = await pool.query(
-               'SELECT id FROM tickets WHERE usuario_id = ? AND titulo = ? AND criado_em > (NOW() - INTERVAL 1 DAY) AND status != "fechado" ORDER BY criado_em DESC LIMIT 1',
+               'SELECT id FROM tickets WHERE usuario_id = ? AND titulo = ? AND created_at > (NOW() - INTERVAL 1 DAY) AND status != "fechado" ORDER BY created_at DESC LIMIT 1',
                [userId, subject]
              );
              if (recentTickets.length > 0) {

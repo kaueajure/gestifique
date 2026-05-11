@@ -29,7 +29,7 @@ class TicketsService {
     const [spamUsers]: any = await pool.query(`
       SELECT usuario_id, titulo, COUNT(*) as cnt 
       FROM tickets 
-      WHERE criado_em > (NOW() - INTERVAL 12 HOUR)
+      WHERE created_at > (NOW() - INTERVAL 12 HOUR)
       GROUP BY usuario_id, titulo
       HAVING cnt > 5 
     `);
@@ -37,7 +37,7 @@ class TicketsService {
     let deletedCount = 0;
     for (const spam of spamUsers) {
       const [result]: any = await pool.query(
-        'DELETE FROM tickets WHERE usuario_id = ? AND titulo = ? AND criado_em > (NOW() - INTERVAL 12 HOUR)',
+        'DELETE FROM tickets WHERE usuario_id = ? AND titulo = ? AND created_at > (NOW() - INTERVAL 12 HOUR)',
         [spam.usuario_id, spam.titulo]
       );
       deletedCount += result.affectedRows;
