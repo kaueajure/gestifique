@@ -100,7 +100,7 @@ class AttachmentsService {
         // 3. Se for interno, notificar admins/devs da empresa (que não sejam o autor)
         if (interno) {
            const [admins]: any = await pool.query(
-             'SELECT id FROM usuarios WHERE (empresa_id = ? AND administrador = 1) OR desenvolvedor = 1',
+             'SELECT id FROM usuarios WHERE empresa_id = ? AND administrador = 1',
              [ticket.empresa_id]
            );
            admins.forEach((a: any) => {

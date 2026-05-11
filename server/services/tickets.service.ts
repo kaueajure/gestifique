@@ -124,7 +124,8 @@ class TicketsService {
     const offset = (safePage - 1) * safeLimit;
     const [items]: any = await pool.query(`
       SELECT t.*, 
-             COALESCE(u.nome, 'Usuário Removido') as cliente_nome, 
+             COALESCE(t.solicitante_nome, u.nome, 'Usuário Removido') as cliente_nome, 
+             COALESCE(t.solicitante_email, u.email, 'Usuário Removido') as cliente_email, 
              COALESCE(r.nome, 'Não Atribuído') as responsavel_nome, 
              e.nome as empresa_nome
       FROM tickets t
@@ -211,7 +212,8 @@ class TicketsService {
 
     const [tickets]: any = await pool.query(`
       SELECT t.id, t.titulo, t.status, t.prioridade, t.categoria, t.created_at, t.empresa_id,
-             COALESCE(u.nome, 'Usuário Removido') as cliente_nome, 
+             COALESCE(t.solicitante_nome, u.nome, 'Usuário Removido') as cliente_nome, 
+             COALESCE(t.solicitante_email, u.email, 'Usuário Removido') as cliente_email, 
              COALESCE(r.nome, 'Não Atribuído') as responsavel_nome, 
              e.nome as empresa_nome
       FROM tickets t
@@ -266,7 +268,7 @@ class TicketsService {
   }
 
   async create(data: any) {
-    const { empresa_id, usuario_id, titulo, descricao, prioridade, categoria } = data;
+    const { empresa_id, usuario_id, solicitante_nome, solicitante_email, titulo, descricao, prioridade, categoria } = data;
 
     let horasSla = 24; // media padrão
     if (prioridade === 'urgente') horasSla = 4;
@@ -278,15 +280,15 @@ class TicketsService {
     const prazoSlaFormatado = prazoSla.toISOString().slice(0, 19).replace('T', ' ');
 
     const [result]: any = await pool.query(
-      'INSERT INTO tickets (empresa_id, usuario_id, titulo, descricao, prioridade, categoria, prazo_sla) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [empresa_id, usuario_id, titulo, descricao, prioridade || 'media', categoria || 'suporte', prazoSlaFormatado]
+      'INSERT INTO tickets (empresa_id, usuario_id, solicitante_nome, solicitante_email, titulo, descricao, prioridade, categoria, prazo_sla) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [empresa_id, usuario_id || null, solicitante_nome || null, solicitante_email || null, titulo, descricao, prioridade || 'media', categoria || 'suporte', prazoSlaFormatado]
     );
     const ticketId = result.insertId;
 
-    // Notificações: Admins e Devs
+    // Notificações: Admins
     try {
       const [admins]: any = await pool.query(
-        'SELECT id FROM usuarios WHERE (empresa_id = ? AND administrador = 1) OR desenvolvedor = 1',
+        'SELECT id FROM usuarios WHERE empresa_id = ? AND administrador = 1',
         [empresa_id]
       );
       
@@ -294,9 +296,15 @@ class TicketsService {
         .filter((a: any) => a.id !== usuario_id)
         .map((a: any) => a.id);
 
-      const [author]: any = await pool.query('SELECT nome, email FROM usuarios WHERE id = ?', [usuario_id]);
-      const authorName = author[0]?.nome || 'Usuário';
-      const authorEmail = author[0]?.email;
+      let authorName = solicitante_nome || 'Cliente Externo';
+      let authorEmail = solicitante_email || '';
+      if (usuario_id) {
+         const [author]: any = await pool.query('SELECT nome, email FROM usuarios WHERE id = ?', [usuario_id]);
+         if (author[0]) {
+            authorName = author[0].nome;
+            authorEmail = author[0].email;
+         }
+      }
 
       if (adminIds.length > 0) {
         await notificationsService.createMany(adminIds, {
@@ -340,8 +348,8 @@ class TicketsService {
         t.id, t.empresa_id, t.usuario_id, t.responsavel_id, t.titulo, t.descricao, 
         t.status, t.prioridade, t.categoria, t.origem, t.prazo_sla, t.finalizado_em,
         t.created_at, t.updated_at,
-        COALESCE(u.nome, 'Usuário Removido') as cliente_nome, 
-        COALESCE(u.email, 'removido@sistema.com') as cliente_email, 
+        COALESCE(t.solicitante_nome, u.nome, 'Usuário Removido') as cliente_nome, 
+        COALESCE(t.solicitante_email, u.email, 'removido@sistema.com') as cliente_email, 
         COALESCE(r.nome, 'Não Atribuído') as responsavel_nome, 
         e.nome as empresa_nome
        FROM tickets t 
@@ -545,7 +553,7 @@ class TicketsService {
         // 3. Se for interno, notificar admins/devs da empresa (que não sejam o autor)
         if (interno) {
            const [admins]: any = await pool.query(
-             'SELECT id FROM usuarios WHERE (empresa_id = ? AND administrador = 1) OR desenvolvedor = 1',
+             'SELECT id FROM usuarios WHERE empresa_id = ? AND administrador = 1',
              [ticket.empresa_id]
            );
            admins.forEach((a: any) => {

@@ -245,23 +245,13 @@ export class EmailListenerService {
             continue;
           }
 
-          let userId, empresaId;
+          let userId = null;
+          let empresaId = targetEmpresaId;
           try {
-             const userObj = await this.getOrCreateUser(email, name, targetEmpresaId);
-             userId = userObj.id;
-             empresaId = userObj.empresa_id;
+             const userContext = await this.resolveSenderContext(email, targetEmpresaId);
+             userId = userContext.userId;
           } catch(err: any) {
-             if (err.message && err.message.startsWith('MISMATCH_COMPANY')) {
-                console.error(`[IMAP] Mismatch de empresa: usuário ${email} pertence à empresa ${err.message.split(':')[1]} mas enviou email para suporte da empresa ${targetEmpresaId}.`);
-                try {
-                  await pool.query(
-                     'INSERT INTO logs_sistema (acao, descricao, user_agent, ip) VALUES (?, ?, ?, ?)',
-                     ['EMAIL_COMPANY_MISMATCH', `O e-mail de ${email} foi recebido no suporte da empresa ${targetEmpresaId}, mas o usuário está vinculado à empresa ${err.message.split(':')[1]}. E-mail ignorado.`, 'SYSTEM_LISTENER', '127.0.0.1']
-                  );
-                } catch(e) {}
-             } else {
-                console.error('[IMAP] Erro no usuário:', err);
-             }
+             console.error('[IMAP] Erro ao resolver contexto de remetente:', err);
              await this.connection.addFlags(id, '\\Seen');
              continue;
           }
@@ -276,10 +266,20 @@ export class EmailListenerService {
              targetTicketId = parseInt(match[1]);
           } else {
              // Duplicate check: Look for recent ticket (24h) with same user and subject
-             const [recentTickets]: any = await pool.query(
-               'SELECT id FROM tickets WHERE usuario_id = ? AND titulo = ? AND empresa_id = ? AND created_at > (NOW() - INTERVAL 1 DAY) AND status != "fechado" ORDER BY created_at DESC LIMIT 1',
-               [userId, subject, targetEmpresaId]
-             );
+             let duplicateQuery = 'SELECT id FROM tickets WHERE titulo = ? AND empresa_id = ? AND created_at > (NOW() - INTERVAL 1 DAY) AND status != "fechado"';
+             let duplicateParams: any[] = [subject, targetEmpresaId];
+             
+             if (userId) {
+                duplicateQuery += ' AND usuario_id = ?';
+                duplicateParams.push(userId);
+             } else {
+                duplicateQuery += ' AND solicitante_email = ?';
+                duplicateParams.push(email);
+             }
+             
+             duplicateQuery += ' ORDER BY created_at DESC LIMIT 1';
+             
+             const [recentTickets]: any = await pool.query(duplicateQuery, duplicateParams);
              if (recentTickets.length > 0) {
                 targetTicketId = recentTickets[0].id;
                 console.log(`[Email Listener] Found duplicate ticket within 24h: #${targetTicketId}`);
@@ -297,7 +297,7 @@ export class EmailListenerService {
                } else {
                  const msgId = await ticketsService.addMessage({
                    ticket_id: targetTicketId,
-                   usuario_id: userId,
+                   usuario_id: userId || null,
                    mensagem: text,
                    interno: 0
                  });
@@ -320,7 +320,7 @@ export class EmailListenerService {
                        await attachmentsService.create({
                           ticket_id: targetTicketId,
                           mensagem_id: msgId,
-                          usuario_id: userId,
+                          usuario_id: userId || null,
                           empresa_id: empresaId,
                           nome_original: att.filename || 'anexo_email.bin',
                           nome_arquivo: filename,
@@ -341,12 +341,18 @@ export class EmailListenerService {
           if (!handled) {
             const newTicketId = await ticketsService.create({
               empresa_id: empresaId,
-              usuario_id: userId,
+              usuario_id: userId || null,
+              solicitante_nome: name,
+              solicitante_email: email,
               titulo: subject,
               descricao: text,
               prioridade: 'media',
               categoria: 'suporte_tecnico'
             });
+            
+            try {
+               await pool.query('INSERT INTO logs_sistema (acao, descricao, user_agent, ip) VALUES (?, ?, ?, ?)', ['EMAIL_TICKET_CREATED', `Criado ticket #${newTicketId} para ${email} (Empresa ${empresaId}).`, 'SYSTEM_LISTENER', '127.0.0.1']);
+            } catch(e) {}
 
             // Real-time update via WebSocket
             const newTicket = await ticketsService.getById(newTicketId);
@@ -365,7 +371,7 @@ export class EmailListenerService {
                    await attachmentsService.create({
                       ticket_id: newTicketId,
                       mensagem_id: null,
-                      usuario_id: userId,
+                      usuario_id: userId || null,
                       empresa_id: empresaId,
                       nome_original: att.filename || 'anexo_email.bin',
                       nome_arquivo: filename,
@@ -377,6 +383,7 @@ export class EmailListenerService {
                  }
                }
             }
+            
             
             console.log(`[Email Listener] Created new Ticket #${newTicketId} from email.`);
           }
@@ -394,25 +401,32 @@ export class EmailListenerService {
     }
   }
 
-  static async getOrCreateUser(email: string, name: string, targetEmpresaId: number): Promise<{ id: number, empresa_id: number }> {
-    const [rows]: any = await pool.query('SELECT id, empresa_id FROM usuarios WHERE email = ?', [email]);
+  static async resolveSenderContext(email: string, targetEmpresaId: number): Promise<{ userId: number | null }> {
+    const [rows]: any = await pool.query('SELECT id, empresa_id, administrador, desenvolvedor FROM usuarios WHERE email = ?', [email]);
     if (rows.length > 0) {
       let user = rows[0];
+      
       if (user.empresa_id && user.empresa_id !== targetEmpresaId) {
-        throw new Error(`MISMATCH_COMPANY:${user.empresa_id}`);
+         try {
+           await pool.query('INSERT INTO logs_sistema (acao, descricao, user_agent, ip) VALUES (?, ?, ?, ?)', ['EMAIL_COMPANY_MISMATCH', `O e-mail de ${email} (Empresa ${user.empresa_id}) foi recebido no suporte da empresa ${targetEmpresaId}. Tratado como usuário externo.`, 'SYSTEM_LISTENER', '127.0.0.1']);
+         } catch(e) {}
+         return { userId: null };
       }
-      if (!user.empresa_id) {
-         await pool.query('UPDATE usuarios SET empresa_id = ? WHERE id = ?', [targetEmpresaId, user.id]);
-         user.empresa_id = targetEmpresaId;
-      }
-      return { id: user.id, empresa_id: user.empresa_id };
-    }
 
-    const defaultPass = await bcrypt.hash(Math.random().toString(), 10);
-    const [result]: any = await pool.query(
-      'INSERT INTO usuarios (nome, email, senha_hash, cargo, ativo, empresa_id) VALUES (?, ?, ?, ?, ?, ?)',
-      [name, email, defaultPass, 'Cliente Externo', 1, targetEmpresaId]
-    );
-    return { id: result.insertId, empresa_id: targetEmpresaId };
+      if (!user.empresa_id && (user.administrador || user.desenvolvedor)) {
+         try {
+           await pool.query('INSERT INTO logs_sistema (acao, descricao, user_agent, ip) VALUES (?, ?, ?, ?)', ['EMAIL_INTERNAL_USER_IGNORED_AS_REQUESTER', `Usuário interno ${email} enviou e-mail para suporte da empresa ${targetEmpresaId}. Tratado como usuário externo sem vinculo de empresa.`, 'SYSTEM_LISTENER', '127.0.0.1']);
+         } catch(e) {}
+         return { userId: null };
+      }
+
+      if (!user.empresa_id) {
+         return { userId: null };
+      }
+
+      return { userId: user.id };
+    }
+    
+    return { userId: null };
   }
 }

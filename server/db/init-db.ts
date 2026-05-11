@@ -215,6 +215,9 @@ async function initDB() {
     await ensureColumn('tickets', 'origem', 'VARCHAR(50) NULL');
     await ensureColumn('tickets', 'responsavel_id', 'INT NULL');
     await ensureColumn('tickets', 'precisa_revisao_responsavel', 'TINYINT(1) DEFAULT 0');
+    // Campos para suporte a abertura por remetentes externos (email-channels)
+    await ensureColumn('tickets', 'solicitante_nome', 'VARCHAR(255) NULL');
+    await ensureColumn('tickets', 'solicitante_email', 'VARCHAR(255) NULL');
     
     // Status enum check/update
     await connection.query(`
@@ -243,6 +246,7 @@ async function initDB() {
     }
 
     // Ticket Mensagens / Anexos Migrations
+    await connection.query('ALTER TABLE ticket_mensagens MODIFY COLUMN usuario_id INT NULL');
     await ensureColumn('ticket_mensagens', 'interno', 'TINYINT(1) DEFAULT 0');
     await ensureColumn('ticket_mensagens', 'anexo', 'VARCHAR(255) NULL');
     await ensureColumn('logs_sistema', 'ip', 'VARCHAR(45) NULL');

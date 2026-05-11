@@ -81,7 +81,9 @@ export interface TicketKanbanResponse {
 export interface Ticket {
   id: number;
   empresa_id: number;
-  usuario_id: number;
+  usuario_id: number | null;
+  solicitante_nome?: string | null;
+  solicitante_email?: string | null;
   responsavel_id: number | null;
   titulo: string;
   descricao: string;
