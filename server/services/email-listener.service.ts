@@ -5,6 +5,7 @@ import pool from '../db/connection.js';
 import ticketsService from './tickets.service.js';
 import attachmentsService from './attachments.service.js';
 import { env } from '../config/env.js';
+import { io } from '../server.js';
 import bcrypt from 'bcryptjs';
 import path from 'path';
 import fs from 'fs';
@@ -200,6 +201,12 @@ export class EmailListenerService {
                });
                console.log(`[Email Listener] Added reply to Ticket #${targetTicketId}`);
                
+               // Real-time update via WebSocket
+               const updatedTicket = await ticketsService.getById(targetTicketId);
+               if (updatedTicket && io) {
+                 io.to(`empresa_${empresaId}`).emit('ticketUpdated', updatedTicket);
+               }
+               
                if (parsed.attachments && parsed.attachments.length > 0) {
                  for (const att of parsed.attachments) {
                    if (att.size > 5120) {
@@ -237,6 +244,12 @@ export class EmailListenerService {
               prioridade: 'media',
               categoria: 'suporte'
             });
+
+            // Real-time update via WebSocket
+            const newTicket = await ticketsService.getById(newTicketId);
+            if (newTicket && io) {
+              io.to(`empresa_${empresaId}`).emit('ticketCreated', newTicket);
+            }
             
             if (parsed.attachments && parsed.attachments.length > 0) {
                for (const att of parsed.attachments) {

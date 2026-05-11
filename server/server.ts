@@ -11,10 +11,12 @@ import  { errorHandler } from  './middlewares/error-handler.js';
 import  { env } from  './config/env.js';
 import { EmailListenerService } from './services/email-listener.service.js';
 
+export let io: SocketIOServer;
+
 async function startServer() {
   const app = express();
   const httpServer = createServer(app);
-  const io = new SocketIOServer(httpServer, {
+  io = new SocketIOServer(httpServer, {
     cors: {
       origin: '*',
       methods: ["GET", "POST", "PATCH", "PUT", "DELETE"]
