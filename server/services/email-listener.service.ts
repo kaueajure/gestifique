@@ -41,6 +41,7 @@ export class EmailListenerService {
 
     let connection: any = null;
     try {
+      console.log('[IMAP] A iniciar verificação de caixa de correio...');
       console.log('[IMAP] A tentar ligar à caixa de entrada...');
       connection = await imaps.connect(config);
       console.log('[IMAP] Ligação estabelecida. A procurar e-mails não lidos...');
@@ -53,6 +54,8 @@ export class EmailListenerService {
       };
 
       const messages = await connection.search(searchCriteria, fetchOptions);
+      console.log(`[IMAP] Encontrados ${messages.length} e-mails não lidos (UNSEEN).`);
+      
       if (messages.length === 0) {
         connection.end();
         return;
@@ -80,6 +83,8 @@ export class EmailListenerService {
           const name = fromObj?.name || email || 'Sem Nome';
           const subject = parsed.subject || 'Sem Assunto';
 
+          console.log('[IMAP] A ler e-mail de:', email, '| Assunto:', subject);
+
           // Anti-Loop Check: Ignore itself or system/no-reply emails
           const isSelf = email?.toLowerCase() === env.IMAP.USER?.toLowerCase();
           const isSystem = email?.toLowerCase().includes('mailer-daemon') || 
@@ -87,7 +92,7 @@ export class EmailListenerService {
                            email?.toLowerCase().includes('noreply');
           
           if (isSelf || isSystem) {
-             console.log(`[Email Listener] Ignoring system/self email from: ${email}`);
+             console.warn('[IMAP] E-mail IGNORADO pela proteção Anti-Loop. Remetente:', email);
              continue;
           }
 
@@ -105,11 +110,14 @@ export class EmailListenerService {
           }
 
           if (!email) {
+            console.warn('[IMAP] E-mail ignorado: remetente não identificado.');
             continue;
           }
 
           const { id: userId, empresa_id: empresaId } = await this.getOrCreateUser(email, name, fallbackEmpresaId);
 
+          console.log('[IMAP] A tentar criar/atualizar ticket no banco de dados...');
+          
           const match = subject.match(/\[Ticket\s*#(\d+)\]/i);
           let handled = false;
           let targetTicketId: number | null = null;
@@ -204,9 +212,10 @@ export class EmailListenerService {
             console.log(`[Email Listener] Created new Ticket #${newTicketId} from email.`);
           }
         } catch (itemError) {
-          console.error(`[IMAP ERROR] Falha ao processar email (UID: ${id}):`, itemError);
+          console.error('[IMAP TICKET ERROR] Falha ao criar/atualizar:', itemError);
         } finally {
           await connection.addFlags(id, ['\\Seen']);
+          console.log('[IMAP] E-mail marcado como Lido.');
         }
       }
 
