@@ -39,28 +39,36 @@ async function startServer() {
   const PORT = env.PORT;
 
   // Initial Config
-  const allowedOrigins = env.CORS_ORIGINS;
+  const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://gestifique.com.br',
+    'https://www.gestifique.com.br',
+    'https://cornflowerblue-kingfisher-528919.hostingersite.com',
+    ...env.CORS_ORIGINS
+  ];
   
   app.use(cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
+    origin: function (origin, callback) {
       if (!origin) return callback(null, true);
-      
+
       const isLocal = !env.IS_PROD && (
         origin.startsWith('http://localhost') || 
         origin.startsWith('http://127.0.0.1') ||
-        origin.includes('.run.app') || // Support Google Cloud Run / Preview environments
-        origin.includes('.studio') // Support AI Studio patterns
+        origin.includes('.run.app') || 
+        origin.includes('.studio')
       );
 
-      if (isLocal || allowedOrigins.includes(origin)) {
+      if (isLocal || allowedOrigins.includes(origin) || origin.endsWith('.hostingersite.com')) {
         callback(null, true);
       } else {
         console.warn(`[CORS] Blocked request from unauthorized origin: ${origin}`);
         callback(new Error('Not allowed by CORS'));
       }
     },
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
   }));
   app.use(express.json());
   app.use(cookieParser());
