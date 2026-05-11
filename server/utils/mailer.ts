@@ -44,6 +44,10 @@ export const sendTicketNotification = async (email: string, ticketId: number, ti
     replyTo: process.env.IMAP_USER || process.env.SMTP_USER || 'contato@gestifique.com.br',
     to: email,
     subject: `[Ticket #${ticketId}] ${titulo}`,
+    headers: {
+      'X-Auto-Response-Suppress': 'OOF, AutoReply',
+      'Precedence': 'bulk'
+    },
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
         <div style="background-color: #2563eb; padding: 24px; text-align: center;">

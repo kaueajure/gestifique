@@ -12,6 +12,16 @@ const router = Router();
 
 router.use(authMiddleware);
 
+router.delete('/cleanup-spam', async (req: AuthRequest, res) => {
+  try {
+    const result = await ticketsService.cleanupSpam();
+    sendSuccess(res, result, 'Limpeza concluída');
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro na limpeza';
+    sendError(res, message);
+  }
+});
+
 router.get('/', async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;

@@ -79,6 +79,18 @@ export class EmailListenerService {
           const email = fromObj?.address;
           const name = fromObj?.name || email || 'Sem Nome';
           const subject = parsed.subject || 'Sem Assunto';
+
+          // Anti-Loop Check: Ignore itself or system/no-reply emails
+          const isSelf = email?.toLowerCase() === env.IMAP.USER?.toLowerCase();
+          const isSystem = email?.toLowerCase().includes('mailer-daemon') || 
+                           email?.toLowerCase().includes('postmaster') || 
+                           email?.toLowerCase().includes('noreply');
+          
+          if (isSelf || isSystem) {
+             console.log(`[Email Listener] Ignoring system/self email from: ${email}`);
+             continue;
+          }
+
           let text = parsed.text || ''; 
           
           // Limpeza de Texto (Reply Stripping)
@@ -100,17 +112,32 @@ export class EmailListenerService {
 
           const match = subject.match(/\[Ticket\s*#(\d+)\]/i);
           let handled = false;
+          let targetTicketId: number | null = null;
+
           if (match) {
-             const ticketId = parseInt(match[1]);
-             const ticket = await ticketsService.getById(ticketId);
+             targetTicketId = parseInt(match[1]);
+          } else {
+             // Duplicate check: Look for recent ticket (24h) with same user and subject
+             const [recentTickets]: any = await pool.query(
+               'SELECT id FROM tickets WHERE usuario_id = ? AND titulo = ? AND criado_em > (NOW() - INTERVAL 1 DAY) AND status != "fechado" ORDER BY criado_em DESC LIMIT 1',
+               [userId, subject]
+             );
+             if (recentTickets.length > 0) {
+                targetTicketId = recentTickets[0].id;
+                console.log(`[Email Listener] Found duplicate ticket within 24h: #${targetTicketId}`);
+             }
+          }
+
+          if (targetTicketId) {
+             const ticket = await ticketsService.getById(targetTicketId);
              if (ticket) {
                const msgId = await ticketsService.addMessage({
-                 ticket_id: ticketId,
+                 ticket_id: targetTicketId,
                  usuario_id: userId,
                  mensagem: text,
                  interno: 0
                });
-               console.log(`[Email Listener] Added reply to Ticket #${ticketId}`);
+               console.log(`[Email Listener] Added reply to Ticket #${targetTicketId}`);
                
                if (parsed.attachments && parsed.attachments.length > 0) {
                  for (const att of parsed.attachments) {
@@ -121,7 +148,7 @@ export class EmailListenerService {
                      const filePath = path.join(dir, filename);
                      fs.writeFileSync(filePath, att.content);
                      await attachmentsService.create({
-                        ticket_id: ticketId,
+                        ticket_id: targetTicketId,
                         mensagem_id: msgId,
                         usuario_id: userId,
                         empresa_id: empresaId,

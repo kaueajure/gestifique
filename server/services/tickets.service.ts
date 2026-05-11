@@ -24,6 +24,28 @@ export function toPositiveInt(value: unknown): number | undefined {
 }
 
 class TicketsService {
+  async cleanupSpam() {
+    // Delete tickets created in the last 12 hours that might be spam (too many from same user/subject)
+    const [spamUsers]: any = await pool.query(`
+      SELECT usuario_id, titulo, COUNT(*) as cnt 
+      FROM tickets 
+      WHERE criado_em > (NOW() - INTERVAL 12 HOUR)
+      GROUP BY usuario_id, titulo
+      HAVING cnt > 5 
+    `);
+
+    let deletedCount = 0;
+    for (const spam of spamUsers) {
+      const [result]: any = await pool.query(
+        'DELETE FROM tickets WHERE usuario_id = ? AND titulo = ? AND criado_em > (NOW() - INTERVAL 12 HOUR)',
+        [spam.usuario_id, spam.titulo]
+      );
+      deletedCount += result.affectedRows;
+    }
+
+    return { deletedCount };
+  }
+
   async list(filters: any) {
     const { empresa_id, usuario_id, is_dev, is_admin, status, prioridade, categoria, search, responsavel_id, page = 1, limit = 20 } = filters;
     const searchTerm = search;
