@@ -53,8 +53,8 @@ export const AppLogo = ({ size = 24, className }: LogoProps) => {
         }}
         onLoad={(e) => {
           const target = e.target as HTMLImageElement;
-          if (target.previousElementSibling) {
-             (target.previousElementSibling as HTMLElement).style.display = 'none';
+          if (target.nextElementSibling) {
+             (target.nextElementSibling as HTMLElement).style.display = 'none';
           }
         }}
       />
