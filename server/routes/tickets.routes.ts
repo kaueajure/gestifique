@@ -30,6 +30,14 @@ router.get('/', async (req: AuthRequest, res) => {
     const empresaIdFilter = currentUser.desenvolvedor 
       ? toPositiveInt(req.query.empresa_id) 
       : undefined;
+
+    if (currentUser.desenvolvedor && !empresaIdFilter) {
+      return sendSuccess(res, {
+        data: [],
+        meta: { page: 1, limit: 15, total: 0, totalPages: 1 },
+        summary: { total: 0, aberto: 0, em_andamento: 0, aguardando_cliente: 0, resolvido: 0, fechado: 0 }
+      });
+    }
       
     const responsavelId = toPositiveInt(req.query.responsavel_id);
 
@@ -64,6 +72,13 @@ router.get('/kanban', async (req: AuthRequest, res) => {
     const empresaIdFilter = currentUser.desenvolvedor
       ? toPositiveInt(req.query.empresa_id)
       : undefined;
+
+    if (currentUser.desenvolvedor && !empresaIdFilter) {
+      return sendSuccess(res, {
+        columns: { aberto: [], em_andamento: [], aguardando_cliente: [], resolvido: [], fechado: [] },
+        totals: { total: 0, aberto: 0, em_andamento: 0, aguardando_cliente: 0, resolvido: 0, fechado: 0 }
+      });
+    }
 
     const responsavelId = toPositiveInt(req.query.responsavel_id);
 

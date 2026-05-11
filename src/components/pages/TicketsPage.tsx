@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
-import { Ticket, User, TicketListResponse, TicketKanbanResponse, TicketStatus, TicketPriority } from '../../types';
+import { Ticket, User, TicketListResponse, TicketKanbanResponse, TicketStatus, TicketPriority, Empresa } from '../../types';
 import { 
   Plus, 
   Loader2,
   Kanban,
   List as ListIcon,
-  RefreshCw
+  RefreshCw,
+  Building
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { TicketFilters } from '../tickets/TicketFilters';
@@ -38,12 +39,36 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  
+  const [devCompanyId, setDevCompanyId] = useState<string>('');
+  const [companies, setCompanies] = useState<Empresa[]>([]);
+
+  useEffect(() => {
+    if (currentUser.desenvolvedor) {
+      api.get<Empresa[]>('/companies').then(setCompanies).catch(console.error);
+    }
+  }, [currentUser]);
 
   const fetchData = async () => {
+    if (currentUser.desenvolvedor && !devCompanyId) {
+      setTicketsResponse({
+        data: [],
+        meta: { page: 1, limit: 15, total: 0, totalPages: 1 },
+        summary: { total: 0, aberto: 0, em_andamento: 0, aguardando_cliente: 0, resolvido: 0, fechado: 0 }
+      });
+      setKanbanResponse({
+        columns: { aberto: [], em_andamento: [], aguardando_cliente: [], resolvido: [], fechado: [] },
+        totals: { total: 0, aberto: 0, em_andamento: 0, aguardando_cliente: 0, resolvido: 0, fechado: 0 }
+      });
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
       const query = new URLSearchParams();
+      if (currentUser.desenvolvedor) query.append('empresa_id', devCompanyId);
       if (searchTerm) query.append('search', searchTerm);
       if (statusFilter !== 'todos') query.append('status', statusFilter);
       if (priorityFilter !== 'todas') query.append('prioridade', priorityFilter);
@@ -78,14 +103,14 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, priorityFilter, categoryFilter, viewMode]);
+  }, [searchTerm, statusFilter, priorityFilter, categoryFilter, viewMode, devCompanyId]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchData();
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchTerm, statusFilter, priorityFilter, categoryFilter, viewMode, currentPage]);
+  }, [searchTerm, statusFilter, priorityFilter, categoryFilter, viewMode, currentPage, devCompanyId]);
 
   return (
     <div className="space-y-6">
@@ -95,6 +120,21 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
           <p className="text-sm text-slate-500 font-medium tracking-tight">Acompanhe, priorize e resolva chamados da operação.</p>
         </div>
         <div className="flex items-center gap-2">
+          {currentUser.desenvolvedor && (
+            <div className="relative mr-2 w-56">
+              <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+              <select 
+                value={devCompanyId}
+                onChange={(e) => setDevCompanyId(e.target.value)}
+                className="w-full h-9 bg-white border border-slate-200 rounded-lg pl-9 pr-3 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all appearance-none"
+              >
+                <option value="">Selecione uma empresa...</option>
+                {companies.map(emp => (
+                  <option key={emp.id} value={emp.id}>{emp.nome}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <Button variant="outline" size="sm" className="h-9 w-9 p-0 bg-white" onClick={fetchData}>
             <RefreshCw size={16} className={loading ? "animate-spin text-blue-600" : "text-slate-600"} />
           </Button>
@@ -134,7 +174,12 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
           {viewMode === 'list' && ticketsResponse && <TicketSummaryCards summary={ticketsResponse.summary} />}
           {viewMode === 'kanban' && kanbanResponse && <TicketSummaryCards summary={kanbanResponse.totals} />}
 
-          {loading && (!kanbanResponse && !ticketsResponse) ? (
+          {currentUser.desenvolvedor && !devCompanyId ? (
+            <div className="p-20 flex flex-col items-center justify-center space-y-3 bg-white rounded-xl border border-slate-200">
+               <Building className="w-8 h-8 text-slate-300" />
+               <p className="text-sm text-slate-500 font-medium tracking-tight">Selecione uma empresa para visualizar atendimentos.</p>
+            </div>
+          ) : loading && (!kanbanResponse && !ticketsResponse) ? (
             <div className="p-20 flex flex-col items-center justify-center space-y-3 bg-white rounded-xl border border-slate-200">
                <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
                <p className="text-xs text-slate-500 font-bold tracking-tight uppercase">Carregando...</p>
