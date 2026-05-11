@@ -14,6 +14,7 @@ import { TicketSummaryCards } from '../tickets/TicketSummaryCards';
 import { TicketList } from '../tickets/TicketList';
 import { TicketKanban } from '../tickets/TicketKanban';
 import { CreateTicketModal } from '../tickets/CreateTicketModal';
+import { TeamSidebar } from '../tickets/TeamSidebar';
 
 interface TicketsPageProps {
   onSelectTicket: (id: number) => void;
@@ -119,39 +120,45 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
         </div>
       </div>
 
-      <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-        <TicketFilters 
-          searchTerm={searchTerm} setSearchTerm={setSearchTerm}
-          statusFilter={statusFilter} setStatusFilter={setStatusFilter}
-          priorityFilter={priorityFilter} setPriorityFilter={setPriorityFilter}
-          categoryFilter={categoryFilter} setCategoryFilter={setCategoryFilter}
-        />
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
+        <div className="flex-1 w-full space-y-6">
+          <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+            <TicketFilters 
+              searchTerm={searchTerm} setSearchTerm={setSearchTerm}
+              statusFilter={statusFilter} setStatusFilter={setStatusFilter}
+              priorityFilter={priorityFilter} setPriorityFilter={setPriorityFilter}
+              categoryFilter={categoryFilter} setCategoryFilter={setCategoryFilter}
+            />
+          </div>
+
+          {viewMode === 'list' && ticketsResponse && <TicketSummaryCards summary={ticketsResponse.summary} />}
+          {viewMode === 'kanban' && kanbanResponse && <TicketSummaryCards summary={kanbanResponse.totals} />}
+
+          {loading && (!kanbanResponse && !ticketsResponse) ? (
+            <div className="p-20 flex flex-col items-center justify-center space-y-3 bg-white rounded-xl border border-slate-200">
+               <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+               <p className="text-xs text-slate-500 font-bold tracking-tight uppercase">Carregando...</p>
+            </div>
+          ) : error ? (
+            <div className="p-10 bg-red-50 border border-red-100 text-red-600 text-center rounded-xl text-sm font-semibold">
+               {error}
+            </div>
+          ) : viewMode === 'kanban' && kanbanResponse ? (
+            <TicketKanban kanbanData={kanbanResponse} onSelectTicket={onSelectTicket} currentUser={currentUser} onStatusChange={() => fetchData()} />
+          ) : viewMode === 'list' && ticketsResponse ? (
+            <TicketList 
+              tickets={ticketsResponse.data} 
+              meta={ticketsResponse.meta}
+              onPageChange={setCurrentPage}
+              onSelectTicket={onSelectTicket} 
+              searchTerm={searchTerm} 
+              hasFilters={searchTerm !== '' || statusFilter !== 'todos' || priorityFilter !== 'todas' || categoryFilter !== 'todas'} 
+            />
+          ) : null}
+        </div>
+        
+        <TeamSidebar currentUser={currentUser} />
       </div>
-
-      {viewMode === 'list' && ticketsResponse && <TicketSummaryCards summary={ticketsResponse.summary} />}
-      {viewMode === 'kanban' && kanbanResponse && <TicketSummaryCards summary={kanbanResponse.totals} />}
-
-      {loading && (!kanbanResponse && !ticketsResponse) ? (
-        <div className="p-20 flex flex-col items-center justify-center space-y-3 bg-white rounded-xl border border-slate-200">
-           <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
-           <p className="text-xs text-slate-500 font-bold tracking-tight uppercase">Carregando...</p>
-        </div>
-      ) : error ? (
-        <div className="p-10 bg-red-50 border border-red-100 text-red-600 text-center rounded-xl text-sm font-semibold">
-           {error}
-        </div>
-      ) : viewMode === 'kanban' && kanbanResponse ? (
-        <TicketKanban kanbanData={kanbanResponse} onSelectTicket={onSelectTicket} currentUser={currentUser} onStatusChange={() => fetchData()} />
-      ) : viewMode === 'list' && ticketsResponse ? (
-        <TicketList 
-          tickets={ticketsResponse.data} 
-          meta={ticketsResponse.meta}
-          onPageChange={setCurrentPage}
-          onSelectTicket={onSelectTicket} 
-          searchTerm={searchTerm} 
-          hasFilters={searchTerm !== '' || statusFilter !== 'todos' || priorityFilter !== 'todas' || categoryFilter !== 'todas'} 
-        />
-      ) : null}
 
       <CreateTicketModal 
         isOpen={isModalOpen} 

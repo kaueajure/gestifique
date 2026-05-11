@@ -179,6 +179,9 @@ async function initDB() {
       }
     }
 
+    // Empresas Migrations
+    await ensureColumn('empresas', 'email_suporte', 'VARCHAR(255) NULL');
+
     // Usuarios Migrations
     await ensureColumn('usuarios', 'reset_token', 'VARCHAR(255) NULL');
     await ensureColumn('usuarios', 'reset_token_expires', 'DATETIME NULL');
@@ -188,6 +191,7 @@ async function initDB() {
     await ensureColumn('tickets', 'finalizado_em', 'DATETIME NULL');
     await ensureColumn('tickets', 'origem', 'VARCHAR(50) NULL');
     await ensureColumn('tickets', 'responsavel_id', 'INT NULL');
+    await ensureColumn('tickets', 'precisa_revisao_responsavel', 'TINYINT(1) DEFAULT 0');
     
     // Status enum check/update
     await connection.query(`
@@ -232,6 +236,18 @@ async function initDB() {
       }
     } catch (e) {
       console.warn('[MIGRATE] ⚠️ Falha ao criar índice para responsavel_id:', e);
+    }
+
+    try {
+      const [indices]: any = await connection.query(`
+        SHOW INDEX FROM empresas WHERE COLUMN_NAME = 'email_suporte'
+      `);
+      if (indices.length === 0) {
+        console.log('[MIGRATE] 🔍 Criando índice para email_suporte...');
+        await connection.query('CREATE INDEX idx_empresas_email_suporte ON empresas(email_suporte)');
+      }
+    } catch (e) {
+      console.warn('[MIGRATE] ⚠️ Falha ao criar índice para email_suporte:', e);
     }
 
     console.log('[BOOT] ✅ Estrutura do banco de dados atualizada.');

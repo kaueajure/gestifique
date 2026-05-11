@@ -30,6 +30,7 @@ type CompanyPayload = {
   nome: string;
   cnpj: string;
   email: string;
+  email_suporte: string;
   telefone: string;
   cor_principal: string;
   logo: string;
@@ -94,6 +95,7 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
         nome: String(formData.get('nome') || ''),
         cnpj: String(formData.get('cnpj') || ''),
         email: String(formData.get('email') || ''),
+        email_suporte: String(formData.get('email_suporte') || ''),
         telefone: String(formData.get('telefone') || ''),
         cor_principal: String(formData.get('cor_principal') || '#2563eb'),
         logo: String(formData.get('logo') || ''),
@@ -105,8 +107,20 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
         return;
       }
 
-      if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
-        setSaveError('E-mail inválido.');
+      if (!payload.email_suporte) {
+        setSaveError('O e-mail de suporte é obrigatório.');
+        setLoadingSave(false);
+        return;
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (payload.email && !emailRegex.test(payload.email)) {
+        setSaveError('E-mail institucional inválido.');
+        setLoadingSave(false);
+        return;
+      }
+      if (payload.email_suporte && !emailRegex.test(payload.email_suporte)) {
+        setSaveError('E-mail de suporte inválido.');
         setLoadingSave(false);
         return;
       }
@@ -378,7 +392,19 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
                  />
               </div>
               <div className="space-y-1.5">
-                 <label className="text-xs font-medium text-slate-500 px-1">E-mail de Contato</label>
+                 <label className="text-xs font-medium text-slate-500 px-1">Telefone Principal</label>
+                 <Input 
+                   name="telefone" 
+                   defaultValue={selectedCompany?.telefone || ''} 
+                   placeholder="(00) 00000-0000"
+                   className="h-10 bg-slate-50/50 border-slate-100 font-bold text-xs"
+                 />
+              </div>
+           </div>
+
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                 <label className="text-xs font-medium text-slate-500 px-1">E-mail Institucional</label>
                  <Input 
                    name="email" 
                    type="email" 
@@ -387,16 +413,17 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
                    className="h-10 bg-slate-50/50 border-slate-100 font-bold text-xs"
                  />
               </div>
-           </div>
-
-           <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-500 px-1">Telefone Principal</label>
-              <Input 
-                name="telefone" 
-                defaultValue={selectedCompany?.telefone || ''} 
-                placeholder="(00) 00000-0000"
-                className="h-10 bg-slate-50/50 border-slate-100 font-bold text-xs"
-              />
+              <div className="space-y-1.5">
+                 <label className="text-xs font-medium text-slate-500 px-1">E-mail de Suporte (Abertura de Chamados)*</label>
+                 <Input 
+                   name="email_suporte" 
+                   type="email" 
+                   required
+                   defaultValue={selectedCompany?.email_suporte || ''} 
+                   placeholder="suporte@empresa.com"
+                   className="h-10 bg-slate-50/50 border-slate-100 font-bold text-xs"
+                 />
+              </div>
            </div>
 
            <div className="pt-4 border-t border-slate-50">

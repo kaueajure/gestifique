@@ -117,9 +117,6 @@ export class EmailListenerService {
         return;
       }
 
-      const [empresas]: any = await pool.query('SELECT id FROM empresas ORDER BY id ASC LIMIT 1');
-      const fallbackEmpresaId = empresas.length > 0 ? empresas[0].id : 1;
-
       for (const item of messages) {
         const id = item.attributes.uid;
         try {
@@ -136,6 +133,35 @@ export class EmailListenerService {
           const email = fromObj?.address;
           const name = fromObj?.name || email || 'Sem Nome';
           const subject = parsed.subject || 'Sem Assunto';
+          
+          const toAddresses = Array.isArray(parsed.to) 
+              ? parsed.to.flatMap((t: any) => t.value?.map((v: any) => v.address) || [])
+              : (parsed.to as any)?.value?.map((v: any) => v.address) || [];
+          let targetEmpresaId = null;
+
+          if (toAddresses.length > 0) {
+              const [empresasMatch]: any = await pool.query(
+                  'SELECT id FROM empresas WHERE email_suporte IN (?) LIMIT 1',
+                  [toAddresses]
+              );
+              if (empresasMatch.length > 0) {
+                  targetEmpresaId = empresasMatch[0].id;
+              }
+          }
+
+          if (!targetEmpresaId) {
+             console.error(`[IMAP] CRITICAL: Não foi possível identificar a empresa via destinatário ${JSON.stringify(toAddresses)}. E-mail de ${email} ignorado.`);
+             
+             try {
+                await pool.query(
+                   'INSERT INTO logs_sistema (acao, descricao, user_agent, ip) VALUES (?, ?, ?, ?)',
+                   ['EMAIL_WITHOUT_COMPANY', `Falha ao processar email de ${email} para ${JSON.stringify(toAddresses)}. Nenhuma empresa encontrada.`, 'SYSTEM_LISTENER', '127.0.0.1']
+                );
+             } catch(e) {}
+             
+             await this.connection.addFlags(id, '\\Seen');
+             continue;
+          }
 
           console.log('[IMAP] A ler e-mail de:', email, '| Assunto:', subject);
 
@@ -168,7 +194,7 @@ export class EmailListenerService {
             continue;
           }
 
-          const { id: userId, empresa_id: empresaId } = await this.getOrCreateUser(email, name, fallbackEmpresaId);
+          const { id: userId, empresa_id: empresaId } = await this.getOrCreateUser(email, name, targetEmpresaId);
 
           console.log('[IMAP] A tentar criar/atualizar ticket no banco de dados...');
           

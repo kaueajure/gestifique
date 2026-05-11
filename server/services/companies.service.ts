@@ -34,7 +34,11 @@ class CompaniesService {
   }
 
   async create(data: any) {
-    const { nome, cnpj, email, telefone, cor_principal = '#2563eb', logo } = data;
+    const { nome, cnpj, email, email_suporte, telefone, cor_principal = '#2563eb', logo } = data;
+
+    if (!email_suporte) {
+      throw new Error('O e-mail de suporte é obrigatório.');
+    }
 
     // Duplication Check
     if (cnpj) {
@@ -43,18 +47,22 @@ class CompaniesService {
     }
     if (email) {
       const [existing]: any = await pool.query('SELECT id FROM empresas WHERE email = ?', [email]);
-      if (existing.length > 0) throw new Error('Este E-mail já está cadastrado.');
+      if (existing.length > 0) throw new Error('Este E-mail institucional já está cadastrado.');
+    }
+    if (email_suporte) {
+      const [existing]: any = await pool.query('SELECT id FROM empresas WHERE email_suporte = ?', [email_suporte]);
+      if (existing.length > 0) throw new Error('Este E-mail de suporte já está em uso por outra empresa.');
     }
 
     const [result]: any = await pool.query(
-      'INSERT INTO empresas (nome, cnpj, email, telefone, cor_principal, logo) VALUES (?, ?, ?, ?, ?, ?)',
-      [nome, cnpj, email, telefone, cor_principal, logo]
+      'INSERT INTO empresas (nome, cnpj, email, email_suporte, telefone, cor_principal, logo) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [nome, cnpj, email, email_suporte, telefone, cor_principal, logo]
     );
     return result.insertId;
   }
 
   async update(id: number, data: any) {
-    const { cnpj, email } = data;
+    const { cnpj, email, email_suporte } = data;
 
     // Duplication Check (Excluding self)
     if (cnpj) {
@@ -65,11 +73,15 @@ class CompaniesService {
       const [existing]: any = await pool.query('SELECT id FROM empresas WHERE email = ? AND id != ?', [email, id]);
       if (existing.length > 0) throw new Error('Este E-mail já está sendo usado por outra empresa.');
     }
+    if (email_suporte) {
+      const [existing]: any = await pool.query('SELECT id FROM empresas WHERE email_suporte = ? AND id != ?', [email_suporte, id]);
+      if (existing.length > 0) throw new Error('Este E-mail de suporte já está sendo usado por outra empresa.');
+    }
 
     const fields: string[] = [];
     const params: any[] = [];
     Object.keys(data).forEach(key => {
-      if (['nome', 'cnpj', 'email', 'telefone', 'ativo', 'cor_principal', 'logo'].includes(key)) {
+      if (['nome', 'cnpj', 'email', 'email_suporte', 'telefone', 'ativo', 'cor_principal', 'logo'].includes(key)) {
         fields.push(`${key} = ?`);
         params.push(data[key]);
       }

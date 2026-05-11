@@ -260,6 +260,19 @@ router.patch('/:id', async (req: AuthRequest, res) => {
     if (req.body.prioridade && !validPriorities.includes(req.body.prioridade)) return sendError(res, 'Prioridade inválida', 400);
     if (req.body.responsavel_id !== undefined && req.body.responsavel_id !== null) {
       if (!toPositiveInt(req.body.responsavel_id)) return sendError(res, 'Responsável inválido', 400);
+      
+      const newRespId = toPositiveInt(req.body.responsavel_id);
+      if (newRespId) {
+        const [respUser]: any = await pool.query('SELECT empresa_id FROM usuarios WHERE id = ?', [newRespId]);
+        if (!respUser[0]) return sendError(res, 'Usuário responsável não encontrado', 404);
+        if (respUser[0].empresa_id !== ticket.empresa_id && !currentUser.desenvolvedor) {
+           return sendError(res, 'O responsável deve pertencer à mesma empresa do chamado', 400);
+        }
+        if (respUser[0].empresa_id !== ticket.empresa_id && currentUser.desenvolvedor) {
+           // Even devs shouldn't cross-assign
+           return sendError(res, 'O responsável deve pertencer à mesma empresa do chamado, mesmo sendo desenvolvedor', 400);
+        }
+      }
     }
 
     if (req.body.status && req.body.status !== ticket.status) {

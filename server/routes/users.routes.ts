@@ -5,10 +5,46 @@ import  { isAdmin, isDev } from  '../middlewares/permissions.js';
 import  { sendSuccess, sendError } from  '../utils/response.js';
 import  { logSystemAction } from  '../utils/logger.js';
 import  { isValidEmail } from  '../utils/validators.js';
+import pool from '../db/connection.js';
 
 const router = Router();
 
 router.use(authMiddleware);
+
+router.get('/team', async (req: AuthRequest, res) => {
+    try {
+        const currentUser = req.user;
+        if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
+        if (!currentUser.empresa_id && !currentUser.desenvolvedor) {
+            return sendSuccess(res, []);
+        }
+
+        const empresaId = currentUser.empresa_id; // Devs also will have empresa_id filtering if we want, or just get from own current context
+        let query = `
+          SELECT u.id, u.nome, u.email, u.cargo,
+                 (SELECT COUNT(id) FROM tickets t WHERE t.responsavel_id = u.id AND t.status NOT IN ('resolvido', 'fechado')) as ticket_count
+          FROM usuarios u
+          WHERE u.ativo = 1 AND u.empresa_id = ?
+          ORDER BY u.nome ASC
+        `;
+        const params: any[] = [empresaId];
+
+        // Dev without company gets empty list or we can pass ?empresa_id= query param
+        if (currentUser.desenvolvedor && !empresaId && !req.query.empresa_id) {
+            return sendSuccess(res, []);
+        }
+
+        if (currentUser.desenvolvedor && req.query.empresa_id) {
+           params[0] = req.query.empresa_id;
+        }
+
+        const [rows] = await pool.query(query, params);
+        sendSuccess(res, rows);
+    } catch (e: any) {
+        sendError(res, e.message);
+    }
+});
 
 router.get('/', isAdmin, async (req: AuthRequest, res) => {
   try {
@@ -119,6 +155,20 @@ router.patch('/:id/status', isAdmin, async (req: AuthRequest, res) => {
         }
 
         await usersService.update(id, { ativo });
+        
+        if (!ativo) {
+            // Unassign tickets and flag them for review
+            try {
+               await pool.query(`
+                   UPDATE tickets 
+                   SET responsavel_id = NULL, precisa_revisao_responsavel = 1 
+                   WHERE responsavel_id = ? AND status NOT IN ('resolvido', 'fechado')
+               `, [id]);
+            } catch(e) {
+               console.error("Erro ao liberar tickets do usuário desativado:", e);
+            }
+        }
+        
         await logSystemAction(req, currentUser.id, currentUser.empresa_id, 'USER_STATUS', `${ativo ? 'Ativou' : 'Desativou'} usuário ID ${id}`);
         
         sendSuccess(res, null, `Usuário ${ativo ? 'ativado' : 'desativado'} com sucesso`);

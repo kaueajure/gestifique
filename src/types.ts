@@ -21,6 +21,7 @@ export interface Empresa {
   nome: string;
   cnpj: string;
   email: string;
+  email_suporte: string;
   telefone: string;
   logo: string | null;
   cor_principal: string;
@@ -45,6 +46,7 @@ export interface CompanyFormData {
   nome: string;
   cnpj: string;
   email: string;
+  email_suporte: string;
   telefone: string;
   cor_principal: string;
   logo?: string | null;
@@ -88,6 +90,7 @@ export interface Ticket {
   categoria: string;
   origem?: string;
   prazo_sla?: string | null;
+  precisa_revisao_responsavel?: boolean;
   cliente_nome?: string;
   cliente_email?: string;
   responsavel_nome?: string;
