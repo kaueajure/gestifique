@@ -40,13 +40,13 @@ export const FallbackLogo = ({ size = 24, className }: LogoProps) => (
 
 export const AppLogo = ({ size = 24, className }: LogoProps) => {
   return (
-    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+    <div className={cn("relative flex items-center justify-center shrink-0", className)} style={{ width: size, height: size }}>
       <img 
         src="/logo.png" 
         alt="Gestifique Logo" 
         width={size} 
         height={size} 
-        className={cn("object-contain z-10", className)}
+        className="object-contain z-10 w-full h-full"
         onError={(e) => {
           const target = e.target as HTMLImageElement;
           target.style.opacity = '0'; // esconde o img que falhou

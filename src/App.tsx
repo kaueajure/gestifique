@@ -178,7 +178,7 @@ export default function App() {
           className="w-full max-w-sm"
         >
           <div className="text-center mb-8">
-             <AppLogo size={48} className="mb-6 mx-auto" />
+             <AppLogo size={56} className="mb-4 mx-auto" />
              <h2 className="text-2xl font-semibold text-slate-950 tracking-tight">Bem-vindo</h2>
              <p className="text-sm text-slate-500 font-medium">Acesse o portal do cliente Gestifique</p>
           </div>

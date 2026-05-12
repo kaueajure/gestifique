@@ -29,8 +29,8 @@ export const LandingPage = ({ onLogin }: LandingPageProps) => {
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-xl border-b border-slate-100">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <AppLogo size={32} />
+          <div className="flex items-center gap-2">
+            <AppLogo size={20} />
             <span className="text-lg font-bold tracking-tight">Gestifique</span>
           </div>
 
@@ -405,7 +405,7 @@ export const LandingPage = ({ onLogin }: LandingPageProps) => {
         <div className="max-w-7xl mx-auto grid md:grid-cols-4 gap-12 text-sm">
           <div className="space-y-6">
             <div className="flex items-center gap-2">
-              <AppLogo size={28} />
+              <AppLogo size={30} />
               <span className="font-bold text-slate-900 tracking-tight">Gestifique</span>
             </div>
             <p className="text-slate-500 font-medium leading-relaxed">
