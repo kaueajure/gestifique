@@ -59,7 +59,7 @@ export const TicketProperties = ({ ticket, currentUser, agents, attachments, onU
           </CardHeader>
           <CardContent className="p-5 space-y-6">
              {/* Status & Prioridade para Admin */}
-             {(currentUser.administrador || currentUser.desenvolvedor) ? (
+             {!!(currentUser.administrador || currentUser.desenvolvedor) ? (
                <div className="space-y-4">
                   <div className="space-y-1.5">
                      <span className="text-xs font-semibold text-slate-500">Status</span>
@@ -203,7 +203,7 @@ export const TicketProperties = ({ ticket, currentUser, agents, attachments, onU
                 </CardContent>
              </Card>
 
-             {(currentUser.administrador || currentUser.desenvolvedor) && ticket.status !== 'fechado' && (
+             {!!(currentUser.administrador || currentUser.desenvolvedor) && ticket.status !== 'fechado' && (
                <div className="pt-2">
                   <Button 
                     variant="outline"

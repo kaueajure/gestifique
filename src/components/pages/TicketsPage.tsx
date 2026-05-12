@@ -45,13 +45,13 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
   const [companies, setCompanies] = useState<Empresa[]>([]);
 
   useEffect(() => {
-    if (currentUser.desenvolvedor) {
+    if (!!currentUser.desenvolvedor) {
       api.get<Empresa[]>('/companies').then(setCompanies).catch(console.error);
     }
   }, [currentUser]);
 
   const fetchData = async () => {
-    if (currentUser.desenvolvedor && !devCompanyId) {
+    if (!!currentUser.desenvolvedor && !devCompanyId) {
       setTicketsResponse({
         data: [],
         meta: { page: 1, limit: 15, total: 0, totalPages: 1 },
@@ -69,7 +69,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
     setError(null);
     try {
       const query = new URLSearchParams();
-      if (currentUser.desenvolvedor) query.append('empresa_id', devCompanyId);
+      if (!!currentUser.desenvolvedor) query.append('empresa_id', devCompanyId);
       if (searchTerm) query.append('search', searchTerm);
       if (statusFilter !== 'todos') query.append('status', statusFilter);
       if (priorityFilter !== 'todas') query.append('prioridade', priorityFilter);
@@ -119,7 +119,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
         title="Atendimentos" 
         action={
           <>
-          {currentUser.desenvolvedor && (
+          {!!currentUser.desenvolvedor && (
             <div className="relative mr-2 w-56">
               <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
               <select 
@@ -174,7 +174,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
           {viewMode === 'list' && ticketsResponse && <TicketSummaryCards summary={ticketsResponse.summary} />}
           {viewMode === 'kanban' && kanbanResponse && <TicketSummaryCards summary={kanbanResponse.totals} />}
 
-          {currentUser.desenvolvedor && !devCompanyId ? (
+          {!!currentUser.desenvolvedor && !devCompanyId ? (
             <div className="p-20 flex flex-col items-center justify-center space-y-3 bg-white rounded-xl border border-slate-200">
                <Building className="w-8 h-8 text-slate-300" />
                <p className="text-sm text-slate-500 font-medium tracking-tight">Selecione uma empresa para visualizar atendimentos.</p>

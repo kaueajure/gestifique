@@ -21,7 +21,7 @@ export const CreateTicketModal = ({ isOpen, onClose, currentUser, onSuccess }: C
   const [loadingCompanies, setLoadingCompanies] = useState(false);
 
   useEffect(() => {
-    if (isOpen && currentUser.desenvolvedor && !currentUser.empresa_id) {
+    if (isOpen && !!currentUser.desenvolvedor && !currentUser.empresa_id) {
       fetchCompanies();
     }
   }, [isOpen, currentUser]);
@@ -45,7 +45,7 @@ export const CreateTicketModal = ({ isOpen, onClose, currentUser, onSuccess }: C
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData.entries());
 
-    if (currentUser.desenvolvedor && !currentUser.empresa_id && !data.empresa_id) {
+    if (!!currentUser.desenvolvedor && !currentUser.empresa_id && !data.empresa_id) {
        setCreateError('Selecione uma empresa para abrir o atendimento.');
        setLoadingCreate(false);
        return;
@@ -87,7 +87,7 @@ export const CreateTicketModal = ({ isOpen, onClose, currentUser, onSuccess }: C
           minLength={3}
         />
 
-        {currentUser.desenvolvedor && !currentUser.empresa_id && (
+        {!!currentUser.desenvolvedor && !currentUser.empresa_id && (
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-700">Empresa Solicitante</label>
             <div className="relative">

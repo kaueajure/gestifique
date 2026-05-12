@@ -282,8 +282,8 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
                             {user.ativo ? 'Ativo' : 'Inativo'}
                           </Badge>
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{user.cargo || 'Membro'}</span>
-                          {user.administrador && <Badge variant="blue" className="text-[8px] py-0 px-1 font-bold uppercase border-none opacity-80">Admin</Badge>}
-                          {user.desenvolvedor && <Badge variant="indigo" className="text-[8px] py-0 px-1 font-bold uppercase border-none opacity-80">Dev</Badge>}
+                          {!!user.administrador && <Badge variant="blue" className="text-[8px] py-0 px-1 font-bold uppercase border-none opacity-80">Admin</Badge>}
+                          {!!user.desenvolvedor && <Badge variant="indigo" className="text-[8px] py-0 px-1 font-bold uppercase border-none opacity-80">Dev</Badge>}
                         </div>
                       </td>
                       <td className="px-5 py-4 text-right">

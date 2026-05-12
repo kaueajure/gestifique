@@ -427,25 +427,25 @@ export default function App() {
                     />
                   )}
 
-                  {activeTab === 'users' && (currentUser.administrador || currentUser.desenvolvedor ? (
+                  {activeTab === 'users' && (!!(currentUser.administrador || currentUser.desenvolvedor) ? (
                     <UsersPage currentUser={currentUser} />
                   ) : (
                     <AccessDenied />
                   ))}
                   
-                  {activeTab === 'companies' && (currentUser.desenvolvedor ? (
+                  {activeTab === 'companies' && (!!currentUser.desenvolvedor ? (
                     <CompaniesPage currentUser={currentUser} />
                   ) : (
                     <AccessDenied />
                   ))}
                   
-                  {activeTab === 'logs' && (currentUser.administrador || currentUser.desenvolvedor ? (
+                  {activeTab === 'logs' && (!!(currentUser.administrador || currentUser.desenvolvedor) ? (
                     <LogsPage />
                   ) : (
                     <AccessDenied />
                   ))}
 
-                  {activeTab === 'reports' && (currentUser.administrador || currentUser.desenvolvedor ? (
+                  {activeTab === 'reports' && (!!(currentUser.administrador || currentUser.desenvolvedor) ? (
                     <ReportsPage currentUser={currentUser} />
                   ) : (
                     <AccessDenied />

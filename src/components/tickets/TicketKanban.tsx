@@ -20,7 +20,7 @@ interface TicketKanbanProps {
 
 export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatusChange }: TicketKanbanProps) => {
 
-  const canManage = currentUser.administrador || currentUser.desenvolvedor;
+  const canManage = !!(currentUser.administrador || currentUser.desenvolvedor);
 
   const [localData, setLocalData] = useState<TicketKanbanResponse>(kanbanData);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
@@ -263,7 +263,7 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                              </div>
             
                              <div className="flex flex-col gap-1.5 mt-3 pt-3 border-t border-slate-50">
-                                {currentUser.desenvolvedor && ticket.empresa_nome && (
+                                {!!currentUser.desenvolvedor && ticket.empresa_nome && (
                                    <div className="flex items-center gap-1 text-[10px] font-bold text-slate-600 uppercase tracking-tight mb-1">
                                       <Building size={10} className="text-slate-400" />
                                       <span className="truncate">{ticket.empresa_nome}</span>

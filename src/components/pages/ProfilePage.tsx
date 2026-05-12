@@ -106,7 +106,7 @@ export const ProfilePage = ({ currentUser, onUpdate }: ProfilePageProps) => {
                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-3 truncate">{currentUser.email || 'Email não informado'}</p>
                    <div className="flex flex-wrap justify-center gap-1.5">
                       <Badge variant="indigo" className="text-[9px] font-bold uppercase px-2 py-0">{currentUser.cargo || 'Membro'}</Badge>
-                      {currentUser.administrador && <Badge variant="blue" className="text-[9px] font-bold uppercase px-2 py-0">Admin</Badge>}
+                      {!!currentUser.administrador && <Badge variant="blue" className="text-[9px] font-bold uppercase px-2 py-0">Admin</Badge>}
                    </div>
                 </div>
               </div>

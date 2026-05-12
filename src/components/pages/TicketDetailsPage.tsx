@@ -41,13 +41,13 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
       setMessages(messagesData);
       setTicketAttachments(attachmentsData);
 
-      if (currentUser.administrador || currentUser.desenvolvedor) {
+      if (!!(currentUser.administrador || currentUser.desenvolvedor)) {
         const usersData = await api.get<User[]>('/users');
         const filteredAgents = usersData.filter(u => {
           const isActive = u.ativo !== false;
           if (!isActive) return false;
           
-          if (currentUser.desenvolvedor) return true;
+          if (!!currentUser.desenvolvedor) return true;
           return u.empresa_id === currentUser.empresa_id;
         });
         setAgents(filteredAgents);

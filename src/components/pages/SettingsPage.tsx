@@ -118,7 +118,7 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
           <Palette size={14} /> Preferências
         </button>
 
-        {(currentUser.administrador || currentUser.desenvolvedor) && (
+        {!!(currentUser.administrador || currentUser.desenvolvedor) && (
           <button 
             onClick={() => setActiveSubTab('company')}
             className={cn(
@@ -130,7 +130,7 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
           </button>
         )}
 
-        {currentUser.desenvolvedor && (
+        {!!currentUser.desenvolvedor && (
           <button 
             onClick={() => setActiveSubTab('system')}
             className={cn(

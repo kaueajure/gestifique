@@ -29,13 +29,13 @@ export const TeamSidebar = ({ currentUser, devCompanyId }: TeamSidebarProps) => 
         setLoading(false);
       }
     };
-    if (currentUser.desenvolvedor && !devCompanyId) {
+    if (!!currentUser.desenvolvedor && !devCompanyId) {
        setTeam([]);
        setLoading(false);
        return;
     }
     fetchTeam();
-  }, [devCompanyId, currentUser.desenvolvedor]);
+  }, [devCompanyId, !!currentUser.desenvolvedor]);
 
   if (!currentUser.empresa_id && !currentUser.desenvolvedor) return null;
 

@@ -130,13 +130,13 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
   useEffect(() => {
     fetchData();
     
-    if (currentUser.desenvolvedor) {
+    if (!!currentUser.desenvolvedor) {
       api.get<CompanyOption[] | { data: CompanyOption[] }>('/companies').then(res => {
         const list = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [];
         setCompanies(list);
       }).catch(() => {});
     }
-  }, [fetchData, currentUser.desenvolvedor]);
+  }, [fetchData, !!currentUser.desenvolvedor]);
 
   const escapeCsv = (val: string | number | null | undefined) => {
     if (val === null || val === undefined) return '';
@@ -281,7 +281,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
               <option value="fechado">Fechado</option>
             </select>
           </div>
-          {currentUser.desenvolvedor && (
+          {!!currentUser.desenvolvedor && (
              <div className="space-y-1.5">
                <label className="text-xs font-semibold text-slate-700">Empresa</label>
                <select 
@@ -334,7 +334,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                   <tr>
                     <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500 tracking-wider">ID</th>
                     <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500 tracking-wider">Título</th>
-                    {currentUser.desenvolvedor && <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500 tracking-wider">Empresa</th>}
+                    {!!currentUser.desenvolvedor && <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500 tracking-wider">Empresa</th>}
                     <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500 tracking-wider">Status</th>
                     <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500 tracking-wider">Prioridade</th>
                     <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500 tracking-wider">Data</th>
@@ -349,7 +349,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                           <div className="text-xs font-bold text-slate-800">{t.titulo}</div>
                           <div className="text-[10px] text-slate-400 font-medium">{t.categoria}</div>
                         </td>
-                        {currentUser.desenvolvedor && <td className="px-4 py-3 text-[10px] font-bold text-slate-600">{t.empresa_nome}</td>}
+                        {!!currentUser.desenvolvedor && <td className="px-4 py-3 text-[10px] font-bold text-slate-600">{t.empresa_nome}</td>}
                         <td className="px-4 py-3 px-4 py-3">
                           <Badge variant={t.status === 'resolvido' ? 'emerald' : t.status === 'aberto' ? 'blue' : 'slate'}>
                             {t.status.replace('_', ' ')}
