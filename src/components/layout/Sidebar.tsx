@@ -59,7 +59,7 @@ export const Sidebar = ({ currentUser, activeTab, setActiveTab, isOpen, onClose,
       )}>
         <div className="h-16 flex items-center justify-between px-6 border-b border-slate-200 bg-white">
           <div className="flex items-center gap-1.5">
-            <AppLogo size={30} />
+            <AppLogo size={20} />
             <span className="text-lg font-bold text-slate-900 tracking-tight">Gestifique</span>
           </div>
           <button onClick={onClose} className="lg:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-lg">
