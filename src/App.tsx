@@ -457,6 +457,7 @@ export default function App() {
                     <SettingsPage 
                       currentUser={currentUser} 
                       onNavigate={(tab) => setActiveTab(tab)}
+                      onUpdateUser={setCurrentUser}
                     />
                   )}
                 </motion.div>

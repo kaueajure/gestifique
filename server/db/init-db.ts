@@ -204,6 +204,7 @@ async function initDB() {
 
     // Empresas Migrations
     await ensureColumn('empresas', 'email_suporte', 'VARCHAR(255) NULL');
+    await ensureColumn('empresas', 'endereco', 'TEXT NULL');
 
     // Usuarios Migrations
     await ensureColumn('usuarios', 'reset_token', 'VARCHAR(255) NULL');

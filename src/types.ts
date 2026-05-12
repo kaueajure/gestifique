@@ -13,6 +13,10 @@ export interface User {
   empresa_nome?: string;
   empresa_telefone?: string;
   empresa_email?: string;
+  empresa_cnpj?: string;
+  empresa_logo?: string | null;
+  empresa_cor_principal?: string;
+  empresa_endereco?: string;
   created_at: string;
 }
 

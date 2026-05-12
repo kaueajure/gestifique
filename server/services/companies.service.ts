@@ -77,7 +77,7 @@ class CompaniesService {
     const fields: string[] = [];
     const params: any[] = [];
     Object.keys(data).forEach(key => {
-      if (['nome', 'cnpj', 'email', 'email_suporte', 'telefone', 'ativo', 'cor_principal', 'logo'].includes(key)) {
+      if (['nome', 'cnpj', 'email', 'email_suporte', 'telefone', 'ativo', 'cor_principal', 'logo', 'endereco'].includes(key)) {
         fields.push(`${key} = ?`);
         if (key === 'email_suporte' && data[key] === '') {
           params.push(null);

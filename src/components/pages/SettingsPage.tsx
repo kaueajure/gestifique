@@ -16,6 +16,7 @@ type AppTab = 'dashboard' | 'tickets' | 'users' | 'companies' | 'logs' | 'profil
 interface SettingsPageProps {
   currentUser: User;
   onNavigate: (tab: AppTab) => void;
+  onUpdateUser?: (user: User) => void;
 }
 
 type DbHealthResponse = {
@@ -24,7 +25,7 @@ type DbHealthResponse = {
   database?: string;
 };
 
-export const SettingsPage = ({ currentUser, onNavigate }: SettingsPageProps) => {
+export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: SettingsPageProps) => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -66,7 +67,9 @@ export const SettingsPage = ({ currentUser, onNavigate }: SettingsPageProps) => 
       cnpj: String(formData.get('cnpj') || ''),
       email: String(formData.get('email') || ''),
       telefone: String(formData.get('telefone') || ''),
-      endereco: String(formData.get('endereco') || '')
+      endereco: String(formData.get('endereco') || ''),
+      cor_principal: String(formData.get('cor_principal') || '#2563eb'),
+      logo: String(formData.get('logo') || '')
     };
 
     if (!payload.nome) {
@@ -83,6 +86,13 @@ export const SettingsPage = ({ currentUser, onNavigate }: SettingsPageProps) => 
 
     try {
       await api.patch(`/companies/${currentUser.empresa_id}`, payload);
+      
+      // Refresh context to avoid stale data
+      if (onUpdateUser) {
+        const updated = await api.get<User>('/profile');
+        onUpdateUser(updated);
+      }
+
       setSuccess('Configurações da empresa atualizadas!');
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
@@ -265,6 +275,7 @@ export const SettingsPage = ({ currentUser, onNavigate }: SettingsPageProps) => 
                          <Input 
                            label="Documento (CNPJ/CPF)"
                            name="cnpj" 
+                           defaultValue={currentUser.empresa_cnpj || ''}
                            placeholder="00.000.000/0000-00" 
                          />
                          <Input 
@@ -285,8 +296,32 @@ export const SettingsPage = ({ currentUser, onNavigate }: SettingsPageProps) => 
                          <textarea 
                           name="endereco" 
                           rows={3} 
+                          defaultValue={currentUser.empresa_endereco || ''}
                           className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-blue-100 transition-all outline-none resize-none" 
                          />
+                      </div>
+                      
+                      <div className="pt-4 border-t border-slate-100 space-y-4">
+                         <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 bg-slate-100 text-slate-600 rounded-md flex items-center justify-center">
+                               <Palette size={14} />
+                            </div>
+                            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Visual & Identidade</h4>
+                         </div>
+                         <div className="grid md:grid-cols-2 gap-4">
+                            <Input 
+                              label="Cor Principal (Hex)"
+                              name="cor_principal" 
+                              defaultValue={currentUser.empresa_cor_principal || '#2563eb'} 
+                              placeholder="#2563eb"
+                            />
+                            <Input 
+                              label="URL do Logotipo"
+                              name="logo" 
+                              defaultValue={currentUser.empresa_logo || ''} 
+                              placeholder="https://exemplo.com/logo.png"
+                            />
+                         </div>
                       </div>
 
                       <div className="pt-4 border-t border-slate-100 space-y-4">

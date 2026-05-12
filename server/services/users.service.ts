@@ -36,7 +36,14 @@ class UsersService {
 
   async getById(id: number) {
     const [rows]: any = await pool.query(
-      `SELECT u.*, e.nome as empresa_nome 
+      `SELECT u.*, 
+              e.nome as empresa_nome,
+              e.email as empresa_email,
+              e.telefone as empresa_telefone,
+              e.cnpj as empresa_cnpj,
+              e.logo as empresa_logo,
+              e.cor_principal as empresa_cor_principal,
+              e.endereco as empresa_endereco
        FROM usuarios u 
        LEFT JOIN empresas e ON u.empresa_id = e.id 
        WHERE u.id = ?`, 
