@@ -16,6 +16,7 @@ import { TicketList } from '../tickets/TicketList';
 import { TicketKanban } from '../tickets/TicketKanban';
 import { CreateTicketModal } from '../tickets/CreateTicketModal';
 import { TeamSidebar } from '../tickets/TeamSidebar';
+import { PageHeader } from '../ui/PageHeader';
 
 interface TicketsPageProps {
   onSelectTicket: (id: number) => void;
@@ -114,11 +115,10 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold text-slate-900 tracking-tight">Atendimentos</h2>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader 
+        title="Atendimentos" 
+        action={
+          <>
           {currentUser.desenvolvedor && (
             <div className="relative mr-2 w-56">
               <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
@@ -156,8 +156,9 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
           <Button size="sm" className="h-9" onClick={() => setIsModalOpen(true)}>
             <Plus size={16} className="mr-2" /> Novo Atendimento
           </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       <div className="flex flex-col lg:flex-row gap-6 items-start">
         <div className="flex-1 w-full space-y-6">

@@ -12,6 +12,7 @@ import {
   Plus,
   Building
 } from 'lucide-react';
+import { PageHeader, SectionTitle } from '../ui/PageHeader';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
@@ -101,11 +102,7 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold text-slate-900 tracking-tight">Dashboard</h2>
-        </div>
-      </div>
+      <PageHeader title="Dashboard" />
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {mainMetrics.map((card, i) => (
@@ -122,8 +119,8 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
 
       <div className="grid lg:grid-cols-2 gap-6">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between py-4">
-             <CardTitle className="text-sm font-bold">Atendimentos por Status</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between py-4 border-b border-slate-100">
+             <SectionTitle title="Atendimentos por Status" className="mb-0" />
           </CardHeader>
           <CardContent className="pb-6">
             <div className="h-[300px] w-full min-w-0">
@@ -152,7 +149,7 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
 
         <Card className="overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 bg-slate-50/30 py-3">
-            <CardTitle className="text-sm font-bold">Atendimentos Recentes</CardTitle>
+            <SectionTitle title="Atendimentos Recentes" className="mb-0" />
             <Button variant="ghost" size="sm" className="h-7 text-[11px] font-bold" onClick={() => onNavigate?.('tickets')}>
               Ver Todos <ChevronRight size={12} className="ml-1" />
             </Button>

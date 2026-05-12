@@ -38,7 +38,7 @@ export const Modal = ({ isOpen, onClose, title, children, footer, size = 'md' }:
             className={cn("relative w-full bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]", sizes[size])}
           >
             <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-white">
-              <h3 className="text-xl font-bold text-slate-900 tracking-tight">{title}</h3>
+              <h3 className="text-xl font-semibold text-slate-900 tracking-tight">{title}</h3>
               <button 
                 onClick={onClose}
                 className="p-2 hover:bg-slate-50 text-slate-400 hover:text-slate-600 rounded-xl transition-colors"

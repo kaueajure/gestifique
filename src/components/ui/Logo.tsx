@@ -38,14 +38,14 @@ export const FallbackLogo = ({ size = 24, className }: LogoProps) => (
   </div>
 );
 
-export const AppLogo = ({ size = 24, className }: LogoProps) => {
+export const AppLogo = ({ size = 25, className }: LogoProps) => {
   return (
-    <div className={cn("relative flex items-center justify-center shrink-0", className)} style={{ width: size, height: size }}>
+    <div className={cn("relative flex items-center justify-center shrink-0", className)} style={{ width: 25, height: 25 }}>
       <img 
         src="/logo.png" 
         alt="Gestifique Logo" 
-        width={size} 
-        height={size} 
+        width={25} 
+        height={25} 
         className="object-contain z-10 w-full h-full"
         onError={(e) => {
           const target = e.target as HTMLImageElement;
@@ -59,8 +59,8 @@ export const AppLogo = ({ size = 24, className }: LogoProps) => {
         }}
       />
       {/* Fallback mostrado apenas se a imagem falhar/ainda não carregar */}
-      <div className="absolute inset-0 z-0">
-         <FallbackLogo size={size} className={className} />
+      <div className="absolute inset-0 z-0 flex items-center justify-center">
+         <FallbackLogo size={25} className={className} />
       </div>
     </div>
   );

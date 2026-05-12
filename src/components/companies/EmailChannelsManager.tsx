@@ -102,8 +102,8 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h4 className="text-sm font-semibold text-slate-900 border-b-0">Canais de E-mail Verificados</h4>
-          <p className="text-xs text-slate-500 font-medium">Configure encaminhamentos para transformar e-mails em tickets.</p>
+          <h4 className="text-sm font-semibold text-slate-900 border-b-0">Canais de E-mail (Abertura de Chamados)</h4>
+          <p className="text-xs text-slate-500 font-medium mt-1">Configure os e-mails (como contato@suaempresa.com.br) que criarão tickets automaticamente no sistema.</p>
         </div>
         <Button size="sm" onClick={() => setIsCreating(true)} variant="outline" className="text-xs">
           <Plus size={14} className="mr-1.5" /> Adicionar

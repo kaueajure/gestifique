@@ -5,6 +5,7 @@ import { UserCircle as UserIcon, Building2, Key, Eye, EyeOff, Save, Lock, CheckC
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { PageHeader } from '../ui/PageHeader';
 import { Card } from '../ui/Card';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -83,9 +84,7 @@ export const ProfilePage = ({ currentUser, onUpdate }: ProfilePageProps) => {
 
   return (
     <div className="max-w-4xl space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold text-slate-900 tracking-tight">Meu Perfil</h2>
-      </div>
+      <PageHeader title="Meu Perfil" />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Lado Esquerdo: Info Fixa */}

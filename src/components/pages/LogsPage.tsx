@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { Search, Calendar, Loader2, AlertCircle, ChevronLeft, ChevronRight, RefreshCw, FilterX, Building2 } from 'lucide-react';
+import { PageHeader } from '../ui/PageHeader';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -100,20 +101,20 @@ export const LogsPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold text-slate-900 tracking-tight">Logs do Sistema</h2>
-        </div>
-        <Button 
-          variant="outline"
-          size="sm"
-          className="h-9"
-          onClick={fetchLogs}
-          disabled={loading}
-        >
-          <RefreshCw size={14} className={cn("mr-2", loading ? "animate-spin" : "")} /> Sincronizar
-        </Button>
-      </div>
+      <PageHeader 
+        title="Logs do Sistema"
+        action={
+          <Button 
+            variant="outline"
+            size="sm"
+            className="h-9"
+            onClick={fetchLogs}
+            disabled={loading}
+          >
+            <RefreshCw size={14} className={cn("mr-2", loading ? "animate-spin" : "")} /> Sincronizar
+          </Button>
+        }
+      />
 
       <Card className="p-3">
         <form onSubmit={handleSearch} className="space-y-3">

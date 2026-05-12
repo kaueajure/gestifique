@@ -7,6 +7,7 @@ import {
   Download, Filter, RefreshCw, Calendar, TrendingUp, AlertCircle, 
   Clock, CheckCircle2, Inbox, Activity, ChevronRight, FileText, Printer
 } from 'lucide-react';
+import { PageHeader } from '../ui/PageHeader';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
@@ -209,11 +210,11 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
   return (
     <div className="space-y-8 pb-12">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Relatórios</h1>
-        </div>
-          <div className="flex items-center gap-2">
+      <PageHeader
+        title="Relatórios"
+        className="mb-8"
+        action={
+          <>
             <Button variant="secondary" onClick={() => window.print()} className="print:hidden">
               <Printer size={18} className="mr-2" /> Imprimir Relatório
             </Button>
@@ -223,8 +224,9 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
             <Button onClick={fetchData} className="print:hidden">
               <RefreshCw size={18} className={`mr-2 ${loading ? 'animate-spin' : ''}`} /> Atualizar Dashboard
             </Button>
-          </div>
-        </div>
+          </>
+        }
+      />
 
         {/* Filters */}
         <Card className="p-6 bg-slate-50/50 border-slate-200 print:hidden">

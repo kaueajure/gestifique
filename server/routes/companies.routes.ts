@@ -32,9 +32,8 @@ router.post('/', isDev, async (req: AuthRequest, res) => {
 
     const { nome, email, email_suporte, cor_principal } = req.body;
     if (!nome) return sendError(res, 'Nome é obrigatório', 400);
-    
-    if (!email_suporte) return sendError(res, 'E-mail de suporte é obrigatório', 400);
-    if (!isValidEmail(email_suporte)) return sendError(res, 'E-mail de suporte inválido', 400);
+
+    if (email_suporte && !isValidEmail(email_suporte)) return sendError(res, 'E-mail de suporte inválido', 400);
 
     if (email && !isValidEmail(email)) return sendError(res, 'Email institucional inválido', 400);
     if (cor_principal && !isValidHexColor(cor_principal)) return sendError(res, 'Cor principal inválida (formato #RRGGBB)', 400);
@@ -64,8 +63,7 @@ router.patch('/:id', async (req: AuthRequest, res) => {
 
     const { email, email_suporte, cor_principal } = req.body;
     
-    if (email_suporte !== undefined) {
-      if (!email_suporte) return sendError(res, 'O e-mail de suporte não pode ficar vazio', 400);
+    if (email_suporte !== undefined && email_suporte !== '') {
       if (!isValidEmail(email_suporte)) return sendError(res, 'E-mail de suporte inválido', 400);
     }
     

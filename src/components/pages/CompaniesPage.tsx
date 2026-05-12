@@ -15,6 +15,7 @@ import {
   Target,
   XCircle
 } from 'lucide-react';
+import { PageHeader } from '../ui/PageHeader';
 import { Badge } from '../ui/Badge';
 import { Modal } from '../ui/Modal';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
@@ -108,12 +109,6 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
         return;
       }
 
-      if (!payload.email_suporte) {
-        setSaveError('O e-mail de suporte é obrigatório.');
-        setLoadingSave(false);
-        return;
-      }
-
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (payload.email && !emailRegex.test(payload.email)) {
         setSaveError('E-mail institucional inválido.');
@@ -175,14 +170,14 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-slate-900 tracking-tight">Empresas</h2>
-        </div>
-        <Button size="sm" onClick={() => { setSelectedCompany(null); setSaveError(null); setIsModalOpen(true); }} className="font-bold text-[10px] uppercase tracking-widest px-4 h-9">
-          <Plus size={14} className="mr-2" /> Nova Empresa
-        </Button>
-      </div>
+      <PageHeader
+        title="Empresas"
+        action={
+          <Button size="sm" onClick={() => { setSelectedCompany(null); setSaveError(null); setIsModalOpen(true); }} className="font-semibold text-xs h-9">
+            <Plus size={14} className="mr-2" /> Nova Empresa
+          </Button>
+        }
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
          <MetricCard 
@@ -414,11 +409,10 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
                  />
               </div>
               <div className="space-y-1.5">
-                 <label className="text-xs font-medium text-slate-500 px-1">E-mail de Suporte (Abertura de Chamados)*</label>
+                 <label className="text-xs font-medium text-slate-500 px-1">E-mail de Suporte (Legado / Opcional)</label>
                  <Input 
                    name="email_suporte" 
                    type="email" 
-                   required
                    defaultValue={selectedCompany?.email_suporte || ''} 
                    placeholder="suporte@empresa.com"
                    className="h-10 bg-slate-50/50 border-slate-100 font-bold text-xs"

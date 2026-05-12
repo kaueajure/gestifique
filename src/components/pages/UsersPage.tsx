@@ -13,6 +13,7 @@ import {
   Loader2,
   Key
 } from 'lucide-react';
+import { PageHeader } from '../ui/PageHeader';
 import { Badge } from '../ui/Badge';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
@@ -179,14 +180,14 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="min-w-0">
-          <h2 className="text-xl font-bold text-slate-900 tracking-tight">Usuários</h2>
-        </div>
-        <Button size="sm" onClick={() => { setSelectedUser(null); setSaveError(null); setIsModalOpen(true); }} className="font-semibold text-xs h-9">
-          <Plus size={14} className="mr-2" /> Novo Usuário
-        </Button>
-      </div>
+      <PageHeader 
+        title="Usuários"
+        action={
+          <Button size="sm" onClick={() => { setSelectedUser(null); setSaveError(null); setIsModalOpen(true); }} className="font-semibold text-xs h-9">
+            <Plus size={14} className="mr-2" /> Novo Usuário
+          </Button>
+        }
+      />
 
       <Card>
         <div className="p-4 border-b border-slate-50 flex flex-col lg:flex-row gap-3">

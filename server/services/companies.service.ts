@@ -36,10 +36,6 @@ class CompaniesService {
   async create(data: any) {
     const { nome, cnpj, email, email_suporte, telefone, cor_principal = '#2563eb', logo } = data;
 
-    if (!email_suporte) {
-      throw new Error('O e-mail de suporte é obrigatório.');
-    }
-
     // Duplication Check
     if (cnpj) {
       const [existing]: any = await pool.query('SELECT id FROM empresas WHERE cnpj = ?', [cnpj]);
@@ -56,7 +52,7 @@ class CompaniesService {
 
     const [result]: any = await pool.query(
       'INSERT INTO empresas (nome, cnpj, email, email_suporte, telefone, cor_principal, logo) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [nome, cnpj, email, email_suporte, telefone, cor_principal, logo]
+      [nome, cnpj, email, email_suporte || null, telefone, cor_principal, logo]
     );
     return result.insertId;
   }
@@ -83,7 +79,11 @@ class CompaniesService {
     Object.keys(data).forEach(key => {
       if (['nome', 'cnpj', 'email', 'email_suporte', 'telefone', 'ativo', 'cor_principal', 'logo'].includes(key)) {
         fields.push(`${key} = ?`);
-        params.push(data[key]);
+        if (key === 'email_suporte' && data[key] === '') {
+          params.push(null);
+        } else {
+          params.push(data[key]);
+        }
       }
     });
     if (fields.length === 0) return;

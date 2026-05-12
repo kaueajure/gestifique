@@ -55,7 +55,7 @@ export const TicketHeader = ({ id, titulo, status, prioridade, onBack, onUpdateS
             <Badge variant={getStatusVariant(status || 'aberto')} className="text-[9px] py-0 px-1.5 font-bold uppercase tracking-tight">{(status || 'aberto').replace('_', ' ')}</Badge>
             <Badge variant={getPriorityVariant(prioridade || 'media') as any} className="text-[9px] py-0 px-1.5 font-bold uppercase tracking-tight">{prioridade || 'media'}</Badge>
           </div>
-          <h2 className="text-lg font-bold text-slate-900 truncate leading-tight tracking-tight">{titulo || 'Atendimento'}</h2>
+          <h2 className="text-xl font-semibold text-slate-900 truncate tracking-tight">{titulo || 'Atendimento'}</h2>
         </div>
       </div>
 

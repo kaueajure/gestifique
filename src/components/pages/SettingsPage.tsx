@@ -5,6 +5,7 @@ import { Building2, Keyboard, ShieldCheck, Database, Cpu, Lock, Save, Zap, Palet
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { PageHeader } from '../ui/PageHeader';
 import { Card } from '../ui/Card';
 import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -94,11 +95,7 @@ export const SettingsPage = ({ currentUser, onNavigate }: SettingsPageProps) => 
 
   return (
     <div className="max-w-5xl space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-semibold text-slate-950 tracking-tight">Configurações</h2>
-        </div>
-      </div>
+      <PageHeader title="Configurações" />
 
       <div className="flex flex-wrap gap-1 p-1 bg-white border border-slate-200 rounded-xl w-fit shadow-sm">
         <button 
