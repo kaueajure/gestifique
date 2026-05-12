@@ -53,6 +53,11 @@ router.get('/', isAdmin, async (req: AuthRequest, res) => {
 
     const { search, status } = req.query;
     const empresaId = currentUser.desenvolvedor ? undefined : currentUser.empresa_id;
+    
+    if (!currentUser.desenvolvedor && !empresaId) {
+      return sendSuccess(res, []);
+    }
+
     const users = await usersService.list({ 
       empresaId, 
       search: search as string, 
@@ -78,6 +83,10 @@ router.post('/', isAdmin, async (req: AuthRequest, res) => {
 
     const targetEmpresaId = currentUser.desenvolvedor ? empresa_id : currentUser.empresa_id;
     
+    if (!currentUser.desenvolvedor && !targetEmpresaId) {
+      return sendError(res, 'Sua conta não possui uma empresa vinculada para realizar esta ação', 403);
+    }
+
     if (!currentUser.desenvolvedor && desenvolvedor) {
       return sendError(res, 'Apenas desenvolvedores podem criar outros desenvolvedores', 403);
     }

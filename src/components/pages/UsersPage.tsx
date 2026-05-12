@@ -247,7 +247,12 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
               <tbody className="divide-y divide-slate-100/50">
                 {users.map((user) => {
                   const isDev = !!user.desenvolvedor;
-                  const canManage = currentUser.desenvolvedor || (!isDev && (currentUser.administrador && (currentUser.empresa_id === user.empresa_id || !user.empresa_id)));
+                  const canManage = !!currentUser.desenvolvedor || (
+                    !!currentUser.administrador && 
+                    !isDev && 
+                    !!currentUser.empresa_id && 
+                    user.empresa_id === currentUser.empresa_id
+                  );
                   
                   return (
                     <tr key={user.id} className="hover:bg-slate-50/50 transition-colors group">
@@ -391,13 +396,13 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
               </div>
            </div>
 
-           {(currentUser.desenvolvedor || currentUser.administrador) && (
+           {!!currentUser.desenvolvedor ? (
               <div className="space-y-1.5">
                  <label className="text-xs font-medium text-slate-500 px-1">Empresa</label>
                  <select 
                    name="empresa_id" 
                    defaultValue={selectedUser?.empresa_id || ''}
-                   disabled={!currentUser.desenvolvedor && !!selectedUser}
+                   disabled={!!selectedUser}
                    className="w-full h-10 bg-slate-50/50 border border-slate-100 rounded-lg px-3 text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer appearance-none"
                  >
                    <option value="">Gestifique Central</option>
@@ -405,6 +410,13 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
                      <option key={c.id} value={c.id}>{c.nome}</option>
                    ))}
                  </select>
+              </div>
+           ) : !!currentUser.empresa_id && (
+              <div className="space-y-1.5">
+                 <label className="text-xs font-medium text-slate-500 px-1">Empresa</label>
+                 <div className="h-10 bg-slate-50/50 border border-slate-100 rounded-lg px-3 flex items-center text-xs font-bold text-slate-400 select-none">
+                    {currentUser.empresa_nome || 'Sua Empresa'}
+                 </div>
               </div>
            )}
 
