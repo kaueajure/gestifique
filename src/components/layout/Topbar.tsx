@@ -20,9 +20,6 @@ export const Topbar = ({ title, onMenuClick, currentUser, onNavigate }: TopbarPr
         >
           <Menu size={20} />
         </button>
-        <h1 className="text-xl font-bold text-slate-900 tracking-tight hidden sm:block">
-          {title}
-        </h1>
       </div>
 
       <div className="flex-1 max-w-xl mx-8 hidden md:block">

@@ -182,7 +182,6 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="min-w-0">
           <h2 className="text-xl font-bold text-slate-900 tracking-tight">Usuários</h2>
-          <p className="text-sm text-slate-500 font-medium mt-1">Gerenciamento de acesso e permissões</p>
         </div>
         <Button size="sm" onClick={() => { setSelectedUser(null); setSaveError(null); setIsModalOpen(true); }} className="font-semibold text-xs h-9">
           <Plus size={14} className="mr-2" /> Novo Usuário

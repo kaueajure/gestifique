@@ -178,7 +178,6 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-slate-900 tracking-tight">Empresas</h2>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mt-1">Gestão de empresas e unidades vinculadas</p>
         </div>
         <Button size="sm" onClick={() => { setSelectedCompany(null); setSaveError(null); setIsModalOpen(true); }} className="font-bold text-[10px] uppercase tracking-widest px-4 h-9">
           <Plus size={14} className="mr-2" /> Nova Empresa

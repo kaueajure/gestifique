@@ -154,7 +154,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
     // 1. Totals
     csvContent += "METRICAS TOTAIS\n";
     csvContent += "Métrica,Valor\n";
-    csvContent += `Total de Chamados,${data.totals.total_tickets}\n`;
+    csvContent += `Total de Atendimentos,${data.totals.total_tickets}\n`;
     csvContent += `Em Aberto,${data.totals.open_tickets}\n`;
     csvContent += `Em Andamento,${data.totals.in_progress_tickets}\n`;
     csvContent += `Resolvidos,${data.totals.resolved_tickets}\n`;
@@ -212,7 +212,6 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Relatórios</h1>
-          <p className="text-slate-500 font-medium">Análise gerencial dos atendimentos da plataforma.</p>
         </div>
           <div className="flex items-center gap-2">
             <Button variant="secondary" onClick={() => window.print()} className="print:hidden">
@@ -321,7 +320,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <KPICard title="Chamados Encontrados" value={detailedReport.metrics.total} icon={<Inbox />} color="blue" />
+            <KPICard title="Atendimentos Encontrados" value={detailedReport.metrics.total} icon={<Inbox />} color="blue" />
             <KPICard title="Taxa de Resolução" value={`${detailedReport.metrics.taxaResolucao}%`} icon={<CheckCircle2 />} color="emerald" />
             <KPICard title="Período" value={`${filters.start_date} a ${filters.end_date}`} icon={<Calendar />} color="indigo" />
           </div>
@@ -536,7 +535,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                       ))
                     ) : (
                       <div className="py-12 text-center">
-                        <p className="text-slate-400 text-sm font-medium">Nenhum responsável vinculado aos chamados.</p>
+                        <p className="text-slate-400 text-sm font-medium">Nenhum responsável vinculado aos atendimentos.</p>
                       </div>
                     )}
                   </div>

@@ -97,7 +97,6 @@ export const SettingsPage = ({ currentUser, onNavigate }: SettingsPageProps) => 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-semibold text-slate-950 tracking-tight">Configurações</h2>
-          <p className="text-sm text-slate-500 font-medium">Personalize sua experiência e gerencie os parâmetros da instância.</p>
         </div>
       </div>
 
@@ -196,7 +195,7 @@ export const SettingsPage = ({ currentUser, onNavigate }: SettingsPageProps) => 
                        {(['reports', 'tickets', 'profile', 'dashboard'] as const).map(id => {
                          const navMap: Record<string, { desc: string; icon: React.ReactNode; access?: boolean }> = {
                             reports: { desc: 'Análise de Relatórios', icon: <TrendingUp size={16} />, access: currentUser.administrador || currentUser.desenvolvedor },
-                            tickets: { desc: 'Central de Chamados', icon: <Layout size={16} /> },
+                            tickets: { desc: 'Central de Atendimentos', icon: <Layout size={16} /> },
                             profile: { desc: 'Dados do Perfil', icon: <ShieldCheck size={16} /> },
                             dashboard: { desc: 'Indicadores em Tempo Real', icon: <Zap size={16} /> },
                          };

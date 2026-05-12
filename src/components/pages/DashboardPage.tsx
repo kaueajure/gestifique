@@ -64,7 +64,7 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
   const recentTickets = stats?.recentTickets || [];
 
   const mainMetrics: Array<{ label: string, value: number, icon: React.ReactNode, color: 'blue' | 'amber' | 'emerald' | 'indigo' | 'red' | 'slate' }> = [
-    { label: 'Chamados Ativos', value: chamadosAtivos, icon: <AlertCircle size={18} />, color: 'amber' as const },
+    { label: 'Atendimentos Ativos', value: chamadosAtivos, icon: <AlertCircle size={18} />, color: 'amber' as const },
     { label: 'SLA Atrasados', value: slaAtrasados, icon: <AlertCircle size={18} />, color: 'red' as const },
     { label: 'Resolvidos (Mês)', value: resolvidosMes, icon: <CheckCircle2 size={18} />, color: 'emerald' as const },
   ];
@@ -104,12 +104,6 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold text-slate-900 tracking-tight">Dashboard</h2>
-          <p className="text-sm text-slate-500 font-medium">Visão geral do sistema e indicadores de performance.</p>
-        </div>
-        <div className="flex items-center gap-2">
-           <Button size="sm" className="h-9" onClick={() => onNavigate?.('tickets')}>
-              <Plus size={16} className="mr-2" /> Novo Ticket
-           </Button>
         </div>
       </div>
 
@@ -129,7 +123,7 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
       <div className="grid lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between py-4">
-             <CardTitle className="text-sm font-bold">Chamados por Status</CardTitle>
+             <CardTitle className="text-sm font-bold">Atendimentos por Status</CardTitle>
           </CardHeader>
           <CardContent className="pb-6">
             <div className="h-[300px] w-full min-w-0">
@@ -158,7 +152,7 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
 
         <Card className="overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 bg-slate-50/30 py-3">
-            <CardTitle className="text-sm font-bold">Chamados Recentes</CardTitle>
+            <CardTitle className="text-sm font-bold">Atendimentos Recentes</CardTitle>
             <Button variant="ghost" size="sm" className="h-7 text-[11px] font-bold" onClick={() => onNavigate?.('tickets')}>
               Ver Todos <ChevronRight size={12} className="ml-1" />
             </Button>
@@ -214,9 +208,9 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
                   <TicketIcon size={20} />
                 </div>
                 <h4 className="text-sm font-semibold text-slate-900">Tudo em dia!</h4>
-                <p className="text-xs text-slate-500 max-w-[180px] mb-4">Nenhum chamado pendente.</p>
+                <p className="text-xs text-slate-500 max-w-[180px] mb-4">Nenhum atendimento pendente.</p>
                 <Button size="sm" className="h-8 text-[11px]" onClick={() => onNavigate?.('tickets')}>
-                   <Plus size={14} className="mr-1" /> Novo Ticket
+                   <Plus size={14} className="mr-1" /> Novo Atendimento
                 </Button>
               </div>
             )}

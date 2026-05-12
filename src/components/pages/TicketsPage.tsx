@@ -116,8 +116,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-slate-900 tracking-tight">Central de Atendimentos</h2>
-          <p className="text-sm text-slate-500 font-medium tracking-tight">Acompanhe, priorize e resolva chamados da operação.</p>
+          <h2 className="text-xl font-semibold text-slate-900 tracking-tight">Atendimentos</h2>
         </div>
         <div className="flex items-center gap-2">
           {currentUser.desenvolvedor && (

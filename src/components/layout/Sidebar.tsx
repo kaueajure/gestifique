@@ -58,7 +58,7 @@ export const Sidebar = ({ currentUser, activeTab, setActiveTab, isOpen, onClose,
         isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
         <div className="h-16 flex items-center justify-between px-6 border-b border-slate-200 bg-white">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <AppLogo size={30} />
             <span className="text-lg font-bold text-slate-900 tracking-tight">Gestifique</span>
           </div>
@@ -68,15 +68,6 @@ export const Sidebar = ({ currentUser, activeTab, setActiveTab, isOpen, onClose,
         </div>
 
         <div className="flex-1 overflow-y-auto px-3 py-6 space-y-1">
-           <div className="px-3 mb-6">
-              <button 
-                onClick={() => handleNav('tickets')}
-                className="w-full h-10 bg-white border border-slate-200 hover:border-blue-200 hover:bg-blue-50 text-blue-700 text-sm font-semibold rounded-lg flex items-center justify-center gap-2 transition-all shadow-sm"
-              >
-                <Plus size={16} /> Novo Atendimento
-              </button>
-           </div>
-
            <div className="space-y-0.5">
              {menuItems.filter(item => item.access).map((item) => (
                <button

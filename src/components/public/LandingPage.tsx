@@ -29,8 +29,8 @@ export const LandingPage = ({ onLogin }: LandingPageProps) => {
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-xl border-b border-slate-100">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <AppLogo size={20} />
+          <div className="flex items-center gap-1.5">
+            <AppLogo size={30} />
             <span className="text-lg font-bold tracking-tight">Gestifique</span>
           </div>
 
