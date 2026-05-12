@@ -99,8 +99,10 @@ export default function App() {
     const password = formData.get('password');
 
     try {
-      const data = await api.post<{ user: User }>('/auth/login', { email, password });
-      setCurrentUser(data.user);
+      await api.post('/auth/login', { email, password });
+      // Fetch full profile after login to guarantee consistent corporate data
+      const profile = await api.get<User>('/profile');
+      setCurrentUser(profile);
       setView('dashboard');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao autenticar.';

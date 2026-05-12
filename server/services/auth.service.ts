@@ -9,7 +9,15 @@ const SECRET = env.JWT_SECRET;
 class AuthService {
   async login(email: string, password: string) {
     const [rows]: any = await pool.query(
-      `SELECT u.*, e.ativo as empresa_ativa 
+      `SELECT u.*, 
+              e.nome as empresa_nome,
+              e.email as empresa_email,
+              e.telefone as empresa_telefone,
+              e.cnpj as empresa_cnpj,
+              e.logo as empresa_logo,
+              e.cor_principal as empresa_cor_principal,
+              e.endereco as empresa_endereco,
+              e.ativo as empresa_ativa 
        FROM usuarios u 
        LEFT JOIN empresas e ON u.empresa_id = e.id 
        WHERE u.email = ?`,
