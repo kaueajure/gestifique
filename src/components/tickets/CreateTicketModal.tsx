@@ -4,6 +4,7 @@ import { User, Empresa as Company } from '../../types';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { Select } from '../ui/Select';
 import { api } from '../../lib/api';
 
 interface CreateTicketModalProps {
@@ -19,6 +20,9 @@ export const CreateTicketModal = ({ isOpen, onClose, currentUser, onSuccess }: C
   
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
+  const [empresaId, setEmpresaId] = useState<string>('');
+  const [categoria, setCategoria] = useState<string>('suporte_tecnico');
+  const [prioridade, setPrioridade] = useState<string>('media');
 
   useEffect(() => {
     if (isOpen && !!currentUser.desenvolvedor && !currentUser.empresa_id) {
@@ -87,23 +91,24 @@ export const CreateTicketModal = ({ isOpen, onClose, currentUser, onSuccess }: C
           minLength={3}
         />
 
-        {!!currentUser.desenvolvedor && !currentUser.empresa_id && (
+         {!!currentUser.desenvolvedor && !currentUser.empresa_id && (
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-700">Empresa Solicitante</label>
             <div className="relative">
-              <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-              <select 
-                name="empresa_id" 
-                required
-                className="w-full h-10 bg-white border border-slate-200 rounded-lg pl-9 pr-3 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all appearance-none"
-              >
-                <option value="">Selecione uma empresa...</option>
-                {companies.map(emp => (
-                  <option key={emp.id} value={emp.id}>{emp.nome}</option>
-                ))}
-              </select>
+              <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10" size={14} />
+              <Select 
+                name="empresa_id"
+                value={empresaId}
+                onChange={setEmpresaId}
+                placeholder="Selecione uma empresa..."
+                buttonClassName="pl-9"
+                options={companies.map(emp => ({
+                  value: String(emp.id),
+                  label: emp.nome
+                }))}
+              />
               {loadingCompanies && (
-                <div className="absolute right-8 top-1/2 -translate-y-1/2">
+                <div className="absolute right-8 top-1/2 -translate-y-1/2 z-10">
                   <Loader2 size={14} className="animate-spin text-blue-600" />
                 </div>
               )}
@@ -114,22 +119,32 @@ export const CreateTicketModal = ({ isOpen, onClose, currentUser, onSuccess }: C
         <div className="grid md:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-700">Categoria</label>
-            <select name="categoria" className="w-full h-10 bg-white border border-slate-200 rounded-lg px-3 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all appearance-none">
-              <option value="suporte_tecnico">Suporte Técnico</option>
-              <option value="financeiro">Financeiro</option>
-              <option value="recursos_humanos">Recursos Humanos</option>
-              <option value="comercial">Comercial</option>
-              <option value="outros">Outros</option>
-            </select>
+            <Select 
+              name="categoria"
+              value={categoria}
+              onChange={setCategoria}
+              options={[
+                { value: 'suporte_tecnico', label: 'Suporte Técnico' },
+                { value: 'financeiro', label: 'Financeiro' },
+                { value: 'recursos_humanos', label: 'Recursos Humanos' },
+                { value: 'comercial', label: 'Comercial' },
+                { value: 'outros', label: 'Outros' }
+              ]}
+            />
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-700">Prioridade</label>
-            <select name="prioridade" className="w-full h-10 bg-white border border-slate-200 rounded-lg px-3 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all appearance-none">
-              <option value="baixa">Baixa</option>
-              <option value="media">Média</option>
-              <option value="alta">Alta</option>
-              <option value="urgente">Urgente</option>
-            </select>
+            <Select 
+              name="prioridade"
+              value={prioridade}
+              onChange={setPrioridade}
+              options={[
+                { value: 'baixa', label: 'Baixa' },
+                { value: 'media', label: 'Média' },
+                { value: 'alta', label: 'Alta' },
+                { value: 'urgente', label: 'Urgente' }
+              ]}
+            />
           </div>
         </div>
 

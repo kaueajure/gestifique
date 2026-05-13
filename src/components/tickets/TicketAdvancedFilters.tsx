@@ -14,6 +14,8 @@ import {
 import { Button } from '../ui/Button';
 import { TicketAdvancedFilters as IFilters } from '../../types';
 
+import { Select } from '../ui/Select';
+
 interface Props {
   filters: IFilters;
   onFilterChange: (filters: IFilters) => void;
@@ -36,16 +38,17 @@ export const TicketAdvancedFilters: React.FC<Props> = ({ filters, onFilterChange
         <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
           <User size={12} /> Responsável
         </label>
-        <select
+        <Select
           value={filters.responsavel_id || ''}
-          onChange={(e) => handleChange('responsavel_id', e.target.value ? parseInt(e.target.value) : undefined)}
-          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
-        >
-          <option value="">Todos</option>
-          {agents.map(agent => (
-            <option key={agent.id} value={agent.id}>{agent.nome}</option>
-          ))}
-        </select>
+          onChange={(value) => handleChange('responsavel_id', value ? parseInt(value) : undefined)}
+          options={[
+            { value: '', label: 'Todos' },
+            ...agents.map(agent => ({
+              value: String(agent.id),
+              label: agent.nome
+            }))
+          ]}
+        />
       </div>
 
       {/* Tag */}
@@ -67,17 +70,17 @@ export const TicketAdvancedFilters: React.FC<Props> = ({ filters, onFilterChange
         <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
           <Globe size={12} /> Origem
         </label>
-        <select
+        <Select
           value={filters.origem || ''}
-          onChange={(e) => handleChange('origem', e.target.value || undefined)}
-          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
-        >
-          <option value="">Todas</option>
-          <option value="portal">Portal</option>
-          <option value="email">E-mail</option>
-          <option value="api">API</option>
-          <option value="sistema">Sistema</option>
-        </select>
+          onChange={(value) => handleChange('origem', value || undefined)}
+          options={[
+            { value: '', label: 'Todas' },
+            { value: 'portal', label: 'Portal' },
+            { value: 'email', label: 'E-mail' },
+            { value: 'api', label: 'API' },
+            { value: 'sistema', label: 'Sistema' }
+          ]}
+        />
       </div>
 
       {/* SLA Status */}
@@ -85,17 +88,17 @@ export const TicketAdvancedFilters: React.FC<Props> = ({ filters, onFilterChange
         <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
           <Clock size={12} /> Status do SLA
         </label>
-        <select
+        <Select
           value={filters.sla_status || 'todos'}
-          onChange={(e) => handleChange('sla_status', e.target.value)}
-          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
-        >
-          <option value="todos">Todos</option>
-          <option value="dentro_sla">Dentro do SLA</option>
-          <option value="vencendo">Vencendo em breve</option>
-          <option value="vencido">SLA Vencido</option>
-          <option value="sem_sla">Sem SLA definido</option>
-        </select>
+          onChange={(value) => handleChange('sla_status', value)}
+          options={[
+            { value: 'todos', label: 'Todos' },
+            { value: 'dentro_sla', label: 'Dentro do SLA' },
+            { value: 'vencendo', label: 'Vencendo em breve' },
+            { value: 'vencido', label: 'SLA Vencido' },
+            { value: 'sem_sla', label: 'Sem SLA definido' }
+          ]}
+        />
       </div>
 
       {/* Criado Em */}

@@ -28,6 +28,7 @@ import { PageHeader } from '../ui/PageHeader';
 import { TicketAdvancedFilters as IAdvancedFilters, TicketView } from '../../types';
 import { TicketAdvancedFilters } from '../tickets/TicketAdvancedFilters';
 import { TicketSavedViews } from '../tickets/TicketSavedViews';
+import { Select } from '../ui/Select';
 import { TicketQueue } from '../../types';
 import { cn } from '../../lib/utils';
 import { motion } from 'motion/react';
@@ -410,17 +411,20 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
             </Button>
             {!!currentUser.desenvolvedor && (
               <div className="relative w-48">
-                <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                <select 
+                <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10" size={14} />
+                <Select 
                   value={devCompanyId}
-                  onChange={(e) => setDevCompanyId(e.target.value)}
-                  className="w-full h-9 bg-white border border-slate-200 rounded-lg pl-9 pr-3 text-[11px] font-bold uppercase tracking-tight outline-none focus:ring-2 focus:ring-blue-100 transition-all appearance-none"
-                >
-                  <option value="">Empresa...</option>
-                  {companies.map(emp => (
-                     <option key={emp.id} value={emp.id}>{emp.nome}</option>
-                  ))}
-                </select>
+                  onChange={setDevCompanyId}
+                  placeholder="Empresa..."
+                  buttonClassName="pl-9 h-9 text-[11px] font-bold uppercase tracking-tight"
+                  options={[
+                    { value: '', label: 'Empresa...' },
+                    ...companies.map(emp => ({
+                      value: String(emp.id),
+                      label: emp.nome
+                    }))
+                  ]}
+                />
               </div>
             )}
             <Button variant="outline" size="sm" className="h-9 w-9 p-0 bg-white" onClick={fetchData}>

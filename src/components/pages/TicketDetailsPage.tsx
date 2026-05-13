@@ -9,6 +9,7 @@ import { TicketHeader } from '../tickets/details/TicketHeader';
 import { TicketProperties } from '../tickets/details/TicketProperties';
 import { TicketConversation } from '../tickets/details/TicketConversation';
 import { TicketTimeline } from '../tickets/details/TicketTimeline';
+import { Select } from '../ui/Select';
 import { cn } from '../../lib/utils';
 
 interface TicketDetailsPageProps {
@@ -255,17 +256,19 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
              <div className="flex items-center gap-2">
                 <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Status</span>
                 {!!(currentUser.administrador || currentUser.desenvolvedor) ? (
-                  <select 
+                  <Select 
+                    size="sm"
                     value={ticket.status || 'aberto'}
-                    onChange={(e) => handleUpdateTicket({ status: e.target.value as any })}
-                    className="h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer hover:bg-slate-100"
-                  >
-                     <option value="aberto">ABERTO</option>
-                     <option value="em_andamento">EM ANDAMENTO</option>
-                     <option value="aguardando_cliente">PAGAMENTO</option>
-                     <option value="resolvido">RESOLVIDO</option>
-                     <option value="fechado">FECHADO</option>
-                  </select>
+                    onChange={(value) => handleUpdateTicket({ status: value as any })}
+                    className="w-[140px]"
+                    options={[
+                      { value: 'aberto', label: 'ABERTO' },
+                      { value: 'em_andamento', label: 'EM ANDAMENTO' },
+                      { value: 'aguardando_cliente', label: 'PAGAMENTO' },
+                      { value: 'resolvido', label: 'RESOLVIDO' },
+                      { value: 'fechado', label: 'FECHADO' }
+                    ]}
+                  />
                 ) : (
                   <Badge variant="blue" className="uppercase text-[9px] font-bold h-6">{(ticket.status || 'aberto').replace('_', ' ')}</Badge>
                 )}
@@ -275,16 +278,18 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
              <div className="flex items-center gap-2 border-l border-slate-100 pl-4">
                 <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Prioridade</span>
                 {!!(currentUser.administrador || currentUser.desenvolvedor) ? (
-                  <select 
+                  <Select 
+                    size="sm"
                     value={ticket.prioridade || 'media'}
-                    onChange={(e) => handleUpdateTicket({ prioridade: e.target.value as any })}
-                    className="h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer hover:bg-slate-100"
-                  >
-                     <option value="baixa">BAIXA</option>
-                     <option value="media">MÉDIA</option>
-                     <option value="alta">ALTA</option>
-                     <option value="urgente">URGENTE</option>
-                  </select>
+                    onChange={(value) => handleUpdateTicket({ prioridade: value as any })}
+                    className="w-[110px]"
+                    options={[
+                      { value: 'baixa', label: 'BAIXA' },
+                      { value: 'media', label: 'MÉDIA' },
+                      { value: 'alta', label: 'ALTA' },
+                      { value: 'urgente', label: 'URGENTE' }
+                    ]}
+                  />
                 ) : (
                   <Badge variant="indigo" className="uppercase text-[9px] font-bold h-6">{ticket.prioridade || 'media'}</Badge>
                 )}
@@ -294,16 +299,19 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
              {!!(currentUser.administrador || currentUser.desenvolvedor) && (
                <div className="flex items-center gap-2 border-l border-slate-100 pl-4">
                   <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Responsável</span>
-                  <select 
+                  <Select 
+                    size="sm"
                     value={ticket.responsavel_id || ''}
-                    onChange={(e) => handleUpdateTicket({ responsavel_id: e.target.value ? parseInt(e.target.value) : null })}
-                    className="h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer hover:bg-slate-100 max-w-[150px]"
-                  >
-                     <option value="">Sem responsável</option>
-                     {agents.map(agent => (
-                       <option key={agent.id} value={agent.id}>{agent.nome || 'Usuário'}</option>
-                     ))}
-                  </select>
+                    onChange={(value) => handleUpdateTicket({ responsavel_id: value ? parseInt(value) : null })}
+                    className="w-[160px]"
+                    options={[
+                      { value: '', label: 'SEM RESPONSÁVEL' },
+                      ...agents.map(agent => ({
+                        value: String(agent.id),
+                        label: (agent.nome || 'USUÁRIO').toUpperCase()
+                      }))
+                    ]}
+                  />
                </div>
              )}
           </div>
@@ -398,20 +406,20 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
              <div className="p-6 space-y-4">
                 <div className="space-y-1.5">
                    <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Motivo da Resolução</label>
-                   <select 
+                   <Select 
                      value={resolutionData.resolucao_motivo}
-                     onChange={(e) => setResolutionData(prev => ({ ...prev, resolucao_motivo: e.target.value }))}
-                     className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-emerald-100 transition-all"
-                   >
-                      <option value="">Selecione um motivo...</option>
-                      <option value="duvida_sanada">Dúvida sanada</option>
-                      <option value="problema_corrigido">Problema corrigido</option>
-                      <option value="solicitacao_atendida">Solicitação atendida</option>
-                      <option value="cancelamento_realizado">Cancelamento realizado</option>
-                      <option value="duplicado">Atendimento duplicado</option>
-                      <option value="sem_retorno_cliente">Sem retorno do cliente</option>
-                      <option value="outros">Outros</option>
-                   </select>
+                     onChange={(value) => setResolutionData(prev => ({ ...prev, resolucao_motivo: value }))}
+                     placeholder="Selecione um motivo..."
+                     options={[
+                       { value: "duvida_sanada", label: "Dúvida sanada" },
+                       { value: "problema_corrigido", label: "Problema corrigido" },
+                       { value: "solicitacao_atendida", label: "Solicitação atendida" },
+                       { value: "cancelamento_realizado", label: "Cancelamento realizado" },
+                       { value: "duplicado", label: "Atendimento duplicado" },
+                       { value: "sem_retorno_cliente", label: "Sem retorno do cliente" },
+                       { value: "outros", label: "Outros" }
+                     ]}
+                   />
                 </div>
 
                 <div className="space-y-1.5">

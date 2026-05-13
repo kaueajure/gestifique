@@ -9,6 +9,8 @@ import {
 import { Button } from '../ui/Button';
 import { TicketView } from '../../types';
 
+import { Select } from '../ui/Select';
+
 interface Props {
   views: TicketView[];
   currentViewId: number | null;
@@ -37,32 +39,26 @@ export const TicketSavedViews: React.FC<Props> = ({
 
   return (
     <div className="flex items-center gap-2">
-      <div className="relative group">
-        <select
-          value={currentViewId ?? 'none'}
-          onChange={(e) => {
-            if (e.target.value === 'none') {
-              onSelectView(null);
-            } else {
-              const view = views.find(v => v.id === parseInt(e.target.value));
-              if (view) onSelectView(view);
-            }
-          }}
-          className="bg-white border border-slate-200 rounded-lg pl-3 pr-8 py-1.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 appearance-none min-w-[180px] shadow-sm"
-        >
-          <option value="none">Filtros Personalizados</option>
-          {views.length > 0 ? (
-            <optgroup label="Minhas Views">
-              {views.map(view => (
-                <option key={view.id} value={view.id}>{view.nome}</option>
-              ))}
-            </optgroup>
-          ) : (
-            <option disabled value="">Nenhuma view salva</option>
-          )}
-        </select>
-        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-      </div>
+      <Select
+        value={currentViewId ?? 'none'}
+        onChange={(value) => {
+          if (value === 'none') {
+            onSelectView(null);
+          } else {
+            const view = views.find(v => v.id === parseInt(value));
+            if (view) onSelectView(view);
+          }
+        }}
+        className="min-w-[180px]"
+        buttonClassName="h-[38px] shadow-sm font-medium"
+        options={[
+          { value: 'none', label: 'Filtros Personalizados' },
+          ...views.map(view => ({
+            value: String(view.id),
+            label: view.nome
+          }))
+        ]}
+      />
 
       <Button
         variant="outline"

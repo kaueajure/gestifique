@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search, X, Filter } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { Select } from '../ui/Select';
 import { cn } from '../../lib/utils';
 
 interface TicketFiltersProps {
@@ -42,41 +43,50 @@ export const TicketFilters = ({
       </div>
       
       <div className="flex flex-wrap items-center gap-1.5 w-full lg:w-auto">
-        <select 
+         <Select 
+          size="sm"
           value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-          className="h-9 px-2 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-600 uppercase tracking-tight outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer min-w-[110px]"
-        >
-          <option value="todas">Categorias</option>
-          <option value="suporte_tecnico">Suporte</option>
-          <option value="financeiro">Financeiro</option>
-          <option value="recursos_humanos">RH</option>
-          <option value="comercial">Comercial</option>
-          <option value="outros">Outros</option>
-        </select>
-        <select 
+          onChange={setCategoryFilter}
+          className="w-auto"
+          buttonClassName="min-w-[110px] h-9 text-[10px] uppercase font-bold tracking-tight"
+          options={[
+            { value: 'todas', label: 'Categorias' },
+            { value: 'suporte_tecnico', label: 'Suporte' },
+            { value: 'financeiro', label: 'Financeiro' },
+            { value: 'recursos_humanos', label: 'RH' },
+            { value: 'comercial', label: 'Comercial' },
+            { value: 'outros', label: 'Outros' }
+          ]}
+        />
+        <Select 
+          size="sm"
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-9 px-2 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-600 uppercase tracking-tight outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer min-w-[100px]"
-        >
-          <option value="todos">Status</option>
-          <option value="aberto">Aberto</option>
-          <option value="em_andamento">Andamento</option>
-          <option value="aguardando_cliente">Aguardando</option>
-          <option value="resolvido">Resolvido</option>
-          <option value="fechado">Fechado</option>
-        </select>
-        <select 
+          onChange={setStatusFilter}
+          className="w-auto"
+          buttonClassName="min-w-[100px] h-9 text-[10px] uppercase font-bold tracking-tight"
+          options={[
+            { value: 'todos', label: 'Status' },
+            { value: 'aberto', label: 'Aberto' },
+            { value: 'em_andamento', label: 'Andamento' },
+            { value: 'aguardando_cliente', label: 'Aguardando' },
+            { value: 'resolvido', label: 'Resolvido' },
+            { value: 'fechado', label: 'Fechado' }
+          ]}
+        />
+        <Select 
+          size="sm"
           value={priorityFilter}
-          onChange={(e) => setPriorityFilter(e.target.value)}
-          className="h-9 px-2 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-600 uppercase tracking-tight outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer min-w-[110px]"
-        >
-          <option value="todas">Prioridades</option>
-          <option value="urgente">Urgente</option>
-          <option value="alta">Alta</option>
-          <option value="media">Média</option>
-          <option value="baixa">Baixa</option>
-        </select>
+          onChange={setPriorityFilter}
+          className="w-auto"
+          buttonClassName="min-w-[110px] h-9 text-[10px] uppercase font-bold tracking-tight"
+          options={[
+            { value: 'todas', label: 'Prioridades' },
+            { value: 'urgente', label: 'Urgente' },
+            { value: 'alta', label: 'Alta' },
+            { value: 'media', label: 'Média' },
+            { value: 'baixa', label: 'Baixa' }
+          ]}
+        />
 
         <Button 
           variant="outline" 
