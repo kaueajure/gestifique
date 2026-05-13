@@ -96,6 +96,15 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
     await attachmentsService.delete(id);
     await logSystemAction(req, currentUser.id, currentUser.empresa_id, 'ATTACHMENT_DELETE', `Anexo excluído: ${attachment.nome_original} (ID: ${id})`);
     
+    // Real-time update via WebSocket
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`empresa_${attachment.empresa_id}`).emit('ticketMessagesChanged', {
+        ticketId: attachment.ticket_id,
+        empresaId: attachment.empresa_id
+      });
+    }
+
     sendSuccess(res, null, 'Anexo excluído com sucesso');
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erro ao excluir anexo';

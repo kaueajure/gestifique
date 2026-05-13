@@ -307,6 +307,11 @@ export class EmailListenerService {
                  const updatedTicket = await ticketsService.getById(targetTicketId);
                  if (updatedTicket && io) {
                    io.to(`empresa_${empresaId}`).emit('ticketUpdated', updatedTicket);
+                   io.to(`empresa_${empresaId}`).emit('ticketMessagesChanged', {
+                     ticketId: targetTicketId,
+                     empresaId: empresaId,
+                     messageId: msgId
+                   });
                  }
                  
                  if (parsed.attachments && parsed.attachments.length > 0) {

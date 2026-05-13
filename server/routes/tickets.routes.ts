@@ -623,6 +623,16 @@ router.post('/:id/messages', async (req: AuthRequest, res) => {
 
     await logSystemAction(req, currentUser.id, ticket.empresa_id, 'MESSAGE_SEND', `Nova mensagem no chamado #${id}`);
     
+    // Real-time update via WebSocket
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`empresa_${ticket.empresa_id}`).emit('ticketMessagesChanged', {
+        ticketId: id,
+        empresaId: ticket.empresa_id,
+        messageId
+      });
+    }
+
     sendSuccess(res, { id: messageId }, 'Mensagem enviada');
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erro ao enviar mensagem';
@@ -720,6 +730,15 @@ router.post('/:id/attachments', ticketUpload.array('files', 5), async (req: Auth
     }));
 
     await logSystemAction(req, currentUser.id, ticket.empresa_id, 'ATTACHMENT_UPLOAD', `Anexo(s) enviado(s) para o chamado #${id}`);
+
+    // Real-time update via WebSocket
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`empresa_${ticket.empresa_id}`).emit('ticketMessagesChanged', {
+        ticketId: id,
+        empresaId: ticket.empresa_id
+      });
+    }
 
     sendSuccess(res, createdAttachments, 'Arquivos enviados com sucesso', 201);
   } catch (error: unknown) {

@@ -11,6 +11,7 @@ import { TicketConversation } from '../tickets/details/TicketConversation';
 import { TicketTimeline } from '../tickets/details/TicketTimeline';
 import { Select } from '../ui/Select';
 import { cn, getSlaInfo } from '../../lib/utils';
+import { getSocket } from '../../lib/socket';
 
 interface TicketDetailsPageProps {
   ticketId: number;
@@ -81,9 +82,41 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
     }
   };
 
+  const refreshConversation = async () => {
+    try {
+      const [messagesData, attachmentsData, timelineData] = await Promise.all([
+        api.get<Message[]>(`/tickets/${ticketId}/messages`),
+        api.get<TicketAttachment[]>(`/tickets/${ticketId}/attachments`),
+        api.get<TicketTimelineItem[]>(`/tickets/${ticketId}/timeline`).catch(() => [] as TicketTimelineItem[])
+      ]);
+      setMessages(messagesData);
+      setTicketAttachments(attachmentsData);
+      setTimeline(timelineData);
+    } catch (err) {
+      console.error('Erro ao atualizar conversa em tempo real:', err);
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, [ticketId]);
+
+  useEffect(() => {
+    if (!ticket?.empresa_id) return;
+
+    const socket = getSocket(ticket.empresa_id);
+
+    const handleMessagesChanged = (payload: { ticketId: number, empresaId: number }) => {
+      if (Number(payload.ticketId) !== Number(ticketId)) return;
+      refreshConversation();
+    };
+
+    socket.on('ticketMessagesChanged', handleMessagesChanged);
+
+    return () => {
+      socket.off('ticketMessagesChanged', handleMessagesChanged);
+    };
+  }, [ticket?.empresa_id, ticketId]);
 
   const handleSendMessage = async (mensagem: string, isInternal: boolean, files: File[]): Promise<boolean> => {
     setLoadingSend(true);
@@ -110,8 +143,8 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
 
       setActionSuccess('Mensagem enviada com sucesso!');
       
-      // Reload everything
-      fetchData();
+      // Reload conversation only instead of everything
+      refreshConversation();
       
       setTimeout(() => setActionSuccess(null), 3000);
       return true;
@@ -207,7 +240,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
     try {
       await api.delete(`/attachments/${attachmentId}`);
       setActionSuccess('Anexo removido do sistema.');
-      fetchData();
+      refreshConversation();
       setTimeout(() => setActionSuccess(null), 3000);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao excluir anexo.';
