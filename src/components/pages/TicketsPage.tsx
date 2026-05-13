@@ -24,10 +24,16 @@ import { TicketKanban } from '../tickets/TicketKanban';
 import { CreateTicketModal } from '../tickets/CreateTicketModal';
 import { TeamSidebar } from '../tickets/TeamSidebar';
 import { PageHeader } from '../ui/PageHeader';
+import { TicketAdvancedFilters as IAdvancedFilters, TicketView } from '../../types';
+import { TicketAdvancedFilters } from '../tickets/TicketAdvancedFilters';
+import { TicketSavedViews } from '../tickets/TicketSavedViews';
 import { TicketQueue } from '../../types';
 import { cn } from '../../lib/utils';
 import { motion } from 'motion/react';
 import { TicketBulkActions } from '../tickets/TicketBulkActions';
+import { Download, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface TicketsPageProps {
   onSelectTicket: (id: number) => void;
@@ -77,6 +83,15 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
   const [categoryFilter, setCategoryFilter] = useState('todas');
   const [selectedQueue, setSelectedQueue] = useState<TicketQueue>('todos');
   
+  // Advanced Filters
+  const [advancedFilters, setAdvancedFilters] = useState<IAdvancedFilters>({
+    sla_status: 'todos'
+  });
+
+  // Saved Views
+  const [savedViews, setSavedViews] = useState<TicketView[]>([]);
+  const [currentViewId, setCurrentViewId] = useState<number | null>(null);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   
@@ -98,8 +113,20 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
         );
         setAgents(filteredAgents);
       }).catch(console.error);
+
+      // Fetch saved views
+      fetchViews();
     }
   }, [currentUser]);
+
+  const fetchViews = async () => {
+    try {
+      const views = await api.get<TicketView[]>('/tickets/views');
+      setSavedViews(views);
+    } catch (err) {
+      console.error('Erro ao carregar views:', err);
+    }
+  };
 
   const fetchData = async () => {
     if (!!currentUser.desenvolvedor && !devCompanyId) {
@@ -128,6 +155,17 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
       if (priorityFilter !== 'todas') query.append('prioridade', priorityFilter);
       if (categoryFilter !== 'todas') query.append('categoria', categoryFilter);
       if (selectedQueue !== 'todos') query.append('fila', selectedQueue);
+
+      // Advanced Filters
+      if (advancedFilters.responsavel_id) query.append('responsavel_id', advancedFilters.responsavel_id.toString());
+      if (advancedFilters.tag) query.append('tag', advancedFilters.tag);
+      if (advancedFilters.origem) query.append('origem', advancedFilters.origem);
+      if (advancedFilters.created_from) query.append('created_from', advancedFilters.created_from);
+      if (advancedFilters.created_to) query.append('created_to', advancedFilters.created_to);
+      if (advancedFilters.updated_from) query.append('updated_from', advancedFilters.updated_from);
+      if (advancedFilters.updated_to) query.append('updated_to', advancedFilters.updated_to);
+      if (advancedFilters.sla_status && advancedFilters.sla_status !== 'todos') query.append('sla_status', advancedFilters.sla_status);
+      if (advancedFilters.custom_field_search) query.append('custom_field_search', advancedFilters.custom_field_search);
 
       if (viewMode === 'list') {
         query.append('page', currentPage.toString());
@@ -162,30 +200,146 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
   useEffect(() => {
     setCurrentPage(1);
     setSelectedTicketIds([]);
-  }, [searchTerm, statusFilter, priorityFilter, categoryFilter, viewMode, devCompanyId, selectedQueue]);
+  }, [searchTerm, statusFilter, priorityFilter, categoryFilter, viewMode, devCompanyId, selectedQueue, advancedFilters]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchData();
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchTerm, statusFilter, priorityFilter, categoryFilter, viewMode, currentPage, devCompanyId, selectedQueue]);
+  }, [searchTerm, statusFilter, priorityFilter, categoryFilter, viewMode, currentPage, devCompanyId, selectedQueue, advancedFilters]);
 
   const handleBulkAction = async (action: string, value?: any) => {
     try {
       setLoading(true);
-      await api.patch('/tickets/bulk', {
+      const result: any = await api.patch('/tickets/bulk', {
         ticket_ids: selectedTicketIds,
         action,
         value
       });
       setSelectedTicketIds([]);
       fetchData();
+      
+      // Improved feedback
+      const msg = `${result.updated} tickets atualizados. ${result.skipped} ignorados.`;
+      if (result.errors && result.errors.length > 0) {
+        console.warn('Erros na ação em massa:', result.errors);
+      }
+      alert(msg);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao processar ação em massa.';
       alert(message);
       setLoading(false);
     }
+  };
+
+  const handleSelectView = (view: TicketView | null) => {
+    if (!view) {
+      setCurrentViewId(null);
+      // Reset filters (optional, but good for UX)
+      setSearchTerm('');
+      setStatusFilter('todos');
+      setPriorityFilter('todas');
+      setCategoryFilter('todas');
+      setSelectedQueue('todos');
+      setAdvancedFilters({ sla_status: 'todos' });
+      return;
+    }
+
+    setCurrentViewId(view.id);
+    const f = view.filtros_json;
+    if (f.status) setStatusFilter(f.status);
+    if (f.prioridade) setPriorityFilter(f.prioridade);
+    if (f.categoria) setCategoryFilter(f.categoria);
+    if (f.fila) setSelectedQueue(f.fila);
+    if (f.search !== undefined) setSearchTerm(f.search);
+    if (f.advanced) setAdvancedFilters(f.advanced);
+    if (f.mode) setViewMode(f.mode);
+  };
+
+  const handleSaveView = async (nome: string) => {
+    try {
+      const filtros_json = {
+        status: statusFilter as any,
+        prioridade: priorityFilter as any,
+        categoria: categoryFilter,
+        fila: selectedQueue,
+        search: searchTerm,
+        advanced: advancedFilters,
+        mode: viewMode
+      };
+      const response = await api.post<{ id: number }>('/tickets/views', { nome, filtros_json });
+      const newView: TicketView = {
+        id: response.id,
+        nome,
+        filtros_json,
+        empresa_id: currentUser.empresa_id || 0,
+        usuario_id: currentUser.id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      setSavedViews(prev => [...prev, newView]);
+      setCurrentViewId(response.id);
+      alert('View salva com sucesso!');
+    } catch (err) {
+      alert('Erro ao salvar view');
+    }
+  };
+
+  const handleDeleteView = async (id: number) => {
+    if (!confirm('Deseja excluir esta view?')) return;
+    try {
+      await api.delete(`/tickets/views/${id}`);
+      setSavedViews(prev => prev.filter(v => v.id !== id));
+      if (currentViewId === id) setCurrentViewId(null);
+    } catch (err) {
+      alert('Erro ao excluir view');
+    }
+  };
+
+  const exportToCSV = () => {
+    const data = viewMode === 'list' 
+      ? ticketsResponse?.data || [] 
+      : (kanbanResponse?.columns || []).flatMap(c => c.tickets);
+
+    if (data.length === 0) {
+      alert('Nenhum dado para exportar');
+      return;
+    }
+
+    const headers = [
+      'ID', 'Título', 'Status', 'Prioridade', 'Categoria', 
+      'Responsável', 'Solicitante', 'Empresa', 'Tags', 
+      'Criado em', 'Atualizado em', 'Prazo SLA'
+    ];
+
+    const csvContent = [
+      headers.join(';'),
+      ...data.map(t => [
+        t.id,
+        `"${t.titulo.replace(/"/g, '""')}"`,
+        t.status,
+        t.prioridade,
+        t.categoria,
+        t.responsavel_nome || 'N/A',
+        t.cliente_nome || 'N/A',
+        t.empresa_nome || 'N/A',
+        `"${(t.tags || []).join(', ')}"`,
+        format(new Date(t.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR }),
+        format(new Date(t.updated_at), 'dd/MM/yyyy HH:mm', { locale: ptBR }),
+        t.prazo_sla ? format(new Date(t.prazo_sla), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : 'N/A'
+      ].join(';'))
+    ].join('\n');
+
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `tickets_export_${format(new Date(), 'yyyyMMdd_HHmm')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const queueCounts = viewMode === 'list' ? ticketsResponse?.queues : kanbanResponse?.queues;
@@ -213,6 +367,10 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
           )}
           <Button variant="outline" size="sm" className="h-9 w-9 p-0 bg-white" onClick={fetchData}>
             <RefreshCw size={16} className={loading ? "animate-spin text-blue-600" : "text-slate-600"} />
+          </Button>
+          <Button variant="outline" size="sm" className="h-9 gap-2 bg-white text-slate-600 border-slate-200" onClick={exportToCSV}>
+            <Download size={16} />
+            CSV
           </Button>
           <div className="bg-slate-100 p-0.5 rounded-lg flex items-center border border-slate-200 mr-2">
              <button 
@@ -281,6 +439,16 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
           </div>
 
           <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 pb-4 border-b border-slate-100">
+              <TicketSavedViews 
+                views={savedViews}
+                currentViewId={currentViewId}
+                onSelectView={handleSelectView}
+                onSaveCurrent={handleSaveView}
+                onDeleteView={handleDeleteView}
+              />
+            </div>
+            
             <TicketFilters 
               searchTerm={searchTerm} setSearchTerm={setSearchTerm}
               statusFilter={statusFilter} setStatusFilter={setStatusFilter}
@@ -288,6 +456,13 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
               categoryFilter={categoryFilter} setCategoryFilter={setCategoryFilter}
             />
           </div>
+
+          <TicketAdvancedFilters 
+            filters={advancedFilters}
+            onFilterChange={setAdvancedFilters}
+            onClear={() => setAdvancedFilters({ sla_status: 'todos' })}
+            agents={agents}
+          />
 
           {viewMode === 'list' && ticketsResponse && <TicketSummaryCards summary={ticketsResponse.summary} />}
           {viewMode === 'kanban' && kanbanResponse && <TicketSummaryCards summary={kanbanResponse.totals} />}

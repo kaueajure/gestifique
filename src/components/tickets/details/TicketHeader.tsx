@@ -37,6 +37,7 @@ export const TicketHeader = ({ id, titulo, status, prioridade, onBack, onUpdateS
   };
 
   const showResolveButton = canEdit && status !== 'resolvido' && status !== 'fechado';
+  const showReopenButton = canEdit && (status === 'resolvido' || status === 'fechado');
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -59,16 +60,29 @@ export const TicketHeader = ({ id, titulo, status, prioridade, onBack, onUpdateS
         </div>
       </div>
 
-      {showResolveButton && onUpdateStatus && (
-        <Button 
-          variant="emerald" 
-          size="sm" 
-          onClick={() => onUpdateStatus({ status: 'resolvido' })}
-          className="h-8 px-4 text-[10px] uppercase font-bold tracking-widest shrink-0"
-        >
-          Marcar como Resolvido
-        </Button>
-      )}
+      <div className="flex items-center gap-2">
+        {showResolveButton && onUpdateStatus && (
+          <Button 
+            variant="emerald" 
+            size="sm" 
+            onClick={() => onUpdateStatus({ status: 'resolvido' })}
+            className="h-8 px-4 text-[10px] uppercase font-bold tracking-widest shrink-0"
+          >
+            Marcar como Resolvido
+          </Button>
+        )}
+
+        {showReopenButton && onUpdateStatus && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => onUpdateStatus({ status: 'aberto' })}
+            className="h-8 px-4 text-[10px] uppercase font-bold tracking-widest shrink-0 border-blue-200 text-blue-600 hover:bg-blue-50"
+          >
+            Reabrir Chamado
+          </Button>
+        )}
+      </div>
     </div>
   );
 };

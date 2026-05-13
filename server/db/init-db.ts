@@ -86,6 +86,10 @@ async function initDB() {
         origem VARCHAR(50),
         prazo_sla DATETIME,
         finalizado_em DATETIME,
+        resolucao_motivo VARCHAR(100) NULL,
+        resolucao_observacao TEXT NULL,
+        reaberto_em DATETIME NULL,
+        reaberto_por INT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         KEY idx_tickets_empresa (empresa_id),
@@ -214,6 +218,23 @@ async function initDB() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    // Ticket Views
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS ticket_views (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        empresa_id INT NOT NULL,
+        usuario_id INT NOT NULL,
+        nome VARCHAR(100) NOT NULL,
+        filtros_json JSON NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        KEY idx_ticket_views_empresa_usuario (empresa_id, usuario_id),
+        UNIQUE KEY unique_user_view_name (usuario_id, nome),
+        FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
     console.log('[BOOT] 📚 Tabelas base validadas. Iniciando migrações de colunas...');
 
     // Migrações Horizontais (Garantir colunas novas em bancos antigos)
@@ -243,6 +264,10 @@ async function initDB() {
     // Tickets Migrations
     await ensureColumn('tickets', 'prazo_sla', 'DATETIME NULL');
     await ensureColumn('tickets', 'finalizado_em', 'DATETIME NULL');
+    await ensureColumn('tickets', 'resolucao_motivo', 'VARCHAR(100) NULL');
+    await ensureColumn('tickets', 'resolucao_observacao', 'TEXT NULL');
+    await ensureColumn('tickets', 'reaberto_em', 'DATETIME NULL');
+    await ensureColumn('tickets', 'reaberto_por', 'INT NULL');
     await ensureColumn('tickets', 'origem', 'VARCHAR(50) NULL');
     await ensureColumn('tickets', 'responsavel_id', 'INT NULL');
     await ensureColumn('tickets', 'precisa_revisao_responsavel', 'TINYINT(1) DEFAULT 0');

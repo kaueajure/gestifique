@@ -10,6 +10,7 @@ import { TicketProperties } from '../tickets/details/TicketProperties';
 import { TicketConversation } from '../tickets/details/TicketConversation';
 import { TicketTimeline } from '../tickets/details/TicketTimeline';
 import { cn } from '../../lib/utils';
+import { CheckCircle2 } from 'lucide-react';
 
 interface TicketDetailsPageProps {
   ticketId: number;
@@ -31,6 +32,14 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [agents, setAgents] = useState<User[]>([]);
   const [ticketAttachments, setTicketAttachments] = useState<TicketAttachment[]>([]);
+
+  // Resolution Modal State
+  const [isResolveModalOpen, setIsResolveModalOpen] = useState(false);
+  const [resolutionData, setResolutionData] = useState({
+    status: 'resolvido' as TicketStatus,
+    resolucao_motivo: '',
+    resolucao_observacao: ''
+  });
 
   const fetchData = async () => {
     setLoading(true);
@@ -131,6 +140,20 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
     setActionError(null);
     setActionSuccess(null);
     try {
+        if (data.status === 'resolvido' || data.status === 'fechado') {
+            setResolutionData(prev => ({ ...prev, status: data.status as TicketStatus }));
+            setIsResolveModalOpen(true);
+            return;
+        }
+
+        if (data.status === 'aberto' && (ticket?.status === 'resolvido' || ticket?.status === 'fechado')) {
+             await api.patch(`/tickets/${ticketId}/reopen`, {});
+             setActionSuccess('Atendimento reaberto com sucesso!');
+             fetchData();
+             setTimeout(() => setActionSuccess(null), 3000);
+             return;
+        }
+
         if (data.status) {
             await api.patch(`/tickets/${ticketId}/status`, { status: data.status });
         } else {
@@ -142,6 +165,27 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao atualizar atendimento.';
       setActionError(message);
+    }
+  };
+
+  const handleConfirmResolution = async () => {
+    if (!resolutionData.resolucao_motivo) {
+        alert('Por favor, informe o motivo da resolução.');
+        return;
+    }
+
+    setLoading(true);
+    try {
+        await api.patch(`/tickets/${ticketId}/resolve`, resolutionData);
+        setIsResolveModalOpen(false);
+        setActionSuccess(`Atendimento ${resolutionData.status} com sucesso!`);
+        fetchData();
+        setTimeout(() => setActionSuccess(null), 3000);
+    } catch (err) {
+        const message = err instanceof Error ? err.message : 'Erro ao finalizar atendimento.';
+        alert(message);
+    } finally {
+        setLoading(false);
     }
   };
 
@@ -320,6 +364,68 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
             />
         </div>
       </div>
+
+      {/* Resolution Modal */}
+      {isResolveModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200 border border-slate-200">
+             <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                   <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                      <CheckCircle2 size={18} />
+                   </div>
+                   Finalizar Atendimento
+                </h3>
+                <Badge variant={resolutionData.status === 'resolvido' ? 'emerald' : 'slate'} className="uppercase text-[10px] font-bold">
+                   {resolutionData.status}
+                </Badge>
+             </div>
+
+             <div className="p-6 space-y-4">
+                <div className="space-y-1.5">
+                   <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Motivo da Resolução</label>
+                   <select 
+                     value={resolutionData.resolucao_motivo}
+                     onChange={(e) => setResolutionData(prev => ({ ...prev, resolucao_motivo: e.target.value }))}
+                     className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-emerald-100 transition-all"
+                   >
+                      <option value="">Selecione um motivo...</option>
+                      <option value="duvida_sanada">Dúvida sanada</option>
+                      <option value="problema_corrigido">Problema corrigido</option>
+                      <option value="solicitacao_atendida">Solicitação atendida</option>
+                      <option value="cancelamento_realizado">Cancelamento realizado</option>
+                      <option value="duplicado">Atendimento duplicado</option>
+                      <option value="sem_retorno_cliente">Sem retorno do cliente</option>
+                      <option value="outros">Outros</option>
+                   </select>
+                </div>
+
+                <div className="space-y-1.5">
+                   <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Observações (Opcional)</label>
+                   <textarea 
+                     value={resolutionData.resolucao_observacao}
+                     onChange={(e) => setResolutionData(prev => ({ ...prev, resolucao_observacao: e.target.value }))}
+                     placeholder="Detalhes sobre a solução aplicada..."
+                     className="w-full h-32 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-emerald-100 transition-all resize-none"
+                   />
+                </div>
+             </div>
+
+             <div className="p-6 bg-slate-50 flex justify-end gap-3 rounded-b-2xl">
+                <Button variant="ghost" onClick={() => setIsResolveModalOpen(false)} className="text-slate-500 font-semibold">
+                   Cancelar
+                </Button>
+                <Button 
+                  onClick={handleConfirmResolution} 
+                  disabled={!resolutionData.resolucao_motivo}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-10 px-6 rounded-xl shadow-lg ring-2 ring-emerald-50"
+                >
+                   Finalizar Chamado
+                </Button>
+             </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

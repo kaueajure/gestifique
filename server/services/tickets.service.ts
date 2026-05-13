@@ -47,7 +47,14 @@ class TicketsService {
   }
 
   async list(filters: any) {
-    const { empresa_id, usuario_id, is_dev, is_admin, status, prioridade, categoria, search, responsavel_id, fila, page = 1, limit = 20 } = filters;
+    const { 
+      empresa_id, usuario_id, is_dev, is_admin, 
+      status, prioridade, categoria, search, 
+      responsavel_id, fila, page = 1, limit = 20,
+      // Advanced Filters
+      tag, origem, created_from, created_to, 
+      updated_from, updated_to, sla_status, custom_field_search
+    } = filters;
     const searchTerm = search;
     
     let baseWhere = 'WHERE 1=1';
@@ -122,6 +129,70 @@ class TicketsService {
       baseWhere += searchParts;
       summaryWhere += searchParts;
       params.push(searchPattern, searchPattern, searchTerm, searchPattern);
+    }
+
+    // --- Advanced Filters Implementation ---
+    if (tag) {
+      const normalizedTag = this.normalizeTag(tag);
+      if (normalizedTag) {
+        const tagParts = ' AND EXISTS (SELECT 1 FROM ticket_tags tt WHERE tt.ticket_id = t.id AND tt.tag = ?)';
+        baseWhere += tagParts;
+        summaryWhere += tagParts;
+        params.push(normalizedTag);
+      }
+    }
+    if (origem) {
+      baseWhere += ' AND t.origem = ?';
+      summaryWhere += ' AND t.origem = ?';
+      params.push(origem);
+    }
+    if (created_from) {
+      baseWhere += ' AND t.created_at >= ?';
+      summaryWhere += ' AND t.created_at >= ?';
+      params.push(created_from);
+    }
+    if (created_to) {
+      baseWhere += ' AND t.created_at <= ?';
+      summaryWhere += ' AND t.created_at <= ?';
+      params.push(created_to);
+    }
+    if (updated_from) {
+      baseWhere += ' AND t.updated_at >= ?';
+      summaryWhere += ' AND t.updated_at >= ?';
+      params.push(updated_from);
+    }
+    if (updated_to) {
+      baseWhere += ' AND t.updated_at <= ?';
+      summaryWhere += ' AND t.updated_at <= ?';
+      params.push(updated_to);
+    }
+    if (sla_status && sla_status !== 'todos') {
+      let slaPart = '';
+      switch (sla_status) {
+        case 'dentro_sla':
+          slaPart = " AND t.prazo_sla >= NOW() AND t.status NOT IN ('resolvido', 'fechado')";
+          break;
+        case 'vencendo':
+          slaPart = " AND t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado')";
+          break;
+        case 'vencido':
+          slaPart = " AND t.prazo_sla < NOW() AND t.status NOT IN ('resolvido', 'fechado')";
+          break;
+        case 'sem_sla':
+          slaPart = " AND t.prazo_sla IS NULL";
+          break;
+      }
+      if (slaPart) {
+        baseWhere += slaPart;
+        summaryWhere += slaPart;
+      }
+    }
+    if (custom_field_search) {
+      const cfSearchPattern = `%${custom_field_search}%`;
+      const cfPart = ' AND EXISTS (SELECT 1 FROM ticket_custom_fields tcf WHERE tcf.ticket_id = t.id AND (tcf.field_value LIKE ? OR tcf.field_label LIKE ?))';
+      baseWhere += cfPart;
+      summaryWhere += cfPart;
+      params.push(cfSearchPattern, cfSearchPattern);
     }
 
     // Status is only for items in list view
@@ -247,7 +318,13 @@ class TicketsService {
   }
 
   async getKanban(filters: any) {
-    const { empresa_id, usuario_id, is_dev, is_admin, responsavel_id, search, prioridade, categoria, status, fila } = filters;
+    const { 
+      empresa_id, usuario_id, is_dev, is_admin, 
+      responsavel_id, search, prioridade, categoria, status, fila,
+      // Advanced Filters
+      tag, origem, created_from, created_to, 
+      updated_from, updated_to, sla_status, custom_field_search
+    } = filters;
     const searchTerm = search;
     
     let baseWhere = 'WHERE 1=1';
@@ -321,6 +398,70 @@ class TicketsService {
        baseWhere += ' AND (t.titulo LIKE ? OR t.descricao LIKE ? OR CAST(t.id AS CHAR) = ? OR u.nome LIKE ?)';
        summaryWhere += ' AND (t.titulo LIKE ? OR t.descricao LIKE ? OR CAST(t.id AS CHAR) = ? OR u.nome LIKE ?)';
        params.push(searchPattern, searchPattern, searchTerm, searchPattern);
+    }
+
+    // --- Advanced Filters Implementation ---
+    if (tag) {
+      const normalizedTag = this.normalizeTag(tag);
+      if (normalizedTag) {
+        const tagParts = ' AND EXISTS (SELECT 1 FROM ticket_tags tt WHERE tt.ticket_id = t.id AND tt.tag = ?)';
+        baseWhere += tagParts;
+        summaryWhere += tagParts;
+        params.push(normalizedTag);
+      }
+    }
+    if (origem) {
+      baseWhere += ' AND t.origem = ?';
+      summaryWhere += ' AND t.origem = ?';
+      params.push(origem);
+    }
+    if (created_from) {
+      baseWhere += ' AND t.created_at >= ?';
+      summaryWhere += ' AND t.created_at >= ?';
+      params.push(created_from);
+    }
+    if (created_to) {
+      baseWhere += ' AND t.created_at <= ?';
+      summaryWhere += ' AND t.created_at <= ?';
+      params.push(created_to);
+    }
+    if (updated_from) {
+      baseWhere += ' AND t.updated_at >= ?';
+      summaryWhere += ' AND t.updated_at >= ?';
+      params.push(updated_from);
+    }
+    if (updated_to) {
+      baseWhere += ' AND t.updated_at <= ?';
+      summaryWhere += ' AND t.updated_at <= ?';
+      params.push(updated_to);
+    }
+    if (sla_status && sla_status !== 'todos') {
+      let slaPart = '';
+      switch (sla_status) {
+        case 'dentro_sla':
+          slaPart = " AND t.prazo_sla >= NOW() AND t.status NOT IN ('resolvido', 'fechado')";
+          break;
+        case 'vencendo':
+          slaPart = " AND t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado')";
+          break;
+        case 'vencido':
+          slaPart = " AND t.prazo_sla < NOW() AND t.status NOT IN ('resolvido', 'fechado')";
+          break;
+        case 'sem_sla':
+          slaPart = " AND t.prazo_sla IS NULL";
+          break;
+      }
+      if (slaPart) {
+        baseWhere += slaPart;
+        summaryWhere += slaPart;
+      }
+    }
+    if (custom_field_search) {
+      const cfSearchPattern = `%${custom_field_search}%`;
+      const cfPart = ' AND EXISTS (SELECT 1 FROM ticket_custom_fields tcf WHERE tcf.ticket_id = t.id AND (tcf.field_value LIKE ? OR tcf.field_label LIKE ?))';
+      baseWhere += cfPart;
+      summaryWhere += cfPart;
+      params.push(cfSearchPattern, cfSearchPattern);
     }
 
     if (status && status !== 'todos') {
@@ -477,6 +618,7 @@ class TicketsService {
       `SELECT 
         t.id, t.empresa_id, t.usuario_id, t.responsavel_id, t.titulo, t.descricao, 
         t.status, t.prioridade, t.categoria, t.origem, t.prazo_sla, t.finalizado_em,
+        t.resolucao_motivo, t.resolucao_observacao, t.reaberto_em, t.reaberto_por,
         t.created_at, t.updated_at,
         COALESCE(t.solicitante_nome, u.nome, 'Usuário Removido') as cliente_nome, 
         COALESCE(t.solicitante_email, u.email, 'removido@sistema.com') as cliente_email, 
@@ -717,6 +859,65 @@ class TicketsService {
     return messageId;
   }
 
+  async resolveTicket(id: number, data: any, currentUser: any) {
+    const { status, resolucao_motivo, resolucao_observacao } = data;
+    if (!['resolvido', 'fechado'].includes(status)) throw new Error('Status inválido para resolução');
+    if (!resolucao_motivo) throw new Error('Motivo de resolução é obrigatório');
+
+    await pool.query(
+      'UPDATE tickets SET status = ?, resolucao_motivo = ?, resolucao_observacao = ?, finalizado_em = NOW(), updated_at = NOW() WHERE id = ?',
+      [status, resolucao_motivo, resolucao_observacao || null, id]
+    );
+
+    return { success: true };
+  }
+
+  async reopenTicket(id: number, currentUser: any) {
+    const ticket = await this.getById(id);
+    if (!ticket) throw new Error('Ticket não encontrado');
+    if (!['resolvido', 'fechado'].includes(ticket.status)) throw new Error('Apenas tickets resolvidos ou fechados podem ser reabertos');
+
+    await pool.query(
+      'UPDATE tickets SET status = "em_andamento", finalizado_em = NULL, reaberto_em = NOW(), reaberto_por = ?, updated_at = NOW() WHERE id = ?',
+      [currentUser.id, id]
+    );
+
+    return { success: true };
+  }
+
+  // VIEWS
+  async getViews(usuarioId: number, empresaId: number) {
+    const [rows]: any = await pool.query(
+      'SELECT * FROM ticket_views WHERE usuario_id = ? AND empresa_id = ? ORDER BY nome ASC',
+      [usuarioId, empresaId]
+    );
+    return rows.map((r: any) => ({
+      ...r,
+      filtros_json: typeof r.filtros_json === 'string' ? JSON.parse(r.filtros_json) : r.filtros_json
+    }));
+  }
+
+  async createView(data: any) {
+    const { empresa_id, usuario_id, nome, filtros_json } = data;
+    const [result]: any = await pool.query(
+      'INSERT INTO ticket_views (empresa_id, usuario_id, nome, filtros_json) VALUES (?, ?, ?, ?)',
+      [empresa_id, usuario_id, nome, JSON.stringify(filtros_json)]
+    );
+    return result.insertId;
+  }
+
+  async updateView(id: number, data: any, usuarioId: number) {
+    const { nome, filtros_json } = data;
+    await pool.query(
+      'UPDATE ticket_views SET nome = ?, filtros_json = ? WHERE id = ? AND usuario_id = ?',
+      [nome, JSON.stringify(filtros_json), id, usuarioId]
+    );
+  }
+
+  async deleteView(id: number, usuarioId: number) {
+    await pool.query('DELETE FROM ticket_views WHERE id = ? AND usuario_id = ?', [id, usuarioId]);
+  }
+
   async getTimeline(ticketId: number, includeInternal: boolean) {
     const ticket = await this.getById(ticketId);
     if (!ticket) return null;
@@ -766,15 +967,16 @@ class TicketsService {
 
     logs.forEach((l: any) => {
       // Basic filtering: common users don't see internal logs (if we had a way to tag them)
-      // For now, we skip logs that look internal or relate to internal actions if includeInternal is false
-      if (!includeInternal && (l.acao === 'INTERNAL_NOTE' || l.descricao.toLowerCase().includes('interno'))) {
+      if (!includeInternal && (l.acao === 'INTERNAL_NOTE' || l.descricao.toLowerCase().includes('interno') || l.acao === 'TICKET_BULK_ACTION')) {
         return;
       }
 
       let icon = 'activity';
-      if (l.acao === 'TICKET_STATUS_CHANGE') icon = 'refresh-cw';
+      if (l.acao === 'TICKET_STATUS_CHANGE' || l.acao === 'TICKET_STATUS_CHANGED') icon = 'refresh-cw';
       if (l.acao === 'TICKET_UPDATE' && l.descricao.includes('responsável')) icon = 'user-check';
       if (l.acao === 'ATTACHMENT_UPLOAD') icon = 'paperclip';
+      if (l.acao.includes('TAG')) icon = 'tag';
+      if (l.acao.includes('CUSTOM_FIELD')) icon = 'edit-3';
 
       timeline.push({
         type: 'system',
@@ -792,8 +994,19 @@ class TicketsService {
          type: 'completion',
          date: ticket.finalizado_em,
          author: 'Sistema',
-         description: `Chamado marcado como ${ticket.status === 'resolvido' ? 'Resolvido' : 'Fechado'}`,
+         description: `Chamado ${ticket.status === 'resolvido' ? 'Resolvido' : 'Fechado'}${ticket.resolucao_motivo ? ` (Motivo: ${ticket.resolucao_motivo})` : ''}`,
          icon: 'check-circle'
+       });
+    }
+
+    // 5. Reopening (if any)
+    if (ticket.reaberto_em) {
+       timeline.push({
+         type: 'system',
+         date: ticket.reaberto_em,
+         author: 'Sistema',
+         description: 'Chamado reaberto para atendimento',
+         icon: 'rotate-ccw'
        });
     }
 

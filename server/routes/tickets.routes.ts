@@ -69,7 +69,16 @@ router.get('/', async (req: AuthRequest, res) => {
       categoria: typeof req.query.categoria === 'string' && req.query.categoria !== 'todas' ? req.query.categoria : undefined,
       search: typeof req.query.search === 'string' ? req.query.search.trim() : undefined,
       page: toPositiveInt(req.query.page) ?? 1,
-      limit: toPositiveInt(req.query.limit) ?? 15
+      limit: toPositiveInt(req.query.limit) ?? 15,
+      // Advanced Filters
+      tag: typeof req.query.tag === 'string' ? req.query.tag : undefined,
+      origem: typeof req.query.origem === 'string' ? req.query.origem : undefined,
+      created_from: typeof req.query.created_from === 'string' ? req.query.created_from : undefined,
+      created_to: typeof req.query.created_to === 'string' ? req.query.created_to : undefined,
+      updated_from: typeof req.query.updated_from === 'string' ? req.query.updated_from : undefined,
+      updated_to: typeof req.query.updated_to === 'string' ? req.query.updated_to : undefined,
+      sla_status: typeof req.query.sla_status === 'string' ? req.query.sla_status as any : undefined,
+      custom_field_search: typeof req.query.custom_field_search === 'string' ? req.query.custom_field_search : undefined
     };
     const tickets = await ticketsService.list(filters);
     sendSuccess(res, tickets);
@@ -132,7 +141,16 @@ router.get('/kanban', async (req: AuthRequest, res) => {
       status,
       prioridade,
       categoria,
-      fila
+      fila,
+      // Advanced Filters
+      tag: typeof req.query.tag === 'string' ? req.query.tag : undefined,
+      origem: typeof req.query.origem === 'string' ? req.query.origem : undefined,
+      created_from: typeof req.query.created_from === 'string' ? req.query.created_from : undefined,
+      created_to: typeof req.query.created_to === 'string' ? req.query.created_to : undefined,
+      updated_from: typeof req.query.updated_from === 'string' ? req.query.updated_from : undefined,
+      updated_to: typeof req.query.updated_to === 'string' ? req.query.updated_to : undefined,
+      sla_status: typeof req.query.sla_status === 'string' ? req.query.sla_status as any : undefined,
+      custom_field_search: typeof req.query.custom_field_search === 'string' ? req.query.custom_field_search : undefined
     };
     
     const kanbanData = await ticketsService.getKanban(filters);
@@ -186,6 +204,104 @@ router.patch('/bulk', async (req: AuthRequest, res) => {
     sendSuccess(res, result, 'Ação em massa concluída');
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erro ao realizar ação em massa';
+    sendError(res, message);
+  }
+});
+
+// VIEWS ROUTES
+router.get('/views', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+    const views = await ticketsService.getViews(currentUser.id, currentUser.empresa_id || 0);
+    sendSuccess(res, views);
+  } catch (error: unknown) {
+    sendError(res, 'Erro ao carregar views salvas');
+  }
+});
+
+router.post('/views', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+    const { nome, filtros_json } = req.body;
+    if (!nome) return sendError(res, 'Nome da view é obrigatório', 400);
+
+    const viewId = await ticketsService.createView({
+      empresa_id: currentUser.empresa_id,
+      usuario_id: currentUser.id,
+      nome,
+      filtros_json
+    });
+    sendSuccess(res, { id: viewId }, 'View salva com sucesso');
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao salvar view';
+    sendError(res, message);
+  }
+});
+
+router.put('/views/:viewId', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+    const viewId = parseInt(req.params.viewId);
+    await ticketsService.updateView(viewId, req.body, currentUser.id);
+    sendSuccess(res, null, 'View atualizada');
+  } catch (error: unknown) {
+    sendError(res, 'Erro ao atualizar view');
+  }
+});
+
+router.delete('/views/:viewId', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+    const viewId = parseInt(req.params.viewId);
+    await ticketsService.deleteView(viewId, currentUser.id);
+    sendSuccess(res, null, 'View excluída');
+  } catch (error: unknown) {
+    sendError(res, 'Erro ao excluir view');
+  }
+});
+
+router.patch('/:id/resolve', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+    if (!currentUser.administrador && !currentUser.desenvolvedor) return sendError(res, 'Apenas atendentes podem finalizar chamados', 403);
+
+    const id = parseInt(req.params.id);
+    const ticket: any = await ticketsService.getByIdForUser(id, currentUser);
+    if (!ticket) return sendError(res, 'Ticket não encontrado', 404);
+    if (ticket.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
+
+    await ticketsService.resolveTicket(id, req.body, currentUser);
+    await logSystemAction(req, currentUser.id, ticket.empresa_id, 'TICKET_COMPLETE', `Chamado #${id} marcado como ${req.body.status} (Motivo: ${req.body.resolucao_motivo})`);
+    
+    sendSuccess(res, null, `Chamado ${req.body.status === 'resolvido' ? 'resolvido' : 'fechado'} com sucesso`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao finalizar ticket';
+    sendError(res, message);
+  }
+});
+
+router.patch('/:id/reopen', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+    if (!currentUser.administrador && !currentUser.desenvolvedor) return sendError(res, 'Apenas atendentes podem reabrir chamados', 403);
+
+    const id = parseInt(req.params.id);
+    const ticket: any = await ticketsService.getByIdForUser(id, currentUser);
+    if (!ticket) return sendError(res, 'Ticket não encontrado', 404);
+    if (ticket.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
+
+    await ticketsService.reopenTicket(id, currentUser);
+    await logSystemAction(req, currentUser.id, ticket.empresa_id, 'TICKET_REOPEN', `Chamado #${id} reaberto para atendimento`);
+    
+    sendSuccess(res, null, 'Chamado reaberto com sucesso');
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao reabrir ticket';
     sendError(res, message);
   }
 });
@@ -622,6 +738,7 @@ router.post('/:id/tags', async (req: AuthRequest, res) => {
     if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
     await ticketsService.addTag(id, tag);
+    await logSystemAction(req, currentUser.id, result.empresa_id, 'TICKET_TAG_ADD', `Tag "${tag}" adicionada ao chamado #${id}`);
     sendSuccess(res, null, 'Tag adicionada');
   } catch (error: unknown) {
     sendError(res, 'Erro ao adicionar tag');
@@ -643,6 +760,7 @@ router.put('/:id/tags', async (req: AuthRequest, res) => {
     if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
     await ticketsService.setTags(id, tags);
+    await logSystemAction(req, currentUser.id, result.empresa_id, 'TICKET_TAGS_UPDATE', `Tags do chamado #${id} atualizadas: ${tags.join(', ')}`);
     sendSuccess(res, null, 'Tags atualizadas');
   } catch (error: unknown) {
     sendError(res, 'Erro ao atualizar tags');
@@ -663,6 +781,7 @@ router.delete('/:id/tags/:tag', async (req: AuthRequest, res) => {
     if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
     await ticketsService.removeTag(id, tag);
+    await logSystemAction(req, currentUser.id, result.empresa_id, 'TICKET_TAG_REMOVE', `Tag "${tag}" removida do chamado #${id}`);
     sendSuccess(res, null, 'Tag removida');
   } catch (error: unknown) {
     sendError(res, 'Erro ao remover tag');
@@ -702,6 +821,7 @@ router.put('/:id/custom-fields', async (req: AuthRequest, res) => {
     if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
     await ticketsService.setCustomFields(id, fields);
+    await logSystemAction(req, currentUser.id, result.empresa_id, 'TICKET_CUSTOM_FIELDS_UPDATE', `Campos personalizados do chamado #${id} atualizados`);
     sendSuccess(res, null, 'Campos personalizados atualizados');
   } catch (error: unknown) {
     sendError(res, 'Erro ao atualizar campos personalizados');

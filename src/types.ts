@@ -105,10 +105,44 @@ export interface Ticket {
   responsavel_nome?: string;
   empresa_nome?: string;
   finalizado_em: string | null;
+  resolucao_motivo?: string | null;
+  resolucao_observacao?: string | null;
+  reaberto_em?: string | null;
+  reaberto_por?: number | null;
   created_at: string;
   updated_at: string;
   tags?: string[];
   custom_fields?: TicketCustomField[];
+}
+
+export interface TicketAdvancedFilters {
+  responsavel_id?: number;
+  tag?: string;
+  origem?: string;
+  created_from?: string;
+  created_to?: string;
+  updated_from?: string;
+  updated_to?: string;
+  sla_status?: 'todos' | 'dentro_sla' | 'vencendo' | 'vencido' | 'sem_sla';
+  custom_field_search?: string;
+}
+
+export interface TicketView {
+  id: number;
+  empresa_id: number;
+  usuario_id: number;
+  nome: string;
+  filtros_json: {
+    status?: TicketStatus | 'todos';
+    prioridade?: TicketPriority | 'todas';
+    categoria?: string | 'todas';
+    fila?: TicketQueue;
+    search?: string;
+    advanced?: TicketAdvancedFilters;
+    mode?: 'list' | 'kanban';
+  };
+  created_at: string;
+  updated_at: string;
 }
 
 export interface TicketCustomField {

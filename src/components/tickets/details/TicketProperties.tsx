@@ -309,9 +309,22 @@ export const TicketProperties = ({
                   </div>
                 )}
                 {['resolvido', 'fechado'].includes(ticket.status) && (ticket.finalizado_em || ticket.updated_at) && (
-                  <div className="flex justify-between items-center text-xs font-medium">
-                     <span className="text-slate-500">Finalizado</span>
-                     <span className="text-slate-800 font-semibold">{formatDate(ticket.finalizado_em || ticket.updated_at)}</span>
+                  <div className="space-y-3 pt-4 border-t border-slate-50">
+                    <div className="flex justify-between items-center text-xs font-medium">
+                       <span className="text-slate-500">Finalizado</span>
+                       <span className="text-slate-800 font-semibold">{formatDate(ticket.finalizado_em || ticket.updated_at)}</span>
+                    </div>
+                    {ticket.resolucao_motivo && (
+                      <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 mt-2">
+                         <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Motivo da Finalização</div>
+                         <div className="text-xs font-bold text-slate-700 mb-1">{ticket.resolucao_motivo.replace(/_/g, ' ')}</div>
+                         {ticket.resolucao_observacao && (
+                           <div className="text-xs text-slate-500 italic mt-1 border-t border-slate-100 pt-1 line-clamp-3">
+                             "{ticket.resolucao_observacao}"
+                           </div>
+                         )}
+                      </div>
+                    )}
                   </div>
                 )}
 

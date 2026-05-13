@@ -9,7 +9,11 @@ import {
   Paperclip, 
   CheckCircle,
   Activity,
-  History
+  History,
+  Tag,
+  Settings,
+  ArrowUpCircle,
+  FileText
 } from 'lucide-react';
 import { cn, formatRelativeTime } from '../../../lib/utils';
 
@@ -27,6 +31,10 @@ const getIcon = (iconName?: string) => {
     case 'user-check': return UserCheck;
     case 'paperclip': return Paperclip;
     case 'check-circle': return CheckCircle;
+    case 'tag': return Tag;
+    case 'settings': return Settings;
+    case 'arrow-up-circle': return ArrowUpCircle;
+    case 'file-text': return FileText;
     default: return Activity;
   }
 };
@@ -37,7 +45,10 @@ const getEventColor = (type: string) => {
     case 'response': return 'text-slate-500 bg-slate-50 border-slate-100';
     case 'internal_note': return 'text-amber-500 bg-amber-50 border-amber-100';
     case 'completion': return 'text-emerald-500 bg-emerald-50 border-emerald-100';
+    case 'reopen': return 'text-blue-600 bg-blue-50 border-blue-200';
     case 'system': return 'text-indigo-500 bg-indigo-50 border-indigo-100';
+    case 'tag_change': return 'text-rose-500 bg-rose-50 border-rose-100';
+    case 'custom_field': return 'text-cyan-500 bg-cyan-50 border-cyan-100';
     default: return 'text-slate-400 bg-slate-50 border-slate-100';
   }
 };
@@ -90,7 +101,10 @@ export const TicketTimeline = ({ timeline, loading }: TicketTimelineProps) => {
                       {item.type === 'internal_note' ? 'Nota Interna' : 
                        item.type === 'system' ? 'Sistema' : 
                        item.type === 'response' ? 'Resposta' : 
-                       item.type === 'creation' ? 'Abertura' : 'Finalização'}
+                       item.type === 'creation' ? 'Abertura' : 
+                       item.type === 'reopen' ? 'Reabertura' :
+                       item.type === 'tag_change' ? 'Tags' :
+                       item.type === 'custom_field' ? 'Campo Personalizado' : 'Finalização'}
                     </span>
                   </div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight" title={new Date(item.date).toLocaleString()}>
