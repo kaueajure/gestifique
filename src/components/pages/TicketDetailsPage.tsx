@@ -214,8 +214,6 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
     }
   };
 
-  const [isDescExpanded, setIsDescExpanded] = useState(false);
-
   if (loading) {
     return (
       <div className="h-[70vh] flex flex-col items-center justify-center space-y-3">
@@ -236,9 +234,6 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
     );
   }
 
-  const isClienteRemovido = ticket.cliente_nome === 'Usuário Removido';
-  const clienteNome = isClienteRemovido ? 'Conta Excluída' : (ticket.cliente_nome || 'Não informado');
-
   return (
     <div className="h-[calc(100dvh-120px)] max-h-[calc(100dvh-120px)] overflow-hidden flex flex-col gap-2 min-h-0">
       <TicketHeader 
@@ -254,47 +249,64 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 flex-1 min-h-0 overflow-hidden">
         {/* Coluna Principal */}
         <div className="lg:col-span-8 flex flex-col gap-2 min-h-0 overflow-hidden">
-          {/* Descrição Compacta */}
-          <Card className="shrink-0 border-slate-200 shadow-sm overflow-hidden bg-slate-50/10">
-            <div className="flex items-start gap-3 p-3">
-               <div className={cn(
-                 "w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-sm",
-                 isClienteRemovido ? "bg-slate-300" : "bg-slate-900"
-               )}>
-                  {isClienteRemovido ? '?' : clienteNome.charAt(0)}
+          {/* Barra Operacional Compacta */}
+          <div className="shrink-0 bg-white border border-slate-200 rounded-xl shadow-sm p-2 flex flex-wrap items-center gap-4">
+             {/* Status */}
+             <div className="flex items-center gap-2">
+                <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Status</span>
+                {!!(currentUser.administrador || currentUser.desenvolvedor) ? (
+                  <select 
+                    value={ticket.status || 'aberto'}
+                    onChange={(e) => handleUpdateTicket({ status: e.target.value as any })}
+                    className="h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer hover:bg-slate-100"
+                  >
+                     <option value="aberto">ABERTO</option>
+                     <option value="em_andamento">EM ANDAMENTO</option>
+                     <option value="aguardando_cliente">PAGAMENTO</option>
+                     <option value="resolvido">RESOLVIDO</option>
+                     <option value="fechado">FECHADO</option>
+                  </select>
+                ) : (
+                  <Badge variant="blue" className="uppercase text-[9px] font-bold h-6">{(ticket.status || 'aberto').replace('_', ' ')}</Badge>
+                )}
+             </div>
+
+             {/* Prioridade */}
+             <div className="flex items-center gap-2 border-l border-slate-100 pl-4">
+                <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Prioridade</span>
+                {!!(currentUser.administrador || currentUser.desenvolvedor) ? (
+                  <select 
+                    value={ticket.prioridade || 'media'}
+                    onChange={(e) => handleUpdateTicket({ prioridade: e.target.value as any })}
+                    className="h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer hover:bg-slate-100"
+                  >
+                     <option value="baixa">BAIXA</option>
+                     <option value="media">MÉDIA</option>
+                     <option value="alta">ALTA</option>
+                     <option value="urgente">URGENTE</option>
+                  </select>
+                ) : (
+                  <Badge variant="indigo" className="uppercase text-[9px] font-bold h-6">{ticket.prioridade || 'media'}</Badge>
+                )}
+             </div>
+
+             {/* Responsável */}
+             {!!(currentUser.administrador || currentUser.desenvolvedor) && (
+               <div className="flex items-center gap-2 border-l border-slate-100 pl-4">
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Responsável</span>
+                  <select 
+                    value={ticket.responsavel_id || ''}
+                    onChange={(e) => handleUpdateTicket({ responsavel_id: e.target.value ? parseInt(e.target.value) : null })}
+                    className="h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer hover:bg-slate-100 max-w-[150px]"
+                  >
+                     <option value="">Sem responsável</option>
+                     {agents.map(agent => (
+                       <option key={agent.id} value={agent.id}>{agent.nome || 'Usuário'}</option>
+                     ))}
+                  </select>
                </div>
-               <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                     <div className="flex items-center gap-2">
-                        <span className={cn("text-xs font-bold shrink-0", isClienteRemovido ? "text-slate-400" : "text-slate-900")}>
-                          {clienteNome}
-                        </span>
-                        {isClienteRemovido && (
-                          <Badge variant="slate" className="text-[8px] px-1 py-0 border-none bg-slate-100 text-slate-500 h-4">
-                            Excluído
-                          </Badge>
-                        )}
-                        <span className="text-slate-300">·</span>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter shrink-0">{new Date(ticket.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
-                     </div>
-                  </div>
-                  <div className={cn(
-                    "text-xs font-medium text-slate-600 leading-relaxed whitespace-pre-wrap transition-all",
-                    !isDescExpanded && "line-clamp-2"
-                  )}>
-                     {ticket.descricao || 'Nenhuma descrição fornecida.'}
-                  </div>
-                  {(ticket.descricao && ticket.descricao.length > 120) && (
-                    <button 
-                      onClick={() => setIsDescExpanded(!isDescExpanded)}
-                      className="text-[10px] font-bold text-blue-600 hover:text-blue-700 mt-1 uppercase tracking-tighter"
-                    >
-                      {isDescExpanded ? 'Ver menos' : 'Ver mais'}
-                    </button>
-                  )}
-               </div>
-            </div>
-          </Card>
+             )}
+          </div>
 
           {/* Histórico/Mensagens */}
           <Card className="flex flex-col flex-1 min-h-0 border-slate-200 shadow-sm overflow-hidden">

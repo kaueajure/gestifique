@@ -31,7 +31,34 @@ export const TicketConversation = ({
   return (
     <div className="flex flex-col h-full overflow-hidden">
         <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-slate-50/20">
-          {messages.length === 0 ? (
+          {/* Mensagem de Abertura do Chamado */}
+          {ticket.descricao && (
+            <div className="flex flex-col gap-1 items-start transition-all">
+              <div className="flex items-center gap-2 px-1">
+                <Badge variant="blue" className="text-[7px] font-bold px-1 py-0 uppercase border-none rounded-sm h-3.5 bg-blue-50 text-blue-600">Abertura</Badge>
+                <span className="text-[9px] font-bold text-slate-400 flex items-center gap-1 uppercase tracking-tighter">
+                  <Clock size={8} /> {new Date(ticket.created_at).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+                </span>
+              </div>
+
+              <div className="max-w-[90%] p-3 rounded-xl border shadow-sm bg-white border-slate-200 rounded-tl-none">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <div className="w-4 h-4 rounded-sm flex items-center justify-center text-[7px] font-bold uppercase bg-slate-100 text-slate-600">
+                    {(ticket.cliente_nome || 'S').charAt(0)}
+                  </div>
+                  <span className="text-[9px] font-bold uppercase tracking-tight text-slate-900">
+                    {ticket.cliente_nome || 'Solicitante'}
+                  </span>
+                </div>
+
+                <div className="text-xs font-medium leading-relaxed whitespace-pre-wrap text-slate-600">
+                  {ticket.descricao}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {messages.length === 0 && !ticket.descricao ? (
             <div className="py-20 text-center flex flex-col items-center">
                 <div className="w-10 h-10 bg-slate-50 text-slate-200 rounded-xl flex items-center justify-center mb-3 border border-slate-100 shadow-inner">
                   <MessageSquare size={20} />

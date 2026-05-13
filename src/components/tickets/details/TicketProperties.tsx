@@ -201,45 +201,6 @@ export const TicketProperties = ({
              <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-500">Detalhes do Chamado</CardTitle>
           </CardHeader>
           <CardContent className="p-2.5 space-y-3">
-             {/* Core Fields */}
-             <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-50">
-                <div className="space-y-1">
-                   <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Status</span>
-                   {canManage ? (
-                     <select 
-                       value={ticket.status || 'aberto'}
-                       onChange={(e) => onUpdate({ status: e.target.value as TicketStatus })}
-                       className="w-full h-8 px-2 bg-slate-50 border border-slate-100 rounded text-[10px] font-bold text-slate-600 outline-none focus:ring-1 focus:ring-blue-100 transition-all cursor-pointer hover:bg-slate-100"
-                     >
-                        <option value="aberto">ABERTO</option>
-                        <option value="em_andamento">EM ANDAMENTO</option>
-                        <option value="aguardando_cliente">PAGAMENTO</option>
-                        <option value="resolvido">RESOLVIDO</option>
-                        <option value="fechado">FECHADO</option>
-                     </select>
-                   ) : (
-                     <div><Badge variant={getStatusVariant(ticket.status || 'aberto') as any} className="uppercase text-[8px] font-bold h-4">{(ticket.status || 'aberto').replace('_', ' ')}</Badge></div>
-                   )}
-                </div>
-                <div className="space-y-1">
-                   <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Prioridade</span>
-                   {canManage ? (
-                     <select 
-                       value={ticket.prioridade || 'media'}
-                       onChange={(e) => onUpdate({ prioridade: e.target.value as TicketPriority })}
-                       className="w-full h-8 px-2 bg-slate-50 border border-slate-100 rounded text-[10px] font-bold text-slate-600 outline-none focus:ring-1 focus:ring-blue-100 transition-all cursor-pointer hover:bg-slate-100"
-                     >
-                        <option value="baixa">BAIXA</option>
-                        <option value="media">MÉDIA</option>
-                        <option value="alta">ALTA</option>
-                        <option value="urgente">URGENTE</option>
-                     </select>
-                   ) : (
-                     <div><Badge variant={getPriorityVariant(ticket.prioridade || 'media') as any} className="uppercase text-[8px] font-bold h-4">{ticket.prioridade || 'media'}</Badge></div>
-                   )}
-                </div>
-             </div>
-
              {/* SLA Compact */}
              {slaInfo && (
                 <div className={cn(
@@ -277,23 +238,6 @@ export const TicketProperties = ({
                        </div>
                     </div>
                   </div>
-                </div>
-             )}
-
-             {/* Responsável */}
-             {canManage && (
-                <div className="space-y-1">
-                   <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Atribuído para</span>
-                   <select 
-                     value={ticket.responsavel_id || ''}
-                     onChange={(e) => onUpdate({ responsavel_id: e.target.value ? parseInt(e.target.value) : null })}
-                     className="w-full h-8 px-2 bg-slate-50 border border-slate-100 rounded text-[10px] font-bold text-slate-600 outline-none focus:ring-1 focus:ring-blue-100 transition-all cursor-pointer hover:bg-slate-100"
-                   >
-                      <option value="">Sem responsável</option>
-                      {agents.map(agent => (
-                        <option key={agent.id} value={agent.id}>{agent.nome || 'Usuário'}</option>
-                      ))}
-                   </select>
                 </div>
              )}
 
