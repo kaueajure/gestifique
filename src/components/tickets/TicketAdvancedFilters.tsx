@@ -29,20 +29,20 @@ export const TicketAdvancedFilters: React.FC<Props> = ({ filters, onFilterChange
   };
 
   return (
-    <div className="bg-slate-900/50 border border-slate-800 rounded-lg overflow-hidden mb-4">
+    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden mb-4 shadow-sm">
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-4 hover:bg-slate-800/50 transition-colors"
+        className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
       >
-        <div className="flex items-center gap-2 text-slate-300">
-          <Filter size={16} />
-          <span className="text-sm font-medium">Filtros Avançados</span>
+        <div className="flex items-center gap-2 text-slate-700">
+          <Filter size={16} className="text-blue-500" />
+          <span className="text-sm font-semibold">Filtros Avançados</span>
         </div>
-        {isOpen ? <ChevronUp size={16} className="text-slate-500" /> : <ChevronDown size={16} className="text-slate-500" />}
+        {isOpen ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
       </button>
 
       {isOpen && (
-        <div className="p-4 border-t border-slate-800 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="p-4 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Responsável */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
@@ -51,7 +51,7 @@ export const TicketAdvancedFilters: React.FC<Props> = ({ filters, onFilterChange
             <select
               value={filters.responsavel_id || ''}
               onChange={(e) => handleChange('responsavel_id', e.target.value ? parseInt(e.target.value) : undefined)}
-              className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-sm text-slate-300 focus:outline-none focus:border-blue-500/50"
+              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
             >
               <option value="">Todos</option>
               {agents.map(agent => (
@@ -70,7 +70,7 @@ export const TicketAdvancedFilters: React.FC<Props> = ({ filters, onFilterChange
               value={filters.tag || ''}
               onChange={(e) => handleChange('tag', e.target.value)}
               placeholder="Ex: financeiro"
-              className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-sm text-slate-300 focus:outline-none focus:border-blue-500/50 placeholder:text-slate-700"
+              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors placeholder:text-slate-400"
             />
           </div>
 
@@ -82,7 +82,7 @@ export const TicketAdvancedFilters: React.FC<Props> = ({ filters, onFilterChange
             <select
               value={filters.origem || ''}
               onChange={(e) => handleChange('origem', e.target.value || undefined)}
-              className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-sm text-slate-300 focus:outline-none focus:border-blue-500/50"
+              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
             >
               <option value="">Todas</option>
               <option value="portal">Portal</option>
@@ -100,7 +100,7 @@ export const TicketAdvancedFilters: React.FC<Props> = ({ filters, onFilterChange
             <select
               value={filters.sla_status || 'todos'}
               onChange={(e) => handleChange('sla_status', e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-sm text-slate-300 focus:outline-none focus:border-blue-500/50"
+              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
             >
               <option value="todos">Todos</option>
               <option value="dentro_sla">Dentro do SLA</option>
@@ -120,13 +120,13 @@ export const TicketAdvancedFilters: React.FC<Props> = ({ filters, onFilterChange
                 type="date"
                 value={filters.created_from || ''}
                 onChange={(e) => handleChange('created_from', e.target.value)}
-                className="bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-blue-500/50"
+                className="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
               />
               <input
                 type="date"
                 value={filters.created_to || ''}
                 onChange={(e) => handleChange('created_to', e.target.value)}
-                className="bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-blue-500/50"
+                className="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
               />
             </div>
           </div>
@@ -141,13 +141,13 @@ export const TicketAdvancedFilters: React.FC<Props> = ({ filters, onFilterChange
                 type="date"
                 value={filters.updated_from || ''}
                 onChange={(e) => handleChange('updated_from', e.target.value)}
-                className="bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-blue-500/50"
+                className="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
               />
               <input
                 type="date"
                 value={filters.updated_to || ''}
                 onChange={(e) => handleChange('updated_to', e.target.value)}
-                className="bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-blue-500/50"
+                className="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
               />
             </div>
           </div>
@@ -163,13 +163,13 @@ export const TicketAdvancedFilters: React.FC<Props> = ({ filters, onFilterChange
                 value={filters.custom_field_search || ''}
                 onChange={(e) => handleChange('custom_field_search', e.target.value)}
                 placeholder="Valor ou nome do campo..."
-                className="flex-1 bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-sm text-slate-300 focus:outline-none focus:border-blue-500/50 placeholder:text-slate-700"
+                className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors placeholder:text-slate-400"
               />
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={onClear}
-                className="text-slate-400 hover:text-slate-200 gap-2 border-slate-700"
+                className="text-slate-600 hover:text-blue-600 hover:bg-blue-50 gap-2 border-slate-200 bg-white"
               >
                 <X size={14} />
                 Limpar
