@@ -41,6 +41,8 @@ router.get('/', async (req: AuthRequest, res) => {
       
     const responsavelId = toPositiveInt(req.query.responsavel_id);
 
+    const fila = typeof req.query.fila === 'string' ? req.query.fila : 'todos';
+
     const filters = {
       empresa_id: currentUser.empresa_id,
       usuario_id: currentUser.id,
@@ -48,6 +50,7 @@ router.get('/', async (req: AuthRequest, res) => {
       is_admin: currentUser.administrador,
       responsavel_id: responsavelId,
       empresa_id_filter: empresaIdFilter,
+      fila,
       status: typeof req.query.status === 'string' && req.query.status !== 'todos' ? req.query.status : undefined,
       prioridade: typeof req.query.prioridade === 'string' && req.query.prioridade !== 'todas' ? req.query.prioridade : undefined,
       categoria: typeof req.query.categoria === 'string' && req.query.categoria !== 'todas' ? req.query.categoria : undefined,
@@ -97,6 +100,8 @@ router.get('/kanban', async (req: AuthRequest, res) => {
       ? req.query.categoria 
       : undefined;
 
+    const fila = typeof req.query.fila === 'string' ? req.query.fila : 'todos';
+
     const filters = {
       empresa_id: currentUser.empresa_id,
       usuario_id: currentUser.id,
@@ -107,7 +112,8 @@ router.get('/kanban', async (req: AuthRequest, res) => {
       search: typeof req.query.search === 'string' ? req.query.search.trim() : undefined,
       status,
       prioridade,
-      categoria
+      categoria,
+      fila
     };
     
     const kanbanData = await ticketsService.getKanban(filters);

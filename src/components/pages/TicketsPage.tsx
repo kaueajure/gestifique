@@ -7,7 +7,15 @@ import {
   Kanban,
   List as ListIcon,
   RefreshCw,
-  Building
+  Building,
+  Layers,
+  User as UserIcon,
+  UserMinus,
+  AlertCircle,
+  Clock,
+  History,
+  MessageSquare,
+  Search
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { TicketFilters } from '../tickets/TicketFilters';
@@ -17,11 +25,24 @@ import { TicketKanban } from '../tickets/TicketKanban';
 import { CreateTicketModal } from '../tickets/CreateTicketModal';
 import { TeamSidebar } from '../tickets/TeamSidebar';
 import { PageHeader } from '../ui/PageHeader';
+import { TicketQueue } from '../../types';
+import { cn } from '../../lib/utils';
+import { motion } from 'motion/react';
 
 interface TicketsPageProps {
   onSelectTicket: (id: number) => void;
   currentUser: User;
 }
+
+const QUEUES: { id: TicketQueue; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
+  { id: 'todos', label: 'Todos', icon: Layers },
+  { id: 'meus', label: 'Meus tickets', icon: UserIcon },
+  { id: 'sem_responsavel', label: 'Sem resp.', icon: UserMinus },
+  { id: 'urgentes', label: 'Urgentes', icon: AlertCircle },
+  { id: 'sla_vencido', label: 'SLA vencido', icon: Clock },
+  { id: 'vence_em_breve', label: 'Vence breve', icon: History },
+  { id: 'aguardando_cliente', label: 'Aguardando', icon: MessageSquare },
+];
 
 export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) => {
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
@@ -37,6 +58,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
   const [statusFilter, setStatusFilter] = useState('todos');
   const [priorityFilter, setPriorityFilter] = useState('todas');
   const [categoryFilter, setCategoryFilter] = useState('todas');
+  const [selectedQueue, setSelectedQueue] = useState<TicketQueue>('todos');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -74,6 +96,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
       if (statusFilter !== 'todos') query.append('status', statusFilter);
       if (priorityFilter !== 'todas') query.append('prioridade', priorityFilter);
       if (categoryFilter !== 'todas') query.append('categoria', categoryFilter);
+      if (selectedQueue !== 'todos') query.append('fila', selectedQueue);
 
       if (viewMode === 'list') {
         query.append('page', currentPage.toString());
@@ -104,14 +127,16 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, priorityFilter, categoryFilter, viewMode, devCompanyId]);
+  }, [searchTerm, statusFilter, priorityFilter, categoryFilter, viewMode, devCompanyId, selectedQueue]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchData();
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchTerm, statusFilter, priorityFilter, categoryFilter, viewMode, currentPage, devCompanyId]);
+  }, [searchTerm, statusFilter, priorityFilter, categoryFilter, viewMode, currentPage, devCompanyId, selectedQueue]);
+
+  const queueCounts = viewMode === 'list' ? ticketsResponse?.queues : kanbanResponse?.queues;
 
   return (
     <div className="space-y-6">
@@ -162,6 +187,47 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
 
       <div className="flex flex-col lg:flex-row gap-6 items-start">
         <div className="flex-1 w-full space-y-6">
+          {/* Smart Queues Tabs */}
+          <div className="flex items-center gap-1 overflow-x-auto pb-2 scrollbar-none no-scrollbar">
+            {QUEUES.map((q) => {
+              const Icon = q.icon;
+              const isActive = selectedQueue === q.id;
+              const count = queueCounts?.[q.id] || 0;
+
+              return (
+                <button
+                  key={q.id}
+                  onClick={() => setSelectedQueue(q.id)}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border shrink-0",
+                    isActive 
+                      ? "bg-white border-blue-200 text-blue-600 shadow-sm ring-1 ring-blue-50" 
+                      : "bg-slate-50/50 border-transparent text-slate-500 hover:bg-slate-100/80 hover:text-slate-700"
+                  )}
+                >
+                  <Icon size={14} className={isActive ? "text-blue-500" : "text-slate-400"} />
+                  <span>{q.label}</span>
+                  {count > 0 && (
+                    <span 
+                      className={cn(
+                        "ml-1 px-1.5 py-0.5 rounded-full text-[10px] leading-none",
+                        isActive ? "bg-blue-100 text-blue-700" : "bg-slate-200 text-slate-600"
+                      )}
+                    >
+                      {count}
+                    </span>
+                  )}
+                  {isActive && (
+                    <motion.div 
+                      layoutId="activeQueue"
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 rounded-full"
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
           <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
             <TicketFilters 
               searchTerm={searchTerm} setSearchTerm={setSearchTerm}

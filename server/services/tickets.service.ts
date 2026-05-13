@@ -47,7 +47,7 @@ class TicketsService {
   }
 
   async list(filters: any) {
-    const { empresa_id, usuario_id, is_dev, is_admin, status, prioridade, categoria, search, responsavel_id, page = 1, limit = 20 } = filters;
+    const { empresa_id, usuario_id, is_dev, is_admin, status, prioridade, categoria, search, responsavel_id, fila, page = 1, limit = 20 } = filters;
     const searchTerm = search;
     
     let baseWhere = 'WHERE 1=1';
@@ -65,6 +65,37 @@ class TicketsService {
         baseWhere += ' AND t.empresa_id = ?';
         summaryWhere += ' AND t.empresa_id = ?';
         params.push(empresaIdFilter);
+      }
+    }
+
+    // Smart Queues (Filas Inteligentes)
+    if (fila && fila !== 'todos') {
+      switch (fila) {
+        case 'meus':
+          baseWhere += ' AND t.responsavel_id = ?';
+          summaryWhere += ' AND t.responsavel_id = ?';
+          params.push(usuario_id);
+          break;
+        case 'sem_responsavel':
+          baseWhere += ' AND t.responsavel_id IS NULL';
+          summaryWhere += ' AND t.responsavel_id IS NULL';
+          break;
+        case 'urgentes':
+          baseWhere += " AND t.prioridade IN ('alta', 'urgente')";
+          summaryWhere += " AND t.prioridade IN ('alta', 'urgente')";
+          break;
+        case 'sla_vencido':
+          baseWhere += " AND t.prazo_sla < NOW() AND t.status NOT IN ('resolvido', 'fechado')";
+          summaryWhere += " AND t.prazo_sla < NOW() AND t.status NOT IN ('resolvido', 'fechado')";
+          break;
+        case 'vence_em_breve':
+          baseWhere += " AND t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado')";
+          summaryWhere += " AND t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado')";
+          break;
+        case 'aguardando_cliente':
+          baseWhere += " AND t.status = 'aguardando_cliente'";
+          summaryWhere += " AND t.status = 'aguardando_cliente'";
+          break;
       }
     }
 
@@ -152,12 +183,62 @@ class TicketsService {
         aguardando_cliente: Number(summary.aguardando_cliente || 0),
         resolvido: Number(summary.resolvido || 0),
         fechado: Number(summary.fechado || 0)
+      },
+      queues: await this.getQueuesCounts(filters)
+    };
+  }
+
+  async getQueuesCounts(filters: any) {
+    const { empresa_id, usuario_id, is_dev } = filters;
+    
+    let baseWhere = 'WHERE 1=1';
+    const params: (string | number)[] = [];
+
+    if (!is_dev) {
+      baseWhere += ' AND empresa_id = ?';
+      params.push(empresa_id);
+    } else {
+      const empresaIdFilter = toPositiveInt(filters.empresa_id_filter);
+      if (empresaIdFilter) {
+        baseWhere += ' AND empresa_id = ?';
+        params.push(empresaIdFilter);
+      } else {
+        // If dev hasn't selected a company, we might want to return 0s or total across all companies
+        // But usually dev selects a company. If not, this might be called without empresa_id.
+        // Let's assume dev needs a company filter for these queues to be meaningful.
+        return {
+          todos: 0, meus: 0, sem_responsavel: 0, urgentes: 0, sla_vencido: 0, vence_em_breve: 0, aguardando_cliente: 0
+        };
       }
+    }
+
+    const [rows]: any = await pool.query(`
+      SELECT 
+        COUNT(*) as todos,
+        SUM(CASE WHEN responsavel_id = ? THEN 1 ELSE 0 END) as meus,
+        SUM(CASE WHEN responsavel_id IS NULL THEN 1 ELSE 0 END) as sem_responsavel,
+        SUM(CASE WHEN prioridade IN ('alta', 'urgente') THEN 1 ELSE 0 END) as urgentes,
+        SUM(CASE WHEN prazo_sla < NOW() AND status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) as sla_vencido,
+        SUM(CASE WHEN prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) as vence_em_breve,
+        SUM(CASE WHEN status = 'aguardando_cliente' THEN 1 ELSE 0 END) as aguardando_cliente
+      FROM tickets
+      ${baseWhere}
+    `, [usuario_id, ...params]);
+
+    const res = rows[0] || {};
+    return {
+      todos: Number(res.todos || 0),
+      meus: Number(res.meus || 0),
+      sem_responsavel: Number(res.sem_responsavel || 0),
+      urgentes: Number(res.urgentes || 0),
+      sla_vencido: Number(res.sla_vencido || 0),
+      vence_em_breve: Number(res.vence_em_breve || 0),
+      aguardando_cliente: Number(res.aguardando_cliente || 0)
     };
   }
 
   async getKanban(filters: any) {
-    const { empresa_id, usuario_id, is_dev, is_admin, responsavel_id, search, prioridade, categoria, status } = filters;
+    const { empresa_id, usuario_id, is_dev, is_admin, responsavel_id, search, prioridade, categoria, status, fila } = filters;
     const searchTerm = search;
     
     let baseWhere = 'WHERE 1=1';
@@ -175,6 +256,37 @@ class TicketsService {
         baseWhere += ' AND t.empresa_id = ?';
         summaryWhere += ' AND t.empresa_id = ?';
         params.push(empresaIdFilter);
+      }
+    }
+
+    // Smart Queues (Filas Inteligentes)
+    if (fila && fila !== 'todos') {
+      switch (fila) {
+        case 'meus':
+          baseWhere += ' AND t.responsavel_id = ?';
+          summaryWhere += ' AND t.responsavel_id = ?';
+          params.push(usuario_id);
+          break;
+        case 'sem_responsavel':
+          baseWhere += ' AND t.responsavel_id IS NULL';
+          summaryWhere += ' AND t.responsavel_id IS NULL';
+          break;
+        case 'urgentes':
+          baseWhere += " AND t.prioridade IN ('alta', 'urgente')";
+          summaryWhere += " AND t.prioridade IN ('alta', 'urgente')";
+          break;
+        case 'sla_vencido':
+          baseWhere += " AND t.prazo_sla < NOW() AND t.status NOT IN ('resolvido', 'fechado')";
+          summaryWhere += " AND t.prazo_sla < NOW() AND t.status NOT IN ('resolvido', 'fechado')";
+          break;
+        case 'vence_em_breve':
+          baseWhere += " AND t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado')";
+          summaryWhere += " AND t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado')";
+          break;
+        case 'aguardando_cliente':
+          baseWhere += " AND t.status = 'aguardando_cliente'";
+          summaryWhere += " AND t.status = 'aguardando_cliente'";
+          break;
       }
     }
     
@@ -264,7 +376,7 @@ class TicketsService {
       fechado: Number(summary.fechado || 0)
     };
 
-    return { columns, totals };
+    return { columns, totals, queues: await this.getQueuesCounts(filters) };
   }
 
   async create(data: any) {
