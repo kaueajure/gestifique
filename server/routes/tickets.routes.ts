@@ -213,7 +213,16 @@ router.get('/views', async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
-    const views = await ticketsService.getViews(currentUser.id, currentUser.empresa_id || 0);
+    
+    let targetEmpresaId = currentUser.empresa_id || 0;
+    
+    if (currentUser.desenvolvedor) {
+      const queryEmpresaId = toPositiveInt(req.query.empresa_id);
+      if (!queryEmpresaId) return sendSuccess(res, []);
+      targetEmpresaId = queryEmpresaId;
+    }
+    
+    const views = await ticketsService.getViews(currentUser.id, targetEmpresaId);
     sendSuccess(res, views);
   } catch (error: unknown) {
     sendError(res, 'Erro ao carregar views salvas');
@@ -225,10 +234,28 @@ router.post('/views', async (req: AuthRequest, res) => {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
     const { nome, filtros_json } = req.body;
+    
     if (!nome) return sendError(res, 'Nome da view é obrigatório', 400);
+    if (nome.length > 100) return sendError(res, 'Nome da view muito longo (máx 100 caracteres)', 400);
+    if (!filtros_json || typeof filtros_json !== 'object') return sendError(res, 'Filtros inválidos', 400);
+
+    let targetEmpresaId = currentUser.empresa_id;
+    
+    if (currentUser.desenvolvedor) {
+      const bodyEmpresaId = toPositiveInt(req.body.empresa_id);
+      if (!bodyEmpresaId) return sendError(res, 'Selecione uma empresa antes de salvar uma view.', 400);
+      targetEmpresaId = bodyEmpresaId;
+    } else {
+      // For non-devs, always use their own company
+      if (req.body.empresa_id && Number(req.body.empresa_id) !== currentUser.empresa_id) {
+        return sendError(res, 'Você só pode salvar views para sua própria empresa', 403);
+      }
+    }
+
+    if (!targetEmpresaId) return sendError(res, 'Empresa inválida', 400);
 
     const viewId = await ticketsService.createView({
-      empresa_id: currentUser.empresa_id,
+      empresa_id: targetEmpresaId,
       usuario_id: currentUser.id,
       nome,
       filtros_json

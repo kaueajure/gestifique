@@ -14,7 +14,8 @@ import {
   AlertCircle,
   Clock,
   History,
-  MessageSquare
+  MessageSquare,
+  Download
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { TicketFilters } from '../tickets/TicketFilters';
@@ -31,7 +32,6 @@ import { TicketQueue } from '../../types';
 import { cn } from '../../lib/utils';
 import { motion } from 'motion/react';
 import { TicketBulkActions } from '../tickets/TicketBulkActions';
-import { Download, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -113,15 +113,26 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
         );
         setAgents(filteredAgents);
       }).catch(console.error);
-
-      // Fetch saved views
-      fetchViews();
     }
   }, [currentUser]);
 
-  const fetchViews = async () => {
+  useEffect(() => {
+    if (currentUser.desenvolvedor) {
+      if (devCompanyId) {
+        fetchViews(devCompanyId);
+      } else {
+        setSavedViews([]);
+      }
+      setCurrentViewId(null);
+    } else {
+      fetchViews();
+    }
+  }, [currentUser, devCompanyId]);
+
+  const fetchViews = async (empresaId?: string) => {
     try {
-      const views = await api.get<TicketView[]>('/tickets/views');
+      const url = empresaId ? `/tickets/views?empresa_id=${empresaId}` : '/tickets/views';
+      const views = await api.get<TicketView[]>(url);
       setSavedViews(views);
     } catch (err) {
       console.error('Erro ao carregar views:', err);
@@ -258,6 +269,11 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
   };
 
   const handleSaveView = async (nome: string) => {
+    if (currentUser.desenvolvedor && !devCompanyId) {
+      alert('Selecione uma empresa antes de salvar uma view.');
+      return;
+    }
+
     try {
       const filtros_json = {
         status: statusFilter as any,
@@ -268,12 +284,20 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
         advanced: advancedFilters,
         mode: viewMode
       };
-      const response = await api.post<{ id: number }>('/tickets/views', { nome, filtros_json });
+      
+      const empresa_id = currentUser.desenvolvedor ? Number(devCompanyId) : currentUser.empresa_id;
+
+      const response = await api.post<{ id: number }>('/tickets/views', { 
+        nome, 
+        filtros_json,
+        empresa_id
+      });
+
       const newView: TicketView = {
         id: response.id,
         nome,
         filtros_json,
-        empresa_id: currentUser.empresa_id || 0,
+        empresa_id: empresa_id || 0,
         usuario_id: currentUser.id,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -282,7 +306,8 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
       setCurrentViewId(response.id);
       alert('View salva com sucesso!');
     } catch (err) {
-      alert('Erro ao salvar view');
+      const message = err instanceof Error ? err.message : 'Erro ao salvar view';
+      alert(message);
     }
   };
 
@@ -295,6 +320,12 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
     } catch (err) {
       alert('Erro ao excluir view');
     }
+  };
+  const safeFormatDateTime = (value?: string | null) => {
+    if (!value) return 'N/A';
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return 'N/A';
+    return format(date, 'dd/MM/yyyy HH:mm', { locale: ptBR });
   };
 
   const exportToCSV = () => {
@@ -317,17 +348,17 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
       headers.join(';'),
       ...data.map(t => [
         t.id,
-        `"${t.titulo.replace(/"/g, '""')}"`,
-        t.status,
-        t.prioridade,
-        t.categoria,
+        `"${(t.titulo || '').replace(/"/g, '""')}"`,
+        t.status || '',
+        t.prioridade || '',
+        t.categoria || '',
         t.responsavel_nome || 'N/A',
         t.cliente_nome || 'N/A',
         t.empresa_nome || 'N/A',
         `"${(t.tags || []).join(', ')}"`,
-        format(new Date(t.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR }),
-        format(new Date(t.updated_at), 'dd/MM/yyyy HH:mm', { locale: ptBR }),
-        t.prazo_sla ? format(new Date(t.prazo_sla), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : 'N/A'
+        safeFormatDateTime(t.created_at),
+        safeFormatDateTime(t.updated_at),
+        safeFormatDateTime(t.prazo_sla)
       ].join(';'))
     ].join('\n');
 
@@ -341,6 +372,19 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
     link.click();
     document.body.removeChild(link);
   };
+
+  const hasAdvancedFilters = Object.entries(advancedFilters).some(([key, value]) => {
+    if (key === 'sla_status') return value && value !== 'todos';
+    return value !== undefined && value !== null && value !== '';
+  });
+
+  const hasAnyFilters =
+    searchTerm !== '' ||
+    statusFilter !== 'todos' ||
+    priorityFilter !== 'todas' ||
+    categoryFilter !== 'todas' ||
+    selectedQueue !== 'todos' ||
+    hasAdvancedFilters;
 
   const queueCounts = viewMode === 'list' ? ticketsResponse?.queues : kanbanResponse?.queues;
 
@@ -490,7 +534,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
               onPageChange={setCurrentPage}
               onSelectTicket={onSelectTicket} 
               searchTerm={searchTerm} 
-              hasFilters={searchTerm !== '' || statusFilter !== 'todos' || priorityFilter !== 'todas' || categoryFilter !== 'todas'}
+              hasFilters={hasAnyFilters}
               selectedTicketIds={selectedTicketIds}
               onSelectionChange={setSelectedTicketIds}
               canSelectBulk={!!(currentUser.administrador || currentUser.desenvolvedor)}

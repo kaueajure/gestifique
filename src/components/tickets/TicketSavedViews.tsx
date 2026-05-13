@@ -4,10 +4,7 @@ import {
   Plus, 
   Trash2, 
   Save, 
-  ChevronDown,
-  Layout,
-  LayoutList,
-  LayoutGrid
+  ChevronDown
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { TicketView } from '../../types';
@@ -42,7 +39,7 @@ export const TicketSavedViews: React.FC<Props> = ({
     <div className="flex items-center gap-2">
       <div className="relative group">
         <select
-          value={currentViewId || ''}
+          value={currentViewId ?? 'none'}
           onChange={(e) => {
             if (e.target.value === 'none') {
               onSelectView(null);
@@ -54,11 +51,15 @@ export const TicketSavedViews: React.FC<Props> = ({
           className="bg-slate-900 border border-slate-800 rounded-lg pl-3 pr-8 py-1.5 text-sm text-slate-300 focus:outline-none focus:border-blue-500/50 appearance-none min-w-[180px]"
         >
           <option value="none">Filtros Personalizados</option>
-          <optgroup label="Minhas Views">
-            {views.map(view => (
-              <option key={view.id} value={view.id}>{view.nome}</option>
-            ))}
-          </optgroup>
+          {views.length > 0 ? (
+            <optgroup label="Minhas Views">
+              {views.map(view => (
+                <option key={view.id} value={view.id}>{view.nome}</option>
+              ))}
+            </optgroup>
+          ) : (
+            <option disabled value="">Nenhuma view salva</option>
+          )}
         </select>
         <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
       </div>

@@ -183,7 +183,7 @@ export interface TicketAttachment {
 }
 
 export interface TicketTimelineItem {
-  type: 'creation' | 'response' | 'internal_note' | 'system' | 'completion';
+  type: 'creation' | 'response' | 'internal_note' | 'system' | 'completion' | 'reopen' | 'tag_change' | 'custom_field';
   date: string;
   author: string;
   description: string;

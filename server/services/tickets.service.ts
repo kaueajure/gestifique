@@ -24,6 +24,94 @@ export function toPositiveInt(value: unknown): number | undefined {
 }
 
 class TicketsService {
+  private isValidDateOnly(value: unknown): value is string {
+    return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+  }
+
+  private applyAdvancedFilters(
+    baseWhere: string,
+    summaryWhere: string,
+    params: (string | number)[],
+    filters: any
+  ): { baseWhere: string; summaryWhere: string; params: (string | number)[] } {
+    const { 
+      tag, origem, created_from, created_to, 
+      updated_from, updated_to, sla_status, custom_field_search 
+    } = filters;
+
+    if (tag) {
+      const normalizedTag = this.normalizeTag(tag);
+      if (normalizedTag) {
+        const tagParts = ' AND EXISTS (SELECT 1 FROM ticket_tags tt WHERE tt.ticket_id = t.id AND tt.tag = ?)';
+        baseWhere += tagParts;
+        summaryWhere += tagParts;
+        params.push(normalizedTag);
+      }
+    }
+
+    if (origem) {
+      baseWhere += ' AND t.origem = ?';
+      summaryWhere += ' AND t.origem = ?';
+      params.push(origem);
+    }
+
+    if (this.isValidDateOnly(created_from)) {
+      baseWhere += ' AND t.created_at >= ?';
+      summaryWhere += ' AND t.created_at >= ?';
+      params.push(`${created_from} 00:00:00`);
+    }
+
+    if (this.isValidDateOnly(created_to)) {
+      baseWhere += ' AND t.created_at <= ?';
+      summaryWhere += ' AND t.created_at <= ?';
+      params.push(`${created_to} 23:59:59`);
+    }
+
+    if (this.isValidDateOnly(updated_from)) {
+      baseWhere += ' AND t.updated_at >= ?';
+      summaryWhere += ' AND t.updated_at >= ?';
+      params.push(`${updated_from} 00:00:00`);
+    }
+
+    if (this.isValidDateOnly(updated_to)) {
+      baseWhere += ' AND t.updated_at <= ?';
+      summaryWhere += ' AND t.updated_at <= ?';
+      params.push(`${updated_to} 23:59:59`);
+    }
+
+    if (sla_status && sla_status !== 'todos') {
+      let slaPart = '';
+      switch (sla_status) {
+        case 'dentro_sla':
+          slaPart = " AND t.prazo_sla > DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado')";
+          break;
+        case 'vencendo':
+          slaPart = " AND t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado')";
+          break;
+        case 'vencido':
+          slaPart = " AND t.prazo_sla < NOW() AND t.status NOT IN ('resolvido', 'fechado')";
+          break;
+        case 'sem_sla':
+          slaPart = " AND t.prazo_sla IS NULL";
+          break;
+      }
+      if (slaPart) {
+        baseWhere += slaPart;
+        summaryWhere += slaPart;
+      }
+    }
+
+    if (custom_field_search) {
+      const cfSearchPattern = `%${custom_field_search}%`;
+      const cfPart = ' AND EXISTS (SELECT 1 FROM ticket_custom_fields tcf WHERE tcf.ticket_id = t.id AND (tcf.field_value LIKE ? OR tcf.field_label LIKE ?))';
+      baseWhere += cfPart;
+      summaryWhere += cfPart;
+      params.push(cfSearchPattern, cfSearchPattern);
+    }
+
+    return { baseWhere, summaryWhere, params };
+  }
+
   async cleanupSpam() {
     // Delete tickets created in the last 12 hours that might be spam (too many from same user/subject)
     const [spamUsers]: any = await pool.query(`
@@ -131,76 +219,18 @@ class TicketsService {
       params.push(searchPattern, searchPattern, searchTerm, searchPattern);
     }
 
-    // --- Advanced Filters Implementation ---
-    if (tag) {
-      const normalizedTag = this.normalizeTag(tag);
-      if (normalizedTag) {
-        const tagParts = ' AND EXISTS (SELECT 1 FROM ticket_tags tt WHERE tt.ticket_id = t.id AND tt.tag = ?)';
-        baseWhere += tagParts;
-        summaryWhere += tagParts;
-        params.push(normalizedTag);
-      }
-    }
-    if (origem) {
-      baseWhere += ' AND t.origem = ?';
-      summaryWhere += ' AND t.origem = ?';
-      params.push(origem);
-    }
-    if (created_from) {
-      baseWhere += ' AND t.created_at >= ?';
-      summaryWhere += ' AND t.created_at >= ?';
-      params.push(created_from);
-    }
-    if (created_to) {
-      baseWhere += ' AND t.created_at <= ?';
-      summaryWhere += ' AND t.created_at <= ?';
-      params.push(created_to);
-    }
-    if (updated_from) {
-      baseWhere += ' AND t.updated_at >= ?';
-      summaryWhere += ' AND t.updated_at >= ?';
-      params.push(updated_from);
-    }
-    if (updated_to) {
-      baseWhere += ' AND t.updated_at <= ?';
-      summaryWhere += ' AND t.updated_at <= ?';
-      params.push(updated_to);
-    }
-    if (sla_status && sla_status !== 'todos') {
-      let slaPart = '';
-      switch (sla_status) {
-        case 'dentro_sla':
-          slaPart = " AND t.prazo_sla >= NOW() AND t.status NOT IN ('resolvido', 'fechado')";
-          break;
-        case 'vencendo':
-          slaPart = " AND t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado')";
-          break;
-        case 'vencido':
-          slaPart = " AND t.prazo_sla < NOW() AND t.status NOT IN ('resolvido', 'fechado')";
-          break;
-        case 'sem_sla':
-          slaPart = " AND t.prazo_sla IS NULL";
-          break;
-      }
-      if (slaPart) {
-        baseWhere += slaPart;
-        summaryWhere += slaPart;
-      }
-    }
-    if (custom_field_search) {
-      const cfSearchPattern = `%${custom_field_search}%`;
-      const cfPart = ' AND EXISTS (SELECT 1 FROM ticket_custom_fields tcf WHERE tcf.ticket_id = t.id AND (tcf.field_value LIKE ? OR tcf.field_label LIKE ?))';
-      baseWhere += cfPart;
-      summaryWhere += cfPart;
-      params.push(cfSearchPattern, cfSearchPattern);
-    }
+    // Apply Advanced Filters
+    const advanced = this.applyAdvancedFilters(baseWhere, summaryWhere, params, filters);
+    baseWhere = advanced.baseWhere;
+    summaryWhere = advanced.summaryWhere;
+    const finalParams = advanced.params;
 
     // Status is only for items in list view
-    const summaryParams = [...params]; // copy params for summary
+    const summaryParams = [...finalParams]; // copy params for summary
     
     if (status && status !== 'todos') {
       baseWhere += ' AND t.status = ?';
-      params.push(status);
+      finalParams.push(status);
     }
 
     // Summary calculation
@@ -400,77 +430,19 @@ class TicketsService {
        params.push(searchPattern, searchPattern, searchTerm, searchPattern);
     }
 
-    // --- Advanced Filters Implementation ---
-    if (tag) {
-      const normalizedTag = this.normalizeTag(tag);
-      if (normalizedTag) {
-        const tagParts = ' AND EXISTS (SELECT 1 FROM ticket_tags tt WHERE tt.ticket_id = t.id AND tt.tag = ?)';
-        baseWhere += tagParts;
-        summaryWhere += tagParts;
-        params.push(normalizedTag);
-      }
-    }
-    if (origem) {
-      baseWhere += ' AND t.origem = ?';
-      summaryWhere += ' AND t.origem = ?';
-      params.push(origem);
-    }
-    if (created_from) {
-      baseWhere += ' AND t.created_at >= ?';
-      summaryWhere += ' AND t.created_at >= ?';
-      params.push(created_from);
-    }
-    if (created_to) {
-      baseWhere += ' AND t.created_at <= ?';
-      summaryWhere += ' AND t.created_at <= ?';
-      params.push(created_to);
-    }
-    if (updated_from) {
-      baseWhere += ' AND t.updated_at >= ?';
-      summaryWhere += ' AND t.updated_at >= ?';
-      params.push(updated_from);
-    }
-    if (updated_to) {
-      baseWhere += ' AND t.updated_at <= ?';
-      summaryWhere += ' AND t.updated_at <= ?';
-      params.push(updated_to);
-    }
-    if (sla_status && sla_status !== 'todos') {
-      let slaPart = '';
-      switch (sla_status) {
-        case 'dentro_sla':
-          slaPart = " AND t.prazo_sla >= NOW() AND t.status NOT IN ('resolvido', 'fechado')";
-          break;
-        case 'vencendo':
-          slaPart = " AND t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado')";
-          break;
-        case 'vencido':
-          slaPart = " AND t.prazo_sla < NOW() AND t.status NOT IN ('resolvido', 'fechado')";
-          break;
-        case 'sem_sla':
-          slaPart = " AND t.prazo_sla IS NULL";
-          break;
-      }
-      if (slaPart) {
-        baseWhere += slaPart;
-        summaryWhere += slaPart;
-      }
-    }
-    if (custom_field_search) {
-      const cfSearchPattern = `%${custom_field_search}%`;
-      const cfPart = ' AND EXISTS (SELECT 1 FROM ticket_custom_fields tcf WHERE tcf.ticket_id = t.id AND (tcf.field_value LIKE ? OR tcf.field_label LIKE ?))';
-      baseWhere += cfPart;
-      summaryWhere += cfPart;
-      params.push(cfSearchPattern, cfSearchPattern);
-    }
+    // Apply Advanced Filters
+    const advanced = this.applyAdvancedFilters(baseWhere, summaryWhere, params, filters);
+    baseWhere = advanced.baseWhere;
+    summaryWhere = advanced.summaryWhere;
+    const finalParams = advanced.params;
 
     if (status && status !== 'todos') {
        baseWhere += ' AND t.status = ?';
        summaryWhere += ' AND t.status = ?';
-       params.push(status);
+       finalParams.push(status);
     }
 
-    const summaryParams = [...params];
+    const summaryParams = [...finalParams];
 
     const [tickets]: any = await pool.query(`
       SELECT t.id, t.titulo, t.status, t.prioridade, t.categoria, t.created_at, t.updated_at, t.prazo_sla, t.responsavel_id, t.empresa_id,
@@ -864,9 +836,22 @@ class TicketsService {
     if (!['resolvido', 'fechado'].includes(status)) throw new Error('Status inválido para resolução');
     if (!resolucao_motivo) throw new Error('Motivo de resolução é obrigatório');
 
+    const validMotivos = [
+      'duvida_sanada', 'problema_corrigido', 'solicitacao_atendida', 
+      'cancelamento_realizado', 'duplicado', 'sem_retorno_cliente', 
+      'improcedente', 'encaminhado', 'outros',
+      'resolvido', 'cancelado', 'outro' // Compatibilidade
+    ];
+
+    if (!validMotivos.includes(resolucao_motivo)) {
+      throw new Error('Motivo de resolução inválido');
+    }
+
+    const observacao = resolucao_observacao ? String(resolucao_observacao).substring(0, 2000) : null;
+
     await pool.query(
       'UPDATE tickets SET status = ?, resolucao_motivo = ?, resolucao_observacao = ?, finalizado_em = NOW(), updated_at = NOW() WHERE id = ?',
-      [status, resolucao_motivo, resolucao_observacao || null, id]
+      [status, resolucao_motivo, observacao, id]
     );
 
     return { success: true };
@@ -878,7 +863,7 @@ class TicketsService {
     if (!['resolvido', 'fechado'].includes(ticket.status)) throw new Error('Apenas tickets resolvidos ou fechados podem ser reabertos');
 
     await pool.query(
-      'UPDATE tickets SET status = "em_andamento", finalizado_em = NULL, reaberto_em = NOW(), reaberto_por = ?, updated_at = NOW() WHERE id = ?',
+      'UPDATE tickets SET status = "aberto", finalizado_em = NULL, reaberto_em = NOW(), reaberto_por = ?, updated_at = NOW() WHERE id = ?',
       [currentUser.id, id]
     );
 
@@ -971,15 +956,24 @@ class TicketsService {
         return;
       }
 
+      let type: any = 'system';
       let icon = 'activity';
+
       if (l.acao === 'TICKET_STATUS_CHANGE' || l.acao === 'TICKET_STATUS_CHANGED') icon = 'refresh-cw';
       if (l.acao === 'TICKET_UPDATE' && l.descricao.includes('responsável')) icon = 'user-check';
       if (l.acao === 'ATTACHMENT_UPLOAD') icon = 'paperclip';
-      if (l.acao.includes('TAG')) icon = 'tag';
-      if (l.acao.includes('CUSTOM_FIELD')) icon = 'edit-3';
+
+      if (l.acao.includes('TAG')) {
+        icon = 'tag';
+        type = 'tag_change';
+      }
+      if (l.acao.includes('CUSTOM_FIELD')) {
+        icon = 'edit-3';
+        type = 'custom_field';
+      }
 
       timeline.push({
-        type: 'system',
+        type,
         date: l.created_at,
         author: l.usuario_nome || 'Sistema',
         action: l.acao,
@@ -1002,7 +996,7 @@ class TicketsService {
     // 5. Reopening (if any)
     if (ticket.reaberto_em) {
        timeline.push({
-         type: 'system',
+         type: 'reopen',
          date: ticket.reaberto_em,
          author: 'Sistema',
          description: 'Chamado reaberto para atendimento',

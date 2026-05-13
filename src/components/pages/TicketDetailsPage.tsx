@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
-import { Ticket, Message, User, TicketAttachment, TicketTimelineItem } from '../../types';
-import { AlertCircle, Loader2, MessageSquare, History } from 'lucide-react';
+import { Ticket, Message, User, TicketAttachment, TicketTimelineItem, TicketStatus } from '../../types';
+import { AlertCircle, Loader2, MessageSquare, History, CheckCircle2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
@@ -10,7 +10,6 @@ import { TicketProperties } from '../tickets/details/TicketProperties';
 import { TicketConversation } from '../tickets/details/TicketConversation';
 import { TicketTimeline } from '../tickets/details/TicketTimeline';
 import { cn } from '../../lib/utils';
-import { CheckCircle2 } from 'lucide-react';
 
 interface TicketDetailsPageProps {
   ticketId: number;
@@ -77,18 +76,6 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
       setError(message);
     } finally {
       setLoading(false);
-      setLoadingTimeline(false);
-    }
-  };
-
-  const loadTimeline = async () => {
-    setLoadingTimeline(true);
-    try {
-      const timelineData = await api.get<TicketTimelineItem[]>(`/tickets/${ticketId}/timeline`);
-      setTimeline(timelineData);
-    } catch (err) {
-      console.error('Erro ao carregar linha do tempo:', err);
-    } finally {
       setLoadingTimeline(false);
     }
   };
