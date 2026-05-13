@@ -3,7 +3,7 @@ import {
   CheckCircle2, 
   UserPlus, 
   Tag as TagIcon, 
-  Trash2, 
+  Archive, 
   AlertCircle,
   X,
   ChevronDown
@@ -192,7 +192,7 @@ export const TicketBulkActions = ({ selectedCount, onAction, onClear, agents }: 
             onClick={() => handleAction('fechar')}
             className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-900/30 text-[10px] uppercase font-bold tracking-widest gap-2"
           >
-            <Trash2 size={14} />
+            <Archive size={14} />
             Fechar
           </Button>
         </div>

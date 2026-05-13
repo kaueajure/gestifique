@@ -168,6 +168,15 @@ class TicketsService {
       LIMIT ? OFFSET ?
     `, [...params, safeLimit, offset]);
 
+    // Enriquecer com tags
+    if (items.length > 0) {
+      const ticketIds = items.map((t: any) => t.id);
+      const tagsMap = await this.getTagsForTickets(ticketIds);
+      items.forEach((t: any) => {
+        t.tags = tagsMap[t.id] || [];
+      });
+    }
+
     return {
       data: items,
       meta: {
@@ -323,7 +332,7 @@ class TicketsService {
     const summaryParams = [...params];
 
     const [tickets]: any = await pool.query(`
-      SELECT t.id, t.titulo, t.status, t.prioridade, t.categoria, t.created_at, t.empresa_id,
+      SELECT t.id, t.titulo, t.status, t.prioridade, t.categoria, t.created_at, t.updated_at, t.prazo_sla, t.responsavel_id, t.empresa_id,
              COALESCE(t.solicitante_nome, u.nome, 'Usuário Removido') as cliente_nome, 
              COALESCE(t.solicitante_email, u.email, 'Usuário Removido') as cliente_email, 
              COALESCE(r.nome, 'Não Atribuído') as responsavel_nome, 
@@ -335,6 +344,15 @@ class TicketsService {
       ${baseWhere}
       ORDER BY t.created_at DESC
     `, params);
+
+    // Enriquecer com tags
+    if (tickets.length > 0) {
+      const ticketIds = tickets.map((t: any) => t.id);
+      const tagsMap = await this.getTagsForTickets(ticketIds);
+      tickets.forEach((t: any) => {
+        t.tags = tagsMap[t.id] || [];
+      });
+    }
 
     const [summaryRows]: any = await pool.query(`
       SELECT 
@@ -794,12 +812,31 @@ class TicketsService {
     return rows.map((r: any) => r.tag);
   }
 
+  async getTagsForTickets(ticketIds: number[]): Promise<Record<number, string[]>> {
+    if (!ticketIds || ticketIds.length === 0) return {};
+    
+    const placeholders = ticketIds.map(() => '?').join(',');
+    const [rows]: any = await pool.query(
+      `SELECT ticket_id, tag FROM ticket_tags WHERE ticket_id IN (${placeholders}) ORDER BY tag ASC`,
+      ticketIds
+    );
+
+    const map: Record<number, string[]> = {};
+    rows.forEach((r: any) => {
+      if (!map[r.ticket_id]) map[r.ticket_id] = [];
+      map[r.ticket_id].push(r.tag);
+    });
+    return map;
+  }
+
   normalizeTag(tag: string): string {
-    if (!tag) return '';
-    let normalized = tag.toLowerCase().trim();
-    if (normalized.startsWith('#')) normalized = normalized.substring(1);
-    normalized = normalized.replace(/\s+/g, '-');
-    return normalized.substring(0, 50);
+    return String(tag || '')
+      .trim()
+      .toLowerCase()
+      .replace(/^#+/, '')
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-_]/g, '')
+      .slice(0, 50);
   }
 
   async addTag(ticketId: number, tag: string) {
@@ -839,20 +876,21 @@ class TicketsService {
     return rows;
   }
 
-  normalizeFieldKey(key: string): string {
-    if (!key) return '';
-    return key.toLowerCase().trim()
+  normalizeFieldKey(labelOrKey: string): string {
+    return String(labelOrKey || '')
+      .toLowerCase()
+      .trim()
       .replace(/\s+/g, '_')
       .replace(/[^a-z0-9_]/g, '')
       .substring(0, 80);
   }
 
   async updateCustomField(ticketId: number, field: any) {
-    const key = this.normalizeFieldKey(field.field_key);
+    const key = this.normalizeFieldKey(field.field_key || field.field_label);
     if (!key) return;
 
-    const label = (field.field_label || key).substring(0, 120);
-    const value = (field.field_value || '').substring(0, 1000);
+    const label = String(field.field_label || key).substring(0, 120);
+    const value = String(field.field_value || '').substring(0, 1000);
 
     await pool.query(
       `INSERT INTO ticket_custom_fields (ticket_id, field_key, field_label, field_value) 
@@ -863,9 +901,26 @@ class TicketsService {
   }
 
   async setCustomFields(ticketId: number, fields: any[]) {
-    // For simplicity, we just update/insert provided ones. We don't delete others unless requested.
+    if (!Array.isArray(fields)) return;
+    
+    // Se fields vier vazio, limpa tudo (ou podemos manter e só atualizar os que vierem)
+    // O requisito diz: se fields vier vazio, remover todos campos do ticket.
+    if (fields.length === 0) {
+      await pool.query('DELETE FROM ticket_custom_fields WHERE ticket_id = ?', [ticketId]);
+      return;
+    }
+
+    // Para um 'set' completo, poderíamos deletar e inserir, mas ON DUPLICATE KEY funciona se quisermos apenas sincronizar.
+    // Mas para remover quem não está no array, precisamos de uma lógica extra ou deletar antes.
+    await pool.query('DELETE FROM ticket_custom_fields WHERE ticket_id = ?', [ticketId]);
+    
+    const processedKeys = new Set<string>();
     for (const field of fields) {
-      await this.updateCustomField(ticketId, field);
+      const key = this.normalizeFieldKey(field.field_key || field.field_label);
+      if (key && !processedKeys.has(key)) {
+        await this.updateCustomField(ticketId, field);
+        processedKeys.add(key);
+      }
     }
   }
 
@@ -877,38 +932,83 @@ class TicketsService {
   }
 
   // BULK ACTIONS
-  async bulkUpdate(ticketIds: number[], action: string, value: any, currentUser: any) {
-    if (!ticketIds || ticketIds.length === 0) return { updated: 0, skipped: 0 };
+  async bulkUpdate(params: {
+    ticketIds: number[];
+    action: string;
+    value?: any;
+    currentUser: any;
+  }) {
+    const { ticketIds, action, value, currentUser } = params;
+    
+    if (!Array.isArray(ticketIds) || ticketIds.length === 0) {
+      return { updated: 0, skipped: 0, errors: ['Nenhum ticket informado'] };
+    }
+
+    // Limitar a 100 e remover duplicados
+    const uniqueIds = Array.from(new Set(ticketIds.slice(0, 100))).map(id => Number(id)).filter(id => id > 0);
+    
+    if (uniqueIds.length === 0) {
+      return { updated: 0, skipped: 0, errors: ['IDs inválidos'] };
+    }
 
     let updated = 0;
     let skipped = 0;
     const errors: string[] = [];
 
-    for (const id of ticketIds) {
+    for (const id of uniqueIds) {
       try {
         const ticket = await this.getByIdForUser(id, currentUser);
         if (!ticket || ticket.error) {
           skipped++;
+          errors.push(`Ticket #${id}: Acesso negado ou não encontrado.`);
           continue;
         }
 
         switch (action) {
           case 'status':
-            await this.updateStatus(id, value, currentUser.id);
-            updated++;
+            const validStatus = ['aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado'];
+            if (validStatus.includes(value)) {
+              await this.updateStatus(id, value, currentUser.id);
+              updated++;
+            } else {
+              skipped++;
+            }
             break;
           case 'prioridade':
-            await this.update(id, { prioridade: value });
-            updated++;
+            const validPriorities = ['baixa', 'media', 'alta', 'urgente'];
+            if (validPriorities.includes(value)) {
+              await this.update(id, { prioridade: value });
+              updated++;
+            } else {
+              skipped++;
+            }
             break;
           case 'responsavel':
-            // value is responsavel_id or null
+            // Se value for informado, verificar se o usuário existe e pertence à mesma empresa
+            if (value !== null) {
+              const [agent]: any = await pool.query('SELECT id, empresa_id FROM usuarios WHERE id = ? AND ativo = 1', [value]);
+              if (!agent[0] || (!currentUser.desenvolvedor && agent[0].empresa_id !== ticket.empresa_id)) {
+                skipped++;
+                errors.push(`Ticket #${id}: Responsável inválido para esta empresa.`);
+                continue;
+              }
+              // Verificar se o ticket pertence à empresa do agente (no caso de dev alterando múltiplos)
+              if (agent[0].empresa_id !== ticket.empresa_id) {
+                skipped++;
+                errors.push(`Ticket #${id}: Responsável não pertence à empresa do ticket.`);
+                continue;
+              }
+            }
             await this.update(id, { responsavel_id: value });
             updated++;
             break;
           case 'add_tag':
-            await this.addTag(id, value);
-            updated++;
+            if (value) {
+              await this.addTag(id, String(value));
+              updated++;
+            } else {
+              skipped++;
+            }
             break;
           case 'fechar':
             await this.updateStatus(id, 'fechado', currentUser.id);
@@ -917,9 +1017,9 @@ class TicketsService {
           default:
             skipped++;
         }
-      } catch (err) {
+      } catch (err: any) {
         skipped++;
-        errors.push(`Erro no ticket #${id}: ${err instanceof Error ? err.message : String(err)}`);
+        errors.push(`Erro no ticket #${id}: ${err.message || 'Erro desconhecido'}`);
       }
     }
 

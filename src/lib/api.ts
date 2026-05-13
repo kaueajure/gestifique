@@ -92,6 +92,14 @@ class ApiService {
     }, isFormData);
   }
 
+  put<T>(endpoint: string, body: any) {
+    const isFormData = body instanceof FormData;
+    return this.request<T>(endpoint, {
+      method: 'PUT',
+      body: isFormData ? body : JSON.stringify(body),
+    }, isFormData);
+  }
+
   delete<T>(endpoint: string) {
     return this.request<T>(endpoint, { method: 'DELETE' });
   }

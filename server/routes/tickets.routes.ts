@@ -143,6 +143,53 @@ router.get('/kanban', async (req: AuthRequest, res) => {
   }
 });
 
+router.patch('/bulk', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+    
+    const canManage = !!(currentUser.administrador || currentUser.desenvolvedor);
+    if (!canManage) {
+      return sendError(res, 'Apenas administradores podem realizar ações em massa', 403);
+    }
+
+    const { ticket_ids, action, value } = req.body;
+
+    if (!Array.isArray(ticket_ids) || ticket_ids.length === 0) {
+      return sendError(res, 'Nenhum chamado selecionado', 400);
+    }
+
+    if (ticket_ids.length > 100) {
+      return sendError(res, 'Máximo de 100 chamados por operação', 400);
+    }
+
+    const validActions = ['status', 'prioridade', 'responsavel', 'add_tag', 'fechar'];
+    if (!validActions.includes(action)) {
+      return sendError(res, 'Ação inválida', 400);
+    }
+
+    const result = await ticketsService.bulkUpdate({
+      ticketIds: ticket_ids,
+      action,
+      value,
+      currentUser
+    });
+
+    await logSystemAction(
+      req, 
+      currentUser.id, 
+      currentUser.empresa_id, 
+      'TICKET_BULK_ACTION', 
+      `Ação em massa (${action}) processada para ${result.updated} chamados (${result.skipped} ignorados)`
+    );
+
+    sendSuccess(res, result, 'Ação em massa concluída');
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao realizar ação em massa';
+    sendError(res, message);
+  }
+});
+
 router.get('/:id', async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
@@ -549,9 +596,9 @@ router.get('/:id/tags', async (req: AuthRequest, res) => {
 
     const id = parseInt(req.params.id);
     const result: any = await ticketsService.getByIdForUser(id, currentUser);
-    if (!result || result.error) {
-      return sendError(res, result?.error === 'forbidden' ? 'Permissão negada' : 'Ticket não encontrado', result?.error === 'forbidden' ? 403 : 404);
-    }
+    
+    if (!result) return sendError(res, 'Ticket não encontrado', 404);
+    if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
     const tags = await ticketsService.getTags(id);
     sendSuccess(res, tags);
@@ -571,7 +618,8 @@ router.post('/:id/tags', async (req: AuthRequest, res) => {
     if (!tag) return sendError(res, 'Tag é obrigatória', 400);
 
     const result: any = await ticketsService.getByIdForUser(id, currentUser);
-    if (!result || result.error) return sendError(res, 'Ticket não encontrado', 404);
+    if (!result) return sendError(res, 'Ticket não encontrado', 404);
+    if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
     await ticketsService.addTag(id, tag);
     sendSuccess(res, null, 'Tag adicionada');
@@ -591,7 +639,8 @@ router.put('/:id/tags', async (req: AuthRequest, res) => {
     if (!Array.isArray(tags)) return sendError(res, 'Tags devem ser um array', 400);
 
     const result: any = await ticketsService.getByIdForUser(id, currentUser);
-    if (!result || result.error) return sendError(res, 'Ticket não encontrado', 404);
+    if (!result) return sendError(res, 'Ticket não encontrado', 404);
+    if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
     await ticketsService.setTags(id, tags);
     sendSuccess(res, null, 'Tags atualizadas');
@@ -610,7 +659,8 @@ router.delete('/:id/tags/:tag', async (req: AuthRequest, res) => {
     const { tag } = req.params;
 
     const result: any = await ticketsService.getByIdForUser(id, currentUser);
-    if (!result || result.error) return sendError(res, 'Ticket não encontrado', 404);
+    if (!result) return sendError(res, 'Ticket não encontrado', 404);
+    if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
     await ticketsService.removeTag(id, tag);
     sendSuccess(res, null, 'Tag removida');
@@ -627,7 +677,8 @@ router.get('/:id/custom-fields', async (req: AuthRequest, res) => {
 
     const id = parseInt(req.params.id);
     const result: any = await ticketsService.getByIdForUser(id, currentUser);
-    if (!result || result.error) return sendError(res, 'Ticket não encontrado', 404);
+    if (!result) return sendError(res, 'Ticket não encontrado', 404);
+    if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
     const fields = await ticketsService.getCustomFields(id);
     sendSuccess(res, fields);
@@ -647,7 +698,8 @@ router.put('/:id/custom-fields', async (req: AuthRequest, res) => {
     if (!Array.isArray(fields)) return sendError(res, 'Campos devem ser um array', 400);
 
     const result: any = await ticketsService.getByIdForUser(id, currentUser);
-    if (!result || result.error) return sendError(res, 'Ticket não encontrado', 404);
+    if (!result) return sendError(res, 'Ticket não encontrado', 404);
+    if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
     await ticketsService.setCustomFields(id, fields);
     sendSuccess(res, null, 'Campos personalizados atualizados');

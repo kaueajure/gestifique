@@ -151,7 +151,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
 
   const handleUpdateTags = async (tags: string[]) => {
     try {
-      await api.patch(`/tickets/${ticketId}/tags`, { tags });
+      await api.put(`/tickets/${ticketId}/tags`, { tags });
       setTicket(prev => prev ? { ...prev, tags } : null);
     } catch (err) {
       console.error('Erro ao atualizar tags:', err);
@@ -161,7 +161,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
 
   const handleUpdateCustomFields = async (fields: any[]) => {
     try {
-      await api.patch(`/tickets/${ticketId}/custom-fields`, { fields });
+      await api.put(`/tickets/${ticketId}/custom-fields`, { fields });
       setTicket(prev => prev ? { ...prev, custom_fields: fields } : null);
     } catch (err) {
       console.error('Erro ao atualizar campos personalizados:', err);

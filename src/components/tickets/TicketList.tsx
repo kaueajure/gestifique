@@ -46,13 +46,20 @@ export const TicketList = ({
     }
   };
 
+  const currentPageIds = tickets.map(t => t.id);
+  const selectedOnPage = currentPageIds.filter(id => selectedTicketIds.includes(id));
+  const isAllSelected = tickets.length > 0 && selectedOnPage.length === tickets.length;
+
   const toggleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!onSelectionChange) return;
     if (e.target.checked) {
-      const allIds = tickets.map(t => t.id);
-      onSelectionChange(allIds);
+      // Add all current page IDs that are not already selected
+      const newSelections = [...new Set([...selectedTicketIds, ...currentPageIds])];
+      onSelectionChange(newSelections);
     } else {
-      onSelectionChange([]);
+      // Remove current page IDs from selection
+      const newSelections = selectedTicketIds.filter(id => !currentPageIds.includes(id));
+      onSelectionChange(newSelections);
     }
   };
 
@@ -97,7 +104,7 @@ export const TicketList = ({
              type="checkbox" 
              className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
              onChange={toggleSelectAll}
-             checked={tickets.length > 0 && selectedTicketIds.length === tickets.length}
+             checked={isAllSelected}
            />
            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Selecionar Todos</span>
         </div>
