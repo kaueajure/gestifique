@@ -459,7 +459,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
                        <div className="text-[10px] font-medium text-slate-400 mt-0.5 leading-tight">Pode gerenciar usuários da própria empresa e acompanhar registros permitidos.</div>
                     </div>
                  </label>
-                 {currentUser.desenvolvedor && (
+                 {!!currentUser.desenvolvedor && (
                    <label className={cn(
                      "flex items-start gap-3 p-4 rounded-xl border transition-all cursor-pointer group",
                      "bg-white hover:border-indigo-200 hover:bg-indigo-50/30 border-slate-100"

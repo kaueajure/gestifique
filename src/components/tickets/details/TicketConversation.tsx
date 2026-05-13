@@ -79,7 +79,7 @@ export const TicketConversation = ({
                 )}
               >
                 <div className="flex items-center gap-2 px-1">
-                   {!isCliente && msg.interno && (
+                   {!isCliente && Number(msg.interno) === 1 && (
                      <Badge variant="amber" className="text-[10px] font-bold px-2 py-0.5 uppercase border-none rounded-md h-5">Nota Interna</Badge>
                    )}
                    <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5 uppercase tracking-tight">
@@ -110,7 +110,7 @@ export const TicketConversation = ({
                      )}>
                        {msg.usuario_nome || 'Sistema'}
                      </span>
-                     {!isCliente && !msg.interno && (
+                     {!isCliente && Number(msg.interno) === 0 && (
                         <ShieldCheck size={12} className="text-blue-200" />
                      )}
                   </div>

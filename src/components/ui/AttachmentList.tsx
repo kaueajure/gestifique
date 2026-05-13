@@ -45,7 +45,7 @@ export const AttachmentList = ({ attachments, onRemove, className, compact = fal
               </p>
               <p className="text-[10px] font-medium text-slate-400">
                 {formatSize(file.tamanho_bytes)}
-                {file.interno && <span className="ml-1.5 text-amber-600 font-bold uppercase tracking-wider">Interno</span>}
+                {Number(file.interno) === 1 && <span className="ml-1.5 text-amber-600 font-bold uppercase tracking-wider">Interno</span>}
               </p>
             </div>
           </div>

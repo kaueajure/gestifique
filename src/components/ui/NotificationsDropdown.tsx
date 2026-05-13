@@ -196,7 +196,7 @@ export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({ cu
                       !notification.lida ? 'bg-blue-50/20' : ''
                     }`}
                   >
-                    {!notification.lida && (
+                    {Number(notification.lida) === 0 && (
                       <div className="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-500 rounded-full"></div>
                     )}
                     
