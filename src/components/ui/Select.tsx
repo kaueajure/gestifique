@@ -76,7 +76,7 @@ export const Select: React.FC<SelectProps> = ({
   };
 
   return (
-    <div className={cn("relative inline-block w-full", className)} ref={containerRef}>
+    <div className={cn("relative inline-block w-full", isOpen && "z-[9999]", className)} ref={containerRef}>
       {name && (
         <input 
           type="hidden" 
@@ -112,7 +112,7 @@ export const Select: React.FC<SelectProps> = ({
       {isOpen && (
         <div 
           className={cn(
-            "absolute z-50 mt-1 min-w-full bg-white border border-slate-200 rounded-xl shadow-xl shadow-slate-200/60 p-1 max-h-64 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in duration-150 origin-top",
+            "absolute z-[9999] mt-1 min-w-full bg-white border border-slate-200 rounded-xl shadow-xl shadow-slate-200/60 p-1 max-h-64 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in duration-150 origin-top",
             dropdownClassName
           )}
           role="listbox"

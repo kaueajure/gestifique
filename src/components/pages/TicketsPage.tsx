@@ -578,8 +578,8 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
             })}
           </div>
 
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="flex flex-col xl:flex-row xl:items-center gap-3 p-3">
+          <div className="relative z-[200] overflow-visible bg-white rounded-xl border border-slate-200 shadow-sm">
+            <div className="flex flex-col xl:flex-row xl:items-center gap-3 p-3 group">
               <div className="flex flex-wrap items-center gap-3">
                 <TicketSavedViews 
                   views={savedViews}
@@ -651,7 +651,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
           {viewMode === 'kanban' && kanbanResponse && <TicketSummaryCards summary={kanbanResponse.totals} />}
 
           <div className={cn(
-            "transition-all duration-300",
+            "relative z-0 transition-all duration-300",
             viewMode === 'kanban' ? "h-[calc(100vh-220px)] min-h-[450px]" : ""
           )}>
             {!!currentUser.desenvolvedor && !devCompanyId ? (
