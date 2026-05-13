@@ -40,35 +40,35 @@ export const TicketHeader = ({ id, titulo, status, prioridade, onBack, onUpdateS
   const showReopenButton = canEdit && (status === 'resolvido' || status === 'fechado');
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white border border-slate-200 p-2 px-3 rounded-xl shadow-sm">
       <div className="flex items-center gap-3">
         <button 
           onClick={onBack}
-          className="h-8 w-8 flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-slate-900 hover:border-slate-300 transition-all shadow-sm"
+          className="h-7 w-7 flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-slate-900 hover:border-slate-300 transition-all shadow-sm shrink-0"
           title="Voltar para a lista"
         >
-          <ArrowLeft size={16} />
+          <ArrowLeft size={14} />
         </button>
         <div className="min-w-0">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-0.5">
             <span className="text-[10px] font-bold text-blue-600 uppercase tracking-tighter">#{id}</span>
             <span className="text-slate-300">·</span>
-            <Badge variant={getStatusVariant(status || 'aberto')} className="text-[9px] py-0 px-1.5 font-bold uppercase tracking-tight">{(status || 'aberto').replace('_', ' ')}</Badge>
-            <Badge variant={getPriorityVariant(prioridade || 'media') as any} className="text-[9px] py-0 px-1.5 font-bold uppercase tracking-tight">{prioridade || 'media'}</Badge>
+            <Badge variant={getStatusVariant(status || 'aberto')} className="text-[8px] py-0 px-1 font-bold uppercase tracking-tight h-4">{(status || 'aberto').replace('_', ' ')}</Badge>
+            <Badge variant={getPriorityVariant(prioridade || 'media') as any} className="text-[8px] py-0 px-1 font-bold uppercase tracking-tight h-4">{prioridade || 'media'}</Badge>
           </div>
-          <h2 className="text-xl font-semibold text-slate-900 truncate tracking-tight">{titulo || 'Atendimento'}</h2>
+          <h2 className="text-base font-bold text-slate-900 truncate tracking-tight">{titulo || 'Atendimento'}</h2>
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 shrink-0">
         {showResolveButton && onUpdateStatus && (
           <Button 
             variant="emerald" 
             size="sm" 
             onClick={() => onUpdateStatus({ status: 'resolvido' })}
-            className="h-8 px-4 text-[10px] uppercase font-bold tracking-widest shrink-0"
+            className="h-7 px-3 text-[9px] uppercase font-bold tracking-widest shrink-0"
           >
-            Marcar como Resolvido
+            Finalizar
           </Button>
         )}
 
@@ -77,9 +77,9 @@ export const TicketHeader = ({ id, titulo, status, prioridade, onBack, onUpdateS
             variant="outline" 
             size="sm" 
             onClick={() => onUpdateStatus({ status: 'aberto' })}
-            className="h-8 px-4 text-[10px] uppercase font-bold tracking-widest shrink-0 border-blue-200 text-blue-600 hover:bg-blue-50"
+            className="h-7 px-3 text-[9px] uppercase font-bold tracking-widest shrink-0 border-blue-200 text-blue-600 hover:bg-blue-50"
           >
-            Reabrir Chamado
+            Reabrir
           </Button>
         )}
       </div>

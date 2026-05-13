@@ -29,14 +29,14 @@ export const TicketConversation = ({
   }, [messages]);
 
   return (
-    <div className="flex flex-col h-full">
-        <div className="max-h-[600px] overflow-y-auto p-6 space-y-6 custom-scrollbar bg-slate-50/20 rounded-t-xl border-b border-slate-100">
+    <div className="flex flex-col h-full overflow-hidden">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-slate-50/20">
           {messages.length === 0 ? (
             <div className="py-20 text-center flex flex-col items-center">
-                <div className="w-12 h-12 bg-slate-50 text-slate-200 rounded-2xl flex items-center justify-center mb-4 border border-slate-100 shadow-inner">
-                  <MessageSquare size={24} />
+                <div className="w-10 h-10 bg-slate-50 text-slate-200 rounded-xl flex items-center justify-center mb-3 border border-slate-100 shadow-inner">
+                  <MessageSquare size={20} />
                 </div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Inicie a conversa para este chamado</p>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Inicie a conversa para este chamado</p>
             </div>
           ) : (
             messages.map((msg) => {
@@ -46,22 +46,22 @@ export const TicketConversation = ({
               <div 
                 key={msg.id} 
                 className={cn(
-                  "flex flex-col gap-2 transition-all",
+                  "flex flex-col gap-1 transition-all",
                   isCliente ? "items-start" : "items-end"
                 )}
               >
                 <div className="flex items-center gap-2 px-1">
                    {!isCliente && msg.interno && (
-                     <Badge variant="amber" className="text-[8px] font-bold px-1.5 py-0 uppercase border-none rounded-sm">Nota Interna</Badge>
+                     <Badge variant="amber" className="text-[7px] font-bold px-1 py-0 uppercase border-none rounded-sm h-3.5">Nota Interna</Badge>
                    )}
-                   <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1 uppercase tracking-tight">
-                     <Clock size={10} /> {new Date(msg.created_at).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+                   <span className="text-[9px] font-bold text-slate-400 flex items-center gap-1 uppercase tracking-tighter">
+                     <Clock size={8} /> {new Date(msg.created_at).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
                    </span>
                 </div>
 
                 <div 
                   className={cn(
-                    "max-w-[85%] p-4 rounded-2xl border shadow-sm relative group",
+                    "max-w-[90%] p-3 rounded-xl border shadow-sm relative group",
                     msg.interno 
                       ? "bg-amber-50/80 border-amber-200/60" 
                       : isCliente 
@@ -69,15 +69,15 @@ export const TicketConversation = ({
                         : "bg-blue-600 border-blue-700 text-white rounded-tr-none"
                   )}
                 >
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-1.5 mb-1.5">
                      <div className={cn(
-                       "w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold uppercase",
+                       "w-4 h-4 rounded-sm flex items-center justify-center text-[7px] font-bold uppercase",
                        isCliente ? "bg-slate-100 text-slate-600" : (msg.interno ? "bg-amber-100 text-amber-700" : "bg-blue-500 text-white")
                      )}>
                        {(msg.usuario_nome || 'S').charAt(0)}
                      </div>
                      <span className={cn(
-                       "text-[10px] font-bold uppercase tracking-tight",
+                       "text-[9px] font-bold uppercase tracking-tight",
                        msg.interno ? "text-amber-900" : isCliente ? "text-slate-900" : "text-blue-100"
                      )}>
                        {msg.usuario_nome || 'Sistema'}
@@ -88,14 +88,14 @@ export const TicketConversation = ({
                   </div>
 
                   <div className={cn(
-                    "text-sm font-medium leading-relaxed whitespace-pre-wrap",
+                    "text-xs font-medium leading-relaxed whitespace-pre-wrap",
                     msg.interno ? "text-amber-800" : isCliente ? "text-slate-600" : "text-white"
                   )}>
                     {msg.mensagem}
                   </div>
 
                   {msg.attachments && msg.attachments.length > 0 && (
-                    <div className="mt-4 pt-3 border-t border-black/5">
+                    <div className="mt-2 pt-2 border-t border-black/5">
                         <AttachmentList 
                           attachments={msg.attachments} 
                           compact 
@@ -111,23 +111,23 @@ export const TicketConversation = ({
         </div>
         
         {/* Campo de Resposta */}
-        <div className="p-5 bg-white rounded-b-xl border-t border-slate-100">
+        <div className="shrink-0 p-3 bg-white border-t border-slate-100">
            {ticket.status === 'fechado' ? (
-              <div className="text-center p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                 <p className="text-sm font-semibold text-slate-600 mb-2">Este atendimento está fechado.</p>
-                 <p className="text-xs font-medium text-slate-500">
+              <div className="text-center p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                 <p className="text-xs font-bold text-slate-600 mb-1">Este atendimento está fechado.</p>
+                 <p className="text-[10px] font-medium text-slate-500">
                    Você não pode enviar novas mensagens. 
-                   {canAddInternalNote && " Altere o status para reabrir o atendimento se necessário."}
+                   {canAddInternalNote && " Reabra para responder."}
                  </p>
               </div>
            ) : (
-             <TicketReplyBox 
-                onSendMessage={onSendMessage}
-                loadingSend={loadingSend}
-                actionError={actionError}
-                actionSuccess={actionSuccess}
-                canAddInternalNote={canAddInternalNote}
-             />
+              <TicketReplyBox 
+                 onSendMessage={onSendMessage}
+                 loadingSend={loadingSend}
+                 actionError={actionError}
+                 actionSuccess={actionSuccess}
+                 canAddInternalNote={canAddInternalNote}
+              />
            )}
         </div>
     </div>

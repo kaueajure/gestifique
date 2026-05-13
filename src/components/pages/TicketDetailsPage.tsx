@@ -214,22 +214,24 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
     }
   };
 
+  const [isDescExpanded, setIsDescExpanded] = useState(false);
+
   if (loading) {
     return (
-      <div className="h-[70vh] flex flex-col items-center justify-center space-y-4">
-        <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
-        <p className="text-slate-400 font-medium text-sm">Carregando histórico...</p>
+      <div className="h-[70vh] flex flex-col items-center justify-center space-y-3">
+        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+        <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest">Carregando...</p>
       </div>
     );
   }
 
   if (error || !ticket) {
     return (
-      <Card className="p-12 border-red-100 bg-red-50/30 flex flex-col items-center justify-center text-center rounded-xl">
-         <AlertCircle className="w-16 h-16 text-red-500 mb-4" />
-         <h2 className="text-xl font-semibold text-slate-900 mb-2">Atendimento não encontrado</h2>
-         <p className="text-slate-500 font-medium mb-8 max-w-sm">{error || 'O atendimento solicitado pode ter sido removido ou você não tem acesso.'}</p>
-         <Button onClick={onBack}>Voltar para a Lista</Button>
+      <Card className="p-10 border-red-100 bg-red-50/30 flex flex-col items-center justify-center text-center rounded-xl">
+         <AlertCircle className="w-12 h-12 text-red-500 mb-3" />
+         <h2 className="text-lg font-bold text-slate-900 mb-1">Atendimento não encontrado</h2>
+         <p className="text-slate-500 font-medium text-sm mb-6 max-w-sm">{error || 'O atendimento solicitado pode ter sido removido ou você não tem acesso.'}</p>
+         <Button onClick={onBack} size="sm">Voltar para a Lista</Button>
       </Card>
     );
   }
@@ -238,7 +240,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
   const clienteNome = isClienteRemovido ? 'Conta Excluída' : (ticket.cliente_nome || 'Não informado');
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="h-[calc(100vh-100px)] flex flex-col gap-3 min-h-[500px]">
       <TicketHeader 
         id={ticket.id}
         titulo={ticket.titulo}
@@ -249,52 +251,59 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
         canEdit={!!(currentUser.administrador || currentUser.desenvolvedor)}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 flex-1 min-h-0">
         {/* Coluna Principal */}
-        <div className="lg:col-span-8 space-y-6">
-          {/* Descrição */}
-          <Card>
-            <CardHeader className="py-2.5 px-5 border-b border-slate-50">
-               <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Descrição</CardTitle>
-            </CardHeader>
-            <CardContent className="p-5">
-               <div className="flex items-start gap-4 mb-4">
-                  <div className={cn(
-                    "w-9 h-9 rounded-lg flex items-center justify-center text-white font-bold text-xs shrink-0",
-                    isClienteRemovido ? "bg-slate-300" : "bg-slate-900"
-                  )}>
-                     {isClienteRemovido ? '?' : clienteNome.charAt(0)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                     <div className="flex items-center justify-between gap-2 mb-1">
-                        <div className="flex items-center gap-2">
-                           <span className={cn("text-sm font-bold", isClienteRemovido ? "text-slate-400" : "text-slate-900")}>
-                             {clienteNome}
-                           </span>
-                           {isClienteRemovido && (
-                             <Badge variant="slate" className="text-[9px] px-1.5 py-0 border-none bg-slate-100 text-slate-500">
-                               Usuário Removido
-                             </Badge>
-                           )}
-                        </div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{new Date(ticket.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
-                     </div>
-                     <div className="text-sm font-medium text-slate-600 leading-relaxed whitespace-pre-wrap">
-                        {ticket.descricao || 'Nenhuma descrição fornecida.'}
-                     </div>
-                  </div>
+        <div className="lg:col-span-8 flex flex-col gap-3 min-h-0">
+          {/* Descrição Compacta */}
+          <Card className="shrink-0 border-slate-200 shadow-sm overflow-hidden bg-slate-50/10">
+            <div className="flex items-start gap-3 p-3">
+               <div className={cn(
+                 "w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-sm",
+                 isClienteRemovido ? "bg-slate-300" : "bg-slate-900"
+               )}>
+                  {isClienteRemovido ? '?' : clienteNome.charAt(0)}
                </div>
-            </CardContent>
+               <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                     <div className="flex items-center gap-2">
+                        <span className={cn("text-xs font-bold shrink-0", isClienteRemovido ? "text-slate-400" : "text-slate-900")}>
+                          {clienteNome}
+                        </span>
+                        {isClienteRemovido && (
+                          <Badge variant="slate" className="text-[8px] px-1 py-0 border-none bg-slate-100 text-slate-500 h-4">
+                            Excluído
+                          </Badge>
+                        )}
+                        <span className="text-slate-300">·</span>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter shrink-0">{new Date(ticket.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                     </div>
+                  </div>
+                  <div className={cn(
+                    "text-xs font-medium text-slate-600 leading-relaxed whitespace-pre-wrap transition-all",
+                    !isDescExpanded && "line-clamp-2"
+                  )}>
+                     {ticket.descricao || 'Nenhuma descrição fornecida.'}
+                  </div>
+                  {(ticket.descricao && ticket.descricao.length > 120) && (
+                    <button 
+                      onClick={() => setIsDescExpanded(!isDescExpanded)}
+                      className="text-[10px] font-bold text-blue-600 hover:text-blue-700 mt-1 uppercase tracking-tighter"
+                    >
+                      {isDescExpanded ? 'Ver menos' : 'Ver mais'}
+                    </button>
+                  )}
+               </div>
+            </div>
           </Card>
 
           {/* Histórico/Mensagens */}
-          <Card className="flex flex-col">
-            <CardHeader className="py-0 px-5 border-b border-slate-50 flex flex-row items-center justify-between">
+          <Card className="flex flex-col flex-1 min-h-0 border-slate-200 shadow-sm overflow-hidden">
+            <div className="bg-white px-3 border-b border-slate-100 flex items-center justify-between shrink-0">
                <div className="flex">
                   <button 
                     onClick={() => setActiveTab('messages')}
                     className={cn(
-                      "flex items-center gap-2 py-3 px-4 text-[10px] font-bold uppercase tracking-widest transition-all border-b-2",
+                      "flex items-center gap-1.5 py-2.5 px-3 text-[10px] font-bold uppercase tracking-widest transition-all border-b-2",
                       activeTab === 'messages' ? "text-blue-600 border-blue-600" : "text-slate-400 border-transparent hover:text-slate-600"
                     )}
                   >
@@ -304,7 +313,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                   <button 
                     onClick={() => setActiveTab('timeline')}
                     className={cn(
-                      "flex items-center gap-2 py-3 px-4 text-[10px] font-bold uppercase tracking-widest transition-all border-b-2",
+                      "flex items-center gap-1.5 py-2.5 px-3 text-[10px] font-bold uppercase tracking-widest transition-all border-b-2",
                       activeTab === 'timeline' ? "text-blue-600 border-blue-600" : "text-slate-400 border-transparent hover:text-slate-600"
                     )}
                   >
@@ -312,43 +321,49 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                     Linha do Tempo
                   </button>
                </div>
-               <Badge variant="slate" className="text-[9px] px-1.5 py-0 border-none bg-slate-50 text-slate-400">
-                 {activeTab === 'messages' ? `${messages.length} mensagens` : `${timeline.length} eventos`}
+               <Badge variant="slate" className="text-[8px] font-bold px-1.5 py-0 h-4 border-none bg-slate-50 text-slate-400 uppercase tracking-tighter">
+                 {activeTab === 'messages' ? `${messages.length} msg` : `${timeline.length} eventos`}
                </Badge>
-            </CardHeader>
+            </div>
 
-            {activeTab === 'messages' ? (
-              <TicketConversation 
-                 ticket={ticket}
-                 messages={messages}
-                 onSendMessage={handleSendMessage}
-                 onDeleteAttachment={handleDeleteAttachment}
-                 loadingSend={loadingSend}
-                 actionError={actionError}
-                 actionSuccess={actionSuccess}
-                 canAddInternalNote={!!(currentUser.administrador || currentUser.desenvolvedor)}
-              />
-            ) : (
-              <TicketTimeline 
-                timeline={timeline}
-                loading={loadingTimeline}
-              />
-            )}
+            <div className="flex-1 min-h-0 overflow-hidden">
+              {activeTab === 'messages' ? (
+                <TicketConversation 
+                   ticket={ticket}
+                   messages={messages}
+                   onSendMessage={handleSendMessage}
+                   onDeleteAttachment={handleDeleteAttachment}
+                   loadingSend={loadingSend}
+                   actionError={actionError}
+                   actionSuccess={actionSuccess}
+                   canAddInternalNote={!!(currentUser.administrador || currentUser.desenvolvedor)}
+                />
+              ) : (
+                <div className="h-full overflow-y-auto p-4 custom-scrollbar">
+                  <TicketTimeline 
+                    timeline={timeline}
+                    loading={loadingTimeline}
+                  />
+                </div>
+              )}
+            </div>
           </Card>
         </div>
 
         {/* Coluna Lateral */}
-        <div className="lg:col-span-4 space-y-6">
-            <TicketProperties 
-                ticket={ticket}
-                currentUser={currentUser}
-                agents={agents}
-                attachments={ticketAttachments}
-                onUpdate={handleUpdateTicket}
-                onArchive={handleArchiveTicket}
-                onUpdateTags={handleUpdateTags}
-                onUpdateCustomFields={handleUpdateCustomFields}
-            />
+        <div className="lg:col-span-4 h-full min-h-0">
+            <div className="h-full overflow-y-auto pr-1 flex flex-col gap-3 custom-scrollbar">
+              <TicketProperties 
+                  ticket={ticket}
+                  currentUser={currentUser}
+                  agents={agents}
+                  attachments={ticketAttachments}
+                  onUpdate={handleUpdateTicket}
+                  onArchive={handleArchiveTicket}
+                  onUpdateTags={handleUpdateTags}
+                  onUpdateCustomFields={handleUpdateCustomFields}
+              />
+            </div>
         </div>
       </div>
 
