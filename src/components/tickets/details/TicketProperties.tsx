@@ -17,8 +17,33 @@ interface TicketPropertiesProps {
   onArchive: () => void;
 }
 
+type SlaVariant = 'red' | 'amber' | 'blue' | 'emerald' | 'slate';
+
+interface SlaInfo {
+  label: string;
+  description: string;
+  deadlineLabel: string;
+  variant: SlaVariant;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+}
+
 export const TicketProperties = ({ ticket, currentUser, agents, attachments, onUpdate, onArchive }: TicketPropertiesProps) => {
   const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = React.useState(false);
+
+  const formatDate = (value: string | number | Date) => {
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return 'Data inválida';
+    return date.toLocaleDateString('pt-BR');
+  };
+
+  const formatDateTime = (value: string | number | Date) => {
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return 'Data inválida';
+    return date.toLocaleString('pt-BR', {
+      dateStyle: 'short',
+      timeStyle: 'short'
+    });
+  };
 
   const getStatusVariant = (status: string) => {
     const map: Record<string, string> = {
@@ -45,7 +70,7 @@ export const TicketProperties = ({ ticket, currentUser, agents, attachments, onU
     return `${minutes}min`;
   };
 
-  const getSlaInfo = () => {
+  const getSlaInfo = (): SlaInfo | null => {
     if (!ticket.prazo_sla) return null;
 
     const deadline = new Date(ticket.prazo_sla).getTime();
@@ -60,44 +85,55 @@ export const TicketProperties = ({ ticket, currentUser, agents, attachments, onU
         return {
           label: 'SLA vencido',
           description: `Vencido há ${formatDuration(diff)}`,
-          deadlineLabel: `Prazo: ${new Date(deadline).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}`,
-          variant: 'red' as const,
+          deadlineLabel: `Prazo: ${formatDateTime(deadline)}`,
+          variant: 'red',
           icon: XCircle
         };
       } else if (diff < 2 * 60 * 60 * 1000) {
         return {
           label: 'Vence em breve',
           description: `Vence em ${formatDuration(diff)}`,
-          deadlineLabel: `Prazo: ${new Date(deadline).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}`,
-          variant: 'amber' as const,
+          deadlineLabel: `Prazo: ${formatDateTime(deadline)}`,
+          variant: 'amber',
           icon: AlertTriangle
         };
       } else {
         return {
           label: 'Dentro do SLA',
           description: `Restam ${formatDuration(diff)}`,
-          deadlineLabel: `Prazo: ${new Date(deadline).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}`,
-          variant: 'blue' as const,
+          deadlineLabel: `Prazo: ${formatDateTime(deadline)}`,
+          variant: 'blue',
           icon: Clock
         };
       }
     } else {
       const finishedAt = new Date(ticket.finalizado_em || ticket.updated_at).getTime();
+      
+      if (isNaN(finishedAt)) {
+        return {
+          label: 'SLA indisponível',
+          description: 'Não foi possível calcular o encerramento',
+          deadlineLabel: `Prazo era: ${formatDateTime(deadline)}`,
+          variant: 'slate',
+          icon: Clock
+        };
+      }
+
       const diff = deadline - finishedAt;
       if (diff >= 0) {
         return {
           label: 'Finalizado dentro do SLA',
           description: 'Concluído no prazo',
-          deadlineLabel: `Prazo era: ${new Date(deadline).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}`,
-          variant: 'emerald' as const,
+          deadlineLabel: `Prazo era: ${formatDateTime(deadline)}`,
+          variant: 'emerald',
           icon: CheckCircle2
         };
       } else {
         return {
           label: 'Finalizado com atraso',
           description: `Atrasou ${formatDuration(diff)}`,
-          deadlineLabel: `Prazo era: ${new Date(deadline).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}`,
-          variant: 'red' as const,
+          deadlineLabel: `Prazo era: ${formatDateTime(deadline)}`,
+          variant: 'red',
           icon: XCircle
         };
       }
@@ -234,18 +270,18 @@ export const TicketProperties = ({ ticket, currentUser, agents, attachments, onU
              <div className="space-y-3 pt-4 border-t border-slate-50">
                 <div className="flex justify-between items-center text-xs font-medium">
                    <span className="text-slate-500">Aberto em</span>
-                   <span className="text-slate-800 font-semibold">{new Date(ticket.created_at).toLocaleDateString()}</span>
+                   <span className="text-slate-800 font-semibold">{formatDate(ticket.created_at)}</span>
                 </div>
                 {ticket.updated_at && ticket.updated_at !== ticket.created_at && (
                   <div className="flex justify-between items-center text-xs font-medium">
                      <span className="text-slate-500">Atualizado</span>
-                     <span className="text-slate-800 font-semibold">{new Date(ticket.updated_at).toLocaleDateString()}</span>
+                     <span className="text-slate-800 font-semibold">{formatDate(ticket.updated_at)}</span>
                   </div>
                 )}
-                {ticket.status === 'fechado' && (ticket.finalizado_em || ticket.updated_at) && (
+                {['resolvido', 'fechado'].includes(ticket.status) && (ticket.finalizado_em || ticket.updated_at) && (
                   <div className="flex justify-between items-center text-xs font-medium">
                      <span className="text-slate-500">Finalizado</span>
-                     <span className="text-slate-800 font-semibold">{new Date(ticket.finalizado_em || ticket.updated_at).toLocaleDateString()}</span>
+                     <span className="text-slate-800 font-semibold">{formatDate(ticket.finalizado_em || ticket.updated_at)}</span>
                   </div>
                 )}
 
@@ -255,7 +291,8 @@ export const TicketProperties = ({ ticket, currentUser, agents, attachments, onU
                     slaInfo.variant === 'red' && "bg-red-50/50 border-red-100",
                     slaInfo.variant === 'amber' && "bg-amber-50/50 border-amber-100",
                     slaInfo.variant === 'blue' && "bg-blue-50/50 border-blue-100",
-                    slaInfo.variant === 'emerald' && "bg-emerald-50/50 border-emerald-100"
+                    slaInfo.variant === 'emerald' && "bg-emerald-50/50 border-emerald-100",
+                    slaInfo.variant === 'slate' && "bg-slate-50/50 border-slate-200"
                   )}>
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Prazos e SLA</span>
@@ -269,7 +306,8 @@ export const TicketProperties = ({ ticket, currentUser, agents, attachments, onU
                          slaInfo.variant === 'red' && "bg-red-100 text-red-600",
                          slaInfo.variant === 'amber' && "bg-amber-100 text-amber-600",
                          slaInfo.variant === 'blue' && "bg-blue-100 text-blue-600",
-                         slaInfo.variant === 'emerald' && "bg-emerald-100 text-emerald-600"
+                         slaInfo.variant === 'emerald' && "bg-emerald-100 text-emerald-600",
+                         slaInfo.variant === 'slate' && "bg-slate-100 text-slate-500"
                        )}>
                           <slaInfo.icon size={14} />
                        </div>
@@ -279,7 +317,8 @@ export const TicketProperties = ({ ticket, currentUser, agents, attachments, onU
                             slaInfo.variant === 'red' && "text-red-700",
                             slaInfo.variant === 'amber' && "text-amber-700",
                             slaInfo.variant === 'blue' && "text-blue-700",
-                            slaInfo.variant === 'emerald' && "text-emerald-700"
+                            slaInfo.variant === 'emerald' && "text-emerald-700",
+                            slaInfo.variant === 'slate' && "text-slate-600"
                           )}>
                             {slaInfo.description}
                           </div>
