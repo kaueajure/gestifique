@@ -10,6 +10,19 @@ import pool from '../db/connection.js';
 
 const router = Router();
 
+function parseTicketQueue(value: unknown): string {
+  const validQueues = [
+    'todos',
+    'meus',
+    'sem_responsavel',
+    'urgentes',
+    'sla_vencido',
+    'vence_em_breve',
+    'aguardando_cliente'
+  ];
+  return typeof value === 'string' && validQueues.includes(value) ? value : 'todos';
+}
+
 router.use(authMiddleware);
 
 router.delete('/cleanup-spam', async (req: AuthRequest, res) => {
@@ -35,13 +48,14 @@ router.get('/', async (req: AuthRequest, res) => {
       return sendSuccess(res, {
         data: [],
         meta: { page: 1, limit: 15, total: 0, totalPages: 1 },
-        summary: { total: 0, aberto: 0, em_andamento: 0, aguardando_cliente: 0, resolvido: 0, fechado: 0 }
+        summary: { total: 0, aberto: 0, em_andamento: 0, aguardando_cliente: 0, resolvido: 0, fechado: 0 },
+        queues: { todos: 0, meus: 0, sem_responsavel: 0, urgentes: 0, sla_vencido: 0, vence_em_breve: 0, aguardando_cliente: 0 }
       });
     }
       
     const responsavelId = toPositiveInt(req.query.responsavel_id);
 
-    const fila = typeof req.query.fila === 'string' ? req.query.fila : 'todos';
+    const fila = parseTicketQueue(req.query.fila);
 
     const filters = {
       empresa_id: currentUser.empresa_id,
@@ -78,8 +92,14 @@ router.get('/kanban', async (req: AuthRequest, res) => {
 
     if (currentUser.desenvolvedor && !empresaIdFilter) {
       return sendSuccess(res, {
-        columns: { aberto: [], em_andamento: [], aguardando_cliente: [], resolvido: [], fechado: [] },
-        totals: { total: 0, aberto: 0, em_andamento: 0, aguardando_cliente: 0, resolvido: 0, fechado: 0 }
+        columns: [
+          { id: 'aberto', title: 'Aberto', count: 0, tickets: [] },
+          { id: 'em_andamento', title: 'Em andamento', count: 0, tickets: [] },
+          { id: 'aguardando_cliente', title: 'Aguardando resposta', count: 0, tickets: [] },
+          { id: 'resolvido', title: 'Finalizado', count: 0, tickets: [] }
+        ],
+        totals: { total: 0, aberto: 0, em_andamento: 0, aguardando_cliente: 0, resolvido: 0, fechado: 0 },
+        queues: { todos: 0, meus: 0, sem_responsavel: 0, urgentes: 0, sla_vencido: 0, vence_em_breve: 0, aguardando_cliente: 0 }
       });
     }
 
@@ -100,7 +120,7 @@ router.get('/kanban', async (req: AuthRequest, res) => {
       ? req.query.categoria 
       : undefined;
 
-    const fila = typeof req.query.fila === 'string' ? req.query.fila : 'todos';
+    const fila = parseTicketQueue(req.query.fila);
 
     const filters = {
       empresa_id: currentUser.empresa_id,

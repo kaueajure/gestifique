@@ -14,8 +14,7 @@ import {
   AlertCircle,
   Clock,
   History,
-  MessageSquare,
-  Search
+  MessageSquare
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { TicketFilters } from '../tickets/TicketFilters';
@@ -43,6 +42,23 @@ const QUEUES: { id: TicketQueue; label: string; icon: React.ComponentType<{ size
   { id: 'vence_em_breve', label: 'Vence breve', icon: History },
   { id: 'aguardando_cliente', label: 'Aguardando', icon: MessageSquare },
 ];
+
+const EMPTY_KANBAN_COLUMNS = [
+  { id: 'aberto' as TicketStatus, title: 'Aberto', count: 0, tickets: [] },
+  { id: 'em_andamento' as TicketStatus, title: 'Em andamento', count: 0, tickets: [] },
+  { id: 'aguardando_cliente' as TicketStatus, title: 'Aguardando resposta', count: 0, tickets: [] },
+  { id: 'resolvido' as TicketStatus, title: 'Finalizado', count: 0, tickets: [] }
+];
+
+const EMPTY_QUEUES = {
+  todos: 0,
+  meus: 0,
+  sem_responsavel: 0,
+  urgentes: 0,
+  sla_vencido: 0,
+  vence_em_breve: 0,
+  aguardando_cliente: 0
+};
 
 export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) => {
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
@@ -77,11 +93,13 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
       setTicketsResponse({
         data: [],
         meta: { page: 1, limit: 15, total: 0, totalPages: 1 },
-        summary: { total: 0, aberto: 0, em_andamento: 0, aguardando_cliente: 0, resolvido: 0, fechado: 0 }
+        summary: { total: 0, aberto: 0, em_andamento: 0, aguardando_cliente: 0, resolvido: 0, fechado: 0 },
+        queues: EMPTY_QUEUES
       });
       setKanbanResponse({
-        columns: { aberto: [], em_andamento: [], aguardando_cliente: [], resolvido: [], fechado: [] },
-        totals: { total: 0, aberto: 0, em_andamento: 0, aguardando_cliente: 0, resolvido: 0, fechado: 0 }
+        columns: EMPTY_KANBAN_COLUMNS,
+        totals: { total: 0, aberto: 0, em_andamento: 0, aguardando_cliente: 0, resolvido: 0, fechado: 0 },
+        queues: EMPTY_QUEUES
       });
       setLoading(false);
       return;
@@ -199,7 +217,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                   key={q.id}
                   onClick={() => setSelectedQueue(q.id)}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border shrink-0",
+                    "relative flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border shrink-0",
                     isActive 
                       ? "bg-white border-blue-200 text-blue-600 shadow-sm ring-1 ring-blue-50" 
                       : "bg-slate-50/50 border-transparent text-slate-500 hover:bg-slate-100/80 hover:text-slate-700"
