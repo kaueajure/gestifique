@@ -183,9 +183,8 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
         <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-lg flex items-center gap-2 text-red-600 text-xs font-bold shrink-0 mx-2">
           <AlertCircle size={14} /> {errorMsg}
         </div>
-      )}
-      <DragDropContextComp onDragEnd={onDragEnd}>
-        <div className="flex gap-4 overflow-x-auto pb-4 pt-2 -mx-2 px-2 snap-x items-start h-[calc(100vh-280px)]">
+      )}      <DragDropContextComp onDragEnd={onDragEnd}>
+        <div className="flex gap-3 overflow-x-auto pb-2 pt-1 -mx-1 px-1 snap-x items-start h-full">
           {localData.columns.map(column => (
             <DroppableComp key={column.id} droppableId={column.id}>
               {(provided: any, snapshot: any) => (
@@ -193,17 +192,18 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                   ref={provided.innerRef}
                   {...provided.droppableProps}
                   className={cn(
-                    "w-[300px] shrink-0 rounded-xl p-3 border snap-center flex flex-col max-h-full transition-colors",
+                    "w-[260px] sm:w-[280px] shrink-0 rounded-xl border snap-center flex flex-col max-h-full transition-colors",
                     snapshot.isDraggingOver ? "bg-blue-50/50 border-blue-200" : "bg-slate-50/50 border-slate-200/60"
                   )}
                 >
-                   <div className="flex items-center justify-between mb-3 px-1">
-                     <h3 className="font-bold text-sm text-slate-700 tracking-tight">{column.title}</h3>
-                     <Badge variant={statusMap[column.id] as any} className="text-[10px] bg-white bg-opacity-100 shadow-sm px-2">
+                   <div className="flex items-center justify-between p-2 pb-1.5">
+                     <h3 className="font-bold text-[11px] uppercase tracking-wider text-slate-500">{column.title}</h3>
+                     <Badge variant={statusMap[column.id] as any} className="text-[10px] bg-white bg-opacity-100 shadow-sm px-1.5 py-0">
                        {column.count}
                      </Badge>
                    </div>
-                                        <div className="flex flex-col gap-3 flex-1 overflow-y-auto custom-scrollbar pr-1 pb-1 min-h-[200px]">
+                   
+                   <div className="flex flex-col gap-2 flex-1 overflow-y-auto custom-scrollbar p-2 pt-0 min-h-[150px]">
                      {column.tickets.map((ticket, index) => {
                        const prazoSLA = ticket.prazo_sla ? new Date(ticket.prazo_sla) : null;
                        const isFinalizado = ticket.status === 'resolvido' || ticket.status === 'fechado';
@@ -233,87 +233,75 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                              {...provided.dragHandleProps}
                              onClick={() => onSelectTicket(ticket.id)}
                              className={cn(
-                               "bg-white rounded-lg p-3 shadow-sm border cursor-pointer hover:shadow-md transition-all group relative shrink-0",
+                               "bg-white rounded-lg p-2.5 shadow-sm border cursor-pointer hover:shadow-md transition-all group relative shrink-0",
                                !snapshot.isDragging && slaStatus === 'expired' && "border-red-500 ring-1 ring-red-500",
                                !snapshot.isDragging && slaStatus === 'warning' && "border-yellow-400",
                                !snapshot.isDragging && isAbertoESemResp && "border-amber-300 bg-amber-50/10",
                                !snapshot.isDragging && !isAbertoESemResp && slaStatus === 'normal' && "border-slate-200 hover:border-slate-300",
-                               snapshot.isDragging && "shadow-xl border-blue-300 ring-4 ring-blue-50 rotate-2 z-50",
+                               snapshot.isDragging && "shadow-xl border-blue-300 ring-4 ring-blue-50 rotate-1 z-50",
                                updatingId === ticket.id && "opacity-50 pointer-events-none"
                              )}
                            >
-                             <div className="flex items-start justify-between gap-2 mb-2">
+                             <div className="flex items-start justify-between gap-2 mb-1.5">
                                <div className="flex-1 min-w-0">
-                                 <div className="flex items-center flex-wrap gap-2 mb-1">
-                                    <span className="text-[10px] font-bold text-slate-400 tracking-tighter block shrink-0">#{ticket.id}</span>
+                                 <div className="flex items-center flex-wrap gap-1.5 mb-1 text-[10px] font-bold">
+                                    <span className="text-slate-400 tracking-tighter shrink-0">#{ticket.id}</span>
                                     {slaStatus === 'expired' && (
-                                      <span className="text-[8px] font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded-sm uppercase tracking-tight animate-pulse border border-red-200 shrink-0">
-                                        SLA Vencido
-                                      </span>
-                                    )}
-                                    {slaStatus === 'warning' && (
-                                      <span className="text-[8px] font-bold bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-sm uppercase tracking-tight border border-yellow-200 shrink-0">
-                                        Vence em breve
+                                      <span className="text-[8px] bg-red-100 text-red-600 px-1 rounded-sm uppercase tracking-tight animate-pulse border border-red-200">
+                                        Vencido
                                       </span>
                                     )}
                                     {isAbertoESemResp && (
-                                      <span className="text-[8px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-sm uppercase tracking-tight border border-amber-200 shrink-0">
+                                      <span className="text-[8px] bg-amber-100 text-amber-700 px-1 rounded-sm uppercase tracking-tight border border-amber-200">
                                         Novo
                                       </span>
                                     )}
                                  </div>
-                                 <h4 className="font-semibold text-sm leading-tight text-slate-900 group-hover:text-blue-700 transition-colors line-clamp-2">
+                                 <h4 className="font-bold text-xs leading-snug text-slate-900 group-hover:text-blue-700 transition-colors line-clamp-2">
                                    {ticket.titulo}
                                  </h4>
                                </div>
-                               <Badge variant={getPriorityVariant(ticket.prioridade || 'media')} className="text-[9px] px-1 font-bold uppercase shrink-0">
+                               <Badge variant={getPriorityVariant(ticket.prioridade || 'media')} className="text-[8px] px-1 font-bold uppercase shrink-0 py-0 h-4 min-w-[40px] flex justify-center">
                                  {ticket.prioridade}
                                </Badge>
                              </div>
 
                              {ticket.tags && ticket.tags.length > 0 && (
-                               <div className="flex flex-wrap gap-1 mt-1">
+                               <div className="flex flex-wrap gap-1 mt-1 mb-2">
                                   {ticket.tags.slice(0, 2).map(tag => (
-                                    <span key={tag} className="text-[8px] font-bold text-slate-400 border border-slate-200 rounded px-1 group-hover:border-slate-300 transition-colors">
+                                    <span key={tag} className="text-[8px] font-bold text-slate-400 border border-slate-200 rounded px-1">
                                       {tag}
                                     </span>
                                   ))}
-                                  {ticket.tags.length > 2 && <span className="text-[8px] text-slate-300">+{ticket.tags.length - 2}</span>}
                                </div>
                              )}
             
-                             <div className="flex flex-col gap-1.5 mt-3 pt-3 border-t border-slate-50">
-                                {!!currentUser.desenvolvedor && ticket.empresa_nome && (
-                                   <div className="flex items-center gap-1 text-[10px] font-bold text-slate-600 uppercase tracking-tight mb-1">
-                                      <Building size={10} className="text-slate-400" />
-                                      <span className="truncate">{ticket.empresa_nome}</span>
-                                   </div>
-                                )}
-                                <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-tight">
+                             <div className="flex flex-col gap-1 pt-2 border-t border-slate-50">
+                                <div className="flex items-center justify-between text-[9px] font-bold text-slate-500 uppercase tracking-tight">
                                    <span className="flex items-center gap-1 min-w-0">
-                                      <UserIcon size={10} className="shrink-0" />
-                                      {ticket.cliente_nome === 'Usuário Removido' ? (
-                                        <Badge variant="slate" className="text-[8px] px-1 py-0 h-4 border-none bg-slate-100 text-slate-500">Conta Excluída</Badge>
-                                      ) : (
-                                        <span className="truncate">{ticket.cliente_nome?.split(' ')[0] || 'Usuário'}</span>
-                                      )}
+                                      <UserIcon size={10} className="shrink-0 text-slate-300" />
+                                      <span className="truncate">{ticket.cliente_nome?.split(' ')[0] || 'Usuário'}</span>
                                    </span>
-                                   <span className="flex items-center gap-1 shrink-0" title="Última atividade"><Clock size={10} />{formatRelativeTime(ticket.updated_at)}</span>
+                                   <span className="flex items-center gap-1 shrink-0 text-slate-400"><Clock size={10} />{formatRelativeTime(ticket.updated_at)}</span>
                                 </div>
                                 
-                                <div className="flex items-center justify-between mt-1">
+                                <div className="flex items-center justify-between mt-0.5">
                                    {ticket.responsavel_nome && ticket.responsavel_nome !== 'Não Atribuído' ? (
-                                     <div className="flex items-center gap-1 text-[10px] font-bold text-indigo-500 uppercase tracking-tight">
-                                        <UserIcon size={10} /> 
-                                        {ticket.responsavel_nome}
+                                     <div className="flex items-center gap-1 text-[9px] font-bold text-indigo-500 uppercase tracking-tight">
+                                        <div className="w-4 h-4 rounded-full bg-indigo-50 flex items-center justify-center border border-indigo-100">
+                                          <UserIcon size={8} />
+                                        </div>
+                                        <span className="truncate max-w-[80px]">{ticket.responsavel_nome}</span>
                                      </div>
                                    ) : (
-                                     <div className="flex items-center gap-1 text-[10px] font-bold text-amber-600 italic uppercase tracking-tight">
+                                     <div className="flex items-center gap-1 text-[9px] font-bold text-amber-600 uppercase tracking-tight">
                                         <ShieldAlert size={10} />
-                                        Atribuir
+                                        <span>Pendente</span>
                                      </div>
                                    )}
-                                   <span className="text-[9px] text-slate-300 font-medium">{new Date(ticket.created_at).toLocaleDateString('pt-BR')}</span>
+                                   {!!currentUser.desenvolvedor && ticket.empresa_nome && (
+                                       <span className="text-[8px] font-bold text-rose-500 truncate max-w-[70px] text-right uppercase tracking-tighter" title={ticket.empresa_nome}>{ticket.empresa_nome}</span>
+                                   )}
                                 </div>
                              </div>
                            </div>
@@ -323,8 +311,8 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                      })}
                      {provided.placeholder}
                      {column.tickets.length === 0 && !snapshot.isDraggingOver && (
-                       <div className="flex-1 min-h-[100px] flex items-center justify-center border-2 border-dashed border-slate-200 rounded-lg p-4">
-                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Vazio</p>
+                       <div className="flex-1 min-h-[80px] flex items-center justify-center border-2 border-dashed border-slate-200 rounded-lg p-2 opacity-50">
+                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest text-center">Nenhum ticket</p>
                        </div>
                      )}
                    </div>

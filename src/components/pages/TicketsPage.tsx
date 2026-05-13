@@ -87,6 +87,8 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
   const [advancedFilters, setAdvancedFilters] = useState<IAdvancedFilters>({
     sla_status: 'todos'
   });
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showTeamSidebar, setShowTeamSidebar] = useState(false);
 
   // Saved Views
   const [savedViews, setSavedViews] = useState<TicketView[]>([]);
@@ -389,60 +391,73 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
   const queueCounts = viewMode === 'list' ? ticketsResponse?.queues : kanbanResponse?.queues;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <PageHeader 
         title="Atendimentos" 
         action={
-          <>
-          {!!currentUser.desenvolvedor && (
-            <div className="relative mr-2 w-56">
-              <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-              <select 
-                value={devCompanyId}
-                onChange={(e) => setDevCompanyId(e.target.value)}
-                className="w-full h-9 bg-white border border-slate-200 rounded-lg pl-9 pr-3 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all appearance-none"
-              >
-                <option value="">Selecione uma empresa...</option>
-                {companies.map(emp => (
-                   <option key={emp.id} value={emp.id}>{emp.nome}</option>
-                ))}
-              </select>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "h-9 gap-2 bg-white text-slate-600 border-slate-200",
+                showTeamSidebar && "bg-blue-50 border-blue-200 text-blue-600"
+              )}
+              onClick={() => setShowTeamSidebar(!showTeamSidebar)}
+            >
+              <UserIcon size={16} />
+              <span className="hidden sm:inline">Equipe</span>
+            </Button>
+            {!!currentUser.desenvolvedor && (
+              <div className="relative w-48">
+                <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                <select 
+                  value={devCompanyId}
+                  onChange={(e) => setDevCompanyId(e.target.value)}
+                  className="w-full h-9 bg-white border border-slate-200 rounded-lg pl-9 pr-3 text-[11px] font-bold uppercase tracking-tight outline-none focus:ring-2 focus:ring-blue-100 transition-all appearance-none"
+                >
+                  <option value="">Empresa...</option>
+                  {companies.map(emp => (
+                     <option key={emp.id} value={emp.id}>{emp.nome}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <Button variant="outline" size="sm" className="h-9 w-9 p-0 bg-white" onClick={fetchData}>
+              <RefreshCw size={16} className={loading ? "animate-spin text-blue-600" : "text-slate-600"} />
+            </Button>
+            <Button variant="outline" size="sm" className="h-9 gap-2 bg-white text-slate-600 border-slate-200" onClick={exportToCSV}>
+              <Download size={16} />
+              <span className="hidden sm:inline">CSV</span>
+            </Button>
+            <div className="bg-slate-100 p-0.5 rounded-lg flex items-center border border-slate-200">
+               <button 
+                 onClick={() => setViewMode('kanban')}
+                 className={`p-1.5 rounded-md text-slate-500 hover:text-slate-900 transition-all ${viewMode === 'kanban' ? 'bg-white shadow-sm font-semibold text-blue-600' : ''}`}
+                 title="Visualização Kanban"
+               >
+                  <Kanban size={16} />
+               </button>
+               <button 
+                 onClick={() => setViewMode('list')}
+                 className={`p-1.5 rounded-md text-slate-500 hover:text-slate-900 transition-all ${viewMode === 'list' ? 'bg-white shadow-sm font-semibold text-blue-600' : ''}`}
+                 title="Visualização em Lista"
+               >
+                  <ListIcon size={16} />
+               </button>
             </div>
-          )}
-          <Button variant="outline" size="sm" className="h-9 w-9 p-0 bg-white" onClick={fetchData}>
-            <RefreshCw size={16} className={loading ? "animate-spin text-blue-600" : "text-slate-600"} />
-          </Button>
-          <Button variant="outline" size="sm" className="h-9 gap-2 bg-white text-slate-600 border-slate-200" onClick={exportToCSV}>
-            <Download size={16} />
-            CSV
-          </Button>
-          <div className="bg-slate-100 p-0.5 rounded-lg flex items-center border border-slate-200 mr-2">
-             <button 
-               onClick={() => setViewMode('kanban')}
-               className={`p-1.5 rounded-md text-slate-500 hover:text-slate-900 transition-all ${viewMode === 'kanban' ? 'bg-white shadow-sm font-semibold text-blue-600' : ''}`}
-               title="Visualização Kanban"
-             >
-                <Kanban size={16} />
-             </button>
-             <button 
-               onClick={() => setViewMode('list')}
-               className={`p-1.5 rounded-md text-slate-500 hover:text-slate-900 transition-all ${viewMode === 'list' ? 'bg-white shadow-sm font-semibold text-blue-600' : ''}`}
-               title="Visualização em Lista"
-             >
-                <ListIcon size={16} />
-             </button>
+            <Button size="sm" className="h-9" onClick={() => setIsModalOpen(true)}>
+              <Plus size={16} className="sm:mr-2" /> 
+              <span className="hidden sm:inline">Novo Atendimento</span>
+            </Button>
           </div>
-          <Button size="sm" className="h-9" onClick={() => setIsModalOpen(true)}>
-            <Plus size={16} className="mr-2" /> Novo Atendimento
-          </Button>
-          </>
         }
       />
 
-      <div className="flex flex-col lg:flex-row gap-6 items-start">
-        <div className="flex-1 w-full space-y-6">
-          {/* Smart Queues Tabs */}
-          <div className="flex items-center gap-1 overflow-x-auto pb-2 scrollbar-none no-scrollbar">
+      <div className="flex flex-col lg:flex-row gap-3 items-start">
+        <div className="flex-1 w-full space-y-3">
+          {/* Smart Queues Tabs - Compact */}
+          <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none no-scrollbar">
             {QUEUES.map((q) => {
               const Icon = q.icon;
               const isActive = selectedQueue === q.id;
@@ -453,37 +468,31 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                   key={q.id}
                   onClick={() => setSelectedQueue(q.id)}
                   className={cn(
-                    "relative flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border shrink-0",
+                    "relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all border shrink-0",
                     isActive 
                       ? "bg-white border-blue-200 text-blue-600 shadow-sm ring-1 ring-blue-50" 
                       : "bg-slate-50/50 border-transparent text-slate-500 hover:bg-slate-100/80 hover:text-slate-700"
                   )}
                 >
-                  <Icon size={14} className={isActive ? "text-blue-500" : "text-slate-400"} />
+                  <Icon size={13} className={isActive ? "text-blue-500" : "text-slate-400"} />
                   <span>{q.label}</span>
                   {count > 0 && (
                     <span 
                       className={cn(
-                        "ml-1 px-1.5 py-0.5 rounded-full text-[10px] leading-none",
+                        "ml-0.5 px-1.5 py-0.5 rounded-full text-[9px] leading-none",
                         isActive ? "bg-blue-100 text-blue-700" : "bg-slate-200 text-slate-600"
                       )}
                     >
                       {count}
                     </span>
                   )}
-                  {isActive && (
-                    <motion.div 
-                      layoutId="activeQueue"
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 rounded-full"
-                    />
-                  )}
                 </button>
               );
             })}
           </div>
 
-          <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 pb-4 border-b border-slate-100">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="flex flex-col xl:flex-row xl:items-center gap-3 p-2.5">
               <TicketSavedViews 
                 views={savedViews}
                 currentViewId={currentViewId}
@@ -491,58 +500,80 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                 onSaveCurrent={handleSaveView}
                 onDeleteView={handleDeleteView}
               />
+              
+              <div className="hidden xl:block w-px h-6 bg-slate-100" />
+              
+              <div className="flex-1">
+                <TicketFilters 
+                  searchTerm={searchTerm} setSearchTerm={setSearchTerm}
+                  statusFilter={statusFilter} setStatusFilter={setStatusFilter}
+                  priorityFilter={priorityFilter} setPriorityFilter={setPriorityFilter}
+                  categoryFilter={categoryFilter} setCategoryFilter={setCategoryFilter}
+                  showAdvanced={showAdvanced}
+                  onToggleAdvanced={() => setShowAdvanced(!showAdvanced)}
+                  hasAdvancedFilters={hasAdvancedFilters}
+                />
+              </div>
             </div>
             
-            <TicketFilters 
-              searchTerm={searchTerm} setSearchTerm={setSearchTerm}
-              statusFilter={statusFilter} setStatusFilter={setStatusFilter}
-              priorityFilter={priorityFilter} setPriorityFilter={setPriorityFilter}
-              categoryFilter={categoryFilter} setCategoryFilter={setCategoryFilter}
+            <TicketAdvancedFilters 
+              filters={advancedFilters}
+              onFilterChange={setAdvancedFilters}
+              onClear={() => setAdvancedFilters({ sla_status: 'todos' })}
+              agents={agents}
+              isOpen={showAdvanced}
             />
           </div>
-
-          <TicketAdvancedFilters 
-            filters={advancedFilters}
-            onFilterChange={setAdvancedFilters}
-            onClear={() => setAdvancedFilters({ sla_status: 'todos' })}
-            agents={agents}
-          />
 
           {viewMode === 'list' && ticketsResponse && <TicketSummaryCards summary={ticketsResponse.summary} />}
           {viewMode === 'kanban' && kanbanResponse && <TicketSummaryCards summary={kanbanResponse.totals} />}
 
-          {!!currentUser.desenvolvedor && !devCompanyId ? (
-            <div className="p-20 flex flex-col items-center justify-center space-y-3 bg-white rounded-xl border border-slate-200">
-               <Building className="w-8 h-8 text-slate-300" />
-               <p className="text-sm text-slate-500 font-medium tracking-tight">Selecione uma empresa para visualizar atendimentos.</p>
-            </div>
-          ) : loading && (!kanbanResponse && !ticketsResponse) ? (
-            <div className="p-20 flex flex-col items-center justify-center space-y-3 bg-white rounded-xl border border-slate-200">
-               <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
-               <p className="text-xs text-slate-500 font-bold tracking-tight uppercase">Carregando...</p>
-            </div>
-          ) : error ? (
-            <div className="p-10 bg-red-50 border border-red-100 text-red-600 text-center rounded-xl text-sm font-semibold">
-               {error}
-            </div>
-          ) : viewMode === 'kanban' && kanbanResponse ? (
-            <TicketKanban kanbanData={kanbanResponse} onSelectTicket={onSelectTicket} currentUser={currentUser} onStatusChange={() => fetchData()} />
-          ) : viewMode === 'list' && ticketsResponse ? (
-            <TicketList 
-              tickets={ticketsResponse.data} 
-              meta={ticketsResponse.meta}
-              onPageChange={setCurrentPage}
-              onSelectTicket={onSelectTicket} 
-              searchTerm={searchTerm} 
-              hasFilters={hasAnyFilters}
-              selectedTicketIds={selectedTicketIds}
-              onSelectionChange={setSelectedTicketIds}
-              canSelectBulk={!!(currentUser.administrador || currentUser.desenvolvedor)}
-            />
-          ) : null}
+          <div className={cn(
+            "transition-all duration-300",
+            viewMode === 'kanban' ? "h-[calc(100vh-220px)] min-h-[450px]" : ""
+          )}>
+            {!!currentUser.desenvolvedor && !devCompanyId ? (
+              <div className="h-full flex flex-col items-center justify-center space-y-3 bg-white rounded-xl border border-slate-200 py-10">
+                 <Building className="w-8 h-8 text-slate-300" />
+                 <p className="text-sm text-slate-500 font-medium tracking-tight">Selecione uma empresa para visualizar atendimentos.</p>
+              </div>
+            ) : loading && (!kanbanResponse && !ticketsResponse) ? (
+              <div className="h-full flex flex-col items-center justify-center space-y-3 bg-white rounded-xl border border-slate-200 py-10">
+                 <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+                 <p className="text-xs text-slate-500 font-bold tracking-tight uppercase">Carregando...</p>
+              </div>
+            ) : error ? (
+              <div className="p-10 bg-red-50 border border-red-100 text-red-600 text-center rounded-xl text-sm font-semibold">
+                 {error}
+              </div>
+            ) : viewMode === 'kanban' && kanbanResponse ? (
+              <TicketKanban kanbanData={kanbanResponse} onSelectTicket={onSelectTicket} currentUser={currentUser} onStatusChange={() => fetchData()} />
+            ) : viewMode === 'list' && ticketsResponse ? (
+              <TicketList 
+                tickets={ticketsResponse.data} 
+                meta={ticketsResponse.meta}
+                onPageChange={setCurrentPage}
+                onSelectTicket={onSelectTicket} 
+                searchTerm={searchTerm} 
+                hasFilters={hasAnyFilters}
+                selectedTicketIds={selectedTicketIds}
+                onSelectionChange={setSelectedTicketIds}
+                canSelectBulk={!!(currentUser.administrador || currentUser.desenvolvedor)}
+              />
+            ) : null}
+          </div>
         </div>
         
-        <TeamSidebar currentUser={currentUser} />
+        {showTeamSidebar && (
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            className="w-full lg:w-64 shrink-0"
+          >
+            <TeamSidebar currentUser={currentUser} devCompanyId={devCompanyId} />
+          </motion.div>
+        )}
       </div>
 
       <TicketBulkActions 

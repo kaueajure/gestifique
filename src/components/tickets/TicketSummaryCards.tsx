@@ -8,31 +8,32 @@ interface SummaryProps {
 
 export const TicketSummaryCards = ({ summary }: SummaryProps) => {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-      <Card className="p-3 bg-slate-50 border-slate-200">
-        <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-tight mb-1">Total</h4>
-        <p className="text-xl font-semibold text-slate-800">{summary.total}</p>
-      </Card>
-      <Card className="p-3 bg-blue-50 border-blue-100">
-        <h4 className="text-[10px] font-bold text-blue-500 uppercase tracking-tight mb-1">Abertos</h4>
-        <p className="text-xl font-semibold text-blue-900">{summary.aberto}</p>
-      </Card>
-      <Card className="p-3 bg-indigo-50 border-indigo-100">
-        <h4 className="text-[10px] font-bold text-indigo-500 uppercase tracking-tight mb-1">Em Andamento</h4>
-        <p className="text-xl font-semibold text-indigo-900">{summary.em_andamento}</p>
-      </Card>
-      <Card className="p-3 bg-amber-50 border-amber-100">
-        <h4 className="text-[10px] font-bold text-amber-500 uppercase tracking-tight mb-1">Aguardando</h4>
-        <p className="text-xl font-semibold text-amber-900">{summary.aguardando_cliente}</p>
-      </Card>
-      <Card className="p-3 bg-emerald-50 border-emerald-100">
-        <h4 className="text-[10px] font-bold text-emerald-500 uppercase tracking-tight mb-1">Resolvidos</h4>
-        <p className="text-xl font-semibold text-emerald-900">{summary.resolvido}</p>
-      </Card>
-      <Card className="p-3 bg-slate-100 border-slate-200">
-        <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-tight mb-1">Fechados</h4>
-        <p className="text-xl font-semibold text-slate-700">{summary.fechado}</p>
-      </Card>
+    <div className="flex items-center gap-2 overflow-x-auto bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-sm no-scrollbar">
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 shrink-0">
+        <span className="text-[10px] uppercase text-slate-500 font-bold tracking-tight">Total</span>
+        <span className="text-sm font-bold text-slate-900">{summary.total}</span>
+      </div>
+      <div className="w-px h-4 bg-slate-200" />
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-50 shrink-0">
+        <span className="text-[10px] uppercase text-blue-500 font-bold tracking-tight">Abertos</span>
+        <span className="text-sm font-bold text-blue-900">{summary.aberto}</span>
+      </div>
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-50 shrink-0">
+        <span className="text-[10px] uppercase text-indigo-500 font-bold tracking-tight">Em Andamento</span>
+        <span className="text-sm font-bold text-indigo-900">{summary.em_andamento}</span>
+      </div>
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-50 shrink-0">
+        <span className="text-[10px] uppercase text-amber-500 font-bold tracking-tight">Aguardando</span>
+        <span className="text-sm font-bold text-amber-900">{summary.aguardando_cliente}</span>
+      </div>
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 shrink-0">
+        <span className="text-[10px] uppercase text-emerald-500 font-bold tracking-tight">Resolvidos</span>
+        <span className="text-sm font-bold text-emerald-900">{summary.resolvido}</span>
+      </div>
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 shrink-0">
+        <span className="text-[10px] uppercase text-slate-500 font-bold tracking-tight">Fechados</span>
+        <span className="text-sm font-bold text-slate-700">{summary.fechado}</span>
+      </div>
     </div>
   );
 };

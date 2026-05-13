@@ -129,7 +129,7 @@ export const TicketList = ({
             key={ticket.id}
             onClick={() => onSelectTicket(ticket.id)}
             className={cn(
-              "p-3 px-5 flex flex-col sm:items-center sm:flex-row gap-3 transition-colors cursor-pointer group",
+              "p-2 px-4 flex flex-col sm:items-center sm:flex-row gap-2.5 transition-colors cursor-pointer group",
               isSelected ? "bg-blue-50/50 hover:bg-blue-50 border-l-2 border-l-blue-500" :
               slaStatus === 'expired' ? "bg-red-50/50 hover:bg-red-50 border-l-2 border-l-red-500" : 
               slaStatus === 'warning' ? "bg-yellow-50/50 hover:bg-yellow-50 border-l-2 border-l-yellow-400" :
@@ -137,75 +137,68 @@ export const TicketList = ({
               "hover:bg-slate-50/50 border-l-2 border-l-transparent"
             )}
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
               {canSelectBulk && (
                  <input 
                    type="checkbox" 
-                   className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                   className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                    checked={isSelected}
                    onClick={(e) => toggleSelectTicket(e, ticket.id)}
                    onChange={() => {}}
                  />
               )}
               <div className={cn(
-                "w-8 h-8 rounded-lg flex items-center justify-center border transition-colors shadow-sm bg-white shrink-0",
+                "w-7 h-7 rounded-lg flex items-center justify-center border transition-colors shadow-sm bg-white shrink-0",
                 ticket.status === 'resolvido' ? "text-emerald-500 border-emerald-100" : 
                 isAbertoESemResp ? "text-amber-500 border-amber-100" :
                 "text-slate-400 group-hover:text-blue-600 border-slate-100 group-hover:border-blue-100"
               )}>
-                {isAbertoESemResp ? <ShieldAlert size={14} /> : <MessageSquare size={14} />}
+                {isAbertoESemResp ? <ShieldAlert size={12} /> : <MessageSquare size={12} />}
               </div>
             </div>
 
             <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-2 mb-0.5">
-                <span className="text-sm font-bold text-slate-900 truncate group-hover:text-blue-700 transition-colors leading-tight">{ticket.titulo}</span>
-                <Badge variant={statusMap[ticket.status || 'aberto']} className="text-[9px] py-0 px-1.5 font-bold uppercase tracking-tighter">{(ticket.status || 'aberto').replace('_', ' ')}</Badge>
+              <div className="flex flex-wrap items-center gap-1.5 mb-0">
+                <span className="text-xs font-bold text-slate-800 truncate group-hover:text-blue-700 transition-colors leading-tight">{ticket.titulo}</span>
+                <Badge variant={statusMap[ticket.status || 'aberto']} className="text-[8px] py-0 px-1 font-bold uppercase tracking-tighter h-3.5">{(ticket.status || 'aberto').replace('_', ' ')}</Badge>
                 {slaStatus === 'expired' && (
-                  <span className="text-[8px] font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded-sm uppercase tracking-tight animate-pulse border border-red-200">
-                    SLA Vencido
-                  </span>
-                )}
-                {slaStatus === 'warning' && (
-                  <span className="text-[8px] font-bold bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-sm uppercase tracking-tight border border-yellow-200">
-                    Vence em breve
+                  <span className="text-[8px] font-bold bg-red-100 text-red-600 px-1 py-0 rounded-sm uppercase tracking-tight animate-pulse border border-red-200">
+                    Vencido
                   </span>
                 )}
                 {isAbertoESemResp && (
-                  <span className="text-[8px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-sm uppercase tracking-tight border border-amber-200">
-                    Aguardando Atribuição
+                  <span className="text-[8px] font-bold bg-amber-100 text-amber-700 px-1 py-0 rounded-sm uppercase tracking-tight border border-amber-200">
+                    Novo
                   </span>
                 )}
-                {/* Tags displayed discreetly */}
                 <div className="flex gap-1 ml-1">
-                  {ticket.tags?.slice(0, 3).map(tag => (
-                    <span key={tag} className="text-[8px] font-bold text-slate-400 border border-slate-200 rounded px-1 group-hover:border-slate-300 group-hover:text-slate-500 transition-colors">{tag}</span>
+                  {ticket.tags?.slice(0, 2).map(tag => (
+                    <span key={tag} className="text-[8px] font-bold text-slate-400 border border-slate-200 rounded px-1">{tag}</span>
                   ))}
-                  {ticket.tags && ticket.tags.length > 3 && <span className="text-[8px] text-slate-400 mt-0.5">+{ticket.tags.length - 3}</span>}
                 </div>
               </div>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] font-bold text-slate-400">
-                <span className="text-blue-600 tracking-tighter">#{ticket.id}</span>
-                <span className="flex items-center gap-1.5 tracking-tight uppercase"><UserIcon size={10} className="text-slate-300" /> {ticket.cliente_nome || 'Usuário'}</span>
-                <span className="flex items-center gap-1.5 tracking-tight uppercase italic"><Tag size={10} className="text-slate-300" /> {(ticket.categoria || 'suporte').replace('_', ' ')}</span>
-                <span className="flex items-center gap-1.5 tracking-tight uppercase"><Clock size={10} className="text-slate-300" title="Última atividade" /> {formatRelativeTime(ticket.updated_at)}</span>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[9px] font-bold text-slate-400 uppercase tracking-tight">
+                <span className="text-blue-600 font-black">#{ticket.id}</span>
+                <span className="flex items-center gap-1"><UserIcon size={9} className="text-slate-300" /> {ticket.cliente_nome?.split(' ')[0] || 'Usuário'}</span>
+                <span className="flex items-center gap-1 italic"><Tag size={9} className="text-slate-300" /> {(ticket.categoria || 'suporte')}</span>
+                <span className="flex items-center gap-1"><Clock size={9} className="text-slate-300" /> {formatRelativeTime(ticket.updated_at)}</span>
                 {ticket.responsavel_nome && ticket.responsavel_nome !== 'Não Atribuído' ? (
-                   <span className="flex items-center gap-1.5 tracking-tight uppercase text-indigo-500 font-bold"><UserIcon size={10} className="text-indigo-300" /> {ticket.responsavel_nome}</span>
+                   <span className="flex items-center gap-1 text-indigo-500"><UserIcon size={9} className="text-indigo-300" /> {ticket.responsavel_nome}</span>
                 ) : (
-                   <span className="flex items-center gap-1.5 tracking-tight uppercase text-amber-600 italic font-medium">Sem responsável</span>
+                   <span className="flex items-center gap-1 text-amber-600 italic">Pendente</span>
                 )}
                 {ticket.empresa_nome && (
-                   <span className="flex items-center gap-1.5 tracking-tight uppercase text-rose-500 min-w-max ml-auto">{ticket.empresa_nome}</span>
+                   <span className="flex items-center gap-1 text-rose-500 ml-auto">{ticket.empresa_nome}</span>
                 )}
               </div>
             </div>
 
-            <div className="flex items-center gap-4 ml-auto sm:ml-0 shrink-0">
-              <Badge variant={getPriorityVariant(ticket.prioridade || 'media')} className="font-bold uppercase text-[9px] px-1.5 py-0 tracking-widest border-none">
+            <div className="flex items-center gap-3 ml-auto sm:ml-0 shrink-0">
+              <Badge variant={getPriorityVariant(ticket.prioridade || 'media')} className="font-bold uppercase text-[8px] px-1 py-0 tracking-tighter border-none h-4">
                 {ticket.prioridade || 'media'}
               </Badge>
-              <div className="h-7 w-7 rounded-lg border border-slate-100 flex items-center justify-center text-slate-300 opacity-40 group-hover:opacity-100 group-hover:bg-slate-900 group-hover:text-white group-hover:border-slate-900 transition-all">
-                <ChevronRight size={14} />
+              <div className="h-6 w-6 rounded-lg border border-slate-100 flex items-center justify-center text-slate-300 opacity-40 group-hover:opacity-100 group-hover:bg-slate-900 group-hover:text-white group-hover:border-slate-900 transition-all">
+                <ChevronRight size={12} />
               </div>
             </div>
           </div>

@@ -40,30 +40,33 @@ export const TeamSidebar = ({ currentUser, devCompanyId }: TeamSidebarProps) => 
   if (!currentUser.empresa_id && !currentUser.desenvolvedor) return null;
 
   return (
-    <Card className="w-full lg:w-72 shrink-0 p-4 sticky top-6 self-start">
-      <div className="flex items-center gap-2 mb-4">
-        <Users size={16} className="text-slate-500" />
-        <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500">Equipe de Atendimento</h3>
+    <Card className="w-full shrink-0 p-3 bg-white border-slate-200 shadow-sm overflow-hidden">
+      <div className="flex items-center gap-2 mb-3 px-1">
+        <Users size={14} className="text-slate-400" />
+        <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Membros da Equipe</h3>
       </div>
       
       {loading ? (
-        <div className="flex justify-center p-6">
-          <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+        <div className="flex justify-center p-4">
+          <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
         </div>
       ) : error ? (
-        <div className="text-red-500 text-xs text-center border py-2 rounded-lg bg-red-50">{error}</div>
+        <div className="text-red-500 text-[10px] text-center border py-2 rounded-lg bg-red-50">{error}</div>
       ) : team.length === 0 ? (
-        <div className="text-slate-400 text-xs text-center border-y py-4">Nenhum membro encontrado.</div>
+        <div className="text-slate-400 text-[10px] font-bold uppercase tracking-tight text-center border border-dashed py-4 rounded-lg">Vazio</div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
           {team.map((member) => (
-             <div key={member.id} className="flex items-center justify-between p-2 rounded-lg border border-slate-100 bg-slate-50/50">
-               <div>
-                 <p className="text-xs font-bold text-slate-800">{member.nome}</p>
-                 <p className="text-[10px] text-slate-400 font-medium truncate w-32">{member.cargo || member.email}</p>
+             <div key={member.id} className="flex items-center justify-between p-2 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+               <div className="min-w-0">
+                 <p className="text-[11px] font-bold text-slate-800 truncate">{member.nome}</p>
+                 <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tight truncate w-28">{member.cargo || 'Agente'}</p>
                </div>
-               <div className="text-[10px] font-bold text-center px-2 py-1 bg-white border border-slate-200 rounded text-slate-600 shadow-sm">
-                 {member.ticket_count || 0} tickets
+               <div className="flex flex-col items-end shrink-0">
+                 <div className="text-[10px] font-black text-blue-600">
+                   {member.ticket_count || 0}
+                 </div>
+                 <div className="text-[8px] font-bold uppercase text-slate-400 leading-none">Tickets</div>
                </div>
              </div>
           ))}
