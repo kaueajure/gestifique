@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { TicketKanbanColumn, TicketKanbanResponse, User, Ticket } from '../../types';
 import { Badge } from '../ui/Badge';
-import { MessageSquare, User as UserIcon, Calendar, Loader2, AlertCircle, Building } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { MessageSquare, User as UserIcon, Calendar, Loader2, AlertCircle, Building, Clock, ShieldAlert } from 'lucide-react';
+import { cn, formatRelativeTime } from '../../lib/utils';
 import { api } from '../../lib/api';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { getSocket } from '../../lib/socket';
@@ -223,7 +223,10 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                          index={index} 
                          isDragDisabled={!canManage}
                        >
-                         {(provided: any, snapshot: any) => (
+                         {(provided: any, snapshot: any) => {
+                           const isAbertoESemResp = ticket.status === 'aberto' && !ticket.responsavel_id;
+                           
+                           return (
                            <div 
                              ref={provided.innerRef}
                              {...provided.draggableProps}
@@ -233,23 +236,29 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                                "bg-white rounded-lg p-3 shadow-sm border cursor-pointer hover:shadow-md transition-all group relative shrink-0",
                                !snapshot.isDragging && slaStatus === 'expired' && "border-red-500 ring-1 ring-red-500",
                                !snapshot.isDragging && slaStatus === 'warning' && "border-yellow-400",
-                               !snapshot.isDragging && slaStatus === 'normal' && "border-slate-200 hover:border-slate-300",
+                               !snapshot.isDragging && isAbertoESemResp && "border-amber-300 bg-amber-50/10",
+                               !snapshot.isDragging && !isAbertoESemResp && slaStatus === 'normal' && "border-slate-200 hover:border-slate-300",
                                snapshot.isDragging && "shadow-xl border-blue-300 ring-4 ring-blue-50 rotate-2 z-50",
                                updatingId === ticket.id && "opacity-50 pointer-events-none"
                              )}
                            >
                              <div className="flex items-start justify-between gap-2 mb-2">
                                <div className="flex-1 min-w-0">
-                                 <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-[10px] font-bold text-slate-400 tracking-tighter block">#{ticket.id}</span>
+                                 <div className="flex items-center flex-wrap gap-2 mb-1">
+                                    <span className="text-[10px] font-bold text-slate-400 tracking-tighter block shrink-0">#{ticket.id}</span>
                                     {slaStatus === 'expired' && (
-                                      <span className="text-[8px] font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded-sm uppercase tracking-tight animate-pulse border border-red-200">
+                                      <span className="text-[8px] font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded-sm uppercase tracking-tight animate-pulse border border-red-200 shrink-0">
                                         SLA Vencido
                                       </span>
                                     )}
                                     {slaStatus === 'warning' && (
-                                      <span className="text-[8px] font-bold bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-sm uppercase tracking-tight border border-yellow-200">
+                                      <span className="text-[8px] font-bold bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-sm uppercase tracking-tight border border-yellow-200 shrink-0">
                                         Vence em breve
+                                      </span>
+                                    )}
+                                    {isAbertoESemResp && (
+                                      <span className="text-[8px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-sm uppercase tracking-tight border border-amber-200 shrink-0">
+                                        Novo
                                       </span>
                                     )}
                                  </div>
@@ -278,21 +287,26 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                                         <span className="truncate">{ticket.cliente_nome?.split(' ')[0] || 'Usuário'}</span>
                                       )}
                                    </span>
-                                   <span className="flex items-center gap-1 shrink-0"><Calendar size={10} />{new Date(ticket.created_at).toLocaleDateString()}</span>
+                                   <span className="flex items-center gap-1 shrink-0" title="Última atividade"><Clock size={10} />{formatRelativeTime(ticket.updated_at)}</span>
                                 </div>
-                                {ticket.responsavel_nome && (
-                                  <div className="flex items-center gap-1 text-[10px] font-bold text-indigo-400 uppercase tracking-tight">
-                                     <UserIcon size={10} /> 
-                                     {ticket.responsavel_nome === 'Não Atribuído' ? (
-                                       <span className="text-slate-300 italic">Não Atribuído</span>
-                                     ) : (
-                                       ticket.responsavel_nome
-                                     )}
-                                  </div>
-                                )}
+                                
+                                <div className="flex items-center justify-between mt-1">
+                                   {ticket.responsavel_nome && ticket.responsavel_nome !== 'Não Atribuído' ? (
+                                     <div className="flex items-center gap-1 text-[10px] font-bold text-indigo-500 uppercase tracking-tight">
+                                        <UserIcon size={10} /> 
+                                        {ticket.responsavel_nome}
+                                     </div>
+                                   ) : (
+                                     <div className="flex items-center gap-1 text-[10px] font-bold text-amber-600 italic uppercase tracking-tight">
+                                        <ShieldAlert size={10} />
+                                        Atribuir
+                                     </div>
+                                   )}
+                                   <span className="text-[9px] text-slate-300 font-medium">{new Date(ticket.created_at).toLocaleDateString()}</span>
+                                </div>
                              </div>
                            </div>
-                         )}
+                         )}}
                        </DraggableComp>
                        );
                      })}

@@ -1,8 +1,8 @@
 import React from 'react';
 import { Ticket } from '../../types';
-import { MessageSquare, ChevronRight, User as UserIcon, Tag, Calendar, Search } from 'lucide-react';
+import { MessageSquare, ChevronRight, User as UserIcon, Tag, Calendar, Search, Clock, ShieldAlert } from 'lucide-react';
 import { Badge } from '../ui/Badge';
-import { cn } from '../../lib/utils';
+import { cn, formatRelativeTime } from '../../lib/utils';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 
@@ -69,6 +69,7 @@ export const TicketList = ({ tickets, onSelectTicket, searchTerm, hasFilters, me
         {tickets.map((ticket) => {
           const prazoSLA = ticket.prazo_sla ? new Date(ticket.prazo_sla) : null;
           const isFinalizado = ticket.status === 'resolvido' || ticket.status === 'fechado';
+          const isAbertoESemResp = ticket.status === 'aberto' && !ticket.responsavel_id;
           let slaStatus: 'normal' | 'warning' | 'expired' = 'normal';
 
           if (prazoSLA && !isFinalizado) {
@@ -86,14 +87,17 @@ export const TicketList = ({ tickets, onSelectTicket, searchTerm, hasFilters, me
               "p-3 px-5 flex flex-col sm:flex-row sm:items-center gap-3 transition-colors cursor-pointer group",
               slaStatus === 'expired' ? "bg-red-50/50 hover:bg-red-50 border-l-2 border-l-red-500" : 
               slaStatus === 'warning' ? "bg-yellow-50/50 hover:bg-yellow-50 border-l-2 border-l-yellow-400" :
+              isAbertoESemResp ? "bg-amber-50/30 hover:bg-amber-50/50 border-l-2 border-l-amber-300" :
               "hover:bg-slate-50/50 border-l-2 border-l-transparent"
             )}
           >
             <div className={cn(
               "w-8 h-8 rounded-lg flex items-center justify-center border transition-colors shadow-sm bg-white shrink-0",
-              ticket.status === 'resolvido' ? "text-emerald-500 border-emerald-50" : "text-slate-400 group-hover:text-blue-600 border-slate-100 group-hover:border-blue-100"
+              ticket.status === 'resolvido' ? "text-emerald-500 border-emerald-100" : 
+              isAbertoESemResp ? "text-amber-500 border-amber-100" :
+              "text-slate-400 group-hover:text-blue-600 border-slate-100 group-hover:border-blue-100"
             )}>
-              <MessageSquare size={14} />
+              {isAbertoESemResp ? <ShieldAlert size={14} /> : <MessageSquare size={14} />}
             </div>
 
             <div className="flex-1 min-w-0">
@@ -110,14 +114,21 @@ export const TicketList = ({ tickets, onSelectTicket, searchTerm, hasFilters, me
                     Vence em breve
                   </span>
                 )}
+                {isAbertoESemResp && (
+                  <span className="text-[8px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-sm uppercase tracking-tight border border-amber-200">
+                    Aguardando Atribuição
+                  </span>
+                )}
               </div>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] font-bold text-slate-400">
                 <span className="text-blue-600 tracking-tighter">#{ticket.id}</span>
                 <span className="flex items-center gap-1.5 tracking-tight uppercase"><UserIcon size={10} className="text-slate-300" /> {ticket.cliente_nome || 'Usuário'}</span>
                 <span className="flex items-center gap-1.5 tracking-tight uppercase italic"><Tag size={10} className="text-slate-300" /> {(ticket.categoria || 'suporte').replace('_', ' ')}</span>
-                <span className="flex items-center gap-1.5 tracking-tight uppercase"><Calendar size={10} className="text-slate-300" /> {new Date(ticket.created_at).toLocaleDateString()}</span>
-                {ticket.responsavel_nome && (
-                   <span className="flex items-center gap-1.5 tracking-tight uppercase text-indigo-500"><UserIcon size={10} className="text-indigo-300" /> {ticket.responsavel_nome}</span>
+                <span className="flex items-center gap-1.5 tracking-tight uppercase"><Clock size={10} className="text-slate-300" title="Última atividade" /> {formatRelativeTime(ticket.updated_at)}</span>
+                {ticket.responsavel_nome && ticket.responsavel_nome !== 'Não Atribuído' ? (
+                   <span className="flex items-center gap-1.5 tracking-tight uppercase text-indigo-500 font-bold"><UserIcon size={10} className="text-indigo-300" /> {ticket.responsavel_nome}</span>
+                ) : (
+                   <span className="flex items-center gap-1.5 tracking-tight uppercase text-amber-600 italic font-medium">Sem responsável</span>
                 )}
                 {ticket.empresa_nome && (
                    <span className="flex items-center gap-1.5 tracking-tight uppercase text-rose-500 min-w-max ml-auto">{ticket.empresa_nome}</span>

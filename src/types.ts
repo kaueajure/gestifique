@@ -138,6 +138,17 @@ export interface TicketAttachment {
   url?: string;
 }
 
+export interface TicketTimelineItem {
+  type: 'creation' | 'response' | 'internal_note' | 'system' | 'completion';
+  date: string;
+  author: string;
+  description: string;
+  id?: number;
+  is_internal?: boolean;
+  action?: string;
+  icon?: string;
+}
+
 export interface Log {
   id: number;
   acao: string;

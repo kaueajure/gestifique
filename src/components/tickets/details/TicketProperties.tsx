@@ -3,10 +3,10 @@ import { User, Ticket, TicketStatus, TicketPriority, TicketAttachment } from '..
 import { Card, CardHeader, CardTitle, CardContent } from '../../ui/Card';
 import { Badge } from '../../ui/Badge';
 import { Button } from '../../ui/Button';
-import { User as UserIcon, Building2, Tag, Calendar, Trash2, Paperclip, Clock, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
+import { User as UserIcon, Building2, Tag, Calendar, Trash2, Paperclip, Clock, AlertTriangle, CheckCircle2, XCircle, Activity } from 'lucide-react';
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { AttachmentList } from '../../ui/AttachmentList';
-import { cn } from '../../../lib/utils';
+import { cn, formatRelativeTime } from '../../../lib/utils';
 
 interface TicketPropertiesProps {
   ticket: Ticket;
@@ -271,6 +271,12 @@ export const TicketProperties = ({ ticket, currentUser, agents, attachments, onU
                 <div className="flex justify-between items-center text-xs font-medium">
                    <span className="text-slate-500">Aberto em</span>
                    <span className="text-slate-800 font-semibold">{formatDate(ticket.created_at)}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs font-medium">
+                   <span className="text-slate-500">Atividade</span>
+                   <span className="text-blue-600 font-bold flex items-center gap-1 uppercase tracking-tighter">
+                     <Activity size={10} /> {formatRelativeTime(ticket.updated_at)}
+                   </span>
                 </div>
                 {ticket.updated_at && ticket.updated_at !== ticket.created_at && (
                   <div className="flex justify-between items-center text-xs font-medium">

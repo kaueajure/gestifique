@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
-import { Ticket, Message, User, TicketAttachment } from '../../types';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { Ticket, Message, User, TicketAttachment, TicketTimelineItem } from '../../types';
+import { AlertCircle, Loader2, MessageSquare, History } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { TicketHeader } from '../tickets/details/TicketHeader';
 import { TicketProperties } from '../tickets/details/TicketProperties';
 import { TicketConversation } from '../tickets/details/TicketConversation';
+import { TicketTimeline } from '../tickets/details/TicketTimeline';
 import { cn } from '../../lib/utils';
 
 interface TicketDetailsPageProps {
@@ -19,7 +20,10 @@ interface TicketDetailsPageProps {
 export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetailsPageProps) => {
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [timeline, setTimeline] = useState<TicketTimelineItem[]>([]);
+  const [activeTab, setActiveTab] = useState<'messages' | 'timeline'>('messages');
   const [loading, setLoading] = useState(true);
+  const [loadingTimeline, setLoadingTimeline] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const [loadingSend, setLoadingSend] = useState(false);
@@ -52,11 +56,26 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
         });
         setAgents(filteredAgents);
       }
+      
+      // Load timeline in parallel or when needed
+      loadTimeline();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao carregar detalhes do atendimento.';
       setError(message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadTimeline = async () => {
+    setLoadingTimeline(true);
+    try {
+      const timelineData = await api.get<TicketTimelineItem[]>(`/tickets/${ticketId}/timeline`);
+      setTimeline(timelineData);
+    } catch (err) {
+      console.error('Erro ao carregar linha do tempo:', err);
+    } finally {
+      setLoadingTimeline(false);
     }
   };
 
@@ -214,19 +233,51 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
 
           {/* Histórico/Mensagens */}
           <Card className="flex flex-col">
-            <CardHeader className="py-2.5 px-5 border-b border-slate-50">
-               <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Histórico</CardTitle>
+            <CardHeader className="py-0 px-5 border-b border-slate-50 flex flex-row items-center justify-between">
+               <div className="flex">
+                  <button 
+                    onClick={() => setActiveTab('messages')}
+                    className={cn(
+                      "flex items-center gap-2 py-3 px-4 text-[10px] font-bold uppercase tracking-widest transition-all border-b-2",
+                      activeTab === 'messages' ? "text-blue-600 border-blue-600" : "text-slate-400 border-transparent hover:text-slate-600"
+                    )}
+                  >
+                    <MessageSquare size={12} />
+                    Mensagens
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('timeline')}
+                    className={cn(
+                      "flex items-center gap-2 py-3 px-4 text-[10px] font-bold uppercase tracking-widest transition-all border-b-2",
+                      activeTab === 'timeline' ? "text-blue-600 border-blue-600" : "text-slate-400 border-transparent hover:text-slate-600"
+                    )}
+                  >
+                    <History size={12} />
+                    Linha do Tempo
+                  </button>
+               </div>
+               <Badge variant="slate" className="text-[9px] px-1.5 py-0 border-none bg-slate-50 text-slate-400">
+                 {activeTab === 'messages' ? `${messages.length} mensagens` : `${timeline.length} eventos`}
+               </Badge>
             </CardHeader>
-            <TicketConversation 
-               ticket={ticket}
-               messages={messages}
-               onSendMessage={handleSendMessage}
-               onDeleteAttachment={handleDeleteAttachment}
-               loadingSend={loadingSend}
-               actionError={actionError}
-               actionSuccess={actionSuccess}
-               canAddInternalNote={!!(currentUser.administrador || currentUser.desenvolvedor)}
-            />
+
+            {activeTab === 'messages' ? (
+              <TicketConversation 
+                 ticket={ticket}
+                 messages={messages}
+                 onSendMessage={handleSendMessage}
+                 onDeleteAttachment={handleDeleteAttachment}
+                 loadingSend={loadingSend}
+                 actionError={actionError}
+                 actionSuccess={actionSuccess}
+                 canAddInternalNote={!!(currentUser.administrador || currentUser.desenvolvedor)}
+              />
+            ) : (
+              <TicketTimeline 
+                timeline={timeline}
+                loading={loadingTimeline}
+              />
+            )}
           </Card>
         </div>
 

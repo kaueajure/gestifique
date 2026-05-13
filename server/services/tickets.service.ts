@@ -691,6 +691,95 @@ class TicketsService {
 
     return messageId;
   }
+
+  async getTimeline(ticketId: number, includeInternal: boolean) {
+    const ticket = await this.getById(ticketId);
+    if (!ticket) return null;
+
+    const timeline: any[] = [];
+    
+    // 1. Initial Creation
+    timeline.push({
+      type: 'creation',
+      date: ticket.created_at,
+      author: ticket.cliente_nome || 'Cliente',
+      description: 'Chamado aberto no sistema',
+      icon: 'plus-circle'
+    });
+
+    // 2. Messages
+    let msgQuery = `
+      SELECT m.*, u.nome as usuario_nome 
+      FROM ticket_mensagens m
+      LEFT JOIN usuarios u ON m.usuario_id = u.id
+      WHERE m.ticket_id = ?
+    `;
+    if (!includeInternal) msgQuery += ' AND m.interno = 0';
+    
+    const [messages]: any = await pool.query(msgQuery, [ticketId]);
+
+    messages.forEach((m: any) => {
+      timeline.push({
+        type: m.interno ? 'internal_note' : 'response',
+        date: m.created_at,
+        author: m.usuario_nome || 'Usuário',
+        description: m.mensagem.length > 200 ? m.mensagem.substring(0, 197) + '...' : m.mensagem,
+        id: m.id,
+        is_internal: !!m.interno,
+        icon: m.interno ? 'lock' : 'message-circle'
+      });
+    });
+
+    // 3. System Logs (Tracking status, assignment, etc)
+    const [logs]: any = await pool.query(`
+      SELECT l.*, u.nome as usuario_nome 
+      FROM logs_sistema l
+      LEFT JOIN usuarios u ON l.usuario_id = u.id
+      WHERE l.descricao LIKE ?
+    `, [`%#${ticketId}[^0-9]%`, `%#${ticketId}`]); 
+    // The regex-like search in SQL depends on the DB, MySQL LIKE is simple.
+    // Let's just use LIKE '%#ID %' or LIKE '%#ID' or similar to be safer.
+    // Actually, searching for exactly "#ID" inside the string.
+
+    const [logsSafe]: any = await pool.query(`
+      SELECT l.*, u.nome as usuario_nome 
+      FROM logs_sistema l
+      LEFT JOIN usuarios u ON l.usuario_id = u.id
+      WHERE (l.descricao LIKE ? OR l.descricao LIKE ?)
+    `, [`%#${ticketId} %`, `%#${ticketId}`]);
+
+    logsSafe.forEach((l: any) => {
+      let icon = 'activity';
+      if (l.acao === 'TICKET_STATUS_CHANGE') icon = 'refresh-cw';
+      if (l.acao === 'TICKET_UPDATE' && l.descricao.includes('responsável')) icon = 'user-check';
+      if (l.acao === 'ATTACHMENT_UPLOAD') icon = 'paperclip';
+
+      timeline.push({
+        type: 'system',
+        date: l.created_at,
+        author: l.usuario_nome || 'Sistema',
+        action: l.acao,
+        description: l.descricao,
+        icon
+      });
+    });
+
+    // 4. Finalization (if any)
+    if (ticket.finalizado_em) {
+       timeline.push({
+         type: 'completion',
+         date: ticket.finalizado_em,
+         author: 'Sistema',
+         description: `Chamado marcado como ${ticket.status === 'resolvido' ? 'Resolvido' : 'Fechado'}`,
+         icon: 'check-circle'
+       });
+    }
+
+    // Sort by date
+    timeline.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    return timeline;
+  }
 }
 
 export default new TicketsService();

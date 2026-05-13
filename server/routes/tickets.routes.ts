@@ -386,6 +386,24 @@ router.get('/:id/messages', async (req: AuthRequest, res) => {
   }
 });
 
+router.get('/:id/timeline', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
+    const id = parseInt(req.params.id);
+    const isAdminOrDev = !!(currentUser.administrador || currentUser.desenvolvedor);
+    
+    const timeline = await ticketsService.getTimeline(id, isAdminOrDev);
+    if (!timeline) return sendError(res, 'Ticket não encontrado', 404);
+
+    sendSuccess(res, timeline);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao carregar linha do tempo';
+    sendError(res, message);
+  }
+});
+
 router.post('/:id/messages', async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
