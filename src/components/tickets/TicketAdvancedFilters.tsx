@@ -1,15 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
-  Filter, 
   X, 
   Calendar, 
   Tag as TagIcon, 
   User, 
   Globe, 
   Clock, 
-  Search,
-  ChevronDown,
-  ChevronUp
+  Search
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { TicketAdvancedFilters as IFilters } from '../../types';

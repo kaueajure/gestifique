@@ -71,12 +71,12 @@ export const TicketBulkActions = ({ selectedCount, onAction, onClear, agents }: 
               <ChevronDown size={10} className={cn("transition-transform", openMenu === 'status' && "rotate-180")} />
             </Button>
             {openMenu === 'status' && (
-              <div className="absolute bottom-full mb-2 left-0 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden min-w-[160px]">
+              <div className="absolute bottom-full mb-2 left-0 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden min-w-[160px]">
                 {STATUS_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
                     onClick={() => handleAction('status', opt.value)}
-                    className="w-full text-left px-4 py-2.5 text-[10px] uppercase font-bold tracking-widest text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+                    className="w-full text-left px-4 py-2.5 text-[10px] uppercase font-black tracking-widest text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors"
                   >
                     {opt.label}
                   </button>
@@ -101,12 +101,12 @@ export const TicketBulkActions = ({ selectedCount, onAction, onClear, agents }: 
               <ChevronDown size={10} className={cn("transition-transform", openMenu === 'priority' && "rotate-180")} />
             </Button>
             {openMenu === 'priority' && (
-              <div className="absolute bottom-full mb-2 left-0 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden min-w-[160px]">
+              <div className="absolute bottom-full mb-2 left-0 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden min-w-[160px]">
                 {PRIORITY_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
                     onClick={() => handleAction('prioridade', opt.value)}
-                    className="w-full text-left px-4 py-2.5 text-[10px] uppercase font-bold tracking-widest text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+                    className="w-full text-left px-4 py-2.5 text-[10px] uppercase font-black tracking-widest text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors"
                   >
                     {opt.label}
                   </button>
@@ -131,10 +131,10 @@ export const TicketBulkActions = ({ selectedCount, onAction, onClear, agents }: 
               <ChevronDown size={10} className={cn("transition-transform", openMenu === 'agent' && "rotate-180")} />
             </Button>
             {openMenu === 'agent' && (
-              <div className="absolute bottom-full mb-2 left-0 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden min-w-[200px] max-h-[300px] overflow-y-auto custom-scrollbar">
+              <div className="absolute bottom-full mb-2 left-0 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden min-w-[200px] max-h-[300px] overflow-y-auto custom-scrollbar">
                 <button
                   onClick={() => handleAction('responsavel', null)}
-                  className="w-full text-left px-4 py-2.5 text-[10px] uppercase font-bold tracking-widest text-amber-400 hover:bg-slate-700 transition-colors border-b border-slate-700"
+                  className="w-full text-left px-4 py-2.5 text-[10px] uppercase font-black tracking-widest text-red-500 hover:bg-red-50 transition-colors border-b border-slate-100"
                 >
                   Remover Responsável
                 </button>
@@ -142,7 +142,7 @@ export const TicketBulkActions = ({ selectedCount, onAction, onClear, agents }: 
                   <button
                     key={agent.id}
                     onClick={() => handleAction('responsavel', agent.id)}
-                    className="w-full text-left px-4 py-2.5 text-[10px] uppercase font-bold tracking-widest text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+                    className="w-full text-left px-4 py-2.5 text-[10px] uppercase font-black tracking-widest text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors"
                   >
                     {agent.nome}
                   </button>
@@ -166,19 +166,19 @@ export const TicketBulkActions = ({ selectedCount, onAction, onClear, agents }: 
               Tag
             </Button>
             {openMenu === 'tag' && (
-              <div className="absolute bottom-full mb-2 left-0 bg-slate-800 border border-slate-700 rounded-xl shadow-xl p-3 min-w-[200px]">
+              <div className="absolute bottom-full mb-2 left-0 bg-white border border-slate-200 rounded-xl shadow-xl p-3 min-w-[200px]">
                  <input 
                    autoFocus
                    type="text" 
                    placeholder="Nova tag..."
-                   className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 font-bold focus:outline-none focus:ring-2 focus:ring-blue-100"
                    onKeyDown={(e) => {
                      if (e.key === 'Enter') {
                        handleAction('add_tag', (e.target as HTMLInputElement).value);
                      }
                    }}
                  />
-                 <p className="mt-2 text-[8px] text-slate-500 uppercase tracking-widest text-center">Pressione Enter para adicionar</p>
+                 <p className="mt-2 text-[8px] text-slate-400 font-bold uppercase tracking-widest text-center">Pressione Enter para adicionar</p>
               </div>
             )}
           </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Ticket, TicketStatus, TicketPriority, TicketAttachment, TicketCustomField } from '../../../types';
+import { User, Ticket, TicketAttachment, TicketCustomField } from '../../../types';
 import { Card, CardHeader, CardTitle, CardContent } from '../../ui/Card';
 import { Badge } from '../../ui/Badge';
 import { Button } from '../../ui/Button';
@@ -61,20 +61,6 @@ export const TicketProperties = ({
       dateStyle: 'short',
       timeStyle: 'short'
     });
-  };
-
-  const getStatusVariant = (status: string) => {
-    const map: Record<string, string> = {
-      aberto: 'blue', em_andamento: 'indigo', aguardando_cliente: 'amber', resolvido: 'emerald', fechado: 'slate'
-    };
-    return map[status] || 'slate';
-  };
-
-  const getPriorityVariant = (priority: string) => {
-    const map: Record<string, string> = {
-      baixa: 'blue', media: 'indigo', alta: 'orange', urgente: 'red'
-    };
-    return map[priority] || 'slate';
   };
 
   const formatDuration = (ms: number) => {

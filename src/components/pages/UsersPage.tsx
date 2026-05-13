@@ -18,6 +18,7 @@ import { Badge } from '../ui/Badge';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { Select } from '../ui/Select';
 import { Card } from '../ui/Card';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { cn } from '../../lib/utils';
@@ -46,6 +47,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isStatusConfirmOpen, setIsStatusConfirmOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [empresaId, setEmpresaId] = useState<string>('');
   const [loadingSave, setLoadingSave] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -202,15 +204,17 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
              />
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <select 
+            <Select 
+              size="sm"
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-9 px-3 bg-white border border-slate-100 rounded-lg text-xs font-semibold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer hover:bg-slate-50 transition-all font-sans"
-            >
-              <option value="todos">Todos os Status</option>
-              <option value="ativo">Ativos</option>
-              <option value="inativo">Inativos</option>
-            </select>
+              onChange={setStatusFilter}
+              buttonClassName="h-9 text-xs font-semibold"
+              options={[
+                { value: 'todos', label: 'Todos os Status' },
+                { value: 'ativo', label: 'Ativos' },
+                { value: 'inativo', label: 'Inativos' }
+              ]}
+            />
           </div>
         </div>
 
@@ -399,17 +403,20 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
            {!!currentUser.desenvolvedor ? (
               <div className="space-y-1.5">
                  <label className="text-xs font-medium text-slate-500 px-1">Empresa</label>
-                 <select 
-                   name="empresa_id" 
-                   defaultValue={selectedUser?.empresa_id || ''}
+                 <Select
+                   name="empresa_id"
+                   value={selectedUser?.empresa_id ? String(selectedUser.empresa_id) : empresaId}
+                   onChange={setEmpresaId}
                    disabled={!!selectedUser}
-                   className="w-full h-10 bg-slate-50/50 border border-slate-100 rounded-lg px-3 text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer appearance-none"
-                 >
-                   <option value="">Gestifique Central</option>
-                   {companies.map(c => (
-                     <option key={c.id} value={c.id}>{c.nome}</option>
-                   ))}
-                 </select>
+                   placeholder="Gestifique Central"
+                   options={[
+                     { value: '', label: 'Gestifique Central' },
+                     ...companies.map(c => ({
+                       value: String(c.id),
+                       label: c.nome
+                     }))
+                   ]}
+                 />
               </div>
            ) : !!currentUser.empresa_id && (
               <div className="space-y-1.5">

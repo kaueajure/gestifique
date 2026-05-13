@@ -4,6 +4,7 @@ import { Search, Calendar, Loader2, AlertCircle, ChevronLeft, ChevronRight, Refr
 import { PageHeader } from '../ui/PageHeader';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
+import { Select } from '../ui/Select';
 import { Card } from '../ui/Card';
 import { cn } from '../../lib/utils';
 import { SystemLog } from '../../types';
@@ -130,19 +131,21 @@ export const LogsPage = () => {
                />
             </div>
             <div className="flex gap-2">
-              <select 
+              <Select 
                 value={filters.action}
-                onChange={(e) => setFilters(f => ({ ...f, action: e.target.value, page: 1 }))}
-                className="h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer min-w-[120px]"
-              >
-                <option value="">Ações</option>
-                <option value="LOGIN">Login</option>
-                <option value="CREATE">Criação</option>
-                <option value="UPDATE">Atualização</option>
-                <option value="DELETE">Exclusão</option>
-                <option value="PROFILE_UPDATE">Perfil</option>
-                <option value="PASSWORD_CHANGE">Senha</option>
-              </select>
+                onChange={(value) => setFilters(f => ({ ...f, action: value, page: 1 }))}
+                className="min-w-[120px]"
+                buttonClassName="h-8"
+                options={[
+                  { value: '', label: 'Ações' },
+                  { value: 'LOGIN', label: 'Login' },
+                  { value: 'CREATE', label: 'Criação' },
+                  { value: 'UPDATE', label: 'Atualização' },
+                  { value: 'DELETE', label: 'Exclusão' },
+                  { value: 'PROFILE_UPDATE', label: 'Perfil' },
+                  { value: 'PASSWORD_CHANGE', label: 'Senha' }
+                ]}
+              />
               <Button type="submit" size="sm" className="h-8">Filtrar</Button>
             </div>
           </div>

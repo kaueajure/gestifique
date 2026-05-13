@@ -11,6 +11,7 @@ import { PageHeader } from '../ui/PageHeader';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
+import { Select } from '../ui/Select';
 import { api } from '../../lib/api';
 import { User } from '../../types';
 
@@ -254,44 +255,44 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-700">Prioridade</label>
-            <select 
-              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-4 focus:ring-blue-100 outline-none"
+            <Select 
               value={filters.prioridade}
-              onChange={(e) => setFilters(f => ({ ...f, prioridade: e.target.value }))}
-            >
-              <option value="">Todas</option>
-              <option value="baixa">Baixa</option>
-              <option value="media">Média</option>
-              <option value="alta">Alta</option>
-              <option value="urgente">Urgente</option>
-            </select>
+              onChange={(value) => setFilters(f => ({ ...f, prioridade: value }))}
+              options={[
+                { value: '', label: 'Todas' },
+                { value: 'baixa', label: 'Baixa' },
+                { value: 'media', label: 'Média' },
+                { value: 'alta', label: 'Alta' },
+                { value: 'urgente', label: 'Urgente' }
+              ]}
+            />
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-700">Status</label>
-            <select 
-              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-4 focus:ring-blue-100 outline-none"
+            <Select 
               value={filters.status}
-              onChange={(e) => setFilters(f => ({ ...f, status: e.target.value }))}
-            >
-              <option value="">Todos</option>
-              <option value="aberto">Aberto</option>
-              <option value="em_andamento">Em Andamento</option>
-              <option value="aguardando_cliente">Aguardando Cliente</option>
-              <option value="resolvido">Resolvido</option>
-              <option value="fechado">Fechado</option>
-            </select>
+              onChange={(value) => setFilters(f => ({ ...f, status: value }))}
+              options={[
+                { value: '', label: 'Todos' },
+                { value: 'aberto', label: 'Aberto' },
+                { value: 'em_andamento', label: 'Em Andamento' },
+                { value: 'aguardando_cliente', label: 'Aguardando Cliente' },
+                { value: 'resolvido', label: 'Resolvido' },
+                { value: 'fechado', label: 'Fechado' }
+              ]}
+            />
           </div>
           {!!currentUser.desenvolvedor && (
              <div className="space-y-1.5">
                <label className="text-xs font-semibold text-slate-700">Empresa</label>
-               <select 
-                 className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-4 focus:ring-blue-100 outline-none"
+               <Select 
                  value={filters.empresa_id}
-                 onChange={(e) => setFilters(f => ({ ...f, empresa_id: e.target.value }))}
-               >
-                 <option value="">Todas</option>
-                 {companies.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-               </select>
+                 onChange={(value) => setFilters(f => ({ ...f, empresa_id: value }))}
+                 options={[
+                   { value: '', label: 'Todas' },
+                   ...companies.map(c => ({ value: String(c.id), label: c.nome }))
+                 ]}
+               />
              </div>
           )}
           <div className="flex items-end">

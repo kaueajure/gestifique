@@ -264,7 +264,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                     options={[
                       { value: 'aberto', label: 'ABERTO' },
                       { value: 'em_andamento', label: 'EM ANDAMENTO' },
-                      { value: 'aguardando_cliente', label: 'PAGAMENTO' },
+                      { value: 'aguardando_cliente', label: 'AGUARDANDO CLIENTE' },
                       { value: 'resolvido', label: 'RESOLVIDO' },
                       { value: 'fechado', label: 'FECHADO' }
                     ]}
