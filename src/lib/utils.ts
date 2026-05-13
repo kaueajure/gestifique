@@ -45,21 +45,22 @@ export interface SlaInfo {
   label: string;
   color: string;
   remainingText?: string;
+  compactText?: string;
   diffInMinutes?: number;
 }
 
 export function getSlaInfo(prazo_sla: string | null | undefined, ticketStatus: string): SlaInfo {
   if (ticketStatus === 'resolvido' || ticketStatus === 'fechado') {
-    return { status: 'finalizado', label: 'Finalizado', color: 'text-slate-400 bg-slate-50 border-slate-200' };
+    return { status: 'finalizado', label: 'Finalizado', compactText: 'Final.', color: 'text-slate-400 bg-slate-50 border-slate-200' };
   }
 
   if (!prazo_sla) {
-    return { status: 'sem_sla', label: 'Sem SLA', color: 'text-slate-400 bg-slate-50 border-slate-200' };
+    return { status: 'sem_sla', label: 'Sem SLA', compactText: 'S/SLA', color: 'text-slate-400 bg-slate-50 border-slate-200' };
   }
 
   const deadline = new Date(prazo_sla);
   if (isNaN(deadline.getTime())) {
-    return { status: 'sem_sla', label: 'Sem SLA', color: 'text-slate-400 bg-slate-50 border-slate-200' };
+    return { status: 'sem_sla', label: 'Sem SLA', compactText: 'S/SLA', color: 'text-slate-400 bg-slate-50 border-slate-200' };
   }
 
   const now = new Date();
@@ -72,13 +73,22 @@ export function getSlaInfo(prazo_sla: string | null | undefined, ticketStatus: s
     const days = Math.floor(hours / 24);
     
     let text = "";
-    if (days > 0) text = `Vencido há ${days}d`;
-    else if (hours > 0) text = `Vencido há ${hours}h`;
-    else text = `Vencido há ${absDiff}min`;
+    let compact = "";
+    if (days > 0) {
+      text = `Vencido há ${days}d`;
+      compact = `Venc. ${days}d`;
+    } else if (hours > 0) {
+      text = `Vencido há ${hours}h`;
+      compact = `Venc. ${hours}h`;
+    } else {
+      text = `Vencido há ${absDiff}min`;
+      compact = `Venc. ${absDiff}m`;
+    }
 
     return { 
       status: 'vencido', 
       label: 'Vencido', 
+      compactText: compact,
       color: 'text-red-600 bg-red-50 border-red-100', 
       remainingText: text,
       diffInMinutes 
@@ -89,6 +99,7 @@ export function getSlaInfo(prazo_sla: string | null | undefined, ticketStatus: s
     return { 
       status: 'vencendo', 
       label: 'Vencendo', 
+      compactText: `${diffInMinutes}min`,
       color: 'text-amber-600 bg-amber-50 border-amber-100', 
       remainingText: `Vence em ${diffInMinutes}min`,
       diffInMinutes 
@@ -100,6 +111,7 @@ export function getSlaInfo(prazo_sla: string | null | undefined, ticketStatus: s
     return { 
       status: 'normal', 
       label: 'No prazo', 
+      compactText: `${hours}h`,
       color: 'text-emerald-600 bg-emerald-50 border-emerald-100', 
       remainingText: `Vence em ${hours}h`,
       diffInMinutes 
@@ -110,6 +122,7 @@ export function getSlaInfo(prazo_sla: string | null | undefined, ticketStatus: s
   return { 
     status: 'normal', 
     label: 'No prazo', 
+    compactText: `${days}d`,
     color: 'text-emerald-600 bg-emerald-50 border-emerald-100', 
     remainingText: `Vence em ${days}d`,
     diffInMinutes 

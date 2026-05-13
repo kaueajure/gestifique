@@ -61,35 +61,35 @@ export const TicketReplyBox = ({ onSendMessage, loadingSend, actionError, action
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder={isInternal ? "Nota interna..." : "Resposta para o cliente..."}
-            rows={2}
+            rows={1}
             className={cn(
-              "w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:ring-2 transition-all outline-none resize-none min-h-[50px]",
+              "w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] font-medium focus:ring-2 transition-all outline-none resize-none min-h-[40px]",
               isInternal ? "focus:ring-amber-100 focus:border-amber-300 bg-amber-50/20 text-amber-900" : "focus:ring-blue-100 focus:border-blue-300 text-slate-800"
             )}
           />
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex-1 max-w-[200px]">
              <FileUpload onFilesChange={setSelectedFiles} />
           </div>
 
-          <div className="flex items-center gap-4 shrink-0">
+          <div className="flex items-center gap-3 shrink-0">
               {canAddInternalNote && (
-                <label className="flex items-center gap-2 cursor-pointer group">
+                <label className="flex items-center gap-1.5 cursor-pointer group">
                   <div 
                     onClick={() => setIsInternal(!isInternal)}
                     className={cn(
-                      "w-7 h-3.5 rounded-full transition-all relative",
+                      "w-6 h-3 rounded-full transition-all relative",
                       isInternal ? "bg-amber-500" : "bg-slate-200 group-hover:bg-slate-300"
                     )}
                   >
                       <div className={cn(
-                        "absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white transition-all shadow-sm",
+                        "absolute top-0.5 w-2 h-2 rounded-full bg-white transition-all shadow-sm",
                         isInternal ? "translate-x-3.5" : "translate-x-0.5"
                       )} />
                   </div>
-                  <span className={cn("text-[10px] font-bold uppercase tracking-tight", isInternal ? "text-amber-600" : "text-slate-400 group-hover:text-slate-500")}>Nota Interna</span>
+                  <span className={cn("text-[8px] font-black uppercase tracking-tight", isInternal ? "text-amber-600" : "text-slate-400 group-hover:text-slate-500")}>Interno</span>
                 </label>
               )}
 
@@ -97,16 +97,16 @@ export const TicketReplyBox = ({ onSendMessage, loadingSend, actionError, action
                 type="submit" 
                 disabled={(!newMessage.trim() && selectedFiles.length === 0) || loadingSend}
                 className={cn(
-                  "h-8 px-4 font-bold text-[10px] uppercase tracking-widest shadow-sm",
-                  isInternal ? "bg-amber-600 hover:bg-amber-700 focus:ring-amber-500" : "bg-blue-600 hover:bg-blue-700"
+                  "h-7 px-3 font-black text-[9px] uppercase tracking-widest shadow-sm translate-y-[-1px]",
+                  isInternal ? "bg-amber-600 hover:bg-amber-700 focus:ring-amber-500" : "bg-blue-600 hover:bg-blue-700 shadow-blue-100"
                 )}
               >
                 {loadingSend ? (
-                  <Loader2 size={12} className="animate-spin mr-2" />
+                  <Loader2 size={11} className="animate-spin mr-1.5" />
                 ) : (
-                  <Send size={12} className="mr-2" />
+                  <Send size={11} className="mr-1.5" />
                 )}
-                Enviar
+                Responder
               </Button>
           </div>
         </div>

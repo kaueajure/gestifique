@@ -83,33 +83,33 @@ export const TicketProperties = ({
       />
 
       <Card className="border-slate-200 shadow-sm overflow-hidden bg-white">
-          <CardHeader className="py-2 px-4 border-b border-slate-50 bg-slate-50/20">
-             <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-500">Detalhes do Chamado</CardTitle>
+          <CardHeader className="py-1.5 px-3 border-b border-slate-50 bg-slate-50/20">
+             <CardTitle className="text-[9px] font-black uppercase tracking-widest text-slate-500">DADOS TÉCNICOS</CardTitle>
           </CardHeader>
-          <CardContent className="p-2.5 space-y-3">
+          <CardContent className="p-2 space-y-2">
              {/* Seções Colapsáveis */}
-             <div className="space-y-1">
+             <div className="space-y-0.5">
                 {/* Solicitante */}
                 <div>
                    <SectionHeader id="customer" label="Solicitante" icon={UserIcon} />
                    {openSections.customer && (
-                     <div className="space-y-2 py-2 animate-in slide-in-from-top-1 duration-200">
-                        <div className="flex items-center gap-3 bg-slate-50/50 p-2 rounded-lg border border-slate-100/50">
-                           <div className="w-7 h-7 rounded bg-white border border-slate-200 flex items-center justify-center text-slate-400 shrink-0">
-                              <UserIcon size={12} />
+                     <div className="space-y-1.5 py-1.5 animate-in slide-in-from-top-1 duration-200">
+                        <div className="flex items-center gap-2 bg-slate-50/50 p-1.5 rounded-lg border border-slate-100/50">
+                           <div className="w-6 h-6 rounded bg-white border border-slate-200 flex items-center justify-center text-slate-400 shrink-0">
+                               <UserIcon size={11} />
                            </div>
                            <div className="min-w-0">
-                              <div className="text-[11px] font-bold text-slate-900 truncate">{clienteNome}</div>
-                              <div className="text-[9px] font-medium text-slate-400 truncate tracking-tight uppercase">{ticket.cliente_email || 's/ email'}</div>
+                              <div className="text-[10px] font-black text-slate-800 truncate leading-tight uppercase">{clienteNome}</div>
+                              <div className="text-[8px] font-bold text-slate-400 truncate tracking-tight uppercase leading-none mt-0.5">{ticket.cliente_email || 's/ email'}</div>
                            </div>
                         </div>
                         <div className="flex items-center gap-2 px-1">
-                           <Building2 size={10} className="text-slate-300" />
-                           <span className="text-[10px] font-bold text-slate-500 truncate">{empresaNome}</span>
+                           <Building2 size={9} className="text-slate-300" />
+                           <span className="text-[9px] font-black text-slate-500 truncate uppercase tracking-tighter">{empresaNome}</span>
                         </div>
                         <div className="flex items-center gap-2 px-1">
-                           <Calendar size={10} className="text-slate-300" />
-                           <span className="text-[10px] font-bold text-slate-500 truncate">{origemLabel}</span>
+                           <Calendar size={9} className="text-slate-300" />
+                           <span className="text-[9px] font-black text-slate-500 truncate uppercase tracking-tighter">{origemLabel}</span>
                         </div>
                      </div>
                    )}

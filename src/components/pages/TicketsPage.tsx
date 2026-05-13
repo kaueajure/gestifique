@@ -77,6 +77,16 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [toasts, setToasts] = useState<{ id: number; message: string; type: 'success' | 'error' | 'info' }[]>([]);
+  
+  const addToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 4000);
+  };
   
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -236,14 +246,16 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
       fetchData();
       
       // Improved feedback
-      const msg = `${result.updated} tickets atualizados. ${result.skipped} ignorados.`;
+      const msg = `${result.updated} tickets atualizados.`;
       if (result.errors && result.errors.length > 0) {
         console.warn('Erros na ação em massa:', result.errors);
+        addToast(`${msg} Alguns erros ocorreram.`, 'error');
+      } else {
+        addToast(msg, 'success');
       }
-      alert(msg);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao processar ação em massa.';
-      alert(message);
+      addToast(message, 'error');
       setLoading(false);
     }
   };
@@ -274,7 +286,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
 
   const handleSaveView = async (nome: string) => {
     if (currentUser.desenvolvedor && !devCompanyId) {
-      alert('Selecione uma empresa antes de salvar uma view.');
+      addToast('Selecione uma empresa antes de salvar uma view.', 'error');
       return;
     }
 
@@ -308,10 +320,10 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
       };
       setSavedViews(prev => [...prev, newView]);
       setCurrentViewId(response.id);
-      alert('View salva com sucesso!');
+      addToast('Visualização salva com sucesso!');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao salvar view';
-      alert(message);
+      addToast(message, 'error');
     }
   };
 
@@ -321,8 +333,9 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
       await api.delete(`/tickets/views/${id}`);
       setSavedViews(prev => prev.filter(v => v.id !== id));
       if (currentViewId === id) setCurrentViewId(null);
+      addToast('Visualização excluída.');
     } catch (err) {
-      alert('Erro ao excluir view');
+      addToast('Erro ao excluir view', 'error');
     }
   };
   const safeFormatDateTime = (value?: string | null) => {
@@ -338,7 +351,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
       : (kanbanResponse?.columns || []).flatMap(c => c.tickets);
 
     if (data.length === 0) {
-      alert('Nenhum dado para exportar');
+      addToast('Nenhum dado para exportar', 'info');
       return;
     }
 
@@ -375,6 +388,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    addToast('Arquivo exportado!');
   };
 
   const hasAdvancedFilters = Object.entries(advancedFilters).some(([key, value]) => {
@@ -441,6 +455,29 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
 
   return (
     <div className="space-y-3">
+      {/* Toast System */}
+      <div className="fixed bottom-6 right-6 z-[10000] flex flex-col gap-2 pointer-events-none">
+        <AnimatePresence>
+          {toasts.map(toast => (
+            <motion.div
+              key={toast.id}
+              initial={{ opacity: 0, y: 20, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className={cn(
+                "px-4 py-2.5 rounded-xl shadow-2xl border text-[11px] font-bold uppercase tracking-widest flex items-center gap-2 pointer-events-auto",
+                toast.type === 'success' && "bg-emerald-600 border-emerald-500 text-white",
+                toast.type === 'error' && "bg-red-600 border-red-500 text-white",
+                toast.type === 'info' && "bg-blue-600 border-blue-500 text-white"
+              )}
+            >
+              <AlertCircle size={14} />
+              <span>{toast.message}</span>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+
       <PageHeader 
         title="Atendimentos" 
         action={
@@ -529,9 +566,9 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
       />
 
       <div className="flex flex-col lg:flex-row gap-3 items-start">
-        <div className="flex-1 w-full space-y-3">
-          {/* Smart Queues Tabs - Compact Refined */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+        <div className="flex-1 w-full space-y-2">
+          {/* Smart Queues Tabs - More Compact Refined */}
+          <div className="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar">
             {QUEUES.map((q) => {
               const Icon = q.icon;
               const isActive = selectedQueue === q.id;
@@ -546,17 +583,17 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                   key={q.id}
                   onClick={() => setSelectedQueue(q.id)}
                   className={cn(
-                    "relative flex items-center gap-2 px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-all border shrink-0",
+                    "relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all border shrink-0",
                     isActive 
-                      ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-100 translate-y-[-1px]" 
+                      ? "bg-blue-600 border-blue-600 text-white shadow-md translate-y-[-1px]" 
                       : cn(
                           "bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50",
-                          isUrgent && count > 0 && "text-red-500 border-red-100 bg-red-50/30",
-                          isWarning && count > 0 && "text-amber-600 border-amber-100 bg-amber-50/30"
+                          isUrgent && count > 0 && "text-red-500 border-red-100 bg-red-50/20",
+                          isWarning && count > 0 && "text-amber-600 border-amber-100 bg-amber-50/20"
                         )
                   )}
                 >
-                  <Icon size={14} className={cn(
+                  <Icon size={12} className={cn(
                     "shrink-0",
                     isActive ? "text-blue-100" : (isUrgent && count > 0 ? "text-red-400" : "text-slate-400")
                   )} />
@@ -564,13 +601,13 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                   {count > 0 && (
                     <span 
                       className={cn(
-                        "ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-black tracking-tight",
-                        isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600",
+                        "ml-0.5 px-1 py-0.5 rounded text-[8px] font-black tracking-tight",
+                        isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500",
                         !isActive && isUrgent && "bg-red-100 text-red-600",
                         !isActive && isWarning && "bg-amber-100 text-amber-700"
                       )}
                     >
-                      {count}
+                      {count > 99 ? '99+' : count}
                     </span>
                   )}
                 </button>
@@ -579,8 +616,8 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
           </div>
 
           <div className="relative z-[200] overflow-visible bg-white rounded-xl border border-slate-200 shadow-sm">
-            <div className="flex flex-col xl:flex-row xl:items-center gap-3 p-3 group">
-              <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-col xl:flex-row xl:items-center gap-2 p-2 group">
+              <div className="flex flex-wrap items-center gap-2">
                 <TicketSavedViews 
                   views={savedViews}
                   currentViewId={currentViewId}
@@ -589,7 +626,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                   onDeleteView={handleDeleteView}
                 />
                 
-                <div className="hidden xl:block w-px h-6 bg-slate-100" />
+                <div className="hidden xl:block w-px h-5 bg-slate-100" />
                 
                 <TicketFilters 
                   searchTerm={searchTerm} setSearchTerm={setSearchTerm}
@@ -618,11 +655,8 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  className="px-3 pb-3 pt-1 border-t border-slate-50 flex flex-wrap items-center gap-2"
+                  className="px-2 pb-2 pt-1 border-t border-slate-50 flex flex-wrap items-center gap-1.5"
                 >
-                  <div className="flex items-center gap-1.5 mr-1">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Filtros:</span>
-                  </div>
                   {getActiveFilterChips().map((chip) => {
                     const props = {
                       label: chip.label,
@@ -638,7 +672,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                   })}
                   <button 
                     onClick={clearFilters}
-                    className="text-[10px] font-bold text-red-500 hover:text-red-600 px-2 py-1 rounded-lg hover:bg-red-50 transition-colors uppercase tracking-tight"
+                    className="text-[9px] font-bold text-red-500 hover:text-red-600 px-1.5 py-1 rounded hover:bg-red-50 transition-colors uppercase tracking-tight"
                   >
                     Limpar tudo
                   </button>
@@ -652,20 +686,20 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
 
           <div className={cn(
             "relative z-0 transition-all duration-300",
-            viewMode === 'kanban' ? "h-[calc(100vh-220px)] min-h-[450px]" : ""
+            viewMode === 'kanban' ? "h-[calc(100vh-200px)] min-h-[400px]" : ""
           )}>
             {!!currentUser.desenvolvedor && !devCompanyId ? (
-              <div className="h-full flex flex-col items-center justify-center space-y-3 bg-white rounded-xl border border-slate-200 py-10">
-                 <Building className="w-8 h-8 text-slate-300" />
-                 <p className="text-sm text-slate-500 font-medium tracking-tight">Selecione uma empresa para visualizar atendimentos.</p>
+              <div className="h-full flex flex-col items-center justify-center space-y-2 bg-white rounded-xl border border-slate-200 py-8">
+                 <Building className="w-6 h-6 text-slate-300" />
+                 <p className="text-xs text-slate-500 font-bold tracking-tight uppercase">Selecione uma empresa.</p>
               </div>
             ) : loading && (!kanbanResponse && !ticketsResponse) ? (
-              <div className="h-full flex flex-col items-center justify-center space-y-3 bg-white rounded-xl border border-slate-200 py-10">
-                 <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
-                 <p className="text-xs text-slate-500 font-bold tracking-tight uppercase">Carregando...</p>
+              <div className="h-full flex flex-col items-center justify-center space-y-2 bg-white rounded-xl border border-slate-200 py-8">
+                 <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                 <p className="text-[9px] text-slate-500 font-bold tracking-tight uppercase">Carregando...</p>
               </div>
             ) : error ? (
-              <div className="p-10 bg-red-50 border border-red-100 text-red-600 text-center rounded-xl text-sm font-semibold">
+              <div className="p-8 bg-red-50 border border-red-100 text-red-600 text-center rounded-xl text-xs font-bold uppercase">
                  {error}
               </div>
             ) : viewMode === 'kanban' && kanbanResponse ? (
@@ -676,6 +710,8 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                 meta={ticketsResponse.meta}
                 onPageChange={setCurrentPage}
                 onSelectTicket={onSelectTicket} 
+                currentUser={currentUser}
+                onStatusChange={() => fetchData()}
                 searchTerm={searchTerm} 
                 hasFilters={hasAnyFilters}
                 selectedTicketIds={selectedTicketIds}
@@ -691,7 +727,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
-            className="w-full lg:w-64 shrink-0"
+            className="w-full lg:w-56 shrink-0"
           >
             <TeamSidebar currentUser={currentUser} devCompanyId={devCompanyId} />
           </motion.div>

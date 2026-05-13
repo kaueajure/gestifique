@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TicketKanbanColumn, TicketKanbanResponse, User, Ticket } from '../../types';
 import { Badge } from '../ui/Badge';
-import { User as UserIcon, AlertCircle, Building, Clock, ShieldAlert, Download, Layers } from 'lucide-react';
+import { User as UserIcon, AlertCircle, Building, Clock, ShieldAlert, Download, Layers, Play, UserPlus, MoreVertical, Copy } from 'lucide-react';
 import { cn, formatRelativeTime, getSlaInfo } from '../../lib/utils';
 import { api } from '../../lib/api';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
@@ -68,14 +68,14 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
         let exists = false;
         for (const col of newColumns) {
            if (col.tickets.some(t => t.id === newTicket.id)) {
-             exists = true;
-             break;
+              exists = true;
+              break;
            }
         }
         
         if (exists) {
            // Proceed with updated logic instead
-           return currentData; // Or maybe forward to handleTicketUpdated, but we'll just ignore for now to avoid duplications
+           return currentData; 
         }
 
         const targetColIndex = newColumns.findIndex(c => c.id === newTicket.status);
@@ -105,9 +105,42 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
     } catch (err: any) {
       console.error(err);
       setErrorMsg(err.message || 'Erro ao persistir mudança de status.');
-      // Revert if error? Props change will eventually fix it, but for now we catch
       onStatusChange();
     }
+  };
+
+  const handleAssumirTicket = async (e: React.MouseEvent, ticketId: number) => {
+    e.stopPropagation();
+    setUpdatingId(ticketId);
+    try {
+      await api.patch(`/tickets/${ticketId}`, { responsavel_id: currentUser.id });
+      onStatusChange();
+    } catch (err: any) {
+      console.error(err);
+      setErrorMsg(err.message || 'Erro ao assumir chamado.');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleMudarStatus = async (e: React.MouseEvent, ticketId: number, status: string) => {
+    e.stopPropagation();
+    setUpdatingId(ticketId);
+    try {
+      await api.patch(`/tickets/${ticketId}/status`, { status });
+      onStatusChange();
+    } catch (err: any) {
+      console.error(err);
+      setErrorMsg(err.message || 'Erro ao alterar status.');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleCopyId = (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(id.toString());
+    // No alert, just feedback potentially?
   };
 
   const onDragEnd = (result: DropResult) => {
@@ -161,41 +194,41 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
 
   const getPriorityInfo = (prio: string) => {
     switch (prio) {
-      case 'urgente': return { color: 'text-red-600 bg-red-50 border-red-100', label: 'Urgente' };
-      case 'alta': return { color: 'text-orange-600 bg-orange-50 border-orange-100', label: 'Alta' };
-      case 'media': return { color: 'text-amber-600 bg-amber-50 border-amber-100', label: 'Média' };
-      case 'baixa': return { color: 'text-blue-600 bg-blue-50 border-blue-100', label: 'Baixa' };
-      default: return { color: 'text-slate-500 bg-slate-50 border-slate-200', label: prio };
+      case 'urgente': return { color: 'text-red-600 bg-red-50 border-red-100', label: 'URG' };
+      case 'alta': return { color: 'text-orange-600 bg-orange-50 border-orange-100', label: 'ALTA' };
+      case 'media': return { color: 'text-amber-600 bg-amber-50 border-amber-100', label: 'MÉD' };
+      case 'baixa': return { color: 'text-blue-600 bg-blue-50 border-blue-100', label: 'BAIX' };
+      default: return { color: 'text-slate-500 bg-slate-50 border-slate-200', label: prio.substring(0, 4).toUpperCase() };
     }
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-50/30 rounded-xl">
+    <div className="flex flex-col h-full bg-slate-50/20 rounded-xl overflow-hidden">
       {errorMsg && (
-        <div className="mb-3 p-3 bg-red-50 border border-red-100 rounded-lg flex items-center gap-2 text-red-600 text-[11px] font-bold shrink-0 mx-3 mt-3">
-          <AlertCircle size={14} /> {errorMsg}
+        <div className="mb-2 p-2 bg-red-50 border border-red-100 rounded-lg flex items-center gap-2 text-red-600 text-[10px] font-bold shrink-0 mx-2 mt-2">
+          <AlertCircle size={12} /> {errorMsg}
         </div>
       )}
       <DragDropContextComp onDragEnd={onDragEnd}>
-        <div className="flex gap-4 overflow-x-auto pb-4 pt-4 px-4 snap-x items-start h-full no-scrollbar">
+        <div className="flex gap-3 overflow-x-auto pb-4 pt-3 px-3 snap-x items-start h-full no-scrollbar">
           {localData.columns.map(column => (
             <div 
               key={column.id}
-              className="w-[280px] sm:w-[320px] shrink-0 flex flex-col max-h-full snap-start"
+              className="w-[260px] sm:w-[270px] xl:w-[280px] shrink-0 flex flex-col max-h-full snap-start"
             >
-              <div className="flex items-center justify-between px-3 mb-3 shrink-0">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between px-2 mb-2 shrink-0">
+                <div className="flex items-center gap-1.5">
                   <div className={cn(
-                    "w-2 h-2 rounded-full",
+                    "w-1.5 h-1.5 rounded-full",
                     column.id === 'aberto' && "bg-blue-500",
                     column.id === 'em_andamento' && "bg-indigo-500",
                     column.id === 'aguardando_cliente' && "bg-amber-500",
                     column.id === 'resolvido' && "bg-emerald-500",
                     column.id === 'fechado' && "bg-slate-500"
                   )} />
-                  <h3 className="font-black text-[11px] uppercase tracking-[0.15em] text-slate-500">{column.title}</h3>
+                  <h3 className="font-black text-[10px] uppercase tracking-[0.1em] text-slate-500">{column.title}</h3>
                 </div>
-                <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full shadow-inner">
+                <span className="text-[9px] font-black bg-white border border-slate-200 text-slate-400 px-1.5 rounded shadow-sm">
                   {column.count}
                 </span>
               </div>
@@ -206,8 +239,8 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                     ref={provided.innerRef}
                     {...provided.droppableProps}
                     className={cn(
-                      "flex-1 flex flex-col gap-3 p-1.5 rounded-2xl transition-all duration-200 min-h-[150px] overflow-y-auto custom-scrollbar",
-                      snapshot.isDraggingOver ? "bg-blue-50/50 ring-2 ring-blue-100 ring-inset" : "bg-transparent"
+                      "flex-1 flex flex-col gap-2 p-1 rounded-xl transition-all duration-200 min-h-[150px] overflow-y-auto custom-scrollbar overflow-x-hidden",
+                      snapshot.isDraggingOver ? "bg-blue-50/30 ring-1 ring-blue-100 ring-inset" : "bg-transparent"
                     )}
                   >
                     {column.tickets.map((ticket, index) => {
@@ -229,103 +262,115 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                             {...provided.dragHandleProps}
                             onClick={() => onSelectTicket(ticket.id)}
                             className={cn(
-                              "bg-white rounded-xl shadow-sm border border-slate-200 cursor-pointer transition-all duration-200 hover:shadow-lg hover:shadow-slate-200/50 hover:border-blue-200 group relative",
-                              snapshot.isDragging && "shadow-2xl border-blue-400 ring-4 ring-blue-50/50 -rotate-1 z-50",
+                              "bg-white rounded-lg shadow-sm border border-slate-200 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-blue-200 group relative",
+                              snapshot.isDragging && "shadow-xl border-blue-400 ring-2 ring-blue-50/50 z-50 scale-[1.02]",
                               updatingId === ticket.id && "opacity-50 pointer-events-none"
                             )}
                           >
                             {/* Left critical marker */}
                             {(sla.status === 'vencido' || isAbertoESemResp) && (
                               <div className={cn(
-                                "absolute left-0 top-3 bottom-3 w-1 rounded-r-full",
+                                "absolute left-0 top-2 bottom-2 w-0.5 rounded-r-full",
                                 sla.status === 'vencido' ? "bg-red-500" : "bg-amber-400"
                               )} />
                             )}
 
-                            <div className="p-4">
-                              <div className="flex items-start justify-between gap-3 mb-2.5">
-                                <div className="flex flex-col gap-1 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-[10px] font-black text-blue-600 tracking-tighter shrink-0 bg-blue-50/50 px-1.5 py-0.5 rounded border border-blue-100/50">
+                            <div className="p-2.5">
+                              {/* Quick Actions (Hover Only) */}
+                              <div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-white/90 backdrop-blur-sm p-0.5 rounded-md shadow-sm border border-slate-100">
+                                {canManage && isAbertoESemResp && (
+                                  <button onClick={(e) => handleAssumirTicket(e, ticket.id)} title="Assumir Ticket" className="p-1 hover:bg-blue-50 text-blue-600 rounded transition-colors">
+                                    <UserPlus size={12} />
+                                  </button>
+                                )}
+                                {canManage && ticket.status === 'aberto' && ticket.responsavel_id === currentUser.id && (
+                                  <button onClick={(e) => handleMudarStatus(e, ticket.id, 'em_andamento')} title="Iniciar Atendimento" className="p-1 hover:bg-indigo-50 text-indigo-600 rounded transition-colors">
+                                    <Play size={12} />
+                                  </button>
+                                )}
+                                <button onClick={(e) => handleCopyId(e, ticket.id)} title="Copiar ID" className="p-1 hover:bg-slate-50 text-slate-400 rounded transition-colors">
+                                  <Copy size={12} />
+                                </button>
+                              </div>
+
+                              <div className="flex flex-col gap-1.5">
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <span className="text-[9px] font-black text-blue-600 tracking-tighter shrink-0 bg-blue-50/50 px-1 rounded border border-blue-100/30">
                                       #{ticket.id}
                                     </span>
                                     {isAbertoESemResp && (
-                                      <span className="text-[9px] font-black text-amber-600 uppercase tracking-tighter">Novo</span>
+                                      <span className="text-[8px] font-black text-amber-600 uppercase tracking-tighter px-1 bg-amber-50 rounded border border-amber-100/50">Novo</span>
                                     )}
                                     {ticket.origem === 'email' && (
-                                      <span className="p-0.5 text-slate-400" title="Origem: E-mail">
+                                      <span className="text-slate-400" title="Origem: E-mail">
                                         <Download size={10} className="rotate-180" />
                                       </span>
                                     )}
                                   </div>
-                                  <h4 className="font-bold text-[13px] leading-tight text-slate-800 group-hover:text-blue-700 transition-colors line-clamp-2 mt-1">
-                                    {ticket.titulo}
-                                  </h4>
+                                  <div className={cn(
+                                    "px-1.5 py-px rounded-[4px] text-[8px] font-black uppercase tracking-tight border",
+                                    priority.color
+                                  )}>
+                                    {priority.label}
+                                  </div>
                                 </div>
-                                <div className={cn(
-                                  "px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border transition-colors shrink-0",
-                                  priority.color
-                                )}>
-                                  {priority.label}
-                                </div>
-                              </div>
 
-                              {ticket.tags && ticket.tags.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mb-4">
-                                  {ticket.tags.slice(0, 3).map(tag => (
-                                    <span key={tag} className="text-[9px] font-bold text-slate-500 bg-slate-50 border border-slate-100 rounded px-1.5 py-0.5">
-                                      {tag}
+                                <h4 className="font-bold text-[12px] leading-tight text-slate-700 min-h-[30px] line-clamp-2">
+                                  {ticket.titulo}
+                                </h4>
+
+                                <div className="flex items-center justify-between gap-2 mt-1">
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <div className="w-4 h-4 rounded bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
+                                      <UserIcon size={9} className="text-slate-400" />
+                                    </div>
+                                    <span className="text-[10px] font-medium text-slate-500 truncate">
+                                      {ticket.cliente_nome?.split(' ')[0] || 'Cliente'}
                                     </span>
-                                  ))}
-                                </div>
-                              )}
-
-                              <div className="flex flex-col gap-3 pt-3 border-t border-slate-50">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    <div className="w-6 h-6 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
-                                      <UserIcon size={12} className="text-slate-400" />
-                                    </div>
-                                    <div className="flex flex-col min-w-0">
-                                      <span className="text-[10px] font-bold text-slate-700 truncate">
-                                        {ticket.cliente_nome || 'Solicitante'}
-                                      </span>
-                                      <span className="text-[9px] text-slate-400 font-medium truncate">
-                                        {ticket.empresa_nome}
-                                      </span>
-                                    </div>
                                   </div>
                                   
                                   <div className={cn(
-                                    "px-2 py-1 rounded-lg border text-[9px] font-black uppercase tracking-tight flex items-center gap-1.5",
+                                    "px-1.5 py-0.5 rounded-[4px] border text-[8px] font-black uppercase tracking-tighter flex items-center gap-1",
                                     sla.color
                                   )}>
-                                    <Clock size={10} />
-                                    {sla.remainingText || sla.label}
+                                    <Clock size={8} />
+                                    {sla.compactText || sla.label}
                                   </div>
                                 </div>
 
-                                <div className="flex items-center justify-between bg-slate-50/50 p-2 rounded-lg border border-slate-100/50">
-                                  <div className="flex items-center gap-2">
+                                <div className="mt-2 pt-2 border-t border-slate-50 flex items-center justify-between">
+                                  <div className="flex items-center gap-1.5 min-w-0">
                                     {ticket.responsavel_id ? (
-                                      <>
-                                        <div className="w-5 h-5 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center text-[10px] font-black text-blue-700 uppercase">
+                                      <div className="flex items-center gap-1.5 overflow-hidden">
+                                        <div className="w-4 h-4 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center text-[8px] font-black text-blue-700 uppercase shrink-0">
                                           {ticket.responsavel_nome?.[0]}
                                         </div>
-                                        <span className="text-[10px] font-bold text-slate-600 truncate max-w-[100px]">
+                                        <span className="text-[10px] font-bold text-slate-600 truncate max-w-[80px]">
                                           {ticket.responsavel_nome?.split(' ')[0]}
                                         </span>
-                                      </>
+                                      </div>
                                     ) : (
-                                      <div className="flex items-center gap-1.5 text-amber-600 group-hover:text-amber-700 transition-colors">
-                                        <ShieldAlert size={12} />
-                                        <span className="text-[10px] font-black uppercase tracking-tighter">Sem responsável</span>
+                                      <div className="flex items-center gap-1 text-amber-500">
+                                        <ShieldAlert size={10} />
+                                        <span className="text-[9px] font-black uppercase tracking-tighter">S/ RESP.</span>
                                       </div>
                                     )}
                                   </div>
-                                  <span className="text-[10px] font-bold text-slate-400 uppercase">
-                                    {formatRelativeTime(ticket.updated_at)}
-                                  </span>
+                                  <div className="flex items-center gap-1">
+                                    {ticket.tags && ticket.tags.length > 0 && (
+                                      <div className="flex gap-0.5 mr-1">
+                                        {ticket.tags.slice(0, 1).map(tag => (
+                                          <span key={tag} className="text-[8px] font-bold text-slate-400 bg-slate-50 border border-slate-100 px-1 rounded-sm uppercase tracking-tighter">
+                                            {tag}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+                                    <span className="text-[9px] font-medium text-slate-400 whitespace-nowrap">
+                                      {formatRelativeTime(ticket.updated_at).replace('há ', '')}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -335,9 +380,9 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                     )})}
                     {provided.placeholder}
                     {column.tickets.length === 0 && !snapshot.isDraggingOver && (
-                      <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-2xl p-6 opacity-30 mt-2">
-                        <Layers size={24} className="text-slate-300 mb-2" />
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] text-center">Coluna vazia</p>
+                      <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-xl p-4 opacity-30 mt-1">
+                        <Layers size={16} className="text-slate-300 mb-1" />
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.1em] text-center">Vazio</p>
                       </div>
                     )}
                   </div>

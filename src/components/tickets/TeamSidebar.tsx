@@ -40,33 +40,33 @@ export const TeamSidebar = ({ currentUser, devCompanyId }: TeamSidebarProps) => 
   if (!currentUser.empresa_id && !currentUser.desenvolvedor) return null;
 
   return (
-    <Card className="w-full shrink-0 p-3 bg-white border-slate-200 shadow-sm overflow-hidden">
-      <div className="flex items-center gap-2 mb-3 px-1">
-        <Users size={14} className="text-slate-400" />
-        <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Membros da Equipe</h3>
+    <Card className="w-full shrink-0 p-2.5 bg-white border-slate-200 shadow-sm overflow-hidden rounded-lg">
+      <div className="flex items-center gap-1.5 mb-2 px-1">
+        <Users size={12} className="text-slate-400" />
+        <h3 className="text-[9px] font-black uppercase tracking-widest text-slate-500">EQUIPE</h3>
       </div>
       
       {loading ? (
-        <div className="flex justify-center p-4">
-          <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+        <div className="flex justify-center p-2">
+          <Loader2 className="w-3 h-3 text-blue-600 animate-spin" />
         </div>
       ) : error ? (
-        <div className="text-red-500 text-[10px] text-center border py-2 rounded-lg bg-red-50">{error}</div>
+        <div className="text-red-500 text-[8px] font-bold text-center border p-1 rounded bg-red-50">{error}</div>
       ) : team.length === 0 ? (
-        <div className="text-slate-400 text-[10px] font-bold uppercase tracking-tight text-center border border-dashed py-4 rounded-lg">Vazio</div>
+        <div className="text-slate-400 text-[8px] font-black uppercase tracking-tight text-center border border-dashed py-2 rounded-lg">Sem Membros</div>
       ) : (
-        <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+        <div className="space-y-1 max-h-[300px] overflow-y-auto pr-0.5 custom-scrollbar">
           {team.map((member) => (
-             <div key={member.id} className="flex items-center justify-between p-2 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+             <div key={member.id} className="flex items-center justify-between p-1.5 rounded border border-slate-50 bg-slate-50/30 hover:bg-slate-50 transition-colors group">
                <div className="min-w-0">
-                 <p className="text-[11px] font-bold text-slate-800 truncate">{member.nome}</p>
-                 <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tight truncate w-28">{member.cargo || 'Agente'}</p>
+                 <p className="text-[10px] font-black text-slate-800 truncate leading-tight uppercase">{member.nome}</p>
+                 <p className="text-[8px] text-slate-400 font-bold uppercase tracking-tighter truncate w-24 leading-none mt-0.5">{member.cargo || 'Agente'}</p>
                </div>
                <div className="flex flex-col items-end shrink-0">
-                 <div className="text-[10px] font-black text-blue-600">
+                 <div className="text-[10px] font-black text-blue-600 leading-none">
                    {member.ticket_count || 0}
                  </div>
-                 <div className="text-[8px] font-bold uppercase text-slate-400 leading-none">Tickets</div>
+                 <div className="text-[7px] font-black uppercase text-slate-400 tracking-tighter leading-none mt-0.5">Chamados</div>
                </div>
              </div>
           ))}
