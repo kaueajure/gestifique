@@ -541,4 +541,119 @@ router.post('/:id/attachments', ticketUpload.array('files', 5), async (req: Auth
   }
 });
 
+// TAGS ROUTES
+router.get('/:id/tags', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
+    const id = parseInt(req.params.id);
+    const result: any = await ticketsService.getByIdForUser(id, currentUser);
+    if (!result || result.error) {
+      return sendError(res, result?.error === 'forbidden' ? 'Permissão negada' : 'Ticket não encontrado', result?.error === 'forbidden' ? 403 : 404);
+    }
+
+    const tags = await ticketsService.getTags(id);
+    sendSuccess(res, tags);
+  } catch (error: unknown) {
+    sendError(res, 'Erro ao buscar tags');
+  }
+});
+
+router.post('/:id/tags', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+    if (!currentUser.administrador && !currentUser.desenvolvedor) return sendError(res, 'Permissão negada', 403);
+
+    const id = parseInt(req.params.id);
+    const { tag } = req.body;
+    if (!tag) return sendError(res, 'Tag é obrigatória', 400);
+
+    const result: any = await ticketsService.getByIdForUser(id, currentUser);
+    if (!result || result.error) return sendError(res, 'Ticket não encontrado', 404);
+
+    await ticketsService.addTag(id, tag);
+    sendSuccess(res, null, 'Tag adicionada');
+  } catch (error: unknown) {
+    sendError(res, 'Erro ao adicionar tag');
+  }
+});
+
+router.put('/:id/tags', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+    if (!currentUser.administrador && !currentUser.desenvolvedor) return sendError(res, 'Permissão negada', 403);
+
+    const id = parseInt(req.params.id);
+    const { tags } = req.body;
+    if (!Array.isArray(tags)) return sendError(res, 'Tags devem ser um array', 400);
+
+    const result: any = await ticketsService.getByIdForUser(id, currentUser);
+    if (!result || result.error) return sendError(res, 'Ticket não encontrado', 404);
+
+    await ticketsService.setTags(id, tags);
+    sendSuccess(res, null, 'Tags atualizadas');
+  } catch (error: unknown) {
+    sendError(res, 'Erro ao atualizar tags');
+  }
+});
+
+router.delete('/:id/tags/:tag', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+    if (!currentUser.administrador && !currentUser.desenvolvedor) return sendError(res, 'Permissão negada', 403);
+
+    const id = parseInt(req.params.id);
+    const { tag } = req.params;
+
+    const result: any = await ticketsService.getByIdForUser(id, currentUser);
+    if (!result || result.error) return sendError(res, 'Ticket não encontrado', 404);
+
+    await ticketsService.removeTag(id, tag);
+    sendSuccess(res, null, 'Tag removida');
+  } catch (error: unknown) {
+    sendError(res, 'Erro ao remover tag');
+  }
+});
+
+// CUSTOM FIELDS ROUTES
+router.get('/:id/custom-fields', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
+    const id = parseInt(req.params.id);
+    const result: any = await ticketsService.getByIdForUser(id, currentUser);
+    if (!result || result.error) return sendError(res, 'Ticket não encontrado', 404);
+
+    const fields = await ticketsService.getCustomFields(id);
+    sendSuccess(res, fields);
+  } catch (error: unknown) {
+    sendError(res, 'Erro ao buscar campos personalizados');
+  }
+});
+
+router.put('/:id/custom-fields', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+    if (!currentUser.administrador && !currentUser.desenvolvedor) return sendError(res, 'Permissão negada', 403);
+
+    const id = parseInt(req.params.id);
+    const { fields } = req.body;
+    if (!Array.isArray(fields)) return sendError(res, 'Campos devem ser um array', 400);
+
+    const result: any = await ticketsService.getByIdForUser(id, currentUser);
+    if (!result || result.error) return sendError(res, 'Ticket não encontrado', 404);
+
+    await ticketsService.setCustomFields(id, fields);
+    sendSuccess(res, null, 'Campos personalizados atualizados');
+  } catch (error: unknown) {
+    sendError(res, 'Erro ao atualizar campos personalizados');
+  }
+});
+
 export default router;

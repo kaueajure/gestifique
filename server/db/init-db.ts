@@ -184,6 +184,36 @@ async function initDB() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    // Ticket Tags
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS ticket_tags (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        ticket_id INT NOT NULL,
+        tag VARCHAR(50) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        KEY idx_ticket_tags_ticket_id (ticket_id),
+        KEY idx_ticket_tags_tag (tag),
+        UNIQUE KEY unique_ticket_tag (ticket_id, tag),
+        FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // Ticket Custom Fields
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS ticket_custom_fields (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        ticket_id INT NOT NULL,
+        field_key VARCHAR(80) NOT NULL,
+        field_label VARCHAR(120) NOT NULL,
+        field_value TEXT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        KEY idx_ticket_custom_fields_ticket_id (ticket_id),
+        UNIQUE KEY unique_ticket_field (ticket_id, field_key),
+        FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
     console.log('[BOOT] 📚 Tabelas base validadas. Iniciando migrações de colunas...');
 
     // Migrações Horizontais (Garantir colunas novas em bancos antigos)

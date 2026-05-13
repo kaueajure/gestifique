@@ -27,6 +27,7 @@ import { PageHeader } from '../ui/PageHeader';
 import { TicketQueue } from '../../types';
 import { cn } from '../../lib/utils';
 import { motion } from 'motion/react';
+import { TicketBulkActions } from '../tickets/TicketBulkActions';
 
 interface TicketsPageProps {
   onSelectTicket: (id: number) => void;
@@ -81,10 +82,22 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
   
   const [devCompanyId, setDevCompanyId] = useState<string>('');
   const [companies, setCompanies] = useState<Empresa[]>([]);
+  const [agents, setAgents] = useState<User[]>([]);
+
+  // Bulk Selection
+  const [selectedTicketIds, setSelectedTicketIds] = useState<number[]>([]);
 
   useEffect(() => {
-    if (!!currentUser.desenvolvedor) {
+    if (!!(currentUser.administrador || currentUser.desenvolvedor)) {
       api.get<Empresa[]>('/companies').then(setCompanies).catch(console.error);
+      
+      // Fetch agents for bulk assignment
+      api.get<User[]>('/users').then(users => {
+        const filteredAgents = users.filter(u => 
+          u.ativo && (u.administrador || u.cargo?.toLowerCase().includes('técnico') || u.cargo?.toLowerCase().includes('suporte'))
+        );
+        setAgents(filteredAgents);
+      }).catch(console.error);
     }
   }, [currentUser]);
 
@@ -135,6 +148,9 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
         const kanbanData = await api.get<TicketKanbanResponse>(`/tickets/kanban?${query.toString()}`);
         setKanbanResponse(kanbanData);
       }
+      
+      // Clear selection on refresh
+      setSelectedTicketIds([]);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao carregar atendimentos.';
       setError(message);
@@ -145,6 +161,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
 
   useEffect(() => {
     setCurrentPage(1);
+    setSelectedTicketIds([]);
   }, [searchTerm, statusFilter, priorityFilter, categoryFilter, viewMode, devCompanyId, selectedQueue]);
 
   useEffect(() => {
@@ -153,6 +170,23 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
     }, 300);
     return () => clearTimeout(timer);
   }, [searchTerm, statusFilter, priorityFilter, categoryFilter, viewMode, currentPage, devCompanyId, selectedQueue]);
+
+  const handleBulkAction = async (action: string, value?: any) => {
+    try {
+      setLoading(true);
+      await api.patch('/tickets/bulk', {
+        ticket_ids: selectedTicketIds,
+        action,
+        value
+      });
+      setSelectedTicketIds([]);
+      fetchData();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao processar ação em massa.';
+      alert(message);
+      setLoading(false);
+    }
+  };
 
   const queueCounts = viewMode === 'list' ? ticketsResponse?.queues : kanbanResponse?.queues;
 
@@ -172,7 +206,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
               >
                 <option value="">Selecione uma empresa...</option>
                 {companies.map(emp => (
-                  <option key={emp.id} value={emp.id}>{emp.nome}</option>
+                   <option key={emp.id} value={emp.id}>{emp.nome}</option>
                 ))}
               </select>
             </div>
@@ -281,13 +315,23 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
               onPageChange={setCurrentPage}
               onSelectTicket={onSelectTicket} 
               searchTerm={searchTerm} 
-              hasFilters={searchTerm !== '' || statusFilter !== 'todos' || priorityFilter !== 'todas' || categoryFilter !== 'todas'} 
+              hasFilters={searchTerm !== '' || statusFilter !== 'todos' || priorityFilter !== 'todas' || categoryFilter !== 'todas'}
+              selectedTicketIds={selectedTicketIds}
+              onSelectionChange={setSelectedTicketIds}
+              canSelectBulk={!!(currentUser.administrador || currentUser.desenvolvedor)}
             />
           ) : null}
         </div>
         
         <TeamSidebar currentUser={currentUser} />
       </div>
+
+      <TicketBulkActions 
+        selectedCount={selectedTicketIds.length} 
+        onAction={handleBulkAction}
+        onClear={() => setSelectedTicketIds([])}
+        agents={agents}
+      />
 
       <CreateTicketModal 
         isOpen={isModalOpen} 

@@ -270,6 +270,17 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                                  {ticket.prioridade}
                                </Badge>
                              </div>
+
+                             {ticket.tags && ticket.tags.length > 0 && (
+                               <div className="flex flex-wrap gap-1 mt-1">
+                                  {ticket.tags.slice(0, 2).map(tag => (
+                                    <span key={tag} className="text-[8px] font-bold text-slate-400 border border-slate-200 rounded px-1 group-hover:border-slate-300 transition-colors">
+                                      {tag}
+                                    </span>
+                                  ))}
+                                  {ticket.tags.length > 2 && <span className="text-[8px] text-slate-300">+{ticket.tags.length - 2}</span>}
+                               </div>
+                             )}
             
                              <div className="flex flex-col gap-1.5 mt-3 pt-3 border-t border-slate-50">
                                 {!!currentUser.desenvolvedor && ticket.empresa_nome && (

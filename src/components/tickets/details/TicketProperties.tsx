@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Ticket, TicketStatus, TicketPriority, TicketAttachment } from '../../../types';
+import { User, Ticket, TicketStatus, TicketPriority, TicketAttachment, TicketCustomField } from '../../../types';
 import { Card, CardHeader, CardTitle, CardContent } from '../../ui/Card';
 import { Badge } from '../../ui/Badge';
 import { Button } from '../../ui/Button';
@@ -7,6 +7,8 @@ import { User as UserIcon, Building2, Tag, Calendar, Trash2, Paperclip, Clock, A
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { AttachmentList } from '../../ui/AttachmentList';
 import { cn, formatRelativeTime } from '../../../lib/utils';
+import { TicketTags } from '../TicketTags';
+import { TicketCustomFields } from './TicketCustomFields';
 
 interface TicketPropertiesProps {
   ticket: Ticket;
@@ -15,6 +17,8 @@ interface TicketPropertiesProps {
   attachments: TicketAttachment[];
   onUpdate: (data: Partial<Ticket>) => void;
   onArchive: () => void;
+  onUpdateTags?: (tags: string[]) => void;
+  onUpdateCustomFields?: (fields: TicketCustomField[]) => void;
 }
 
 type SlaVariant = 'red' | 'amber' | 'blue' | 'emerald' | 'slate';
@@ -27,7 +31,10 @@ interface SlaInfo {
   icon: React.ComponentType<{ size?: number; className?: string }>;
 }
 
-export const TicketProperties = ({ ticket, currentUser, agents, attachments, onUpdate, onArchive }: TicketPropertiesProps) => {
+export const TicketProperties = ({ 
+  ticket, currentUser, agents, attachments, onUpdate, onArchive, 
+  onUpdateTags, onUpdateCustomFields 
+}: TicketPropertiesProps) => {
   const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = React.useState(false);
 
   const formatDate = (value: string | number | Date) => {
@@ -146,6 +153,8 @@ export const TicketProperties = ({ ticket, currentUser, agents, attachments, onU
   const empresaNome = ticket.empresa_nome || 'Empresa não vinculada';
   const origemLabel = ticket.origem || 'Não informado';
 
+  const canManage = !!(currentUser.administrador || currentUser.desenvolvedor);
+
   return (
     <>
       <ConfirmDialog 
@@ -168,7 +177,7 @@ export const TicketProperties = ({ ticket, currentUser, agents, attachments, onU
           </CardHeader>
           <CardContent className="p-5 space-y-6">
              {/* Status & Prioridade para Admin */}
-             {!!(currentUser.administrador || currentUser.desenvolvedor) ? (
+             {canManage ? (
                <div className="space-y-4">
                   <div className="space-y-1.5">
                      <span className="text-xs font-semibold text-slate-500">Status</span>
@@ -229,6 +238,20 @@ export const TicketProperties = ({ ticket, currentUser, agents, attachments, onU
              )}
 
              <div className="space-y-4 pt-4 border-t border-slate-50">
+                {/* Tags Integration */}
+                <div className="space-y-2">
+                   <div className="flex items-center gap-2 mb-1">
+                      <Tag size={12} className="text-slate-400" />
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Tags do Chamado</span>
+                   </div>
+                   <TicketTags 
+                     tags={ticket.tags || []}
+                     onAdd={(tag) => onUpdateTags?.([...(ticket.tags || []), tag])}
+                     onRemove={(tag) => onUpdateTags?.((ticket.tags || []).filter(t => t !== tag))}
+                     readOnly={!canManage}
+                   />
+                </div>
+
                 <div className="space-y-2">
                    <span className="text-xs font-semibold text-slate-500">Solicitante</span>
                    <div className="flex items-center gap-3 bg-slate-50/50 p-2 rounded-lg border border-slate-100/50">
@@ -251,20 +274,21 @@ export const TicketProperties = ({ ticket, currentUser, agents, attachments, onU
                 </div>
 
                 <div className="space-y-2">
-                   <span className="text-xs font-semibold text-slate-500">Categoria</span>
-                   <div className="flex items-center gap-3">
-                      <Tag size={14} className="text-slate-300" />
-                      <span className="text-xs font-bold text-slate-600 uppercase tracking-tight">{(ticket.categoria || 'Não informada').replace('_', ' ')}</span>
-                   </div>
-                </div>
-
-                <div className="space-y-2">
                    <span className="text-xs font-semibold text-slate-500">Origem</span>
                    <div className="flex items-center gap-3">
                       <Calendar size={14} className="text-slate-300" />
                       <span className="text-xs font-bold text-slate-600">{origemLabel}</span>
                    </div>
                 </div>
+             </div>
+
+             {/* Custom Fields Integration */}
+             <div className="pt-4 border-t border-slate-50">
+                <TicketCustomFields 
+                  fields={ticket.custom_fields || []}
+                  onUpdate={onUpdateCustomFields || (() => {})}
+                  readOnly={!canManage}
+                />
              </div>
 
              <div className="space-y-3 pt-4 border-t border-slate-50">

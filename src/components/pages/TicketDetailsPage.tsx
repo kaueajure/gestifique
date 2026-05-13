@@ -149,6 +149,26 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
     await handleUpdateTicket({ status: 'fechado' });
   };
 
+  const handleUpdateTags = async (tags: string[]) => {
+    try {
+      await api.patch(`/tickets/${ticketId}/tags`, { tags });
+      setTicket(prev => prev ? { ...prev, tags } : null);
+    } catch (err) {
+      console.error('Erro ao atualizar tags:', err);
+      alert('Erro ao atualizar tags.');
+    }
+  };
+
+  const handleUpdateCustomFields = async (fields: any[]) => {
+    try {
+      await api.patch(`/tickets/${ticketId}/custom-fields`, { fields });
+      setTicket(prev => prev ? { ...prev, custom_fields: fields } : null);
+    } catch (err) {
+      console.error('Erro ao atualizar campos personalizados:', err);
+      alert('Erro ao atualizar campos personalizados.');
+    }
+  };
+
   const handleDeleteAttachment = async (attachmentId: number) => {
     if (!window.confirm('Tem certeza que deseja excluir este anexo permanentemente?')) return;
     
@@ -295,6 +315,8 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                 attachments={ticketAttachments}
                 onUpdate={handleUpdateTicket}
                 onArchive={handleArchiveTicket}
+                onUpdateTags={handleUpdateTags}
+                onUpdateCustomFields={handleUpdateCustomFields}
             />
         </div>
       </div>

@@ -18,9 +18,15 @@ interface TicketListProps {
     totalPages: number;
   };
   onPageChange?: (page: number) => void;
+  selectedTicketIds?: number[];
+  onSelectionChange?: (ids: number[]) => void;
+  canSelectBulk?: boolean;
 }
 
-export const TicketList = ({ tickets, onSelectTicket, searchTerm, hasFilters, meta, onPageChange }: TicketListProps) => {
+export const TicketList = ({ 
+  tickets, onSelectTicket, searchTerm, hasFilters, meta, 
+  onPageChange, selectedTicketIds = [], onSelectionChange, canSelectBulk 
+}: TicketListProps) => {
 
   const statusMap: Record<string, 'blue' | 'emerald' | 'amber' | 'red' | 'indigo' | 'slate'> = {
     aberto: 'blue',
@@ -37,6 +43,26 @@ export const TicketList = ({ tickets, onSelectTicket, searchTerm, hasFilters, me
       case 'media': return 'amber';
       case 'baixa': return 'blue';
       default: return 'slate';
+    }
+  };
+
+  const toggleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!onSelectionChange) return;
+    if (e.target.checked) {
+      const allIds = tickets.map(t => t.id);
+      onSelectionChange(allIds);
+    } else {
+      onSelectionChange([]);
+    }
+  };
+
+  const toggleSelectTicket = (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
+    if (!onSelectionChange) return;
+    if (selectedTicketIds.includes(id)) {
+      onSelectionChange(selectedTicketIds.filter(tid => tid !== id));
+    } else {
+      onSelectionChange([...selectedTicketIds, id]);
     }
   };
 
@@ -65,11 +91,23 @@ export const TicketList = ({ tickets, onSelectTicket, searchTerm, hasFilters, me
 
   return (
     <Card className="overflow-hidden">
+      {canSelectBulk && (
+        <div className="px-5 py-2 bg-slate-50 border-b border-slate-100 flex items-center gap-3">
+           <input 
+             type="checkbox" 
+             className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+             onChange={toggleSelectAll}
+             checked={tickets.length > 0 && selectedTicketIds.length === tickets.length}
+           />
+           <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Selecionar Todos</span>
+        </div>
+      )}
       <div className="divide-y divide-slate-100">
         {tickets.map((ticket) => {
           const prazoSLA = ticket.prazo_sla ? new Date(ticket.prazo_sla) : null;
           const isFinalizado = ticket.status === 'resolvido' || ticket.status === 'fechado';
           const isAbertoESemResp = ticket.status === 'aberto' && !ticket.responsavel_id;
+          const isSelected = selectedTicketIds.includes(ticket.id);
           let slaStatus: 'normal' | 'warning' | 'expired' = 'normal';
 
           if (prazoSLA && !isFinalizado) {
@@ -84,20 +122,32 @@ export const TicketList = ({ tickets, onSelectTicket, searchTerm, hasFilters, me
             key={ticket.id}
             onClick={() => onSelectTicket(ticket.id)}
             className={cn(
-              "p-3 px-5 flex flex-col sm:flex-row sm:items-center gap-3 transition-colors cursor-pointer group",
+              "p-3 px-5 flex flex-col sm:items-center sm:flex-row gap-3 transition-colors cursor-pointer group",
+              isSelected ? "bg-blue-50/50 hover:bg-blue-50 border-l-2 border-l-blue-500" :
               slaStatus === 'expired' ? "bg-red-50/50 hover:bg-red-50 border-l-2 border-l-red-500" : 
               slaStatus === 'warning' ? "bg-yellow-50/50 hover:bg-yellow-50 border-l-2 border-l-yellow-400" :
               isAbertoESemResp ? "bg-amber-50/30 hover:bg-amber-50/50 border-l-2 border-l-amber-300" :
               "hover:bg-slate-50/50 border-l-2 border-l-transparent"
             )}
           >
-            <div className={cn(
-              "w-8 h-8 rounded-lg flex items-center justify-center border transition-colors shadow-sm bg-white shrink-0",
-              ticket.status === 'resolvido' ? "text-emerald-500 border-emerald-100" : 
-              isAbertoESemResp ? "text-amber-500 border-amber-100" :
-              "text-slate-400 group-hover:text-blue-600 border-slate-100 group-hover:border-blue-100"
-            )}>
-              {isAbertoESemResp ? <ShieldAlert size={14} /> : <MessageSquare size={14} />}
+            <div className="flex items-center gap-3">
+              {canSelectBulk && (
+                 <input 
+                   type="checkbox" 
+                   className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                   checked={isSelected}
+                   onClick={(e) => toggleSelectTicket(e, ticket.id)}
+                   onChange={() => {}}
+                 />
+              )}
+              <div className={cn(
+                "w-8 h-8 rounded-lg flex items-center justify-center border transition-colors shadow-sm bg-white shrink-0",
+                ticket.status === 'resolvido' ? "text-emerald-500 border-emerald-100" : 
+                isAbertoESemResp ? "text-amber-500 border-amber-100" :
+                "text-slate-400 group-hover:text-blue-600 border-slate-100 group-hover:border-blue-100"
+              )}>
+                {isAbertoESemResp ? <ShieldAlert size={14} /> : <MessageSquare size={14} />}
+              </div>
             </div>
 
             <div className="flex-1 min-w-0">
@@ -119,6 +169,13 @@ export const TicketList = ({ tickets, onSelectTicket, searchTerm, hasFilters, me
                     Aguardando Atribuição
                   </span>
                 )}
+                {/* Tags displayed discreetly */}
+                <div className="flex gap-1 ml-1">
+                  {ticket.tags?.slice(0, 3).map(tag => (
+                    <span key={tag} className="text-[8px] font-bold text-slate-400 border border-slate-200 rounded px-1 group-hover:border-slate-300 group-hover:text-slate-500 transition-colors">{tag}</span>
+                  ))}
+                  {ticket.tags && ticket.tags.length > 3 && <span className="text-[8px] text-slate-400 mt-0.5">+{ticket.tags.length - 3}</span>}
+                </div>
               </div>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] font-bold text-slate-400">
                 <span className="text-blue-600 tracking-tighter">#{ticket.id}</span>

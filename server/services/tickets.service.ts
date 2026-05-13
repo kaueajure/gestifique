@@ -471,7 +471,14 @@ class TicketsService {
        WHERE t.id = ?`,
       [id]
     );
-    return rows[0] || null;
+    
+    if (!rows[0]) return null;
+    
+    const ticket = rows[0];
+    ticket.tags = await this.getTags(id);
+    ticket.custom_fields = await this.getCustomFields(id);
+    
+    return ticket;
   }
 
   async updateStatus(id: number, status: string, changedByUserId: number, req?: any) {
@@ -776,6 +783,147 @@ class TicketsService {
     timeline.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     return timeline;
+  }
+
+  // TAGS
+  async getTags(ticketId: number) {
+    const [rows]: any = await pool.query(
+      'SELECT tag FROM ticket_tags WHERE ticket_id = ? ORDER BY tag ASC',
+      [ticketId]
+    );
+    return rows.map((r: any) => r.tag);
+  }
+
+  normalizeTag(tag: string): string {
+    if (!tag) return '';
+    let normalized = tag.toLowerCase().trim();
+    if (normalized.startsWith('#')) normalized = normalized.substring(1);
+    normalized = normalized.replace(/\s+/g, '-');
+    return normalized.substring(0, 50);
+  }
+
+  async addTag(ticketId: number, tag: string) {
+    const normalized = this.normalizeTag(tag);
+    if (!normalized) return;
+
+    try {
+      await pool.query(
+        'INSERT IGNORE INTO ticket_tags (ticket_id, tag) VALUES (?, ?)',
+        [ticketId, normalized]
+      );
+    } catch (e) {
+      console.error('Error adding tag:', e);
+    }
+  }
+
+  async removeTag(ticketId: number, tag: string) {
+    await pool.query(
+      'DELETE FROM ticket_tags WHERE ticket_id = ? AND tag = ?',
+      [ticketId, tag]
+    );
+  }
+
+  async setTags(ticketId: number, tags: string[]) {
+    await pool.query('DELETE FROM ticket_tags WHERE ticket_id = ?', [ticketId]);
+    for (const tag of tags) {
+      await this.addTag(ticketId, tag);
+    }
+  }
+
+  // CUSTOM FIELDS
+  async getCustomFields(ticketId: number) {
+    const [rows]: any = await pool.query(
+      'SELECT * FROM ticket_custom_fields WHERE ticket_id = ? ORDER BY field_label ASC',
+      [ticketId]
+    );
+    return rows;
+  }
+
+  normalizeFieldKey(key: string): string {
+    if (!key) return '';
+    return key.toLowerCase().trim()
+      .replace(/\s+/g, '_')
+      .replace(/[^a-z0-9_]/g, '')
+      .substring(0, 80);
+  }
+
+  async updateCustomField(ticketId: number, field: any) {
+    const key = this.normalizeFieldKey(field.field_key);
+    if (!key) return;
+
+    const label = (field.field_label || key).substring(0, 120);
+    const value = (field.field_value || '').substring(0, 1000);
+
+    await pool.query(
+      `INSERT INTO ticket_custom_fields (ticket_id, field_key, field_label, field_value) 
+       VALUES (?, ?, ?, ?) 
+       ON DUPLICATE KEY UPDATE field_label = VALUES(field_label), field_value = VALUES(field_value)`,
+      [ticketId, key, label, value]
+    );
+  }
+
+  async setCustomFields(ticketId: number, fields: any[]) {
+    // For simplicity, we just update/insert provided ones. We don't delete others unless requested.
+    for (const field of fields) {
+      await this.updateCustomField(ticketId, field);
+    }
+  }
+
+  async removeCustomField(ticketId: number, fieldKey: string) {
+    await pool.query(
+      'DELETE FROM ticket_custom_fields WHERE ticket_id = ? AND field_key = ?',
+      [ticketId, fieldKey]
+    );
+  }
+
+  // BULK ACTIONS
+  async bulkUpdate(ticketIds: number[], action: string, value: any, currentUser: any) {
+    if (!ticketIds || ticketIds.length === 0) return { updated: 0, skipped: 0 };
+
+    let updated = 0;
+    let skipped = 0;
+    const errors: string[] = [];
+
+    for (const id of ticketIds) {
+      try {
+        const ticket = await this.getByIdForUser(id, currentUser);
+        if (!ticket || ticket.error) {
+          skipped++;
+          continue;
+        }
+
+        switch (action) {
+          case 'status':
+            await this.updateStatus(id, value, currentUser.id);
+            updated++;
+            break;
+          case 'prioridade':
+            await this.update(id, { prioridade: value });
+            updated++;
+            break;
+          case 'responsavel':
+            // value is responsavel_id or null
+            await this.update(id, { responsavel_id: value });
+            updated++;
+            break;
+          case 'add_tag':
+            await this.addTag(id, value);
+            updated++;
+            break;
+          case 'fechar':
+            await this.updateStatus(id, 'fechado', currentUser.id);
+            updated++;
+            break;
+          default:
+            skipped++;
+        }
+      } catch (err) {
+        skipped++;
+        errors.push(`Erro no ticket #${id}: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+
+    return { updated, skipped, errors };
   }
 }
 

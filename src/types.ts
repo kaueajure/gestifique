@@ -107,6 +107,16 @@ export interface Ticket {
   finalizado_em: string | null;
   created_at: string;
   updated_at: string;
+  tags?: string[];
+  custom_fields?: TicketCustomField[];
+}
+
+export interface TicketCustomField {
+  id?: number;
+  ticket_id?: number;
+  field_key: string;
+  field_label: string;
+  field_value: string | null;
 }
 
 export interface Message {
