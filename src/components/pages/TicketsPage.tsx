@@ -31,7 +31,8 @@ import { TicketSavedViews } from '../tickets/TicketSavedViews';
 import { Select } from '../ui/Select';
 import { TicketQueue } from '../../types';
 import { cn } from '../../lib/utils';
-import { motion } from 'motion/react';
+import { FilterChip } from '../ui/FilterChip';
+import { motion, AnimatePresence } from 'motion/react';
 import { TicketBulkActions } from '../tickets/TicketBulkActions';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -389,6 +390,53 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
     selectedQueue !== 'todos' ||
     hasAdvancedFilters;
 
+  const clearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('todos');
+    setPriorityFilter('todas');
+    setCategoryFilter('todas');
+    setSelectedQueue('todos');
+    setAdvancedFilters({ sla_status: 'todos' });
+    setCurrentViewId(null);
+  };
+
+  const removeFilter = (key: string) => {
+    if (key === 'search') setSearchTerm('');
+    else if (key === 'status') setStatusFilter('todos');
+    else if (key === 'priority') setPriorityFilter('todas');
+    else if (key === 'category') setCategoryFilter('todas');
+    else if (key === 'queue') setSelectedQueue('todos');
+    else if (key.startsWith('adv:')) {
+      const advKey = key.replace('adv:', '') as keyof IAdvancedFilters;
+      setAdvancedFilters(prev => ({ ...prev, [advKey]: undefined }));
+    }
+  };
+
+  const getActiveFilterChips = () => {
+    const chips: { id: string; label: string; value: string }[] = [];
+    
+    if (searchTerm) chips.push({ id: 'search', label: 'Busca', value: searchTerm });
+    if (statusFilter !== 'todos') chips.push({ id: 'status', label: 'Status', value: statusFilter.replace('_', ' ') });
+    if (priorityFilter !== 'todas') chips.push({ id: 'priority', label: 'Prioridade', value: priorityFilter });
+    if (categoryFilter !== 'todas') chips.push({ id: 'category', label: 'Categoria', value: categoryFilter.replace('_', ' ') });
+    if (selectedQueue !== 'todos') {
+      const queueLabel = QUEUES.find(q => q.id === selectedQueue)?.label || selectedQueue;
+      chips.push({ id: 'queue', label: 'Fila', value: queueLabel });
+    }
+
+    if (advancedFilters.sla_status && advancedFilters.sla_status !== 'todos') {
+      chips.push({ id: 'adv:sla_status', label: 'SLA', value: advancedFilters.sla_status.replace('_', ' ') });
+    }
+    if (advancedFilters.tag) chips.push({ id: 'adv:tag', label: 'Tag', value: advancedFilters.tag });
+    if (advancedFilters.origem) chips.push({ id: 'adv:origem', label: 'Origem', value: advancedFilters.origem });
+    if (advancedFilters.responsavel_id) {
+      const agent = agents.find(a => a.id === advancedFilters.responsavel_id);
+      chips.push({ id: 'adv:responsavel_id', label: 'Responsável', value: agent?.nome || String(advancedFilters.responsavel_id) });
+    }
+
+    return chips;
+  };
+
   const queueCounts = viewMode === 'list' ? ticketsResponse?.queues : kanbanResponse?.queues;
 
   return (
@@ -396,29 +444,17 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
       <PageHeader 
         title="Atendimentos" 
         action={
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className={cn(
-                "h-9 gap-2 bg-white text-slate-600 border-slate-200",
-                showTeamSidebar && "bg-blue-50 border-blue-200 text-blue-600"
-              )}
-              onClick={() => setShowTeamSidebar(!showTeamSidebar)}
-            >
-              <UserIcon size={16} />
-              <span className="hidden sm:inline">Equipe</span>
-            </Button>
+          <div className="flex flex-wrap items-center justify-end gap-2">
             {!!currentUser.desenvolvedor && (
-              <div className="relative w-48">
-                <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10" size={14} />
+              <div className="relative w-40 sm:w-48">
+                <Building className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 z-10" size={12} />
                 <Select 
                   value={devCompanyId}
                   onChange={setDevCompanyId}
                   placeholder="Empresa..."
-                  buttonClassName="pl-9 h-9 text-[11px] font-bold uppercase tracking-tight"
+                  buttonClassName="pl-8 h-8 text-[11px] font-bold uppercase tracking-tight"
                   options={[
-                    { value: '', label: 'Empresa...' },
+                    { value: '', label: 'Selecione a empresa' },
                     ...companies.map(emp => ({
                       value: String(emp.id),
                       label: emp.nome
@@ -427,32 +463,66 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                 />
               </div>
             )}
-            <Button variant="outline" size="sm" className="h-9 w-9 p-0 bg-white" onClick={fetchData}>
-              <RefreshCw size={16} className={loading ? "animate-spin text-blue-600" : "text-slate-600"} />
-            </Button>
-            <Button variant="outline" size="sm" className="h-9 gap-2 bg-white text-slate-600 border-slate-200" onClick={exportToCSV}>
-              <Download size={16} />
-              <span className="hidden sm:inline">CSV</span>
-            </Button>
-            <div className="bg-slate-100 p-0.5 rounded-lg flex items-center border border-slate-200">
-               <button 
-                 onClick={() => setViewMode('kanban')}
-                 className={`p-1.5 rounded-md text-slate-500 hover:text-slate-900 transition-all ${viewMode === 'kanban' ? 'bg-white shadow-sm font-semibold text-blue-600' : ''}`}
-                 title="Visualização Kanban"
-               >
-                  <Kanban size={16} />
-               </button>
-               <button 
-                 onClick={() => setViewMode('list')}
-                 className={`p-1.5 rounded-md text-slate-500 hover:text-slate-900 transition-all ${viewMode === 'list' ? 'bg-white shadow-sm font-semibold text-blue-600' : ''}`}
-                 title="Visualização em Lista"
-               >
-                  <ListIcon size={16} />
-               </button>
+
+            <div className="flex items-center gap-1.5 bg-white border border-slate-200 p-1 rounded-xl shadow-sm">
+              <button 
+                onClick={() => setViewMode('kanban')}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all",
+                  viewMode === 'kanban' ? "bg-blue-600 text-white shadow-md shadow-blue-100" : "text-slate-500 hover:bg-slate-50"
+                )}
+              >
+                <Kanban size={14} />
+                <span className="hidden sm:inline">Kanban</span>
+              </button>
+              <button 
+                onClick={() => setViewMode('list')}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all",
+                  viewMode === 'list' ? "bg-blue-600 text-white shadow-md shadow-blue-100" : "text-slate-500 hover:bg-slate-50"
+                )}
+              >
+                <ListIcon size={14} />
+                <span className="hidden sm:inline">Lista</span>
+              </button>
             </div>
-            <Button size="sm" className="h-9" onClick={() => setIsModalOpen(true)}>
-              <Plus size={16} className="sm:mr-2" /> 
-              <span className="hidden sm:inline">Novo Atendimento</span>
+
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "h-8 w-8 p-0 bg-white border-slate-200 text-slate-500 hover:bg-slate-50",
+                  showTeamSidebar && "bg-blue-50 border-blue-200 text-blue-600"
+                )}
+                onClick={() => setShowTeamSidebar(!showTeamSidebar)}
+                title="Equipe"
+              >
+                <UserIcon size={16} />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-8 w-8 p-0 bg-white border-slate-200 text-slate-500 hover:bg-slate-50" 
+                onClick={fetchData}
+                title="Atualizar"
+              >
+                <RefreshCw size={14} className={loading ? "animate-spin text-blue-600" : ""} />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-8 w-8 p-0 bg-white border-slate-200 text-slate-500 hover:bg-slate-50" 
+                onClick={exportToCSV}
+                title="Exportar CSV"
+              >
+                <Download size={14} />
+              </Button>
+            </div>
+
+            <Button className="h-8 pr-4 shadow-lg shadow-blue-100" onClick={() => setIsModalOpen(true)}>
+              <Plus size={16} className="mr-1.5" /> 
+              <span className="text-[11px] font-bold uppercase tracking-tight">Novo Atendimento</span>
             </Button>
           </div>
         }
@@ -460,31 +530,44 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
 
       <div className="flex flex-col lg:flex-row gap-3 items-start">
         <div className="flex-1 w-full space-y-3">
-          {/* Smart Queues Tabs - Compact */}
-          <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none no-scrollbar">
+          {/* Smart Queues Tabs - Compact Refined */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
             {QUEUES.map((q) => {
               const Icon = q.icon;
               const isActive = selectedQueue === q.id;
               const count = queueCounts?.[q.id] || 0;
+              
+              // Special colors for critical queues
+              const isUrgent = q.id === 'urgentes' || q.id === 'sla_vencido';
+              const isWarning = q.id === 'sem_responsavel' || q.id === 'vence_em_breve';
 
               return (
                 <button
                   key={q.id}
                   onClick={() => setSelectedQueue(q.id)}
                   className={cn(
-                    "relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all border shrink-0",
+                    "relative flex items-center gap-2 px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-all border shrink-0",
                     isActive 
-                      ? "bg-white border-blue-200 text-blue-600 shadow-sm ring-1 ring-blue-50" 
-                      : "bg-slate-50/50 border-transparent text-slate-500 hover:bg-slate-100/80 hover:text-slate-700"
+                      ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-100 translate-y-[-1px]" 
+                      : cn(
+                          "bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50",
+                          isUrgent && count > 0 && "text-red-500 border-red-100 bg-red-50/30",
+                          isWarning && count > 0 && "text-amber-600 border-amber-100 bg-amber-50/30"
+                        )
                   )}
                 >
-                  <Icon size={13} className={isActive ? "text-blue-500" : "text-slate-400"} />
+                  <Icon size={14} className={cn(
+                    "shrink-0",
+                    isActive ? "text-blue-100" : (isUrgent && count > 0 ? "text-red-400" : "text-slate-400")
+                  )} />
                   <span>{q.label}</span>
                   {count > 0 && (
                     <span 
                       className={cn(
-                        "ml-0.5 px-1.5 py-0.5 rounded-full text-[9px] leading-none",
-                        isActive ? "bg-blue-100 text-blue-700" : "bg-slate-200 text-slate-600"
+                        "ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-black tracking-tight",
+                        isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600",
+                        !isActive && isUrgent && "bg-red-100 text-red-600",
+                        !isActive && isWarning && "bg-amber-100 text-amber-700"
                       )}
                     >
                       {count}
@@ -496,18 +579,18 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
           </div>
 
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="flex flex-col xl:flex-row xl:items-center gap-3 p-2.5">
-              <TicketSavedViews 
-                views={savedViews}
-                currentViewId={currentViewId}
-                onSelectView={handleSelectView}
-                onSaveCurrent={handleSaveView}
-                onDeleteView={handleDeleteView}
-              />
-              
-              <div className="hidden xl:block w-px h-6 bg-slate-100" />
-              
-              <div className="flex-1">
+            <div className="flex flex-col xl:flex-row xl:items-center gap-3 p-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <TicketSavedViews 
+                  views={savedViews}
+                  currentViewId={currentViewId}
+                  onSelectView={handleSelectView}
+                  onSaveCurrent={handleSaveView}
+                  onDeleteView={handleDeleteView}
+                />
+                
+                <div className="hidden xl:block w-px h-6 bg-slate-100" />
+                
                 <TicketFilters 
                   searchTerm={searchTerm} setSearchTerm={setSearchTerm}
                   statusFilter={statusFilter} setStatusFilter={setStatusFilter}
@@ -527,6 +610,41 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
               agents={agents}
               isOpen={showAdvanced}
             />
+
+            {/* Active Filter Chips */}
+            <AnimatePresence>
+              {hasAnyFilters && (
+                <motion.div 
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="px-3 pb-3 pt-1 border-t border-slate-50 flex flex-wrap items-center gap-2"
+                >
+                  <div className="flex items-center gap-1.5 mr-1">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Filtros:</span>
+                  </div>
+                  {getActiveFilterChips().map((chip) => {
+                    const props = {
+                      label: chip.label,
+                      value: chip.value,
+                      onRemove: () => removeFilter(chip.id)
+                    };
+                    return (
+                      <FilterChip 
+                        key={chip.id}
+                        {...props}
+                      />
+                    );
+                  })}
+                  <button 
+                    onClick={clearFilters}
+                    className="text-[10px] font-bold text-red-500 hover:text-red-600 px-2 py-1 rounded-lg hover:bg-red-50 transition-colors uppercase tracking-tight"
+                  >
+                    Limpar tudo
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {viewMode === 'list' && ticketsResponse && <TicketSummaryCards summary={ticketsResponse.summary} />}

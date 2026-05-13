@@ -39,3 +39,79 @@ export function formatRelativeTime(date: string | Date | null | undefined): stri
   const diffInYears = Math.floor(diffInMonths / 12);
   return diffInYears === 1 ? "há 1 ano" : `há ${diffInYears} anos`;
 }
+
+export interface SlaInfo {
+  status: 'normal' | 'vencendo' | 'vencido' | 'finalizado' | 'sem_sla';
+  label: string;
+  color: string;
+  remainingText?: string;
+  diffInMinutes?: number;
+}
+
+export function getSlaInfo(prazo_sla: string | null | undefined, ticketStatus: string): SlaInfo {
+  if (ticketStatus === 'resolvido' || ticketStatus === 'fechado') {
+    return { status: 'finalizado', label: 'Finalizado', color: 'text-slate-400 bg-slate-50 border-slate-200' };
+  }
+
+  if (!prazo_sla) {
+    return { status: 'sem_sla', label: 'Sem SLA', color: 'text-slate-400 bg-slate-50 border-slate-200' };
+  }
+
+  const deadline = new Date(prazo_sla);
+  if (isNaN(deadline.getTime())) {
+    return { status: 'sem_sla', label: 'Sem SLA', color: 'text-slate-400 bg-slate-50 border-slate-200' };
+  }
+
+  const now = new Date();
+  const diffInMs = deadline.getTime() - now.getTime();
+  const diffInMinutes = Math.floor(diffInMs / 60000);
+
+  if (diffInMinutes < 0) {
+    const absDiff = Math.abs(diffInMinutes);
+    const hours = Math.floor(absDiff / 60);
+    const days = Math.floor(hours / 24);
+    
+    let text = "";
+    if (days > 0) text = `Vencido há ${days}d`;
+    else if (hours > 0) text = `Vencido há ${hours}h`;
+    else text = `Vencido há ${absDiff}min`;
+
+    return { 
+      status: 'vencido', 
+      label: 'Vencido', 
+      color: 'text-red-600 bg-red-50 border-red-100', 
+      remainingText: text,
+      diffInMinutes 
+    };
+  }
+
+  if (diffInMinutes <= 60) {
+    return { 
+      status: 'vencendo', 
+      label: 'Vencendo', 
+      color: 'text-amber-600 bg-amber-50 border-amber-100', 
+      remainingText: `Vence em ${diffInMinutes}min`,
+      diffInMinutes 
+    };
+  }
+
+  const hours = Math.floor(diffInMinutes / 60);
+  if (hours < 24) {
+    return { 
+      status: 'normal', 
+      label: 'No prazo', 
+      color: 'text-emerald-600 bg-emerald-50 border-emerald-100', 
+      remainingText: `Vence em ${hours}h`,
+      diffInMinutes 
+    };
+  }
+
+  const days = Math.floor(hours / 24);
+  return { 
+    status: 'normal', 
+    label: 'No prazo', 
+    color: 'text-emerald-600 bg-emerald-50 border-emerald-100', 
+    remainingText: `Vence em ${days}d`,
+    diffInMinutes 
+  };
+}

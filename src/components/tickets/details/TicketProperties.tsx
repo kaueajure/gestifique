@@ -21,15 +21,7 @@ interface TicketPropertiesProps {
   onUpdateCustomFields?: (fields: TicketCustomField[]) => void;
 }
 
-type SlaVariant = 'red' | 'amber' | 'blue' | 'emerald' | 'slate';
-
-interface SlaInfo {
-  label: string;
-  description: string;
-  deadlineLabel: string;
-  variant: SlaVariant;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-}
+type SectionId = 'customer' | 'tags' | 'custom' | 'history' | 'attachments';
 
 export const TicketProperties = ({ 
   ticket, currentUser, agents, attachments, onUpdate, onArchive, 
@@ -53,98 +45,6 @@ export const TicketProperties = ({
     if (isNaN(date.getTime())) return 'Data inválida';
     return date.toLocaleDateString('pt-BR');
   };
-
-  const formatDateTime = (value: string | number | Date) => {
-    const date = new Date(value);
-    if (isNaN(date.getTime())) return 'Data inválida';
-    return date.toLocaleString('pt-BR', {
-      dateStyle: 'short',
-      timeStyle: 'short'
-    });
-  };
-
-  const formatDuration = (ms: number) => {
-    const absMs = Math.abs(ms);
-    const minutes = Math.floor(absMs / 60000);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-
-    if (days > 0) return `${days}d ${hours % 24}h`;
-    if (hours > 0) return `${hours}h ${minutes % 60}min`;
-    return `${minutes}min`;
-  };
-
-  const getSlaInfo = (): SlaInfo | null => {
-    if (!ticket.prazo_sla) return null;
-
-    const deadline = new Date(ticket.prazo_sla).getTime();
-    if (isNaN(deadline)) return null;
-
-    const now = new Date().getTime();
-    const isFinished = ['resolvido', 'fechado'].includes(ticket.status);
-
-    if (!isFinished) {
-      const diff = deadline - now;
-      if (diff < 0) {
-        return {
-          label: 'Vencido',
-          description: `Há ${formatDuration(diff)}`,
-          deadlineLabel: `Prazo: ${formatDateTime(deadline)}`,
-          variant: 'red',
-          icon: XCircle
-        };
-      } else if (diff < 2 * 60 * 60 * 1000) {
-        return {
-          label: 'Breve',
-          description: `Em ${formatDuration(diff)}`,
-          deadlineLabel: `Prazo: ${formatDateTime(deadline)}`,
-          variant: 'amber',
-          icon: AlertTriangle
-        };
-      } else {
-        return {
-          label: 'No Prazo',
-          description: `Restam ${formatDuration(diff)}`,
-          deadlineLabel: `Prazo: ${formatDateTime(deadline)}`,
-          variant: 'blue',
-          icon: Clock
-        };
-      }
-    } else {
-      const finishedAt = new Date(ticket.finalizado_em || ticket.updated_at).getTime();
-      
-      if (isNaN(finishedAt)) {
-        return {
-          label: 'Indisponível',
-          description: 'Calculo falhou',
-          deadlineLabel: `Prazo: ${formatDateTime(deadline)}`,
-          variant: 'slate',
-          icon: Clock
-        };
-      }
-
-      const diff = deadline - finishedAt;
-      if (diff >= 0) {
-        return {
-          label: 'OK',
-          description: 'No prazo',
-          deadlineLabel: `Prazo: ${formatDateTime(deadline)}`,
-          variant: 'emerald',
-          icon: CheckCircle2
-        };
-      } else {
-        return {
-          label: 'Atrasado',
-          description: `${formatDuration(diff)}`,
-          deadlineLabel: `Prazo era: ${formatDateTime(deadline)}`,
-          variant: 'red',
-          icon: XCircle
-        };
-      }
-    }
-  };
-
-  const slaInfo = getSlaInfo();
 
   const clienteNome = ticket.cliente_nome || 'Não informado';
   const empresaNome = ticket.empresa_nome || 'Não vinculada';
@@ -187,46 +87,6 @@ export const TicketProperties = ({
              <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-500">Detalhes do Chamado</CardTitle>
           </CardHeader>
           <CardContent className="p-2.5 space-y-3">
-             {/* SLA Compact */}
-             {slaInfo && (
-                <div className={cn(
-                  "p-2 rounded-lg border flex items-center justify-between transition-all",
-                  slaInfo.variant === 'red' && "bg-red-50/50 border-red-100",
-                  slaInfo.variant === 'amber' && "bg-amber-50/50 border-amber-100",
-                  slaInfo.variant === 'blue' && "bg-blue-50/50 border-blue-100",
-                  slaInfo.variant === 'emerald' && "bg-emerald-50/50 border-emerald-100",
-                  slaInfo.variant === 'slate' && "bg-slate-50/50 border-slate-200"
-                )}>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className={cn(
-                      "w-6 h-6 rounded-md flex items-center justify-center shrink-0 shadow-sm",
-                      slaInfo.variant === 'red' && "bg-red-500 text-white",
-                      slaInfo.variant === 'amber' && "bg-amber-500 text-white",
-                      slaInfo.variant === 'blue' && "bg-blue-500 text-white",
-                      slaInfo.variant === 'emerald' && "bg-emerald-500 text-white",
-                      slaInfo.variant === 'slate' && "bg-slate-400 text-white"
-                    )}>
-                       <slaInfo.icon size={12} />
-                    </div>
-                    <div className="min-w-0">
-                       <div className={cn(
-                         "text-[9px] font-black truncate uppercase tracking-tight",
-                         slaInfo.variant === 'red' && "text-red-700",
-                         slaInfo.variant === 'amber' && "text-amber-700",
-                         slaInfo.variant === 'blue' && "text-blue-700",
-                         slaInfo.variant === 'emerald' && "text-emerald-700",
-                         slaInfo.variant === 'slate' && "text-slate-600"
-                       )}>
-                         {slaInfo.label}: {slaInfo.description}
-                       </div>
-                       <div className="text-[8px] font-bold text-slate-400 truncate tracking-tight uppercase">
-                         {slaInfo.deadlineLabel}
-                       </div>
-                    </div>
-                  </div>
-                </div>
-             )}
-
              {/* Seções Colapsáveis */}
              <div className="space-y-1">
                 {/* Solicitante */}

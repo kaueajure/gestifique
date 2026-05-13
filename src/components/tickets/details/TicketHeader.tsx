@@ -15,27 +15,6 @@ interface TicketHeaderProps {
 }
 
 export const TicketHeader = ({ id, titulo, status, prioridade, onBack, onUpdateStatus, canEdit }: TicketHeaderProps) => {
-  const getStatusVariant = (st: string) => {
-    const map: Record<string, 'blue' | 'emerald' | 'amber' | 'red' | 'indigo' | 'slate'> = {
-      aberto: 'blue',
-      em_andamento: 'indigo',
-      aguardando_cliente: 'amber',
-      resolvido: 'emerald',
-      fechado: 'slate'
-    };
-    return map[st] || 'slate';
-  };
-
-  const getPriorityVariant = (pr: string) => {
-    const map: Record<string, 'blue' | 'indigo' | 'orange' | 'red' | 'slate'> = {
-        baixa: 'blue',
-        media: 'indigo',
-        alta: 'orange',
-        urgente: 'red'
-    };
-    return map[pr] || 'slate';
-  };
-
   const showResolveButton = canEdit && status !== 'resolvido' && status !== 'fechado';
   const showReopenButton = canEdit && (status === 'resolvido' || status === 'fechado');
 
@@ -51,12 +30,11 @@ export const TicketHeader = ({ id, titulo, status, prioridade, onBack, onUpdateS
         </button>
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
-            <span className="text-[10px] font-bold text-blue-600 uppercase tracking-tighter">#{id}</span>
+            <span className="text-[10px] font-black text-blue-600 uppercase tracking-tighter shrink-0 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100/50">#{id}</span>
             <span className="text-slate-300">·</span>
-            <Badge variant={getStatusVariant(status || 'aberto')} className="text-[8px] py-0 px-1 font-bold uppercase tracking-tight h-4">{(status || 'aberto').replace('_', ' ')}</Badge>
-            <Badge variant={getPriorityVariant(prioridade || 'media') as any} className="text-[8px] py-0 px-1 font-bold uppercase tracking-tight h-4">{prioridade || 'media'}</Badge>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">Atendimento</span>
           </div>
-          <h2 className="text-base font-bold text-slate-900 truncate tracking-tight">{titulo || 'Atendimento'}</h2>
+          <h2 className="text-lg font-black text-slate-900 truncate tracking-tight group-hover:text-blue-700 transition-colors uppercase">{titulo || 'Atendimento'}</h2>
         </div>
       </div>
 

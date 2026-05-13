@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { Ticket, Message, User, TicketAttachment, TicketTimelineItem, TicketStatus } from '../../types';
-import { AlertCircle, Loader2, MessageSquare, History, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, Loader2, MessageSquare, History, CheckCircle2, Clock } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
@@ -10,7 +10,7 @@ import { TicketProperties } from '../tickets/details/TicketProperties';
 import { TicketConversation } from '../tickets/details/TicketConversation';
 import { TicketTimeline } from '../tickets/details/TicketTimeline';
 import { Select } from '../ui/Select';
-import { cn } from '../../lib/utils';
+import { cn, getSlaInfo } from '../../lib/utils';
 
 interface TicketDetailsPageProps {
   ticketId: number;
@@ -251,16 +251,16 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
         {/* Coluna Principal */}
         <div className="lg:col-span-8 flex flex-col gap-2 min-h-0 overflow-hidden">
           {/* Barra Operacional Compacta */}
-          <div className="shrink-0 bg-white border border-slate-200 rounded-xl shadow-sm p-2 flex flex-wrap items-center gap-4">
+          <div className="shrink-0 bg-white border border-slate-200 rounded-xl shadow-sm p-3 flex flex-wrap items-center gap-4">
              {/* Status */}
-             <div className="flex items-center gap-2">
-                <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Status</span>
+             <div className="flex flex-col gap-1.5 min-w-[140px]">
+                <span className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400">Status</span>
                 {!!(currentUser.administrador || currentUser.desenvolvedor) ? (
                   <Select 
                     size="sm"
                     value={ticket.status || 'aberto'}
                     onChange={(value) => handleUpdateTicket({ status: value as any })}
-                    className="w-[140px]"
+                    className="w-full"
                     options={[
                       { value: 'aberto', label: 'ABERTO' },
                       { value: 'em_andamento', label: 'EM ANDAMENTO' },
@@ -270,19 +270,19 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                     ]}
                   />
                 ) : (
-                  <Badge variant="blue" className="uppercase text-[9px] font-bold h-6">{(ticket.status || 'aberto').replace('_', ' ')}</Badge>
+                  <Badge variant="blue" className="uppercase text-[9px] font-bold h-7 w-fit">{(ticket.status || 'aberto').replace('_', ' ')}</Badge>
                 )}
              </div>
 
              {/* Prioridade */}
-             <div className="flex items-center gap-2 border-l border-slate-100 pl-4">
-                <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Prioridade</span>
+             <div className="flex flex-col gap-1.5 min-w-[110px] border-l border-slate-100 pl-4">
+                <span className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400">Prioridade</span>
                 {!!(currentUser.administrador || currentUser.desenvolvedor) ? (
                   <Select 
                     size="sm"
                     value={ticket.prioridade || 'media'}
                     onChange={(value) => handleUpdateTicket({ prioridade: value as any })}
-                    className="w-[110px]"
+                    className="w-full"
                     options={[
                       { value: 'baixa', label: 'BAIXA' },
                       { value: 'media', label: 'MÉDIA' },
@@ -291,19 +291,19 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                     ]}
                   />
                 ) : (
-                  <Badge variant="indigo" className="uppercase text-[9px] font-bold h-6">{ticket.prioridade || 'media'}</Badge>
+                  <Badge variant="indigo" className="uppercase text-[9px] font-bold h-7 w-fit">{ticket.prioridade || 'media'}</Badge>
                 )}
              </div>
 
              {/* Responsável */}
              {!!(currentUser.administrador || currentUser.desenvolvedor) && (
-               <div className="flex items-center gap-2 border-l border-slate-100 pl-4">
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Responsável</span>
+               <div className="flex flex-col gap-1.5 min-w-[160px] border-l border-slate-100 pl-4">
+                  <span className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400">Responsável</span>
                   <Select 
                     size="sm"
                     value={ticket.responsavel_id || ''}
                     onChange={(value) => handleUpdateTicket({ responsavel_id: value ? parseInt(value) : null })}
-                    className="w-[160px]"
+                    className="w-full"
                     options={[
                       { value: '', label: 'SEM RESPONSÁVEL' },
                       ...agents.map(agent => ({
@@ -314,6 +314,18 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                   />
                </div>
              )}
+
+             {/* SLA */}
+             <div className="flex flex-col gap-1.5 border-l border-slate-100 pl-4 ml-auto">
+                <span className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400">Prazo SLA</span>
+                <div className={cn(
+                  "h-8 px-3 rounded-lg flex items-center gap-2 text-[10px] font-black uppercase tracking-tight border",
+                  getSlaInfo(ticket.prazo_sla, ticket.status).color
+                )}>
+                  <Clock size={12} />
+                  {getSlaInfo(ticket.prazo_sla, ticket.status).remainingText || getSlaInfo(ticket.prazo_sla, ticket.status).label}
+                </div>
+             </div>
           </div>
 
           {/* Histórico/Mensagens */}
