@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
-import { Ticket, User, TicketListResponse, TicketKanbanResponse, TicketStatus, TicketPriority, Empresa } from '../../types';
+import { Ticket, User, TicketListResponse, TicketKanbanResponse, TicketStatus, Empresa } from '../../types';
 import { 
   Plus, 
   Loader2,
