@@ -16,6 +16,7 @@ import {
 import { User } from '../../types';
 import { cn } from '../../lib/utils';
 import { AppLogo } from '../ui/Logo';
+import { NotificationsDropdown } from '../ui/NotificationsDropdown';
 
 interface SidebarProps {
   currentUser: User;
@@ -24,9 +25,10 @@ interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
   onLogout: () => void;
+  onNavigate: (link: string) => void;
 }
 
-export const Sidebar = ({ currentUser, activeTab, setActiveTab, isOpen, onClose, onLogout }: SidebarProps) => {
+export const Sidebar = ({ currentUser, activeTab, setActiveTab, isOpen, onClose, onLogout, onNavigate }: SidebarProps) => {
   const menuItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', access: true },
     { id: 'tickets', icon: Ticket, label: 'Atendimentos', access: true },
@@ -88,14 +90,19 @@ export const Sidebar = ({ currentUser, activeTab, setActiveTab, isOpen, onClose,
         </div>
 
         <div className="p-3 border-t border-slate-200 bg-white space-y-3">
-          <div className="flex items-center gap-3 px-3 py-2">
-             <div className="w-9 h-9 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 font-bold text-xs uppercase">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-50 border border-slate-100">
+             <div className="w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-600 font-bold text-xs uppercase shrink-0">
                {currentUser.nome.charAt(0)}
              </div>
              <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold text-slate-900 truncate">{currentUser.nome}</div>
-                <div className="text-[11px] font-medium text-slate-500 truncate">{currentUser.cargo || 'Membro do Time'}</div>
+                <div className="text-[10px] font-medium text-slate-500 truncate uppercase tracking-tighter">{currentUser.cargo || 'Membro do Time'}</div>
              </div>
+             <NotificationsDropdown 
+               currentUser={currentUser} 
+               onNavigate={onNavigate} 
+               compact 
+             />
           </div>
 
           <button

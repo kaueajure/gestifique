@@ -240,7 +240,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
   const clienteNome = isClienteRemovido ? 'Conta Excluída' : (ticket.cliente_nome || 'Não informado');
 
   return (
-    <div className="h-[calc(100vh-100px)] flex flex-col gap-3 min-h-[500px]">
+    <div className="h-[calc(100dvh-120px)] max-h-[calc(100dvh-120px)] overflow-hidden flex flex-col gap-2 min-h-0">
       <TicketHeader 
         id={ticket.id}
         titulo={ticket.titulo}
@@ -251,9 +251,9 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
         canEdit={!!(currentUser.administrador || currentUser.desenvolvedor)}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 flex-1 min-h-0">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 flex-1 min-h-0 overflow-hidden">
         {/* Coluna Principal */}
-        <div className="lg:col-span-8 flex flex-col gap-3 min-h-0">
+        <div className="lg:col-span-8 flex flex-col gap-2 min-h-0 overflow-hidden">
           {/* Descrição Compacta */}
           <Card className="shrink-0 border-slate-200 shadow-sm overflow-hidden bg-slate-50/10">
             <div className="flex items-start gap-3 p-3">
@@ -351,8 +351,8 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
         </div>
 
         {/* Coluna Lateral */}
-        <div className="lg:col-span-4 h-full min-h-0">
-            <div className="h-full overflow-y-auto pr-1 flex flex-col gap-3 custom-scrollbar">
+        <div className="lg:col-span-4 h-full min-h-0 overflow-hidden">
+            <div className="h-full overflow-y-auto pr-1 flex flex-col gap-2 custom-scrollbar">
               <TicketProperties 
                   ticket={ticket}
                   currentUser={currentUser}

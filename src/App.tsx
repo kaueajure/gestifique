@@ -390,14 +390,13 @@ export default function App() {
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
           onLogout={handleLogout}
+          onNavigate={handleNotificationNavigate}
         />
 
         <div className="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">
           <Topbar 
             title={getPageTitle()} 
             onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} 
-            currentUser={currentUser}
-            onNavigate={handleNotificationNavigate}
           />
 
           <main className="flex-1 overflow-y-auto custom-scrollbar">

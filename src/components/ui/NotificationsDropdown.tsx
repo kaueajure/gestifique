@@ -6,6 +6,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Badge } from './Badge';
 import { Button } from './Button';
+import { cn } from '../../lib/utils';
 
 type UnreadCountResponse =
   | { count: number }
@@ -18,9 +19,10 @@ type NotificationsListResponse =
 interface NotificationsDropdownProps {
   currentUser: User;
   onNavigate: (link: string) => void;
+  compact?: boolean;
 }
 
-export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({ currentUser, onNavigate }) => {
+export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({ currentUser, onNavigate, compact }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -134,19 +136,30 @@ export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({ cu
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={toggleDropdown}
-        className="relative p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all focus:outline-none"
+        className={cn(
+          "relative flex items-center justify-center rounded-lg transition-all focus:outline-none",
+          compact 
+            ? "w-8 h-8 bg-white border border-slate-200 text-slate-500 hover:text-blue-600 hover:bg-blue-50"
+            : "p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50"
+        )}
         title="Notificações"
       >
-        <Bell size={20} />
+        <Bell size={compact ? 16 : 20} />
         {unreadCount > 0 && (
-          <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white">
+          <span className={cn(
+            "absolute bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white",
+            compact ? "-top-1 -right-1 w-3.5 h-3.5 text-[8px]" : "top-1.5 right-1.5 w-4 h-4"
+          )}>
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden animate-in fade-in zoom-in duration-200 origin-top-right">
+        <div className={cn(
+          "absolute mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden animate-in fade-in zoom-in duration-200 origin-top-right",
+          compact ? "bottom-full left-0 mb-2 origin-bottom-left" : "right-0"
+        )}>
           <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
             <h3 className="font-bold text-slate-800 flex items-center gap-2">
               Notificações

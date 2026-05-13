@@ -32,7 +32,7 @@ export const TicketReplyBox = ({ onSendMessage, loadingSend, actionError, action
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
+    <form onSubmit={handleSubmit} className="space-y-2">
         {(actionError || actionSuccess) && (
           <AnimatePresence>
               {actionError && (
@@ -63,7 +63,7 @@ export const TicketReplyBox = ({ onSendMessage, loadingSend, actionError, action
             placeholder={isInternal ? "Nota interna..." : "Resposta para o cliente..."}
             rows={2}
             className={cn(
-              "w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:ring-2 transition-all outline-none resize-none min-h-[60px]",
+              "w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:ring-2 transition-all outline-none resize-none min-h-[50px]",
               isInternal ? "focus:ring-amber-100 focus:border-amber-300 bg-amber-50/20 text-amber-900" : "focus:ring-blue-100 focus:border-blue-300 text-slate-800"
             )}
           />

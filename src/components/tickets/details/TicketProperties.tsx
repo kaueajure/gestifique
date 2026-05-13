@@ -200,7 +200,7 @@ export const TicketProperties = ({
           <CardHeader className="py-2 px-4 border-b border-slate-50 bg-slate-50/20">
              <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-500">Detalhes do Chamado</CardTitle>
           </CardHeader>
-          <CardContent className="p-3 space-y-4">
+          <CardContent className="p-2.5 space-y-3">
              {/* Core Fields */}
              <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-50">
                 <div className="space-y-1">
