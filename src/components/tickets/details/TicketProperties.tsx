@@ -1,11 +1,12 @@
 import React from 'react';
-import { Ticket, User, TicketStatus, TicketPriority, TicketAttachment } from '../../../types';
+import { User, Ticket, TicketStatus, TicketPriority, TicketAttachment } from '../../../types';
 import { Card, CardHeader, CardTitle, CardContent } from '../../ui/Card';
 import { Badge } from '../../ui/Badge';
 import { Button } from '../../ui/Button';
-import { User as UserIcon, Building2, Tag, Calendar, Trash2, Paperclip } from 'lucide-react';
+import { User as UserIcon, Building2, Tag, Calendar, Trash2, Paperclip, Clock, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { AttachmentList } from '../../ui/AttachmentList';
+import { cn } from '../../../lib/utils';
 
 interface TicketPropertiesProps {
   ticket: Ticket;
@@ -32,6 +33,78 @@ export const TicketProperties = ({ ticket, currentUser, agents, attachments, onU
     };
     return map[priority] || 'slate';
   };
+
+  const formatDuration = (ms: number) => {
+    const absMs = Math.abs(ms);
+    const minutes = Math.floor(absMs / 60000);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) return `${days}d ${hours % 24}h`;
+    if (hours > 0) return `${hours}h ${minutes % 60}min`;
+    return `${minutes}min`;
+  };
+
+  const getSlaInfo = () => {
+    if (!ticket.prazo_sla) return null;
+
+    const deadline = new Date(ticket.prazo_sla).getTime();
+    if (isNaN(deadline)) return null;
+
+    const now = new Date().getTime();
+    const isFinished = ['resolvido', 'fechado'].includes(ticket.status);
+
+    if (!isFinished) {
+      const diff = deadline - now;
+      if (diff < 0) {
+        return {
+          label: 'SLA vencido',
+          description: `Vencido há ${formatDuration(diff)}`,
+          deadlineLabel: `Prazo: ${new Date(deadline).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}`,
+          variant: 'red' as const,
+          icon: XCircle
+        };
+      } else if (diff < 2 * 60 * 60 * 1000) {
+        return {
+          label: 'Vence em breve',
+          description: `Vence em ${formatDuration(diff)}`,
+          deadlineLabel: `Prazo: ${new Date(deadline).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}`,
+          variant: 'amber' as const,
+          icon: AlertTriangle
+        };
+      } else {
+        return {
+          label: 'Dentro do SLA',
+          description: `Restam ${formatDuration(diff)}`,
+          deadlineLabel: `Prazo: ${new Date(deadline).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}`,
+          variant: 'blue' as const,
+          icon: Clock
+        };
+      }
+    } else {
+      const finishedAt = new Date(ticket.finalizado_em || ticket.updated_at).getTime();
+      const diff = deadline - finishedAt;
+      if (diff >= 0) {
+        return {
+          label: 'Finalizado dentro do SLA',
+          description: 'Concluído no prazo',
+          deadlineLabel: `Prazo era: ${new Date(deadline).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}`,
+          variant: 'emerald' as const,
+          icon: CheckCircle2
+        };
+      } else {
+        return {
+          label: 'Finalizado com atraso',
+          description: `Atrasou ${formatDuration(diff)}`,
+          deadlineLabel: `Prazo era: ${new Date(deadline).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}`,
+          variant: 'red' as const,
+          icon: XCircle
+        };
+      }
+    }
+  };
+
+  const slaInfo = getSlaInfo();
 
   const clienteNome = ticket.cliente_nome || 'Não informado';
   const empresaNome = ticket.empresa_nome || 'Empresa não vinculada';
@@ -169,16 +242,57 @@ export const TicketProperties = ({ ticket, currentUser, agents, attachments, onU
                      <span className="text-slate-800 font-semibold">{new Date(ticket.updated_at).toLocaleDateString()}</span>
                   </div>
                 )}
-                {ticket.prazo_sla && (
-                  <div className="flex justify-between items-center text-xs font-medium">
-                     <span className="text-slate-500">Prazo SLA</span>
-                     <span className="text-amber-600 font-bold">{new Date(ticket.prazo_sla).toLocaleDateString()}</span>
-                  </div>
-                )}
                 {ticket.status === 'fechado' && (ticket.finalizado_em || ticket.updated_at) && (
                   <div className="flex justify-between items-center text-xs font-medium">
                      <span className="text-slate-500">Finalizado</span>
-                     <span className="text-emerald-600 font-bold">{new Date(ticket.finalizado_em || ticket.updated_at).toLocaleDateString()}</span>
+                     <span className="text-slate-800 font-semibold">{new Date(ticket.finalizado_em || ticket.updated_at).toLocaleDateString()}</span>
+                  </div>
+                )}
+
+                {slaInfo ? (
+                  <div className={cn(
+                    "mt-4 p-3 rounded-xl border flex flex-col gap-2 transition-all",
+                    slaInfo.variant === 'red' && "bg-red-50/50 border-red-100",
+                    slaInfo.variant === 'amber' && "bg-amber-50/50 border-amber-100",
+                    slaInfo.variant === 'blue' && "bg-blue-50/50 border-blue-100",
+                    slaInfo.variant === 'emerald' && "bg-emerald-50/50 border-emerald-100"
+                  )}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Prazos e SLA</span>
+                      <Badge variant={slaInfo.variant} className="text-[9px] px-1.5 py-0.5 border-none uppercase font-bold">
+                        {slaInfo.label}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                       <div className={cn(
+                         "w-7 h-7 rounded-lg flex items-center justify-center shrink-0",
+                         slaInfo.variant === 'red' && "bg-red-100 text-red-600",
+                         slaInfo.variant === 'amber' && "bg-amber-100 text-amber-600",
+                         slaInfo.variant === 'blue' && "bg-blue-100 text-blue-600",
+                         slaInfo.variant === 'emerald' && "bg-emerald-100 text-emerald-600"
+                       )}>
+                          <slaInfo.icon size={14} />
+                       </div>
+                       <div className="min-w-0">
+                          <div className={cn(
+                            "text-xs font-bold truncate",
+                            slaInfo.variant === 'red' && "text-red-700",
+                            slaInfo.variant === 'amber' && "text-amber-700",
+                            slaInfo.variant === 'blue' && "text-blue-700",
+                            slaInfo.variant === 'emerald' && "text-emerald-700"
+                          )}>
+                            {slaInfo.description}
+                          </div>
+                          <div className="text-[10px] font-medium text-slate-400 truncate mt-0.5">
+                            {slaInfo.deadlineLabel}
+                          </div>
+                       </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-4 p-3 rounded-xl border border-dashed border-slate-200 bg-slate-50/30 flex items-center gap-3">
+                    <Clock size={14} className="text-slate-300" />
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight italic">SLA não definido</span>
                   </div>
                 )}
              </div>
