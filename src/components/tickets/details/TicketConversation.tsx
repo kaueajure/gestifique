@@ -30,28 +30,28 @@ export const TicketConversation = ({
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-        <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3 custom-scrollbar bg-slate-50/20">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-6 custom-scrollbar bg-slate-50/20">
           {/* Mensagem de Abertura do Chamado */}
           {ticket.descricao && (
-            <div className="flex flex-col gap-1 items-start transition-all">
-              <div className="flex items-center gap-1.5 px-1">
-                <Badge variant="blue" className="text-[6.5px] font-black px-1 py-0 uppercase border-none rounded-sm h-3 bg-blue-50 text-blue-600">Abertura</Badge>
-                <span className="text-[8px] font-bold text-slate-400 flex items-center gap-1 uppercase tracking-tighter">
-                  <Clock size={7} /> {new Date(ticket.created_at).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+            <div className="flex flex-col gap-1.5 items-start transition-all">
+              <div className="flex items-center gap-2 px-1">
+                <Badge variant="blue" className="text-[10px] font-bold px-2 py-0.5 uppercase border-none rounded-md h-5 bg-blue-50 text-blue-600">Abertura</Badge>
+                <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5 uppercase tracking-tight">
+                  <Clock size={12} /> {new Date(ticket.created_at).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
                 </span>
               </div>
 
-              <div className="max-w-[95%] p-2.5 rounded-lg border shadow-sm bg-white border-slate-200 rounded-tl-none">
-                <div className="flex items-center gap-1 mb-1">
-                  <div className="w-3.5 h-3.5 rounded-sm flex items-center justify-center text-[6px] font-black uppercase bg-slate-100 text-slate-600">
+              <div className="max-w-[85%] md:max-w-[78%] p-4 rounded-2xl border shadow-sm bg-white border-slate-200 rounded-tl-none">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold uppercase bg-slate-100 text-slate-600 shadow-sm border border-slate-200/50">
                     {(ticket.cliente_nome || 'S').charAt(0)}
                   </div>
-                  <span className="text-[8px] font-black uppercase tracking-tight text-slate-900">
+                  <span className="text-sm font-bold text-slate-900">
                     {ticket.cliente_nome || 'Solicitante'}
                   </span>
                 </div>
 
-                <div className="text-[11px] font-medium leading-normal whitespace-pre-wrap text-slate-600">
+                <div className="text-sm font-medium leading-relaxed whitespace-pre-wrap text-slate-600">
                   {ticket.descricao}
                 </div>
               </div>
@@ -59,11 +59,12 @@ export const TicketConversation = ({
           )}
 
           {messages.length === 0 && !ticket.descricao ? (
-            <div className="py-16 text-center flex flex-col items-center">
-                <div className="w-8 h-8 bg-slate-50 text-slate-200 rounded-lg flex items-center justify-center mb-2 border border-slate-100 shadow-inner">
-                  <MessageSquare size={16} />
+            <div className="py-24 text-center flex flex-col items-center">
+                <div className="w-16 h-16 bg-white text-slate-200 rounded-2xl flex items-center justify-center mb-4 border border-slate-100 shadow-sm">
+                  <MessageSquare size={32} />
                 </div>
-                <p className="text-[8px] font-black text-slate-400 uppercase tracking-tighter">Inicie a conversa</p>
+                <h4 className="text-sm font-bold text-slate-800 uppercase tracking-widest mb-1">Nenhuma mensagem ainda</h4>
+                <p className="text-xs font-medium text-slate-400 uppercase tracking-tighter">Envie a primeira resposta para iniciar o atendimento.</p>
             </div>
           ) : (
             messages.map((msg) => {
@@ -73,49 +74,49 @@ export const TicketConversation = ({
               <div 
                 key={msg.id} 
                 className={cn(
-                  "flex flex-col gap-1 transition-all",
+                  "flex flex-col gap-1.5 transition-all",
                   isCliente ? "items-start" : "items-end"
                 )}
               >
-                <div className="flex items-center gap-1.5 px-1">
+                <div className="flex items-center gap-2 px-1">
                    {!isCliente && msg.interno && (
-                     <Badge variant="amber" className="text-[6.5px] font-black px-1 py-0 uppercase border-none rounded-sm h-3">Interno</Badge>
+                     <Badge variant="amber" className="text-[10px] font-bold px-2 py-0.5 uppercase border-none rounded-md h-5">Nota Interna</Badge>
                    )}
-                   <span className="text-[8px] font-bold text-slate-400 flex items-center gap-1 uppercase tracking-tighter">
-                     <Clock size={7} /> {new Date(msg.created_at).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+                   <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5 uppercase tracking-tight">
+                     <Clock size={12} /> {new Date(msg.created_at).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
                    </span>
                 </div>
 
                 <div 
                   className={cn(
-                    "max-w-[95%] p-2.5 rounded-lg border shadow-sm relative group",
+                    "max-w-[90%] md:max-w-[78%] p-4 rounded-2xl border shadow-sm relative group",
                     msg.interno 
-                      ? "bg-amber-50/80 border-amber-200/40" 
+                      ? "bg-amber-50 border-amber-200/50 text-amber-900" 
                       : isCliente 
                         ? "bg-white border-slate-200 rounded-tl-none" 
-                        : "bg-blue-600 border-blue-700 text-white rounded-tr-none shadow-blue-200/50"
+                        : "bg-blue-600 border-blue-700 text-white rounded-tr-none shadow-blue-100/50"
                   )}
                 >
-                  <div className="flex items-center gap-1 mb-1">
+                  <div className="flex items-center gap-2 mb-2">
                      <div className={cn(
-                       "w-3.5 h-3.5 rounded-sm flex items-center justify-center text-[6px] font-black uppercase",
-                       isCliente ? "bg-slate-100 text-slate-600" : (msg.interno ? "bg-amber-100 text-amber-700" : "bg-blue-500 text-white")
+                       "w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold uppercase shadow-sm border",
+                       isCliente ? "bg-slate-100 border-slate-200 text-slate-600" : (msg.interno ? "bg-amber-100 border-amber-200 text-amber-700" : "bg-blue-500 border-blue-400 text-white")
                      )}>
                        {(msg.usuario_nome || 'S').charAt(0)}
                      </div>
                      <span className={cn(
-                       "text-[8px] font-black uppercase tracking-tight",
-                       msg.interno ? "text-amber-900" : isCliente ? "text-slate-900" : "text-blue-100"
+                       "text-xs font-bold uppercase tracking-tight",
+                       msg.interno ? "text-amber-900" : isCliente ? "text-slate-900" : "text-blue-50"
                      )}>
                        {msg.usuario_nome || 'Sistema'}
                      </span>
                      {!isCliente && !msg.interno && (
-                        <ShieldCheck size={9} className="text-blue-200" />
+                        <ShieldCheck size={12} className="text-blue-200" />
                      )}
                   </div>
 
                   <div className={cn(
-                    "text-[11px] font-medium leading-normal whitespace-pre-wrap",
+                    "text-sm font-medium leading-6 whitespace-pre-wrap",
                     msg.interno ? "text-amber-800" : isCliente ? "text-slate-600" : "text-white"
                   )}>
                     {msg.mensagem}
@@ -123,12 +124,11 @@ export const TicketConversation = ({
 
                   {msg.attachments && msg.attachments.length > 0 && (
                     <div className={cn(
-                      "mt-1.5 pt-1.5 border-t",
+                      "mt-3 pt-3 border-t",
                       isCliente || msg.interno ? "border-slate-100" : "border-white/10"
                     )}>
                         <AttachmentList 
                           attachments={msg.attachments} 
-                          compact 
                           onRemove={onDeleteAttachment}
                         />
                     </div>

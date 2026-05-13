@@ -251,20 +251,20 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
         {/* Coluna Principal */}
         <div className="lg:col-span-9 flex flex-col gap-1.5 min-h-0 overflow-hidden">
           {/* Barra Operacional Ultra Compacta */}
-          <div className="shrink-0 bg-white border border-slate-200 rounded-lg shadow-sm p-2 flex flex-wrap items-center gap-3">
+          <div className="shrink-0 bg-white border border-slate-200 rounded-lg shadow-sm p-1.5 flex flex-wrap items-center gap-2.5">
              {/* Status */}
-             <div className="flex flex-col gap-1 min-w-[120px]">
-                <span className="text-[8px] font-black uppercase tracking-wider text-slate-400 leading-none">Status</span>
+             <div className="flex flex-col gap-0.5 min-w-[110px]">
+                <span className="text-[7.5px] font-black uppercase tracking-wider text-slate-400 leading-none">Status</span>
                 {!!(currentUser.administrador || currentUser.desenvolvedor) ? (
                   <Select 
                     size="sm"
                     value={ticket.status || 'aberto'}
                     onChange={(value) => handleUpdateTicket({ status: value as any })}
-                    className="h-7 text-[10px]"
+                    className="h-6.5 text-[9.5px]"
                     options={[
                       { value: 'aberto', label: 'ABERTO' },
-                      { value: 'em_andamento', label: 'EM ANDAMENTO' },
-                      { value: 'aguardando_cliente', label: 'AGUARDE CLIENTE' },
+                      { value: 'em_andamento', label: 'ANDAMENTO' },
+                      { value: 'aguardando_cliente', label: 'AGUARDE' },
                       { value: 'resolvido', label: 'RESOLVIDO' },
                       { value: 'fechado', label: 'FECHADO' }
                     ]}
@@ -275,14 +275,14 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
              </div>
 
              {/* Prioridade */}
-             <div className="flex flex-col gap-1 min-w-[90px] border-l border-slate-100 pl-3">
-                <span className="text-[8px] font-black uppercase tracking-wider text-slate-400 leading-none">Prioridade</span>
+             <div className="flex flex-col gap-0.5 min-w-[85px] border-l border-slate-100 pl-2.5">
+                <span className="text-[7.5px] font-black uppercase tracking-wider text-slate-400 leading-none">Prioridade</span>
                 {!!(currentUser.administrador || currentUser.desenvolvedor) ? (
                   <Select 
                     size="sm"
                     value={ticket.prioridade || 'media'}
                     onChange={(value) => handleUpdateTicket({ prioridade: value as any })}
-                    className="h-7 text-[11px]"
+                    className="h-6.5 text-[9.5px]"
                     options={[
                       { value: 'baixa', label: 'BAIXA' },
                       { value: 'media', label: 'MÉDIA' },
@@ -297,13 +297,13 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
 
              {/* Responsável */}
              {!!(currentUser.administrador || currentUser.desenvolvedor) && (
-               <div className="flex flex-col gap-1 min-w-[140px] border-l border-slate-100 pl-3">
-                  <span className="text-[8px] font-black uppercase tracking-wider text-slate-400 leading-none">Responsável</span>
+               <div className="flex flex-col gap-0.5 min-w-[130px] border-l border-slate-100 pl-2.5">
+                  <span className="text-[7.5px] font-black uppercase tracking-wider text-slate-400 leading-none">Responsável</span>
                   <Select 
                     size="sm"
                     value={ticket.responsavel_id || ''}
                     onChange={(value) => handleUpdateTicket({ responsavel_id: value ? parseInt(value) : null })}
-                    className="h-7 text-[11px]"
+                    className="h-6.5 text-[9.5px]"
                     options={[
                       { value: '', label: 'SEM RESPONSÁVEL' },
                       ...agents.map(agent => ({
@@ -316,49 +316,49 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
              )}
 
              {/* SLA */}
-             <div className="flex flex-col gap-1 border-l border-slate-100 pl-3 ml-auto text-right">
-                <span className="text-[8px] font-black uppercase tracking-wider text-slate-400 leading-none">Vencimento SLA</span>
+             <div className="flex flex-col gap-0.5 border-l border-slate-100 pl-2.5 ml-auto text-right">
+                <span className="text-[7.5px] font-black uppercase tracking-wider text-slate-400 leading-none">Vencimento SLA</span>
                 <div className={cn(
-                  "h-7 px-2 rounded flex items-center gap-1.5 text-[9px] font-black uppercase tracking-tight border",
+                  "h-6.5 px-2 rounded flex items-center gap-1.5 text-[8.5px] font-black uppercase tracking-tight border",
                   getSlaInfo(ticket.prazo_sla, ticket.status).color
                 )}>
-                  <Clock size={10} />
+                  <Clock size={9} />
                   {getSlaInfo(ticket.prazo_sla, ticket.status).compactText || getSlaInfo(ticket.prazo_sla, ticket.status).label}
                 </div>
              </div>
           </div>
 
           {/* Histórico/Mensagens */}
-          <Card className="flex flex-col flex-1 min-h-0 border-slate-200 shadow-sm overflow-hidden rounded-lg">
-            <div className="bg-white px-2 border-b border-slate-100 flex items-center justify-between shrink-0">
-               <div className="flex">
+          <Card className="flex flex-col flex-1 min-h-0 border-slate-200 shadow-sm overflow-hidden rounded-xl">
+            <div className="bg-white px-4 border-b border-slate-100 flex items-center justify-between shrink-0">
+               <div className="flex -mb-px">
                   <button 
                     onClick={() => setActiveTab('messages')}
                     className={cn(
-                      "flex items-center gap-1.5 py-2 px-3 text-[9px] font-bold uppercase tracking-widest transition-all border-b-2",
+                      "flex items-center gap-2 py-3 px-1 mr-6 text-[10px] font-bold uppercase tracking-widest transition-all border-b-2",
                       activeTab === 'messages' ? "text-blue-600 border-blue-600" : "text-slate-400 border-transparent hover:text-slate-600"
                     )}
                   >
-                    <MessageSquare size={11} />
-                    Mensagens
+                    <MessageSquare size={13} />
+                    Conversa
                   </button>
                   <button 
                     onClick={() => setActiveTab('timeline')}
                     className={cn(
-                      "flex items-center gap-1.5 py-2 px-3 text-[9px] font-bold uppercase tracking-widest transition-all border-b-2",
+                      "flex items-center gap-2 py-3 px-1 text-[10px] font-bold uppercase tracking-widest transition-all border-b-2",
                       activeTab === 'timeline' ? "text-blue-600 border-blue-600" : "text-slate-400 border-transparent hover:text-slate-600"
                     )}
                   >
-                    <History size={11} />
-                    Linha do Tempo
+                    <History size={13} />
+                    Histórico
                   </button>
                </div>
-               <Badge variant="slate" className="text-[7.5px] font-black px-1 py-0 h-3.5 border-none bg-slate-50 text-slate-400 uppercase tracking-tighter">
-                 {activeTab === 'messages' ? `${messages.length} msg` : `${timeline.length} ev`}
+               <Badge variant="slate" className="text-[9px] font-black px-2 py-0.5 h-5 border-none bg-slate-50 text-slate-400 uppercase">
+                 {activeTab === 'messages' ? `${messages.length} mensagens` : `${timeline.length} eventos`}
                </Badge>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-hidden">
+            <div className="flex-1 min-h-0 overflow-hidden bg-white">
               {activeTab === 'messages' ? (
                 <TicketConversation 
                    ticket={ticket}
@@ -371,7 +371,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                    canAddInternalNote={!!(currentUser.administrador || currentUser.desenvolvedor)}
                 />
               ) : (
-                <div className="h-full overflow-y-auto p-4 custom-scrollbar">
+                <div className="h-full overflow-y-auto p-6 custom-scrollbar">
                   <TicketTimeline 
                     timeline={timeline}
                     loading={loadingTimeline}

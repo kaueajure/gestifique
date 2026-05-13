@@ -32,81 +32,98 @@ export const TicketReplyBox = ({ onSendMessage, loadingSend, actionError, action
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-2">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <div className="flex bg-slate-100 p-0.5 rounded-lg">
+             <button
+                type="button"
+                onClick={() => setIsInternal(false)}
+                className={cn(
+                  "px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all",
+                  !isInternal ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                )}
+             >
+                Responder ao cliente
+             </button>
+             {canAddInternalNote && (
+               <button
+                  type="button"
+                  onClick={() => setIsInternal(true)}
+                  className={cn(
+                    "px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all",
+                    isInternal ? "bg-white text-amber-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                  )}
+               >
+                  Nota interna
+               </button>
+             )}
+          </div>
+
+          {isInternal && (
+             <div className="flex items-center gap-1.5 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-100 uppercase tracking-tighter">
+                <AlertCircle size={10} /> Privado para equipe
+             </div>
+          )}
+        </div>
+
         {(actionError || actionSuccess) && (
           <AnimatePresence>
               {actionError && (
                 <motion.div 
                   initial={{ opacity: 0, y: -5 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="p-2 bg-red-50 border border-red-100 rounded-lg flex items-center gap-2 text-red-600 text-[10px] font-bold"
+                  className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-center gap-2.5 text-red-600 text-xs font-bold"
                 >
-                  <AlertCircle size={12} /> {actionError}
+                  <AlertCircle size={14} /> {actionError}
                 </motion.div>
               )}
               {actionSuccess && (
                 <motion.div 
                   initial={{ opacity: 0, y: -5 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="p-2 bg-emerald-50 border border-emerald-100 rounded-lg flex items-center gap-2 text-emerald-600 text-[10px] font-bold"
+                  className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-2.5 text-emerald-600 text-xs font-bold"
                 >
-                  <CheckCircle2 size={12} /> {actionSuccess}
+                  <CheckCircle2 size={14} /> {actionSuccess}
                 </motion.div>
               )}
           </AnimatePresence>
         )}
 
-        <div className="relative group">
+        <div className="relative">
           <textarea 
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            placeholder={isInternal ? "Nota interna..." : "Resposta para o cliente..."}
-            rows={1}
+            placeholder={isInternal ? "Escreva uma nota interna para a equipe..." : "Escreva uma resposta para o cliente..."}
+            rows={4}
             className={cn(
-              "w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] font-medium focus:ring-2 transition-all outline-none resize-none min-h-[40px]",
-              isInternal ? "focus:ring-amber-100 focus:border-amber-300 bg-amber-50/20 text-amber-900" : "focus:ring-blue-100 focus:border-blue-300 text-slate-800"
+              "w-full border rounded-xl px-4 py-3 text-sm font-medium focus:ring-4 transition-all outline-none resize-none min-h-[120px] shadow-sm",
+              isInternal 
+                ? "bg-amber-50/30 border-amber-200 focus:ring-amber-50 focus:border-amber-400 text-amber-900 placeholder:text-amber-400" 
+                : "bg-slate-50/50 border-slate-200 focus:ring-blue-50 focus:border-blue-400 text-slate-800 placeholder:text-slate-400"
             )}
           />
         </div>
 
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex-1 max-w-[200px]">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="w-full sm:flex-1">
              <FileUpload onFilesChange={setSelectedFiles} />
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
-              {canAddInternalNote && (
-                <label className="flex items-center gap-1.5 cursor-pointer group">
-                  <div 
-                    onClick={() => setIsInternal(!isInternal)}
-                    className={cn(
-                      "w-6 h-3 rounded-full transition-all relative",
-                      isInternal ? "bg-amber-500" : "bg-slate-200 group-hover:bg-slate-300"
-                    )}
-                  >
-                      <div className={cn(
-                        "absolute top-0.5 w-2 h-2 rounded-full bg-white transition-all shadow-sm",
-                        isInternal ? "translate-x-3.5" : "translate-x-0.5"
-                      )} />
-                  </div>
-                  <span className={cn("text-[8px] font-black uppercase tracking-tight", isInternal ? "text-amber-600" : "text-slate-400 group-hover:text-slate-500")}>Interno</span>
-                </label>
-              )}
-
+          <div className="w-full sm:w-auto shrink-0">
               <Button 
                 type="submit" 
                 disabled={(!newMessage.trim() && selectedFiles.length === 0) || loadingSend}
                 className={cn(
-                  "h-7 px-3 font-black text-[9px] uppercase tracking-widest shadow-sm translate-y-[-1px]",
-                  isInternal ? "bg-amber-600 hover:bg-amber-700 focus:ring-amber-500" : "bg-blue-600 hover:bg-blue-700 shadow-blue-100"
+                  "w-full sm:w-auto h-10 px-6 font-bold text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95",
+                  isInternal ? "bg-amber-600 hover:bg-amber-700 focus:ring-amber-500 shadow-amber-100" : "bg-blue-600 hover:bg-blue-700 shadow-blue-100"
                 )}
               >
                 {loadingSend ? (
-                  <Loader2 size={11} className="animate-spin mr-1.5" />
+                  <Loader2 size={16} className="animate-spin mr-2" />
                 ) : (
-                  <Send size={11} className="mr-1.5" />
+                  <Send size={16} className="mr-2" />
                 )}
-                Responder
+                {isInternal ? "Adicionar Nota" : "Enviar Resposta"}
               </Button>
           </div>
         </div>
