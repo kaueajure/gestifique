@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TicketKanbanColumn, TicketKanbanResponse, User, Ticket } from '../../types';
 import { Badge } from '../ui/Badge';
-import { MessageSquare, User as UserIcon, Calendar, Loader2, AlertCircle, Building, Clock, ShieldAlert } from 'lucide-react';
+import { User as UserIcon, AlertCircle, Building, Clock, ShieldAlert } from 'lucide-react';
 import { cn, formatRelativeTime } from '../../lib/utils';
 import { api } from '../../lib/api';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
@@ -302,7 +302,7 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                                         Atribuir
                                      </div>
                                    )}
-                                   <span className="text-[9px] text-slate-300 font-medium">{new Date(ticket.created_at).toLocaleDateString()}</span>
+                                   <span className="text-[9px] text-slate-300 font-medium">{new Date(ticket.created_at).toLocaleDateString('pt-BR')}</span>
                                 </div>
                              </div>
                            </div>

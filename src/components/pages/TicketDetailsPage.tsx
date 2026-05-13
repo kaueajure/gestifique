@@ -34,16 +34,23 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
 
   const fetchData = async () => {
     setLoading(true);
+    setLoadingTimeline(true);
     setError(null);
     try {
-      const [ticketData, messagesData, attachmentsData] = await Promise.all([
+      const [ticketData, messagesData, attachmentsData, timelineData] = await Promise.all([
         api.get<Ticket>(`/tickets/${ticketId}`),
         api.get<Message[]>(`/tickets/${ticketId}/messages`),
-        api.get<TicketAttachment[]>(`/tickets/${ticketId}/attachments`)
+        api.get<TicketAttachment[]>(`/tickets/${ticketId}/attachments`),
+        api.get<TicketTimelineItem[]>(`/tickets/${ticketId}/timeline`).catch(err => {
+          console.error('Erro ao carregar linha do tempo:', err);
+          return [] as TicketTimelineItem[];
+        })
       ]);
+      
       setTicket(ticketData);
       setMessages(messagesData);
       setTicketAttachments(attachmentsData);
+      setTimeline(timelineData);
 
       if (!!(currentUser.administrador || currentUser.desenvolvedor)) {
         const usersData = await api.get<User[]>('/users');
@@ -56,14 +63,12 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
         });
         setAgents(filteredAgents);
       }
-      
-      // Load timeline in parallel or when needed
-      loadTimeline();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao carregar detalhes do atendimento.';
       setError(message);
     } finally {
       setLoading(false);
+      setLoadingTimeline(false);
     }
   };
 

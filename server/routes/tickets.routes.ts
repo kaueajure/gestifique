@@ -1,9 +1,8 @@
 import { Router } from 'express';
 import  ticketsService, { toPositiveInt } from  '../services/tickets.service.js';
 import  attachmentsService from  '../services/attachments.service.js';
-import  { authMiddleware, AuthRequest } from  '../middlewares/auth.js';
-import  { isAdmin } from  '../middlewares/permissions.js';
-import  { sendSuccess, sendError } from  '../utils/response.js';
+import { authMiddleware, AuthRequest } from '../middlewares/auth.js';
+import { sendSuccess, sendError } from '../utils/response.js';
 import  { logSystemAction } from  '../utils/logger.js';
 import { ticketUpload } from '../middlewares/upload.js';
 import pool from '../db/connection.js';
@@ -392,6 +391,11 @@ router.get('/:id/timeline', async (req: AuthRequest, res) => {
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
 
     const id = parseInt(req.params.id);
+
+    const result: any = await ticketsService.getByIdForUser(id, currentUser);
+    if (!result) return sendError(res, 'Ticket não encontrado', 404);
+    if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
+
     const isAdminOrDev = !!(currentUser.administrador || currentUser.desenvolvedor);
     
     const timeline = await ticketsService.getTimeline(id, isAdminOrDev);

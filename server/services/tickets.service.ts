@@ -735,20 +735,17 @@ class TicketsService {
       SELECT l.*, u.nome as usuario_nome 
       FROM logs_sistema l
       LEFT JOIN usuarios u ON l.usuario_id = u.id
-      WHERE l.descricao LIKE ?
-    `, [`%#${ticketId}[^0-9]%`, `%#${ticketId}`]); 
-    // The regex-like search in SQL depends on the DB, MySQL LIKE is simple.
-    // Let's just use LIKE '%#ID %' or LIKE '%#ID' or similar to be safer.
-    // Actually, searching for exactly "#ID" inside the string.
-
-    const [logsSafe]: any = await pool.query(`
-      SELECT l.*, u.nome as usuario_nome 
-      FROM logs_sistema l
-      LEFT JOIN usuarios u ON l.usuario_id = u.id
       WHERE (l.descricao LIKE ? OR l.descricao LIKE ?)
+      ORDER BY l.created_at ASC
     `, [`%#${ticketId} %`, `%#${ticketId}`]);
 
-    logsSafe.forEach((l: any) => {
+    logs.forEach((l: any) => {
+      // Basic filtering: common users don't see internal logs (if we had a way to tag them)
+      // For now, we skip logs that look internal or relate to internal actions if includeInternal is false
+      if (!includeInternal && (l.acao === 'INTERNAL_NOTE' || l.descricao.toLowerCase().includes('interno'))) {
+        return;
+      }
+
       let icon = 'activity';
       if (l.acao === 'TICKET_STATUS_CHANGE') icon = 'refresh-cw';
       if (l.acao === 'TICKET_UPDATE' && l.descricao.includes('responsável')) icon = 'user-check';
@@ -775,7 +772,7 @@ class TicketsService {
        });
     }
 
-    // Sort by date
+    // Sort by date ascending (oldest first)
     timeline.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     return timeline;

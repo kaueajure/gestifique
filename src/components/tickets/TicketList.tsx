@@ -1,6 +1,6 @@
 import React from 'react';
 import { Ticket } from '../../types';
-import { MessageSquare, ChevronRight, User as UserIcon, Tag, Calendar, Search, Clock, ShieldAlert } from 'lucide-react';
+import { MessageSquare, ChevronRight, User as UserIcon, Tag, Search, Clock, ShieldAlert } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { cn, formatRelativeTime } from '../../lib/utils';
 import { Card } from '../ui/Card';
