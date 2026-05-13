@@ -275,6 +275,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
         titulo={ticket.titulo}
         status={ticket.status || 'aberto'}
         prioridade={ticket.prioridade || 'media'}
+        estado_atendimento={ticket.estado_atendimento}
         onBack={onBack}
         onUpdateStatus={handleUpdateTicket}
         canEdit={!!(currentUser.administrador || currentUser.desenvolvedor)}

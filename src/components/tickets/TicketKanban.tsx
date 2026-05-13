@@ -202,6 +202,37 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
     }
   };
 
+  const getEstadoAtendimentoInfo = (estado?: string) => {
+    switch (estado) {
+      case 'cliente_respondeu':
+        return { 
+          label: 'Cliente respondeu', 
+          color: 'bg-blue-600 text-white border-blue-700 shadow-sm',
+          dot: 'bg-blue-100'
+        };
+      case 'aguardando_cliente':
+        return { 
+          label: 'Aguardando cliente', 
+          color: 'bg-amber-50 text-amber-700 border-amber-200',
+          dot: 'bg-amber-500'
+        };
+      case 'atendente_respondeu':
+        return { 
+          label: 'Atendente respondeu', 
+          color: 'bg-slate-50 text-slate-500 border-slate-200',
+          dot: 'bg-slate-300'
+        };
+      case 'sem_resposta':
+        return { 
+          label: 'Sem resposta', 
+          color: 'bg-rose-50 text-rose-600 border-rose-100',
+          dot: 'bg-rose-500'
+        };
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-slate-50/20 rounded-xl overflow-hidden">
       {errorMsg && (
@@ -247,6 +278,7 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                       const sla = getSlaInfo(ticket.prazo_sla, ticket.status);
                       const isAbertoESemResp = ticket.status === 'aberto' && !ticket.responsavel_id;
                       const priority = getPriorityInfo(ticket.prioridade);
+                      const estadoInfo = getEstadoAtendimentoInfo(ticket.estado_atendimento);
                       
                       return (
                       <DraggableComp 
@@ -268,10 +300,10 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                             )}
                           >
                             {/* Left critical marker */}
-                            {(sla.status === 'vencido' || isAbertoESemResp) && (
+                            {(sla.status === 'vencido' || isAbertoESemResp || ticket.precisa_resposta) && (
                               <div className={cn(
                                 "absolute left-0 top-2 bottom-2 w-0.5 rounded-r-full",
-                                sla.status === 'vencido' ? "bg-red-500" : "bg-amber-400"
+                                sla.status === 'vencido' ? "bg-red-500" : (ticket.precisa_resposta ? "bg-blue-500" : "bg-amber-400")
                               )} />
                             )}
 
@@ -294,6 +326,15 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                               </div>
 
                               <div className="flex flex-col gap-1.5">
+                                {estadoInfo && (
+                                  <div className={cn(
+                                    "px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border self-start mb-0.5 flex items-center gap-1",
+                                    estadoInfo.color
+                                  )}>
+                                    <div className={cn("w-1 h-1 rounded-full", estadoInfo.dot)} />
+                                    {estadoInfo.label}
+                                  </div>
+                                )}
                                 <div className="flex items-center justify-between gap-2">
                                   <div className="flex items-center gap-1.5 min-w-0">
                                     <span className="text-[9px] font-black text-blue-600 tracking-tighter shrink-0 bg-blue-50/50 px-1 rounded border border-blue-100/30">

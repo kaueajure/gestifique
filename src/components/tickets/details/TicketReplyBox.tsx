@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { Send, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { Send, AlertCircle, CheckCircle2, Loader2, MessageSquare } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { Button } from '../../ui/Button';
 import { FileUpload } from '../../ui/FileUpload';
 import { AnimatePresence, motion } from 'motion/react';
+import { Ticket } from '../../../types';
+import { TicketMacroList } from './TicketMacroList';
 
 interface TicketReplyBoxProps {
+  ticket: Ticket;
   onSendMessage: (mensagem: string, isInternal: boolean, files: File[]) => Promise<boolean>;
   loadingSend: boolean;
   actionError: string | null;
@@ -13,10 +16,11 @@ interface TicketReplyBoxProps {
   canAddInternalNote: boolean;
 }
 
-export const TicketReplyBox = ({ onSendMessage, loadingSend, actionError, actionSuccess, canAddInternalNote }: TicketReplyBoxProps) => {
+export const TicketReplyBox = ({ ticket, onSendMessage, loadingSend, actionError, actionSuccess, canAddInternalNote }: TicketReplyBoxProps) => {
   const [newMessage, setNewMessage] = useState('');
   const [isInternal, setIsInternal] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [showMacros, setShowMacros] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +33,14 @@ export const TicketReplyBox = ({ onSendMessage, loadingSend, actionError, action
       setNewMessage('');
       setSelectedFiles([]);
     }
+  };
+
+  const handleSelectMacro = (content: string) => {
+    setNewMessage(prev => {
+      if (!prev.trim()) return content;
+      return prev + '\n' + content;
+    });
+    setShowMacros(false);
   };
 
   return (
@@ -59,11 +71,39 @@ export const TicketReplyBox = ({ onSendMessage, loadingSend, actionError, action
              )}
           </div>
 
-          {isInternal && (
-             <div className="flex items-center gap-1.5 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-100 uppercase tracking-tighter">
-                <AlertCircle size={10} /> Privado para equipe
-             </div>
-          )}
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowMacros(!showMacros)}
+                className={cn(
+                  "flex items-center gap-2 h-9 px-3 rounded-lg border text-[10px] font-black uppercase tracking-widest transition-all",
+                  showMacros 
+                    ? "bg-blue-600 border-blue-600 text-white shadow-lg ring-4 ring-blue-50" 
+                    : "bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50 shadow-sm"
+                )}
+              >
+                <MessageSquare size={13} className={showMacros ? "text-blue-100" : "text-blue-500"} />
+                Respostas prontas
+              </button>
+
+              {showMacros && (
+                <div className="absolute bottom-full right-0 mb-3 z-[60]">
+                  <TicketMacroList 
+                    ticket={ticket}
+                    onSelect={handleSelectMacro}
+                    onClose={() => setShowMacros(false)}
+                  />
+                </div>
+              )}
+            </div>
+
+            {isInternal && (
+               <div className="hidden sm:flex items-center gap-1.5 text-[10px] font-bold text-amber-600 bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-100 uppercase tracking-tighter">
+                  <AlertCircle size={11} /> Privado para equipe
+               </div>
+            )}
+          </div>
         </div>
 
         {(actionError || actionSuccess) && (

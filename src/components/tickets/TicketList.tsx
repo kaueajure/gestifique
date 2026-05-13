@@ -112,6 +112,37 @@ export const TicketList = ({
     }
   };
 
+  const getEstadoAtendimentoInfo = (estado?: string) => {
+    switch (estado) {
+      case 'cliente_respondeu':
+        return { 
+          label: 'Cliente respondeu', 
+          color: 'bg-blue-600 text-white border-blue-700 shadow-sm',
+          dot: 'bg-blue-100'
+        };
+      case 'aguardando_cliente':
+        return { 
+          label: 'Aguardando cliente', 
+          color: 'bg-amber-50 text-amber-700 border-amber-200',
+          dot: 'bg-amber-500'
+        };
+      case 'atendente_respondeu':
+        return { 
+          label: 'Atendente respondeu', 
+          color: 'bg-slate-50 text-slate-500 border-slate-200',
+          dot: 'bg-slate-300'
+        };
+      case 'sem_resposta':
+        return { 
+          label: 'Sem resposta', 
+          color: 'bg-rose-50 text-rose-600 border-rose-100',
+          dot: 'bg-rose-500'
+        };
+      default:
+        return null;
+    }
+  };
+
   const statusColors: Record<string, string> = {
     aberto: 'text-blue-600 bg-blue-50 border-blue-100',
     em_andamento: 'text-indigo-600 bg-indigo-50 border-indigo-100',
@@ -200,6 +231,7 @@ export const TicketList = ({
                 </th>
               )}
               <SortHeader label="Atendimento" k="titulo" className="w-[300px]" />
+              <th className="w-[140px] px-3 py-2.5 text-[9px] font-black uppercase tracking-widest text-slate-400">Situação</th>
               <th className="px-3 py-2.5 text-[9px] font-black uppercase tracking-widest text-slate-400 hidden md:table-cell">Solicitante</th>
               <SortHeader label="Status" k="status" className="w-[120px]" />
               <SortHeader label="Prioridade" k="prioridade" className="w-[100px] text-center justify-center" />
@@ -214,6 +246,7 @@ export const TicketList = ({
               const isAbertoESemResp = ticket.status === 'aberto' && !ticket.responsavel_id;
               const isSelected = selectedTicketIds.includes(ticket.id);
               const priority = getPriorityInfo(ticket.prioridade);
+              const estadoInfo = getEstadoAtendimentoInfo(ticket.estado_atendimento);
 
               const needsAgentAction = ticket.status === 'aberto' || ticket.status === 'em_andamento';
               const needsClientAction = ticket.status === 'aguardando_cliente';
@@ -268,6 +301,17 @@ export const TicketList = ({
                       )}
                     </div>
                   </div>
+                </td>
+                <td className="px-3 py-2">
+                  {estadoInfo && (
+                    <div className={cn(
+                      "inline-flex items-center gap-1.5 px-2 py-0.5 rounded cursor-help border transition-all",
+                      estadoInfo.color
+                    )}>
+                      <div className={cn("w-1 h-1 rounded-full", estadoInfo.dot)} />
+                      <span className="text-[9px] font-black uppercase tracking-tighter whitespace-nowrap">{estadoInfo.label}</span>
+                    </div>
+                  )}
                 </td>
                 <td className="px-3 py-2 hidden md:table-cell">
                   <div className="flex flex-col min-w-0">

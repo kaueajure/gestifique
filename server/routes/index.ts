@@ -9,6 +9,7 @@ import  logsRoutes from  './logs.routes.js';
 import  attachmentRoutes from  './attachments.routes.js';
 import  reportsRoutes from  './reports.routes.js';
 import  notificationsRoutes from  './notifications.routes.js';
+import  macrosRoutes from './macros.routes.js';
 import { emailChannelsRoutes } from './email-channels.routes.js';
 
 const router = Router();
@@ -23,6 +24,7 @@ router.use('/logs', logsRoutes);
 router.use('/attachments', attachmentRoutes);
 router.use('/reports', reportsRoutes);
 router.use('/notifications', notificationsRoutes);
+router.use('/macros', macrosRoutes);
 router.use('/', emailChannelsRoutes); // mounted at /api/companies/:companyId/email-channels
 
 export default router;

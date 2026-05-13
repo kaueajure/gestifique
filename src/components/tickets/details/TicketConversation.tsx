@@ -173,6 +173,7 @@ export const TicketConversation = ({
               </div>
            ) : (
               <TicketReplyBox 
+                 ticket={ticket}
                  onSendMessage={onSendMessage}
                  loadingSend={loadingSend}
                  actionError={actionError}

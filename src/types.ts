@@ -58,7 +58,7 @@ export interface CompanyFormData {
 
 export type TicketStatus = 'aberto' | 'em_andamento' | 'aguardando_cliente' | 'resolvido' | 'fechado';
 export type TicketPriority = 'baixa' | 'media' | 'alta' | 'urgente';
-export type TicketQueue = 'todos' | 'meus' | 'sem_responsavel' | 'urgentes' | 'sla_vencido' | 'vence_em_breve' | 'aguardando_cliente';
+export type TicketQueue = 'todos' | 'meus' | 'sem_responsavel' | 'urgentes' | 'sla_vencido' | 'vence_em_breve' | 'aguardando_cliente' | 'precisa_resposta';
 
 export interface TicketListResponse {
   data: Ticket[];
@@ -100,6 +100,11 @@ export interface Ticket {
   origem?: string;
   prazo_sla?: string | null;
   precisa_revisao_responsavel?: boolean;
+  estado_atendimento?: 'cliente_respondeu' | 'aguardando_cliente' | 'atendente_respondeu' | 'sem_resposta';
+  precisa_resposta?: boolean;
+  ultima_mensagem_em?: string;
+  ultima_mensagem_por_nome?: string;
+  ultima_mensagem_interna?: boolean;
   cliente_nome?: string;
   cliente_email?: string;
   responsavel_nome?: string;
@@ -151,6 +156,14 @@ export interface TicketCustomField {
   field_key: string;
   field_label: string;
   field_value: string | null;
+}
+
+export interface TicketMacro {
+  id: number;
+  empresa_id: number;
+  atalho: string;
+  conteudo: string;
+  created_at: string;
 }
 
 export interface Message {

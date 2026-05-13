@@ -191,10 +191,22 @@ class TicketsService {
           baseWhere += " AND t.status = 'aguardando_cliente'";
           summaryWhere += " AND t.status = 'aguardando_cliente'";
           break;
+        case 'precisa_resposta':
+          const prSQL = ` AND t.status NOT IN ('resolvido', 'fechado') AND (
+            NOT EXISTS (SELECT 1 FROM ticket_mensagens m_pr WHERE m_pr.ticket_id = t.id AND m_pr.interno = 0)
+            OR EXISTS (
+              SELECT 1 FROM ticket_mensagens m_pr 
+              WHERE m_pr.ticket_id = t.id AND m_pr.interno = 0 
+              AND m_pr.usuario_id = t.usuario_id
+              AND m_pr.id = (SELECT MAX(id) FROM ticket_mensagens WHERE ticket_id = t.id AND interno = 0)
+            )
+          )`;
+          baseWhere += prSQL;
+          summaryWhere += prSQL;
+          break;
       }
     }
 
-    // Common Filters (for both items and summary)
     if (prioridade && prioridade !== 'todas') {
       baseWhere += ' AND t.prioridade = ?';
       summaryWhere += ' AND t.prioridade = ?';
@@ -278,6 +290,9 @@ class TicketsService {
       });
     }
 
+    // Enriquecer com produtividade
+    await this.enrichTicketsWithProductivity(items);
+
     return {
       data: items,
       meta: {
@@ -330,7 +345,19 @@ class TicketsService {
         SUM(CASE WHEN prioridade IN ('alta', 'urgente') THEN 1 ELSE 0 END) as urgentes,
         SUM(CASE WHEN prazo_sla < NOW() AND status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) as sla_vencido,
         SUM(CASE WHEN prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) as vence_em_breve,
-        SUM(CASE WHEN status = 'aguardando_cliente' THEN 1 ELSE 0 END) as aguardando_cliente
+        SUM(CASE WHEN status = 'aguardando_cliente' THEN 1 ELSE 0 END) as aguardando_cliente,
+        SUM(CASE WHEN status NOT IN ('resolvido', 'fechado') AND (
+          -- Nunca respondeu (apenas descrição inicial)
+          NOT EXISTS (SELECT 1 FROM ticket_mensagens m WHERE m.ticket_id = tickets.id AND m.interno = 0)
+          OR 
+          -- Última mensagem pública é do cliente
+          EXISTS (
+            SELECT 1 FROM ticket_mensagens m 
+            WHERE m.ticket_id = tickets.id AND m.interno = 0 
+            AND m.usuario_id = tickets.usuario_id
+            AND m.id = (SELECT MAX(id) FROM ticket_mensagens WHERE ticket_id = tickets.id AND interno = 0)
+          )
+        ) THEN 1 ELSE 0 END) as precisa_resposta
       FROM tickets
       ${baseWhere}
     `, [usuario_id, ...params]);
@@ -343,7 +370,8 @@ class TicketsService {
       urgentes: Number(res.urgentes || 0),
       sla_vencido: Number(res.sla_vencido || 0),
       vence_em_breve: Number(res.vence_em_breve || 0),
-      aguardando_cliente: Number(res.aguardando_cliente || 0)
+      aguardando_cliente: Number(res.aguardando_cliente || 0),
+      precisa_resposta: Number(res.precisa_resposta || 0)
     };
   }
 
@@ -403,6 +431,19 @@ class TicketsService {
           baseWhere += " AND t.status = 'aguardando_cliente'";
           summaryWhere += " AND t.status = 'aguardando_cliente'";
           break;
+        case 'precisa_resposta':
+           const prSQL_K = ` AND t.status NOT IN ('resolvido', 'fechado') AND (
+             NOT EXISTS (SELECT 1 FROM ticket_mensagens m_pr WHERE m_pr.ticket_id = t.id AND m_pr.interno = 0)
+             OR EXISTS (
+               SELECT 1 FROM ticket_mensagens m_pr 
+               WHERE m_pr.ticket_id = t.id AND m_pr.interno = 0 
+               AND m_pr.usuario_id = t.usuario_id
+               AND m_pr.id = (SELECT MAX(id) FROM ticket_mensagens WHERE ticket_id = t.id AND interno = 0)
+             )
+           )`;
+           baseWhere += prSQL_K;
+           summaryWhere += prSQL_K;
+           break;
       }
     }
     
@@ -480,6 +521,9 @@ class TicketsService {
       ${summaryWhere}
     `, summaryParams);
     const summary = summaryRows[0] || { total: 0, aberto: 0, em_andamento: 0, aguardando_cliente: 0, resolvido: 0, fechado: 0 };
+
+    // Enriquecer com produtividade
+    await this.enrichTicketsWithProductivity(tickets);
 
     const columnsConfig = [
       { id: 'aberto', title: 'Aberto' },
@@ -610,7 +654,9 @@ class TicketsService {
     ticket.tags = await this.getTags(id);
     ticket.custom_fields = await this.getCustomFields(id);
     
-    return ticket;
+    // Enriquecer com produtividade
+    const enriched = await this.enrichTicketsWithProductivity([ticket]);
+    return enriched[0];
   }
 
   async updateStatus(id: number, status: string, changedByUserId: number, req?: any) {
@@ -1231,6 +1277,77 @@ class TicketsService {
     }
 
     return { updated, skipped, errors };
+  }
+
+  async enrichTicketsWithProductivity(tickets: any[]) {
+    if (tickets.length === 0) return tickets;
+
+    const ticketIds = tickets.map(t => t.id);
+
+    // 1. Fetch last public message for each ticket (for state calculation)
+    const [publicMessages]: any = await pool.query(`
+      SELECT m.ticket_id, m.id, m.usuario_id, m.created_at
+      FROM ticket_mensagens m
+      WHERE m.id IN (
+        SELECT MAX(id) FROM ticket_mensagens WHERE ticket_id IN (?) AND (interno = 0) GROUP BY ticket_id
+      )
+    `, [ticketIds]);
+
+    // 2. Fetch last overall message for each ticket (for "last message in list")
+    const [lastMessages]: any = await pool.query(`
+      SELECT m.ticket_id, m.created_at as ultima_mensagem_em, u.nome as ultima_mensagem_por_nome, m.interno as ultima_mensagem_interna
+      FROM ticket_mensagens m
+      LEFT JOIN usuarios u ON m.usuario_id = u.id
+      WHERE m.id IN (
+        SELECT MAX(id) FROM ticket_mensagens WHERE ticket_id IN (?) GROUP BY ticket_id
+      )
+    `, [ticketIds]);
+
+    const publicMsgMap = publicMessages.reduce((acc: any, m: any) => {
+      acc[m.ticket_id] = m;
+      return acc;
+    }, {});
+
+    const lastMsgMap = lastMessages.reduce((acc: any, m: any) => {
+      acc[m.ticket_id] = m;
+      return acc;
+    }, {});
+
+    tickets.forEach(t => {
+      const lmPub = publicMsgMap[t.id];
+      const lmAll = lastMsgMap[t.id];
+
+      // Calculate estado_atendimento
+      let estado: 'cliente_respondeu' | 'aguardando_cliente' | 'atendente_respondeu' | 'sem_resposta' = 'sem_resposta';
+      
+      if (['resolvido', 'fechado'].includes(t.status)) {
+        estado = 'atendente_respondeu';
+      } else if (t.status === 'aguardando_cliente') {
+        estado = 'aguardando_cliente';
+      } else if (!lmPub) {
+        estado = 'sem_resposta';
+      } else if (Number(lmPub.usuario_id) === Number(t.usuario_id)) {
+        estado = 'cliente_respondeu';
+      } else {
+        estado = 'atendente_respondeu';
+      }
+
+      t.estado_atendimento = estado;
+      t.precisa_resposta = (estado === 'cliente_respondeu' || estado === 'sem_resposta') && !['resolvido', 'fechado'].includes(t.status);
+      
+      if (lmAll) {
+        t.ultima_mensagem_em = lmAll.ultima_mensagem_em;
+        t.ultima_mensagem_por_nome = lmAll.ultima_mensagem_por_nome;
+        t.ultima_mensagem_interna = Number(lmAll.ultima_mensagem_interna) === 1;
+      } else {
+        // Se sem mensagens, a última movimentação foi a criação
+        t.ultima_mensagem_em = t.created_at;
+        t.ultima_mensagem_por_nome = t.cliente_nome || 'Solicitante';
+        t.ultima_mensagem_interna = false;
+      }
+    });
+
+    return tickets;
   }
 }
 

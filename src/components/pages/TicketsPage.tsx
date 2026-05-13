@@ -50,6 +50,7 @@ const QUEUES: { id: TicketQueue; label: string; icon: React.ComponentType<{ size
   { id: 'sla_vencido', label: 'SLA vencido', icon: Clock },
   { id: 'vence_em_breve', label: 'Vence breve', icon: History },
   { id: 'aguardando_cliente', label: 'Aguardando', icon: MessageSquare },
+  { id: 'precisa_resposta', label: 'Precisa resposta', icon: AlertCircle },
 ];
 
 const EMPTY_KANBAN_COLUMNS = [
@@ -66,7 +67,8 @@ const EMPTY_QUEUES = {
   urgentes: 0,
   sla_vencido: 0,
   vence_em_breve: 0,
-  aguardando_cliente: 0
+  aguardando_cliente: 0,
+  precisa_resposta: 0
 };
 
 export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) => {
@@ -577,6 +579,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
               // Special colors for critical queues
               const isUrgent = q.id === 'urgentes' || q.id === 'sla_vencido';
               const isWarning = q.id === 'sem_responsavel' || q.id === 'vence_em_breve';
+              const isInfo = q.id === 'precisa_resposta';
 
               return (
                 <button
@@ -589,13 +592,18 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                       : cn(
                           "bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50",
                           isUrgent && count > 0 && "text-red-500 border-red-100 bg-red-50/20",
-                          isWarning && count > 0 && "text-amber-600 border-amber-100 bg-amber-50/20"
+                          isWarning && count > 0 && "text-amber-600 border-amber-100 bg-amber-50/20",
+                          isInfo && count > 0 && "text-blue-600 border-blue-100 bg-blue-50/20"
                         )
                   )}
                 >
                   <Icon size={12} className={cn(
                     "shrink-0",
-                    isActive ? "text-blue-100" : (isUrgent && count > 0 ? "text-red-400" : "text-slate-400")
+                    isActive ? "text-blue-100" : (
+                      isUrgent && count > 0 ? "text-red-400" : (
+                        isInfo && count > 0 ? "text-blue-400" : "text-slate-400"
+                      )
+                    )
                   )} />
                   <span>{q.label}</span>
                   {count > 0 && (
