@@ -55,14 +55,14 @@ export const TicketProperties = ({
   const SectionHeader = ({ id, label, icon: Icon, count }: { id: string, label: string, icon: any, count?: number }) => (
     <button 
       onClick={() => toggleSection(id)}
-      className="flex items-center justify-between w-full py-2 hover:bg-slate-50 transition-colors rounded-lg px-2 -mx-2"
+      className="flex items-center justify-between w-full py-2.5 hover:bg-slate-50 transition-colors rounded-xl px-3 -mx-1"
     >
-      <div className="flex items-center gap-2">
-        <Icon size={12} className="text-slate-400" />
-        <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">{label}</span>
-        {count !== undefined && <Badge variant="slate" className="text-[8px] px-1 py-0 h-3.5 border-none bg-slate-100 text-slate-400 min-w-[16px] flex items-center justify-center font-bold">{count}</Badge>}
+      <div className="flex items-center gap-2.5">
+        <Icon size={14} className="text-slate-400" />
+        <span className="text-[11px] font-black uppercase tracking-wider text-slate-600">{label}</span>
+        {count !== undefined && <Badge variant="slate" className="text-[10px] px-2 py-0.5 h-5 border-none bg-slate-100 text-slate-500 min-w-[20px] flex items-center justify-center font-bold">{count}</Badge>}
       </div>
-      {openSections[id] ? <ChevronDown size={12} className="text-slate-300" /> : <ChevronRight size={12} className="text-slate-300" />}
+      {openSections[id] ? <ChevronDown size={14} className="text-slate-300" /> : <ChevronRight size={14} className="text-slate-300" />}
     </button>
   );
 
@@ -82,13 +82,13 @@ export const TicketProperties = ({
         variant="danger"
       />
 
-      <Card className="border-slate-200 shadow-sm overflow-hidden bg-white">
-          <CardHeader className="py-1.5 px-3 border-b border-slate-50 bg-slate-50/20">
-             <CardTitle className="text-[9px] font-black uppercase tracking-widest text-slate-500">DADOS TÉCNICOS</CardTitle>
+      <Card className="border-slate-200 shadow-sm overflow-hidden bg-white rounded-2xl">
+          <CardHeader className="py-3 px-5 border-b border-slate-50 bg-slate-50/30">
+             <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-500">DADOS TÉCNICOS</CardTitle>
           </CardHeader>
-          <CardContent className="p-2 space-y-2">
+          <CardContent className="p-4 space-y-4">
              {/* Seções Colapsáveis */}
-             <div className="space-y-0.5">
+             <div className="space-y-1">
                 {/* Solicitante */}
                 <div>
                    <SectionHeader id="customer" label="Solicitante" icon={UserIcon} />
@@ -191,15 +191,15 @@ export const TicketProperties = ({
                 </div>
              </div>
 
-             {!!(currentUser.administrador || currentUser.desenvolvedor) && ticket.status !== 'fechado' && (
-               <div className="pt-2">
+                 {!!(currentUser.administrador || currentUser.desenvolvedor) && ticket.status !== 'fechado' && (
+               <div className="pt-4 mt-2">
                   <Button 
                     variant="outline"
                     size="sm"
                     onClick={() => setIsArchiveConfirmOpen(true)}
-                    className="w-full h-8 border-slate-100 text-slate-400 hover:text-red-500 hover:bg-red-50 hover:border-red-100 transition-all text-[9px] font-bold uppercase tracking-widest rounded shadow-none"
+                    className="w-full h-10 border-slate-200 text-slate-400 hover:text-red-500 hover:bg-red-50 hover:border-red-100 transition-all text-[10px] font-bold uppercase tracking-widest rounded-xl shadow-none"
                   >
-                     <Trash2 size={10} className="mr-2" /> Arquivar Chamado
+                     <Trash2 size={12} className="mr-2" /> Arquivar Chamado
                   </Button>
                </div>
              )}

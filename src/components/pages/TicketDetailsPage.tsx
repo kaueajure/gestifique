@@ -236,7 +236,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
   }
 
   return (
-    <div className="h-[calc(100dvh-100px)] max-h-[calc(100dvh-100px)] overflow-hidden flex flex-col gap-1.5 min-h-0">
+    <div className="h-full flex flex-col gap-4 min-h-0 overflow-hidden">
       <TicketHeader 
         id={ticket.id}
         titulo={ticket.titulo}
@@ -247,20 +247,20 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
         canEdit={!!(currentUser.administrador || currentUser.desenvolvedor)}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-1.5 flex-1 min-h-0 overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 min-h-0 overflow-hidden">
         {/* Coluna Principal */}
-        <div className="lg:col-span-9 flex flex-col gap-1.5 min-h-0 overflow-hidden">
-          {/* Barra Operacional Ultra Compacta */}
-          <div className="shrink-0 bg-white border border-slate-200 rounded-lg shadow-sm p-1.5 flex flex-wrap items-center gap-2.5">
+        <div className="lg:col-span-9 flex flex-col gap-4 min-h-0 overflow-hidden">
+          {/* Barra Operacional */}
+          <div className="shrink-0 bg-white border border-slate-200 rounded-xl shadow-sm p-3.5 flex flex-wrap items-center gap-5">
              {/* Status */}
-             <div className="flex flex-col gap-0.5 min-w-[110px]">
-                <span className="text-[7.5px] font-black uppercase tracking-wider text-slate-400 leading-none">Status</span>
+             <div className="flex flex-col gap-1.5 min-w-[120px]">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 leading-none">Status</span>
                 {!!(currentUser.administrador || currentUser.desenvolvedor) ? (
                   <Select 
                     size="sm"
                     value={ticket.status || 'aberto'}
                     onChange={(value) => handleUpdateTicket({ status: value as any })}
-                    className="h-6.5 text-[9.5px]"
+                    className="h-8.5 text-[11px]"
                     options={[
                       { value: 'aberto', label: 'ABERTO' },
                       { value: 'em_andamento', label: 'ANDAMENTO' },
@@ -275,14 +275,14 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
              </div>
 
              {/* Prioridade */}
-             <div className="flex flex-col gap-0.5 min-w-[85px] border-l border-slate-100 pl-2.5">
-                <span className="text-[7.5px] font-black uppercase tracking-wider text-slate-400 leading-none">Prioridade</span>
+             <div className="flex flex-col gap-1.5 min-w-[100px] border-l border-slate-100 pl-4">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 leading-none">Prioridade</span>
                 {!!(currentUser.administrador || currentUser.desenvolvedor) ? (
                   <Select 
                     size="sm"
                     value={ticket.prioridade || 'media'}
                     onChange={(value) => handleUpdateTicket({ prioridade: value as any })}
-                    className="h-6.5 text-[9.5px]"
+                    className="h-8.5 text-[11px]"
                     options={[
                       { value: 'baixa', label: 'BAIXA' },
                       { value: 'media', label: 'MÉDIA' },
@@ -297,13 +297,13 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
 
              {/* Responsável */}
              {!!(currentUser.administrador || currentUser.desenvolvedor) && (
-               <div className="flex flex-col gap-0.5 min-w-[130px] border-l border-slate-100 pl-2.5">
-                  <span className="text-[7.5px] font-black uppercase tracking-wider text-slate-400 leading-none">Responsável</span>
+               <div className="flex flex-col gap-1.5 min-w-[150px] border-l border-slate-100 pl-4">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 leading-none">Responsável</span>
                   <Select 
                     size="sm"
                     value={ticket.responsavel_id || ''}
                     onChange={(value) => handleUpdateTicket({ responsavel_id: value ? parseInt(value) : null })}
-                    className="h-6.5 text-[9.5px]"
+                    className="h-8.5 text-[11px]"
                     options={[
                       { value: '', label: 'SEM RESPONSÁVEL' },
                       ...agents.map(agent => ({
@@ -316,44 +316,44 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
              )}
 
              {/* SLA */}
-             <div className="flex flex-col gap-0.5 border-l border-slate-100 pl-2.5 ml-auto text-right">
-                <span className="text-[7.5px] font-black uppercase tracking-wider text-slate-400 leading-none">Vencimento SLA</span>
+             <div className="flex flex-col gap-1.5 border-l border-slate-100 pl-4 ml-auto text-right">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 leading-none">Vencimento SLA</span>
                 <div className={cn(
-                  "h-6.5 px-2 rounded flex items-center gap-1.5 text-[8.5px] font-black uppercase tracking-tight border",
+                  "h-8 px-3 rounded-lg flex items-center gap-2 text-[10px] font-black uppercase tracking-tight border",
                   getSlaInfo(ticket.prazo_sla, ticket.status).color
                 )}>
-                  <Clock size={9} />
+                  <Clock size={12} />
                   {getSlaInfo(ticket.prazo_sla, ticket.status).compactText || getSlaInfo(ticket.prazo_sla, ticket.status).label}
                 </div>
              </div>
           </div>
 
           {/* Histórico/Mensagens */}
-          <Card className="flex flex-col flex-1 min-h-0 border-slate-200 shadow-sm overflow-hidden rounded-xl">
-            <div className="bg-white px-4 border-b border-slate-100 flex items-center justify-between shrink-0">
+          <Card className="flex flex-col flex-1 min-h-0 border-slate-200 shadow-sm overflow-hidden rounded-2xl bg-white">
+            <div className="bg-slate-50/30 px-6 border-b border-slate-100 flex items-center justify-between shrink-0">
                <div className="flex -mb-px">
                   <button 
                     onClick={() => setActiveTab('messages')}
                     className={cn(
-                      "flex items-center gap-2 py-3 px-1 mr-6 text-[10px] font-bold uppercase tracking-widest transition-all border-b-2",
+                      "flex items-center gap-2.5 py-4 px-2 mr-8 text-[11px] font-bold uppercase tracking-widest transition-all border-b-2",
                       activeTab === 'messages' ? "text-blue-600 border-blue-600" : "text-slate-400 border-transparent hover:text-slate-600"
                     )}
                   >
-                    <MessageSquare size={13} />
+                    <MessageSquare size={14} />
                     Conversa
                   </button>
                   <button 
                     onClick={() => setActiveTab('timeline')}
                     className={cn(
-                      "flex items-center gap-2 py-3 px-1 text-[10px] font-bold uppercase tracking-widest transition-all border-b-2",
+                      "flex items-center gap-2.5 py-4 px-2 text-[11px] font-bold uppercase tracking-widest transition-all border-b-2",
                       activeTab === 'timeline' ? "text-blue-600 border-blue-600" : "text-slate-400 border-transparent hover:text-slate-600"
                     )}
                   >
-                    <History size={13} />
-                    Histórico
+                    <History size={14} />
+                    Histórico do Chamado
                   </button>
                </div>
-               <Badge variant="slate" className="text-[9px] font-black px-2 py-0.5 h-5 border-none bg-slate-50 text-slate-400 uppercase">
+               <Badge variant="slate" className="text-[10px] font-black px-3 py-1 h-6 border-none bg-white text-slate-400 uppercase shadow-sm">
                  {activeTab === 'messages' ? `${messages.length} mensagens` : `${timeline.length} eventos`}
                </Badge>
             </div>
@@ -384,7 +384,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
 
         {/* Coluna Lateral */}
         <div className="lg:col-span-3 h-full min-h-0 overflow-hidden">
-            <div className="h-full overflow-y-auto pr-1 flex flex-col gap-1.5 custom-scrollbar">
+            <div className="h-full overflow-y-auto pr-1 flex flex-col gap-4 custom-scrollbar">
               <TicketProperties 
                   ticket={ticket}
                   currentUser={currentUser}

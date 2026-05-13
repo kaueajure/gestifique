@@ -19,6 +19,7 @@ import { Card } from './components/ui/Card';
 import { Input } from './components/ui/Input';
 import { Button } from './components/ui/Button';
 import { AppLogo } from './components/ui/Logo';
+import { cn } from './lib/utils';
 import { 
   ArrowRight, 
   Shield, 
@@ -399,8 +400,14 @@ export default function App() {
             onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} 
           />
 
-          <main className="flex-1 overflow-y-auto custom-scrollbar">
-            <div className="max-w-[1600px] mx-auto px-6 py-8">
+          <main className={cn(
+            "flex-1 custom-scrollbar",
+            activeTab === 'tickets' && selectedTicketId ? "overflow-hidden" : "overflow-y-auto"
+          )}>
+            <div className={cn(
+              "max-w-[1600px] mx-auto w-full",
+              activeTab === 'tickets' && selectedTicketId ? "h-full px-6 py-4" : "px-6 py-8"
+            )}>
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeTab + (selectedTicketId || '')}
@@ -408,6 +415,7 @@ export default function App() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
+                  className={cn(activeTab === 'tickets' && selectedTicketId && "h-full")}
                 >
                   {activeTab === 'dashboard' && <DashboardPage onNavigate={(tab) => setActiveTab(tab)} />}
                   

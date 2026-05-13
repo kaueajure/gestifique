@@ -141,7 +141,7 @@ export const TicketConversation = ({
         </div>
         
         {/* Campo de Resposta */}
-        <div className="shrink-0 p-2.5 bg-white border-t border-slate-100">
+        <div className="shrink-0 p-4 md:p-6 bg-white border-t border-slate-100 shadow-[0_-4px_12px_rgba(0,0,0,0.03)]">
            {ticket.status === 'fechado' ? (
               <div className="text-center p-3 bg-slate-50 border border-slate-200 rounded-lg">
                  <p className="text-xs font-bold text-slate-600 mb-1">Este atendimento está fechado.</p>
