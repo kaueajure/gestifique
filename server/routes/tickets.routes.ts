@@ -87,6 +87,7 @@ router.get('/', async (req: AuthRequest, res) => {
       status: typeof req.query.status === 'string' && req.query.status !== 'todos' ? req.query.status : undefined,
       prioridade: typeof req.query.prioridade === 'string' && req.query.prioridade !== 'todas' ? req.query.prioridade : undefined,
       categoria: typeof req.query.categoria === 'string' && req.query.categoria !== 'todas' ? req.query.categoria : undefined,
+      servico: typeof req.query.servico === 'string' && req.query.servico !== 'todos' ? req.query.servico : undefined,
       search: typeof req.query.search === 'string' ? req.query.search.trim() : undefined,
       page: toPositiveInt(req.query.page) ?? 1,
       limit: toPositiveInt(req.query.limit) ?? 15,
@@ -148,6 +149,10 @@ router.get('/kanban', async (req: AuthRequest, res) => {
       ? req.query.categoria 
       : undefined;
 
+    const servico = typeof req.query.servico === 'string' && req.query.servico !== 'todos' 
+      ? req.query.servico 
+      : undefined;
+
     const fila = parseTicketQueue(req.query.fila);
 
     const filters = {
@@ -161,6 +166,7 @@ router.get('/kanban', async (req: AuthRequest, res) => {
       status,
       prioridade,
       categoria,
+      servico,
       fila,
       // Advanced Filters
       tag: typeof req.query.tag === 'string' ? req.query.tag : undefined,

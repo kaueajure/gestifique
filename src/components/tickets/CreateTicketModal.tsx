@@ -22,8 +22,9 @@ export const CreateTicketModal = ({ isOpen, onClose, currentUser, onSuccess }: C
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
   const [empresaId, setEmpresaId] = useState<string>('');
+  const targetCompanyId = currentUser.desenvolvedor ? empresaId : String(currentUser.empresa_id);
   
-  const { activeCategories, activeServices, loading: optionsLoading } = useTicketOptions();
+  const { activeCategories, activeServices, loading: optionsLoading } = useTicketOptions(targetCompanyId || undefined);
 
   // Fallbacks
   const defaultCategories = [

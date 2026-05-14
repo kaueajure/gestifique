@@ -137,7 +137,7 @@ class TicketsService {
   async list(filters: any) {
     const { 
       empresa_id, usuario_id, is_dev, is_admin, 
-      status, prioridade, categoria, search, 
+      status, prioridade, categoria, servico, search, 
       responsavel_id, fila, page = 1, limit = 20,
       // Advanced Filters
       tag, origem, created_from, created_to, 
@@ -216,6 +216,11 @@ class TicketsService {
       baseWhere += ' AND t.categoria = ?';
       summaryWhere += ' AND t.categoria = ?';
       params.push(categoria);
+    }
+    if (servico && servico !== 'todos') {
+      baseWhere += ' AND t.servico = ?';
+      summaryWhere += ' AND t.servico = ?';
+      params.push(servico);
     }
     const safeResponsavelId = toPositiveInt(responsavel_id);
     if (safeResponsavelId) {
@@ -403,7 +408,7 @@ class TicketsService {
   async getKanban(filters: any) {
     const { 
       empresa_id, usuario_id, is_dev, is_admin, 
-      responsavel_id, search, prioridade, categoria, status, fila,
+      responsavel_id, search, prioridade, categoria, servico, status, fila,
       // Advanced Filters
       tag, origem, created_from, created_to, 
       updated_from, updated_to, sla_status, custom_field_search
@@ -488,6 +493,11 @@ class TicketsService {
        baseWhere += ' AND t.categoria = ?';
        summaryWhere += ' AND t.categoria = ?';
        params.push(categoria);
+    }
+    if (servico && servico !== 'todos') {
+       baseWhere += ' AND t.servico = ?';
+       summaryWhere += ' AND t.servico = ?';
+       params.push(servico);
     }
     if (searchTerm) {
        const searchPattern = `%${searchTerm}%`;

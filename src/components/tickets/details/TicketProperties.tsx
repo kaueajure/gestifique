@@ -40,7 +40,8 @@ export const TicketProperties = ({
   onUpdateCustomFields
 }: TicketPropertiesProps) => {
   const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
-  const { activeCategories, activeServices, loading } = useTicketOptions();
+  const companyId = ticket.empresa_id ? String(ticket.empresa_id) : undefined;
+  const { activeCategories, activeServices } = useTicketOptions(companyId);
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleString('pt-BR', {
