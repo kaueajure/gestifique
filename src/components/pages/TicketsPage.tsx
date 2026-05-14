@@ -119,9 +119,11 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
   const [selectedTicketIds, setSelectedTicketIds] = useState<number[]>([]);
 
   useEffect(() => {
-    if (!!(currentUser.administrador || currentUser.desenvolvedor)) {
+    if (currentUser.desenvolvedor) {
       api.get<Empresa[]>('/companies').then(setCompanies).catch(console.error);
-      
+    }
+
+    if (currentUser.administrador || currentUser.desenvolvedor) {
       // Fetch agents for bulk assignment
       api.get<User[]>('/users').then(users => {
         const filteredAgents = users.filter(u => 
