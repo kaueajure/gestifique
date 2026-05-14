@@ -32,13 +32,13 @@ export const TicketTags = ({ tags, onAdd, onRemove, readOnly, className }: Ticke
         <div key={tag}>
           <Badge 
             variant="slate" 
-            className="text-[10px] py-0 px-1.5 h-5 flex items-center gap-1 group bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors"
+            className="text-[9px] py-0 px-2 h-5 flex items-center gap-1.5 group bg-slate-50/50 border-slate-200/60 text-slate-500 font-bold uppercase tracking-wider transition-all"
           >
             {tag}
             {!readOnly && onRemove && (
               <button 
                 onClick={() => onRemove(tag)}
-                className="text-slate-400 hover:text-red-500 transition-colors focus:outline-none"
+                className="text-slate-300 hover:text-red-500 transition-colors focus:outline-none"
               >
                 <X size={10} />
               </button>

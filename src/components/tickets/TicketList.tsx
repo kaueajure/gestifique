@@ -219,25 +219,25 @@ export const TicketList = ({
       <div className="overflow-x-auto no-scrollbar">
         <table className="w-full text-left border-collapse table-fixed">
           <thead>
-            <tr className="bg-slate-50/50 border-b border-slate-100">
+            <tr className="bg-slate-50/30 border-b border-slate-200/60">
               {canSelectBulk && (
-                <th className="w-8 px-3 py-2.5 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">
+                <th className="w-10 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">
                   <input 
                     type="checkbox" 
-                    className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer transition-all"
                     onChange={toggleSelectAll}
                     checked={isAllSelected}
                   />
                 </th>
               )}
-              <SortHeader label="Atendimento" k="titulo" className="w-[300px]" />
-              <th className="w-[140px] px-3 py-2.5 text-[9px] font-black uppercase tracking-widest text-slate-400">Situação</th>
-              <th className="px-3 py-2.5 text-[9px] font-black uppercase tracking-widest text-slate-400 hidden md:table-cell">Solicitante</th>
+              <SortHeader label="Atendimento" k="titulo" className="w-[450px]" />
+              <th className="w-[160px] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Situação</th>
+              <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 hidden xl:table-cell">Solicitante</th>
               <SortHeader label="Status" k="status" className="w-[120px]" />
               <SortHeader label="Prioridade" k="prioridade" className="w-[100px] text-center justify-center" />
-              <th className="w-[90px] px-3 py-2.5 text-[9px] font-black uppercase tracking-widest text-slate-400 hidden xl:table-cell text-center">SLA</th>
-              <th className="w-[140px] px-3 py-2.5 text-[9px] font-black uppercase tracking-widest text-slate-400">Responsável</th>
-              <th className="w-[90px] px-3 py-2.5"></th>
+              <th className="w-[120px] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 hidden lg:table-cell text-center">SLA</th>
+              <th className="w-[180px] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Responsável</th>
+              <th className="w-[100px] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Atualizado</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
@@ -256,10 +256,9 @@ export const TicketList = ({
                   key={ticket.id}
                   onClick={() => onSelectTicket(ticket.id)}
                   className={cn(
-                    "group hover:bg-slate-50/60 transition-all cursor-pointer relative",
-                    isSelected && "bg-blue-50/30",
-                    sla.status === 'vencido' && "bg-red-50/10 hover:bg-red-50/30",
-                    ticket.nao_lido && "bg-blue-50/20 font-bold"
+                    "group hover:bg-slate-50/80 transition-all cursor-pointer relative",
+                    isSelected && "bg-blue-50/10",
+                    ticket.nao_lido && "bg-blue-50/30"
                   )}
                 >
                 {canSelectBulk && (
@@ -272,23 +271,20 @@ export const TicketList = ({
                     />
                   </td>
                 )}
-                <td className="px-3 py-2">
-                  <div className="flex flex-col gap-0.5 min-w-0">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      {ticket.nao_lido && (
-                        <div className="w-1.5 h-1.5 rounded-full bg-blue-600 ring-4 ring-blue-50 animate-pulse shrink-0" title="Mensagem não lida" />
-                      )}
-                      <span className="text-[9px] font-black text-blue-600 tracking-tighter bg-blue-50/50 px-1 py-0.5 rounded border border-blue-100/30">#{ticket.id}</span>
-                      {isAbertoESemResp && (
-                        <span className="text-[8px] font-black text-white bg-amber-500 px-1 rounded border border-amber-500 uppercase tracking-tighter">Novo Chamado</span>
-                      )}
-                      {ticket.estado_atendimento === 'cliente_respondeu' && (
-                        <span className="text-[8px] font-black text-white bg-emerald-500 px-1 rounded border border-emerald-500 uppercase tracking-tighter animate-pulse">Nova Resposta</span>
-                      )}
-                      {needsAgentAction && ticket.responsavel_id === currentUser.id && (
-                        <span className="text-[8px] font-black text-blue-600 bg-blue-50 px-1 rounded border border-blue-100 uppercase tracking-tighter shrink-0">Sua Vez</span>
-                      )}
-                      <span className="text-[11px] font-bold text-slate-700 truncate group-hover:text-blue-700 transition-colors uppercase">{ticket.titulo}</span>
+                <td className="px-4 py-4">
+                  <div className="flex flex-col gap-1.5 min-w-0">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex items-center shrink-0">
+                        {ticket.nao_lido && (
+                          <div className="w-1.5 h-1.5 rounded-full bg-blue-600 ring-4 ring-blue-100 animate-pulse mr-2" />
+                        )}
+                        <span className="text-[10px] font-black text-slate-400 tracking-tighter opacity-70 group-hover:text-blue-600 group-hover:opacity-100 transition-all">
+                          #{ticket.id}
+                        </span>
+                      </div>
+                      <span className="text-[14px] font-bold text-slate-800 truncate group-hover:text-slate-900 transition-colors tracking-tight">
+                        {ticket.titulo}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight flex items-center gap-1">

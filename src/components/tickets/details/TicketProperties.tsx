@@ -55,12 +55,12 @@ export const TicketProperties = ({
   const SectionHeader = ({ id, label, icon: Icon, count }: { id: string, label: string, icon: any, count?: number }) => (
     <button 
       onClick={() => toggleSection(id)}
-      className="flex items-center justify-between w-full py-2.5 hover:bg-slate-50 transition-colors rounded-xl px-3 -mx-1"
+      className="flex items-center justify-between w-full py-2 hover:bg-slate-50/50 transition-colors rounded-lg px-2 -mx-1"
     >
       <div className="flex items-center gap-2.5">
-        <Icon size={14} className="text-slate-400" />
-        <span className="text-[11px] font-black uppercase tracking-wider text-slate-600">{label}</span>
-        {count !== undefined && <Badge variant="slate" className="text-[10px] px-2 py-0.5 h-5 border-none bg-slate-100 text-slate-500 min-w-[20px] flex items-center justify-center font-bold">{count}</Badge>}
+        <Icon size={13} className="text-slate-400 opacity-80" />
+        <span className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-600">{label}</span>
+        {count !== undefined && <Badge variant="slate" className="text-[9px] px-1.5 py-0 h-4 border-none bg-slate-100 text-slate-500 font-bold min-w-[16px]">{count}</Badge>}
       </div>
       {openSections[id] ? <ChevronDown size={14} className="text-slate-300" /> : <ChevronRight size={14} className="text-slate-300" />}
     </button>
@@ -82,9 +82,9 @@ export const TicketProperties = ({
         variant="danger"
       />
 
-      <Card className="border-slate-200 shadow-sm overflow-hidden bg-white rounded-2xl">
-          <CardHeader className="py-3 px-5 border-b border-slate-50 bg-slate-50/30">
-             <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-500">DADOS TÉCNICOS</CardTitle>
+      <Card className="border-slate-200/70 shadow-sm overflow-hidden bg-white rounded-2xl">
+          <CardHeader className="py-2.5 px-5 border-b border-slate-50 bg-slate-50/20">
+             <CardTitle className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400">Dados do Atendimento</CardTitle>
           </CardHeader>
           <CardContent className="p-4 space-y-4">
              {/* Seções Colapsáveis */}
@@ -93,23 +93,25 @@ export const TicketProperties = ({
                 <div>
                    <SectionHeader id="customer" label="Solicitante" icon={UserIcon} />
                    {openSections.customer && (
-                     <div className="space-y-1.5 py-1.5 animate-in slide-in-from-top-1 duration-200">
-                        <div className="flex items-center gap-2 bg-slate-50/50 p-1.5 rounded-lg border border-slate-100/50">
-                           <div className="w-6 h-6 rounded bg-white border border-slate-200 flex items-center justify-center text-slate-400 shrink-0">
-                               <UserIcon size={11} />
+                     <div className="space-y-2 py-2 animate-in slide-in-from-top-1 duration-200">
+                        <div className="flex items-center gap-3 bg-slate-50/30 p-2 rounded-xl border border-slate-100/50 group hover:border-blue-100/60 transition-all">
+                           <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-400 shrink-0 shadow-sm group-hover:text-blue-500 transition-colors">
+                               <UserIcon size={14} />
                            </div>
                            <div className="min-w-0">
-                              <div className="text-[10px] font-black text-slate-800 truncate leading-tight uppercase">{clienteNome}</div>
-                              <div className="text-[8px] font-bold text-slate-400 truncate tracking-tight uppercase leading-none mt-0.5">{ticket.cliente_email || 's/ email'}</div>
+                              <div className="text-[11px] font-black text-slate-800 truncate leading-tight uppercase group-hover:text-blue-700 transition-colors">{clienteNome}</div>
+                              <div className="text-[9px] font-bold text-slate-400 truncate tracking-tight uppercase leading-none mt-1">{ticket.cliente_email || 's/ email'}</div>
                            </div>
                         </div>
-                        <div className="flex items-center gap-2 px-1">
-                           <Building2 size={9} className="text-slate-300" />
-                           <span className="text-[9px] font-black text-slate-500 truncate uppercase tracking-tighter">{empresaNome}</span>
-                        </div>
-                        <div className="flex items-center gap-2 px-1">
-                           <Calendar size={9} className="text-slate-300" />
-                           <span className="text-[9px] font-black text-slate-500 truncate uppercase tracking-tighter">{origemLabel}</span>
+                        <div className="grid grid-cols-2 gap-2 mt-1">
+                           <div className="flex items-center gap-2 px-1">
+                              <Building2 size={10} className="text-slate-300" />
+                              <span className="text-[9px] font-bold text-slate-500 truncate uppercase tracking-tighter">{empresaNome}</span>
+                           </div>
+                           <div className="flex items-center gap-2 px-1">
+                              <Calendar size={10} className="text-slate-300" />
+                              <span className="text-[9px] font-bold text-slate-500 truncate uppercase tracking-tighter">{origemLabel}</span>
+                           </div>
                         </div>
                      </div>
                    )}

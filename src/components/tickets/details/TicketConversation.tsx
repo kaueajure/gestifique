@@ -34,74 +34,83 @@ const MessageBubble = ({
   
   return (
     <div className={cn(
-      "flex flex-col gap-2 transition-all max-w-full",
+      "flex flex-col gap-3 transition-all max-w-full",
       isCliente || isAbertura ? "items-start" : "items-end"
     )}>
-      {/* Meta Info Above Bubble */}
-      <div className={cn(
-        "flex items-center gap-2 px-1",
-        isCliente || isAbertura ? "flex-row" : "flex-row-reverse text-right"
-      )}>
-        <span className="text-[11px] font-bold text-slate-900 uppercase tracking-tight">
-          {msg.usuario_nome || (isAbertura ? 'Solicitante' : 'Sistema')}
-        </span>
-        <span className="text-[10px] font-medium text-slate-400 flex items-center gap-1 uppercase tracking-tighter">
-          <Clock size={10} /> {date.toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
-        </span>
-        {isAbertura && (
-          <Badge variant="blue" className="text-[9px] font-black px-1.5 py-0 uppercase border-none rounded bg-blue-50 text-blue-600 h-4 tracking-widest">Início</Badge>
-        )}
-        {isInternal && (
-          <Badge variant="amber" className="text-[9px] font-black px-1.5 py-0 uppercase border-none rounded bg-amber-100 text-amber-700 h-4 tracking-widest flex items-center gap-1">
-            <Lock size={8} /> Nota Interna
-          </Badge>
-        )}
-      </div>
-
       {/* Bubble Container */}
       <div className={cn(
-        "relative group flex gap-3 max-w-[92%] md:max-w-[80%] lg:max-w-[75%]",
+        "relative group flex gap-4 max-w-[95%] md:max-w-[85%] lg:max-w-[80%]",
         isCliente || isAbertura ? "flex-row" : "flex-row-reverse"
       )}>
-        {/* Avatar */}
-        <div className={cn(
-          "shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-sm border",
-          isAbertura || isCliente 
-            ? "bg-white border-slate-200 text-slate-600" 
-            : isInternal 
-              ? "bg-amber-100 border-amber-200 text-amber-700" 
-              : "bg-blue-50 border-blue-100 text-blue-600"
-        )}>
-          {(msg.usuario_nome || 'S').charAt(0).toUpperCase()}
+        {/* Avatar Area */}
+        <div className="flex flex-col items-center gap-2 shrink-0 pt-1">
+          <div className={cn(
+            "w-9 h-9 rounded-xl flex items-center justify-center text-[10px] font-black shadow-sm border transition-all",
+            isAbertura || isCliente 
+              ? "bg-white border-slate-200 text-slate-500" 
+              : isInternal 
+                ? "bg-amber-100 border-amber-200 text-amber-700" 
+                : "bg-blue-600 border-blue-700 text-white shadow-blue-100"
+          )}>
+            {(msg.usuario_nome || 'S').charAt(0).toUpperCase()}
+          </div>
         </div>
 
-        {/* Content Card */}
+        {/* Content & Meta Area */}
         <div className={cn(
-          "p-4 rounded-2xl shadow-sm border text-sm leading-relaxed min-w-[200px]",
-          isAbertura || (isCliente && !isInternal)
-            ? "bg-white border-slate-200 text-slate-800 rounded-tl-none"
-            : isInternal
-              ? "bg-amber-50/50 border-amber-100 text-slate-800 italic rounded-tr-none"
-              : "bg-blue-50/50 border-blue-100 text-slate-800 rounded-tr-none"
+          "flex flex-col gap-1.5",
+          isCliente || isAbertura ? "items-start" : "items-end"
         )}>
-          {isInternal && (
-            <div className="flex items-center gap-1.5 mb-2 pb-2 border-b border-amber-100/50 text-[10px] font-bold text-amber-600 uppercase tracking-widest">
-              <Lock size={10} /> Visível apenas para a equipe
-            </div>
-          )}
-
-          <div className="whitespace-pre-wrap font-medium">
-            {msg.mensagem || msg.descricao}
+          {/* Meta Info */}
+          <div className={cn(
+            "flex items-center gap-2 px-1",
+            isCliente || isAbertura ? "flex-row" : "flex-row-reverse"
+          )}>
+            <span className="text-[11px] font-black text-slate-900 uppercase tracking-tight">
+              {msg.usuario_nome || (isAbertura ? 'Solicitante' : 'Sistema')}
+            </span>
+            <div className="w-1 h-1 rounded-full bg-slate-300" />
+            <span className="text-[9px] font-bold text-slate-400 flex items-center gap-1 uppercase tracking-widest tabular-nums">
+              {date.toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+            </span>
+            {isAbertura && (
+              <Badge variant="blue" className="h-4 px-1.5 bg-blue-50 text-blue-600 border-blue-100/50">Abertura</Badge>
+            )}
+            {isInternal && (
+              <Badge variant="amber" className="h-4 px-1.5 bg-amber-50 text-amber-600 border-amber-100/50 flex items-center gap-1">
+                <Lock size={8} /> Interno
+              </Badge>
+            )}
           </div>
 
-          {msg.attachments && msg.attachments.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-slate-100">
-               <AttachmentList 
-                 attachments={msg.attachments} 
-                 onRemove={onDeleteAttachment}
-               />
+          {/* Actual Bubble */}
+          <div className={cn(
+            "p-5 rounded-2xl shadow-sm border text-[14px] leading-relaxed min-w-[200px] transition-all",
+            isAbertura || (isCliente && !isInternal)
+              ? "bg-white border-slate-200 text-slate-800"
+              : isInternal
+                ? "bg-amber-50/30 border-amber-100 text-slate-800 italic"
+                : "bg-blue-50/30 border-blue-100 text-slate-800"
+          )}>
+            {isInternal && (
+              <div className="flex items-center gap-2 mb-3 pb-3 border-b border-amber-100/40 text-[9px] font-black text-amber-600 uppercase tracking-[0.15em]">
+                <Lock size={10} /> Escopo Privado • Equipe
+              </div>
+            )}
+
+            <div className="whitespace-pre-wrap font-medium tracking-tight">
+              {msg.mensagem || msg.descricao}
             </div>
-          )}
+
+            {msg.attachments && msg.attachments.length > 0 && (
+              <div className="mt-5 pt-5 border-t border-slate-100/60">
+                 <AttachmentList 
+                   attachments={msg.attachments} 
+                   onRemove={onDeleteAttachment}
+                 />
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

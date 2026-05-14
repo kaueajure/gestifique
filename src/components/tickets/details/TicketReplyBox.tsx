@@ -45,26 +45,26 @@ export const TicketReplyBox = ({ ticket, currentUser, onSendMessage, loadingSend
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <div className="flex bg-slate-100 p-0.5 rounded-lg">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex bg-slate-100 p-1 rounded-xl shadow-inner-sm">
              <button
                 type="button"
                 onClick={() => setIsInternal(false)}
                 className={cn(
-                  "px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all",
-                  !isInternal ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                  "px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all",
+                  !isInternal ? "bg-white text-blue-600 shadow-sm ring-1 ring-slate-200/50" : "text-slate-400 hover:text-slate-600"
                 )}
              >
-                Responder ao cliente
+                Resposta ao cliente
              </button>
              {canAddInternalNote && (
                <button
                   type="button"
                   onClick={() => setIsInternal(true)}
                   className={cn(
-                    "px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all",
-                    isInternal ? "bg-white text-amber-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                    "px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all",
+                    isInternal ? "bg-white text-amber-600 shadow-sm ring-1 ring-slate-200/50" : "text-slate-400 hover:text-slate-600"
                   )}
                >
                   Nota interna
@@ -78,18 +78,18 @@ export const TicketReplyBox = ({ ticket, currentUser, onSendMessage, loadingSend
                 type="button"
                 onClick={() => setShowMacros(!showMacros)}
                 className={cn(
-                  "flex items-center gap-2 h-9 px-3 rounded-lg border text-[10px] font-black uppercase tracking-widest transition-all",
+                  "flex items-center gap-2.5 h-10 px-4 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all shadow-sm",
                   showMacros 
-                    ? "bg-blue-600 border-blue-600 text-white shadow-lg ring-4 ring-blue-50" 
-                    : "bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50 shadow-sm"
+                    ? "bg-blue-600 border-blue-600 text-white shadow-blue-100 ring-4 ring-blue-50" 
+                    : "bg-white border-slate-200/60 text-slate-500 hover:border-slate-300 hover:bg-slate-50"
                 )}
               >
-                <MessageSquare size={13} className={showMacros ? "text-blue-100" : "text-blue-500"} />
-                Respostas prontas
+                <MessageSquare size={14} className={cn(showMacros ? "text-blue-100" : "text-blue-500")} />
+                Macros
               </button>
 
               {showMacros && (
-                <div className="absolute bottom-full right-0 mb-3 z-[60]">
+                <div className="absolute bottom-full right-0 mb-4 z-[60] animate-in slide-in-from-bottom-2 duration-200">
                   <TicketMacroList 
                     ticket={ticket}
                     currentUser={currentUser}
@@ -99,31 +99,27 @@ export const TicketReplyBox = ({ ticket, currentUser, onSendMessage, loadingSend
                 </div>
               )}
             </div>
-
-            {isInternal && (
-               <div className="hidden sm:flex items-center gap-1.5 text-[10px] font-bold text-amber-600 bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-100 uppercase tracking-tighter">
-                  <AlertCircle size={11} /> Privado para equipe
-               </div>
-            )}
           </div>
         </div>
 
         {(actionError || actionSuccess) && (
-          <AnimatePresence>
+          <AnimatePresence mode="wait">
               {actionError && (
                 <motion.div 
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-center gap-2.5 text-red-600 text-xs font-bold"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-center gap-2.5 text-red-600 text-[11px] font-bold"
                 >
                   <AlertCircle size={14} /> {actionError}
                 </motion.div>
               )}
               {actionSuccess && (
                 <motion.div 
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-2.5 text-emerald-600 text-xs font-bold"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-2.5 text-emerald-600 text-[11px] font-bold"
                 >
                   <CheckCircle2 size={14} /> {actionSuccess}
                 </motion.div>
@@ -131,41 +127,53 @@ export const TicketReplyBox = ({ ticket, currentUser, onSendMessage, loadingSend
           </AnimatePresence>
         )}
 
-        <div className="relative">
+        <div className="relative group">
           <textarea 
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            placeholder={isInternal ? "Escreva uma nota interna para a equipe..." : "Escreva uma resposta para o cliente..."}
+            placeholder={isInternal ? "Escreva uma nota interna privada..." : "Descreva sua resposta aqui..."}
             rows={4}
             className={cn(
-              "w-full border rounded-xl px-4 py-3 text-sm font-medium focus:ring-4 transition-all outline-none resize-none min-h-[120px] shadow-sm",
+              "w-full border rounded-2xl px-5 py-4 text-[14px] font-medium transition-all outline-none resize-none min-h-[140px] shadow-sm",
               isInternal 
-                ? "bg-amber-50/30 border-amber-200 focus:ring-amber-50 focus:border-amber-400 text-amber-900 placeholder:text-amber-400" 
-                : "bg-slate-50/50 border-slate-200 focus:ring-blue-50 focus:border-blue-400 text-slate-800 placeholder:text-slate-400"
+                ? "bg-amber-50/20 border-amber-200/60 focus:ring-4 focus:ring-amber-50 focus:border-amber-400 text-amber-900 placeholder:text-amber-300" 
+                : "bg-slate-50/30 border-slate-200/60 focus:ring-4 focus:ring-blue-50 focus:border-blue-400 text-slate-800 placeholder:text-slate-400"
             )}
           />
+          {isInternal && (
+            <div className="absolute top-4 right-5 pointer-events-none opacity-20 hidden md:block">
+               <AlertCircle size={40} className="text-amber-500" />
+            </div>
+          )}
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="w-full sm:flex-1">
              <FileUpload onFilesChange={setSelectedFiles} />
           </div>
 
-          <div className="w-full sm:w-auto shrink-0">
+          <div className="w-full sm:w-auto shrink-0 flex items-center gap-3">
+              {isInternal && (
+                <span className="hidden lg:flex items-center gap-2 text-[9px] font-black text-amber-600 uppercase tracking-widest bg-amber-50 px-3 py-2 rounded-lg border border-amber-100/50">
+                  <AlertCircle size={11} /> A equipe verá isso
+                </span>
+              )}
               <Button 
                 type="submit" 
                 disabled={(!newMessage.trim() && selectedFiles.length === 0) || loadingSend}
                 className={cn(
-                  "w-full sm:w-auto h-10 px-6 font-bold text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95",
-                  isInternal ? "bg-amber-600 hover:bg-amber-700 focus:ring-amber-500 shadow-amber-100" : "bg-blue-600 hover:bg-blue-700 shadow-blue-100"
+                  "w-full sm:w-auto h-12 px-8 font-black text-[10px] uppercase tracking-[0.15em] shadow-xl transition-all active:scale-95 rounded-xl",
+                  isInternal ? "bg-amber-600 hover:bg-amber-700 shadow-amber-200/50 ring-4 ring-amber-50" : "bg-blue-600 hover:bg-blue-700 shadow-blue-200/50 ring-4 ring-blue-50"
                 )}
               >
                 {loadingSend ? (
-                  <Loader2 size={16} className="animate-spin mr-2" />
+                  <Loader2 size={18} className="animate-spin" />
                 ) : (
-                  <Send size={16} className="mr-2" />
+                  <>
+                    <Send size={18} className="mr-2" />
+                    {isInternal ? "Adicionar Nota" : "Enviar Resposta"}
+                  </>
                 )}
-                {isInternal ? "Adicionar Nota" : "Enviar Resposta"}
               </Button>
           </div>
         </div>

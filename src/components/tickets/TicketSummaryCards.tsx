@@ -10,50 +10,45 @@ interface SummaryProps {
 
 export const TicketSummaryCards = ({ summary }: SummaryProps) => {
   return (
-    <div className="flex items-center gap-1.5 overflow-x-auto bg-white/50 backdrop-blur-sm border border-slate-200 rounded-lg px-1 py-1 shadow-sm no-scrollbar mb-1.5">
-      <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white border border-slate-100 shadow-sm shrink-0">
-        <div className="w-4 h-4 rounded-[3px] bg-slate-900 text-white flex items-center justify-center shrink-0">
-          <Layers size={9} />
-        </div>
-        <div className="flex items-baseline gap-1">
-          <span className="text-[8px] uppercase text-slate-400 font-black tracking-widest leading-none">Total</span>
-          <span className="text-[11px] font-black text-slate-900 leading-none">{summary.total}</span>
-        </div>
+    <div className="flex items-center gap-4 overflow-x-auto bg-transparent px-1 py-1.5 no-scrollbar mb-1">
+      <div className="flex flex-col gap-0.5 min-w-[70px]">
+        <span className="text-[9px] uppercase text-slate-400 font-bold tracking-[0.1em] transition-colors">Total</span>
+        <span className="text-sm font-black text-slate-900 leading-none tracking-tight">{summary.total}</span>
       </div>
 
-      <div className="w-px h-4 bg-slate-200 mx-0.5 shrink-0" />
+      <div className="w-px h-6 bg-slate-200 shrink-0 mx-1" />
 
-      <div className="flex items-center gap-3 px-1 shrink-0">
-        <div className="flex items-center gap-1.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-          <div className="flex items-baseline gap-1">
-            <span className="text-[8px] uppercase text-slate-400 font-black tracking-widest leading-none">Abertos</span>
-            <span className="text-[11px] font-black text-slate-700 leading-none">{summary.aberto}</span>
+      <div className="flex items-center gap-8 shrink-0">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-sm" />
+            <span className="text-[10px] uppercase text-slate-400 font-bold tracking-[0.05em]">Abertos</span>
           </div>
+          <span className="text-[13px] font-black text-slate-800 leading-none ml-3 tracking-tight">{summary.aberto}</span>
         </div>
 
-        <div className="flex items-center gap-1.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-          <div className="flex items-baseline gap-1">
-            <span className="text-[8px] uppercase text-slate-400 font-black tracking-widest leading-none">Andamento</span>
-            <span className="text-[11px] font-black text-slate-700 leading-none">{summary.em_andamento}</span>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-sm" />
+            <span className="text-[10px] uppercase text-slate-400 font-bold tracking-[0.05em]">Andamento</span>
           </div>
+          <span className="text-[13px] font-black text-slate-800 leading-none ml-3 tracking-tight">{summary.em_andamento}</span>
         </div>
 
-        <div className="flex items-center gap-1.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-          <div className="flex items-baseline gap-1">
-            <span className="text-[8px] uppercase text-slate-400 font-black tracking-widest leading-none">Aguardando</span>
-            <span className="text-[11px] font-black text-slate-700 leading-none">{summary.aguardando_cliente}</span>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-sm" />
+            <span className="text-[10px] uppercase text-slate-400 font-bold tracking-[0.05em]">Aguardando</span>
           </div>
+          <span className="text-[13px] font-black text-slate-800 leading-none ml-3 tracking-tight">{summary.aguardando_cliente}</span>
         </div>
 
-        <div className="flex items-center gap-1.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-          <div className="flex items-baseline gap-1">
-            <span className="text-[8px] uppercase text-slate-400 font-black tracking-widest leading-none">Resolvidos</span>
-            <span className="text-[11px] font-black text-slate-700 leading-none">{summary.resolvido}</span>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-sm" />
+            <span className="text-[10px] uppercase text-slate-400 font-bold tracking-[0.05em]">Resolvidos</span>
           </div>
+          <span className="text-[13px] font-black text-slate-800 leading-none ml-3 tracking-tight">{summary.resolvido}</span>
         </div>
       </div>
     </div>

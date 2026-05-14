@@ -290,38 +290,38 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
         {/* Coluna Principal */}
         <div className="lg:col-span-9 flex flex-col gap-4 min-h-0 overflow-hidden">
           {/* Barra Operacional */}
-          <div className="shrink-0 bg-white border border-slate-200 rounded-xl shadow-sm p-3.5 flex flex-wrap items-center gap-5">
+          <div className="shrink-0 bg-white border border-slate-200/60 rounded-2xl shadow-sm p-4 px-6 flex flex-wrap items-center gap-6">
              {/* Status */}
-             <div className="flex flex-col gap-1.5 min-w-[120px]">
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 leading-none">Status</span>
+             <div className="flex flex-col gap-1.5 min-w-[130px]">
+                <span className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 leading-none">Situação Atual</span>
                 {!!(currentUser.administrador || currentUser.desenvolvedor) ? (
                   <Select 
                     size="sm"
                     value={ticket.status || 'aberto'}
                     onChange={(value) => handleUpdateTicket({ status: value as any })}
-                    className="h-8.5 text-[11px]"
+                    className="h-9 text-[11px] font-bold rounded-lg border-slate-200/60 transition-all focus:border-blue-300"
                     options={[
                       { value: 'aberto', label: 'ABERTO' },
-                      { value: 'em_andamento', label: 'ANDAMENTO' },
-                      { value: 'aguardando_cliente', label: 'AGUARDE' },
+                      { value: 'em_andamento', label: 'EM ANDAMENTO' },
+                      { value: 'aguardando_cliente', label: 'AGUARDANDO CLIENTE' },
                       { value: 'resolvido', label: 'RESOLVIDO' },
                       { value: 'fechado', label: 'FECHADO' }
                     ]}
                   />
                 ) : (
-                  <Badge variant="blue" className="uppercase text-[8px] font-bold h-6 w-fit">{(ticket.status || 'aberto').replace('_', ' ')}</Badge>
+                  <Badge variant="blue" className="uppercase text-[9px] font-black h-7 px-3 tracking-widest">{(ticket.status || 'aberto').replace('_', ' ')}</Badge>
                 )}
              </div>
 
              {/* Prioridade */}
-             <div className="flex flex-col gap-1.5 min-w-[100px] border-l border-slate-100 pl-4">
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 leading-none">Prioridade</span>
+             <div className="flex flex-col gap-1.5 min-w-[110px] border-l border-slate-100/60 pl-6">
+                <span className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 leading-none">Prioridade</span>
                 {!!(currentUser.administrador || currentUser.desenvolvedor) ? (
                   <Select 
                     size="sm"
                     value={ticket.prioridade || 'media'}
                     onChange={(value) => handleUpdateTicket({ prioridade: value as any })}
-                    className="h-8.5 text-[11px]"
+                    className="h-9 text-[11px] font-bold rounded-lg border-slate-200/60 transition-all focus:border-blue-300"
                     options={[
                       { value: 'baixa', label: 'BAIXA' },
                       { value: 'media', label: 'MÉDIA' },
@@ -330,21 +330,21 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                     ]}
                   />
                 ) : (
-                  <Badge variant="indigo" className="uppercase text-[8px] font-bold h-6 w-fit">{ticket.prioridade || 'media'}</Badge>
+                  <Badge variant="indigo" className="uppercase text-[9px] font-black h-7 px-3 tracking-widest">{ticket.prioridade || 'media'}</Badge>
                 )}
              </div>
 
              {/* Responsável */}
              {!!(currentUser.administrador || currentUser.desenvolvedor) && (
-               <div className="flex flex-col gap-1.5 min-w-[150px] border-l border-slate-100 pl-4">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 leading-none">Responsável</span>
+               <div className="flex flex-col gap-1.5 min-w-[180px] border-l border-slate-100/60 pl-6">
+                  <span className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 leading-none">Atendente Responsável</span>
                   <Select 
                     size="sm"
                     value={ticket.responsavel_id || ''}
                     onChange={(value) => handleUpdateTicket({ responsavel_id: value ? parseInt(value) : null })}
-                    className="h-8.5 text-[11px]"
+                    className="h-9 text-[11px] font-bold rounded-lg border-slate-200/60 transition-all focus:border-blue-300"
                     options={[
-                      { value: '', label: 'SEM RESPONSÁVEL' },
+                      { value: '', label: 'NENHUM ATRIBUÍDO' },
                       ...agents.map(agent => ({
                         value: String(agent.id),
                         label: (agent.nome || 'USUÁRIO').toUpperCase()
@@ -355,13 +355,13 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
              )}
 
              {/* SLA */}
-             <div className="flex flex-col gap-1.5 border-l border-slate-100 pl-4 ml-auto text-right">
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 leading-none">Vencimento SLA</span>
+             <div className="flex flex-col gap-1.5 border-l border-slate-100/60 pl-6 ml-auto text-right">
+                <span className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 leading-none">Vencimento do Prazo</span>
                 <div className={cn(
-                  "h-8 px-3 rounded-lg flex items-center gap-2 text-[10px] font-black uppercase tracking-tight border",
+                  "h-9 px-4 rounded-xl flex items-center gap-2.5 text-[10px] font-black uppercase tracking-widest border transition-all shadow-sm",
                   getSlaInfo(ticket.prazo_sla, ticket.status).color
                 )}>
-                  <Clock size={12} />
+                  <Clock size={13} className="opacity-70" />
                   {getSlaInfo(ticket.prazo_sla, ticket.status).compactText || getSlaInfo(ticket.prazo_sla, ticket.status).label}
                 </div>
              </div>
