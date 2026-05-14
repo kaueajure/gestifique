@@ -18,17 +18,27 @@ import { TicketTags } from '../TicketTags';
 import { TicketCustomFields } from './TicketCustomFields';
 import { useTicketOptions } from '../../../hooks/useTicketOptions';
 
-const FieldRow = ({ label, children }: { label: string, children: React.ReactNode }) => (
-  <div className="flex items-center justify-between gap-2 min-h-7">
-    <span className="text-[11px] text-slate-500 shrink-0">{label}</span>
-    <div className="min-w-0">{children}</div>
+const EditableField = ({ label, children, readOnly, displayValue }: { label: string, children: React.ReactNode, readOnly?: boolean, displayValue?: string }) => (
+  <div className="space-y-1">
+    <label className="text-[10px] font-medium text-slate-500">{label}</label>
+    {readOnly ? (
+      <div className="h-7 flex items-center px-2 rounded-md bg-slate-50 border border-slate-100 text-[11px] font-semibold text-slate-800 truncate">
+        {displayValue}
+      </div>
+    ) : (
+      <div className="w-full">
+        {children}
+      </div>
+    )}
   </div>
 );
 
-const InfoItem = ({ label, value }: { label: string, value: React.ReactNode }) => (
-  <div className="min-w-0">
-    <div className="text-[10px] text-slate-400 leading-tight mb-0.5">{label}</div>
-    <div className="text-[11px] font-semibold text-slate-800 truncate leading-tight">{value}</div>
+const InfoBox = ({ label, value, highlight }: { label: string, value: React.ReactNode, highlight?: boolean }) => (
+  <div className="min-w-0 bg-slate-50 border border-slate-100 rounded-md py-1.5 px-2">
+    <div className="text-[9px] font-medium text-slate-400 uppercase tracking-wide mb-0.5">{label}</div>
+    <div className={cn("text-[11px] font-semibold truncate leading-tight", highlight ? "text-red-600" : "text-slate-800")}>
+      {value}
+    </div>
   </div>
 );
 
@@ -128,154 +138,142 @@ export const TicketProperties = ({
         
         {/* Cliente */}
         <Section title="Cliente">
-          <div className="flex flex-col gap-0.5">
-            <div className="font-semibold text-slate-900 text-[11px]">{clienteNome}</div>
-            <div className="text-slate-500 text-[11px]">{ticket.cliente_email || 'n/a'}</div>
+          <div className="space-y-0.5">
+            <div className="text-[11px] font-semibold text-slate-900 truncate">{clienteNome}</div>
+            <div className="text-[11px] text-slate-500 truncate">{ticket.cliente_email || 'n/a'}</div>
             {empresaNome !== 'Não vinculada' && (
-              <div className="text-slate-600 mt-1 flex items-center gap-1.5 align-middle text-[11px]">
-                <Building2 size={12} className="text-slate-400" />
-                 {empresaNome}
+              <div className="text-[11px] text-slate-500 truncate flex items-center gap-1 mt-0.5">
+                <Building2 size={11} className="text-slate-400" /> {empresaNome}
               </div>
             )}
           </div>
         </Section>
 
+        {/* Resumo Rápido */}
+        <Section title="Resumo rápido">
+          <div className="grid grid-cols-2 gap-2">
+            <InfoBox label="ID" value={`#${ticket.id}`} />
+            <InfoBox label="Anexos" value={attachments.length} />
+            <InfoBox label="Criado" value={formatDate(ticket.created_at)} />
+            <InfoBox 
+              label="SLA" 
+              value={ticket.prazo_sla ? `[${getSlaInfo(ticket.prazo_sla, ticket.status).label}]` : 'Sem SLA'} 
+              highlight={ticket.prazo_sla ? getSlaInfo(ticket.prazo_sla, ticket.status).label.includes('Vencid') : false} 
+            />
+          </div>
+        </Section>
+
         {/* Atendimento */}
         <Section title="Atendimento">
-          <div className="flex flex-col gap-0.5 text-[11px]">
-            <FieldRow label="Status">
-               {canManage ? (
-                 <Select 
-                   value={ticket.status || 'aberto'}
-                   onChange={(value) => onUpdate({ status: value as any })}
-                   options={[
-                     { value: 'aberto', label: 'Aberto' },
-                     { value: 'em_andamento', label: 'Em andamento' },
-                     { value: 'aguardando_cliente', label: 'Aguard. cliente' },
-                     { value: 'resolvido', label: 'Resolvido' },
-                     { value: 'fechado', label: 'Fechado' }
-                   ]}
-                   size="sm"
-                   buttonClassName="w-[132px] h-7 text-[11px] min-h-0"
-                 />
-               ) : (
-                 <span className="font-medium text-slate-900 capitalize truncate">{ticket.status?.replace('_', ' ')}</span>
-               )}
-            </FieldRow>
+          <div className="grid grid-cols-2 gap-2 text-[11px]">
+            <EditableField 
+              label="Status" 
+              readOnly={!canManage} 
+               displayValue={ticket.status?.replace('_', ' ')}
+            >
+               <Select 
+                 value={ticket.status || 'aberto'}
+                 onChange={(value) => onUpdate({ status: value as any })}
+                 options={[
+                   { value: 'aberto', label: 'Aberto' },
+                   { value: 'em_andamento', label: 'Em andamento' },
+                   { value: 'aguardando_cliente', label: 'Aguard. cliente' },
+                   { value: 'resolvido', label: 'Resolvido' },
+                   { value: 'fechado', label: 'Fechado' }
+                 ]}
+                 size="sm"
+                 buttonClassName="w-full h-7 text-[11px] min-h-0"
+               />
+            </EditableField>
             
-            <FieldRow label="Prioridade">
-               {canManage ? (
-                 <Select 
-                   value={ticket.prioridade || 'media'}
-                   onChange={(value) => onUpdate({ prioridade: value as any })}
-                   options={[
-                     { value: 'baixa', label: 'Baixa' },
-                     { value: 'media', label: 'Média' },
-                     { value: 'alta', label: 'Alta' },
-                     { value: 'urgente', label: 'Urgente' }
-                   ]}
-                   size="sm"
-                   buttonClassName="w-[132px] h-7 text-[11px] min-h-0"
-                 />
-               ) : (
-                 <span className="font-medium text-slate-900 capitalize truncate">{ticket.prioridade}</span>
-               )}
-            </FieldRow>
+            <EditableField 
+              label="Prioridade" 
+              readOnly={!canManage} 
+              displayValue={ticket.prioridade}
+            >
+               <Select 
+                 value={ticket.prioridade || 'media'}
+                 onChange={(value) => onUpdate({ prioridade: value as any })}
+                 options={[
+                   { value: 'baixa', label: 'Baixa' },
+                   { value: 'media', label: 'Média' },
+                   { value: 'alta', label: 'Alta' },
+                   { value: 'urgente', label: 'Urgente' }
+                 ]}
+                 size="sm"
+                 buttonClassName="w-full h-7 text-[11px] min-h-0"
+               />
+            </EditableField>
 
-            <FieldRow label="Responsável">
-               {canManage ? (
-                 <Select 
-                   value={ticket.responsavel_id ? String(ticket.responsavel_id) : ''}
-                   onChange={(value) => onUpdate({ responsavel_id: value ? Number(value) : null })}
-                   options={[
-                     { value: '', label: 'Nenhum' },
-                     ...agents.map(a => ({ value: String(a.id), label: a.nome }))
-                   ]}
-                   size="sm"
-                   buttonClassName="w-[132px] h-7 text-[11px] min-h-0"
-                 />
-               ) : (
-                 <span className="font-medium text-slate-900 truncate">{agents.find(a => a.id === ticket.responsavel_id)?.nome || 'Nenhum'}</span>
-               )}
-            </FieldRow>
+            <EditableField 
+              label="Responsável" 
+               readOnly={!canManage} 
+               displayValue={agents.find(a => a.id === ticket.responsavel_id)?.nome || 'Nenhum'}
+            >
+               <Select 
+                 value={ticket.responsavel_id ? String(ticket.responsavel_id) : ''}
+                 onChange={(value) => onUpdate({ responsavel_id: value ? Number(value) : null })}
+                 options={[
+                   { value: '', label: 'Nenhum' },
+                   ...agents.map(a => ({ value: String(a.id), label: a.nome }))
+                 ]}
+                 size="sm"
+                 buttonClassName="w-full h-7 text-[11px] min-h-0"
+               />
+            </EditableField>
 
-            <FieldRow label="Categoria">
-               {canManage ? (
+            <EditableField 
+              label="Origem" 
+              readOnly={!canManage} 
+              displayValue={origemLabel}
+            >
+               <Select 
+                 value={ticket.origem || 'portal'}
+                 onChange={(value) => onUpdate({ origem: value })}
+                 options={[
+                   { value: 'portal', label: 'Portal' },
+                   { value: 'email', label: 'E-mail' },
+                   { value: 'whatsapp', label: 'WhatsApp' },
+                   { value: 'chat', label: 'Chat' },
+                   { value: 'manual', label: 'Manual' },
+                   { value: 'outros', label: 'Outros' }
+                 ]}
+                 size="sm"
+                 buttonClassName="w-full h-7 text-[11px] min-h-0"
+               />
+            </EditableField>
+
+            <div className="col-span-2">
+              <EditableField 
+                 label="Categoria" 
+                 readOnly={!canManage} 
+                 displayValue={categoryLabel}
+              >
                  <Select 
                    value={ticket.categoria || categoryOptions[0]?.value || ''}
                    onChange={(value) => onUpdate({ categoria: value })}
                    options={categoryOptions}
                    size="sm"
-                   buttonClassName="w-[132px] h-7 text-[11px] min-h-0"
+                   buttonClassName="w-full h-7 text-[11px] min-h-0"
                  />
-               ) : (
-                 <span className="font-medium text-slate-900 capitalize truncate">{categoryLabel}</span>
-               )}
-            </FieldRow>
+              </EditableField>
+            </div>
 
-            <FieldRow label="Serviço">
-               {canManage ? (
+            <div className="col-span-2">
+              <EditableField 
+                 label="Serviço" 
+                 readOnly={!canManage} 
+                 displayValue={serviceLabel}
+              >
                  <Select 
                    value={ticket.servico || serviceOptions[0]?.value || ''}
                    onChange={(value) => onUpdate({ servico: value })}
                    options={serviceOptions}
                    size="sm"
-                   buttonClassName="w-[132px] h-7 text-[11px] min-h-0"
+                   buttonClassName="w-full h-7 text-[11px] min-h-0"
                  />
-               ) : (
-                 <span className="font-medium text-slate-900 capitalize truncate">{serviceLabel}</span>
-               )}
-            </FieldRow>
-
-            <FieldRow label="Origem">
-               {canManage ? (
-                 <Select 
-                   value={ticket.origem || 'portal'}
-                   onChange={(value) => onUpdate({ origem: value })}
-                   options={[
-                     { value: 'portal', label: 'Portal' },
-                     { value: 'email', label: 'E-mail' },
-                     { value: 'whatsapp', label: 'WhatsApp' },
-                     { value: 'chat', label: 'Chat' },
-                     { value: 'manual', label: 'Manual' },
-                     { value: 'outros', label: 'Outros' }
-                   ]}
-                   size="sm"
-                   buttonClassName="w-[132px] h-7 text-[11px] min-h-0"
-                 />
-               ) : (
-                 <span className="font-medium text-slate-900 truncate">{origemLabel}</span>
-               )}
-            </FieldRow>
-          </div>
-        </Section>
-
-        {/* SLA */}
-        <Section title="SLA">
-          {ticket.prazo_sla ? (
-             <div className="text-[11px] flex gap-1 items-center">
-               <span className={cn(
-                 "font-semibold",
-                 getSlaInfo(ticket.prazo_sla, ticket.status).color.replace('bg-', 'text-').replace('text-white', 'text-slate-900')
-               )}>
-                 [{getSlaInfo(ticket.prazo_sla, ticket.status).label}]
-               </span>
-               <span className="text-slate-500">
-                 {formatDate(ticket.prazo_sla)}
-               </span>
-             </div>
-          ) : (
-             <span className="text-slate-500 text-[11px] italic">Sem SLA definido</span>
-          )}
-        </Section>
-
-        {/* Resumo */}
-        <Section title="Resumo">
-          <div className="grid grid-cols-2 gap-y-2 gap-x-2">
-            <InfoItem label="ID" value={`#${ticket.id}`} />
-            <InfoItem label="Anexos" value={attachments.length} />
-            <InfoItem label="Criado" value={formatDate(ticket.created_at)} />
-            <InfoItem label="Atualizado" value={formatRelativeTime(ticket.updated_at)} />
+              </EditableField>
+            </div>
           </div>
         </Section>
 
