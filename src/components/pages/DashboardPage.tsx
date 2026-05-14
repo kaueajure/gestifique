@@ -10,26 +10,13 @@ import {
   ChevronRight,
   User as UserIcon,
   Plus,
-  Building
+  Building,
+  Clock
 } from 'lucide-react';
 import { PageHeader, SectionTitle } from '../ui/PageHeader';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
-import { 
-  ResponsiveContainer, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  Cell
-} from 'recharts';
-
-type ChartDataItem = {
-  name: string;
-  value: number;
-};
+import { Card, CardContent, CardHeader } from '../ui/Card';
 
 interface DashboardPageProps {
   onNavigate?: (tab: 'dashboard' | 'tickets' | 'users' | 'companies' | 'logs' | 'profile' | 'settings') => void;
@@ -76,13 +63,6 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
     mainMetrics.push({ label: 'Total Usuários', value: totalUsuarios, icon: <UserIcon size={18} />, color: 'blue' as const });
   }
 
-  const statusData: ChartDataItem[] = stats?.byStatus?.map((s) => ({
-    name: s.status.replace('_', ' ').toUpperCase(),
-    value: s.qtd
-  })) || [];
-
-  const COLORS = ['#1d4ed8', '#4f46e5', '#d97706', '#059669', '#475569'];
-
   if (error) {
     return (
       <Card className="border-red-100 bg-red-50/30">
@@ -110,12 +90,11 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard label="Ativos" value={chamadosAtivos} icon={<TicketIcon size={18} />} color="blue" loading={loading} />
         <MetricCard label="SLA vencido" value={slaAtrasados} icon={<AlertCircle size={18} />} color="red" loading={loading} />
-        <MetricCard label="Aguardando" value={stats?.queues?.aguardando_cliente || 0} icon={<Clock size={18} />} color="amber" loading={loading} />
         <MetricCard label="Resolvidos (Mês)" value={resolvidosMes} icon={<CheckCircle2 size={18} />} color="emerald" loading={loading} />
       </div>
 
       {/* Atenção agora */}
-      {(slaAtrasados > 0 || (stats?.queues?.sem_responsavel || 0) > 0 || (stats?.queues?.aguardando_cliente || 0) > 0) && (
+      {(slaAtrasados > 0 || chamadosAtivos > 0) && (
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
           <h2 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
             <AlertCircle size={18} className="text-red-500" />
@@ -133,25 +112,14 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
                 </div>
               </div>
             )}
-            {(stats?.queues?.sem_responsavel || 0) > 0 && (
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-50 border border-amber-100/50">
-                <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600 font-bold text-lg">
-                  {stats?.queues?.sem_responsavel}
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-amber-700 uppercase tracking-tight">Sem Responsável</div>
-                  <div className="text-[11px] text-amber-600/70 font-medium">Aguardando atribuição</div>
-                </div>
-              </div>
-            )}
-            {(stats?.queues?.aguardando_cliente || 0) > 0 && (
+            {chamadosAtivos > 0 && (
               <div className="flex items-center gap-3 p-3 rounded-xl bg-blue-50 border border-blue-100/50">
                 <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-lg">
-                  {stats?.queues?.aguardando_cliente}
+                  {chamadosAtivos}
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-blue-700 uppercase tracking-tight">Aguardando Cliente</div>
-                  <div className="text-[11px] text-blue-600/70 font-medium">Pendente de retorno</div>
+                  <div className="text-xs font-bold text-blue-700 uppercase tracking-tight">Atendimentos Ativos</div>
+                  <div className="text-[11px] text-blue-600/70 font-medium">Precisam de acompanhamento</div>
                 </div>
               </div>
             )}

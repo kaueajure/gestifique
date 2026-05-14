@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { Ticket, Message, User, TicketAttachment, TicketTimelineItem, TicketStatus } from '../../types';
-import { AlertCircle, Loader2, MessageSquare, History, CheckCircle2, Clock } from 'lucide-react';
+import { AlertCircle, Loader2, MessageSquare, History, CheckCircle2, Clock, ChevronLeft, User as UserIcon } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
-import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
-import { TicketHeader } from '../tickets/details/TicketHeader';
+import { Card } from '../ui/Card';
 import { TicketProperties } from '../tickets/details/TicketProperties';
 import { TicketConversation } from '../tickets/details/TicketConversation';
 import { TicketTimeline } from '../tickets/details/TicketTimeline';
@@ -276,88 +275,63 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
   return (
     <div className="h-full flex flex-col gap-6 min-h-0 overflow-hidden">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={onBack} className="h-10 w-10 p-0 rounded-xl bg-white border border-slate-200 text-slate-500 shadow-sm">
+      <div className="flex flex-col gap-4">
+        <div className="flex items-start gap-4">
+          <Button variant="outline" size="sm" onClick={onBack} className="h-9 w-9 p-0 rounded-xl bg-white border-slate-200 text-slate-500 shadow-sm shrink-0">
             <ChevronLeft size={20} />
           </Button>
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <span className="text-sm font-bold text-blue-600">#{ticket.id}</span>
-              <Badge variant={ticket.prioridade === 'urgente' ? 'red' : 'slate'} className="text-[10px] font-bold px-2 py-0.5 uppercase tracking-tight">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+              <span className="text-sm font-semibold text-slate-500">#{ticket.id}</span>
+              <Badge variant={ticket.prioridade === 'urgente' ? 'red' : 'slate'} className="text-xs px-2 py-0">
                 {ticket.prioridade}
               </Badge>
+              <div className="w-1 h-1 rounded-full bg-slate-300" />
+              <div className="flex items-center gap-1.5">
+                <div className={cn(
+                  "w-2 h-2 rounded-full",
+                  ticket.status === 'aberto' ? "bg-blue-500" :
+                  ticket.status === 'em_andamento' ? "bg-indigo-500" :
+                  ticket.status === 'aguardando_cliente' ? "bg-amber-500" :
+                  ticket.status === 'resolvido' ? "bg-emerald-500" : "bg-slate-500"
+                )} />
+                <span className="text-sm font-medium text-slate-600 capitalize">{ticket.status?.replace('_', ' ')}</span>
+              </div>
+              <div className="w-1 h-1 rounded-full bg-slate-300" />
+               <span className={cn(
+                  "text-sm font-medium",
+                  getSlaInfo(ticket.prazo_sla, ticket.status).color.replace('bg-', 'text-').replace('text-white', 'text-slate-900')
+                )}>
+                  SLA: {getSlaInfo(ticket.prazo_sla, ticket.status).compactText || getSlaInfo(ticket.prazo_sla, ticket.status).label}
+                </span>
             </div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight leading-tight">{ticket.titulo}</h1>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight leading-tight">{ticket.titulo}</h1>
           </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          {ticket.status === 'resolvido' || ticket.status === 'fechado' ? (
-            <Button 
-              onClick={() => handleUpdateTicket({ status: 'aberto' })}
-              variant="outline"
-              className="h-10 px-4 rounded-xl border-slate-200 font-bold text-xs uppercase"
-            >
-              Reabrir Chamado
-            </Button>
-          ) : (
-            <Button 
-              onClick={() => handleUpdateTicket({ status: 'resolvido' })}
-              className="h-10 px-6 rounded-xl bg-blue-600 text-white font-bold text-xs uppercase shadow-lg shadow-blue-100"
-            >
-              Finalizar Atendimento
-            </Button>
-          )}
+          <div className="flex items-center gap-3 shrink-0">
+            {ticket.status === 'resolvido' || ticket.status === 'fechado' ? (
+              <Button 
+                onClick={() => handleUpdateTicket({ status: 'aberto' })}
+                variant="outline"
+                className="font-semibold"
+              >
+                Reabrir Atendimento
+              </Button>
+            ) : (
+              <Button 
+                onClick={() => handleUpdateTicket({ status: 'resolvido' })}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-sm"
+              >
+                Finalizar Atendimento
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-0 overflow-hidden">
         {/* Coluna Principal */}
         <div className="lg:col-span-8 flex flex-col gap-6 min-h-0 overflow-hidden">
-          {/* Barra Operacional */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 flex items-center justify-between shadow-sm">
-            <div className="flex items-center gap-10">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Status</label>
-                <div className="flex items-center gap-2">
-                  <div className={cn(
-                    "w-2.5 h-2.5 rounded-full",
-                    ticket.status === 'aberto' ? "bg-blue-500" :
-                    ticket.status === 'em_andamento' ? "bg-indigo-500" :
-                    ticket.status === 'aguardando_cliente' ? "bg-amber-500" :
-                    ticket.status === 'resolvido' ? "bg-emerald-500" : "bg-slate-500"
-                  )} />
-                  <span className="text-sm font-bold text-slate-700 capitalize">{ticket.status?.replace('_', ' ')}</span>
-                </div>
-              </div>
-
-              <div className="w-px h-8 bg-slate-100" />
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Responsável</label>
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500">
-                    <UserIcon size={14} />
-                  </div>
-                  <span className="text-sm font-bold text-slate-700">
-                    {agents.find(a => a.id === ticket.responsavel_id)?.nome || 'Sem responsável'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col items-end gap-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">SLA de Resolução</label>
-              <div className={cn(
-                "text-sm font-black uppercase tracking-tighter",
-                getSlaInfo(ticket.prazo_sla, ticket.status).color.replace('bg-', 'text-').replace('text-white', 'text-slate-900')
-              )}>
-                {getSlaInfo(ticket.prazo_sla, ticket.status).compactText || getSlaInfo(ticket.prazo_sla, ticket.status).label}
-              </div>
-            </div>
-          </div>
-
           {/* Conversa */}
           <Card className="flex flex-col flex-1 min-h-0 border-slate-200/60 shadow-sm overflow-hidden rounded-2xl bg-white">
             <div className="bg-slate-50/20 px-8 border-b border-slate-100 flex items-center justify-between shrink-0">

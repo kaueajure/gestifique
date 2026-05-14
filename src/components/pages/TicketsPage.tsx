@@ -17,10 +17,10 @@ import {
   MessageSquare,
   Filter,
   Search,
-  Download
+  Download,
+  ChevronDown
 } from 'lucide-react';
 import { Button } from '../ui/Button';
-import { TicketFilters } from '../tickets/TicketFilters';
 import { TicketSummaryCards } from '../tickets/TicketSummaryCards';
 import { TicketList } from '../tickets/TicketList';
 import { TicketKanban } from '../tickets/TicketKanban';
@@ -639,85 +639,95 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                 </button>
               );
             })}
-          </div>
-
-          <div className="relative z-[200] overflow-visible bg-white rounded-xl border border-slate-200 shadow-sm">
-            <div className="flex flex-col xl:flex-row xl:items-center gap-2 p-2 group">
-              <div className="flex flex-wrap items-center gap-2">
-                <TicketSavedViews 
-                  views={savedViews}
-                  currentViewId={currentViewId}
-                  onSelectView={handleSelectView}
-                  onSaveCurrent={handleSaveView}
-                  onDeleteView={handleDeleteView}
-                />
-                
-                <div className="hidden xl:block w-px h-5 bg-slate-100" />
-                
-                <TicketFilters 
-                  searchTerm={searchTerm} setSearchTerm={setSearchTerm}
-                  statusFilter={statusFilter} setStatusFilter={setStatusFilter}
-                  priorityFilter={priorityFilter} setPriorityFilter={setPriorityFilter}
-                  categoryFilter={categoryFilter} setCategoryFilter={setCategoryFilter}
-                  showAdvanced={showAdvanced}
-                  onToggleAdvanced={() => setShowAdvanced(!showAdvanced)}
-                  hasAdvancedFilters={hasAdvancedFilters}
-                />
+            
+            <div className="relative group/more ml-auto sm:ml-0">
+              <button
+                className={cn(
+                  "relative flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-all whitespace-nowrap",
+                  MORE_QUEUES.some(q => q.id === selectedQueue)
+                    ? "text-blue-600"
+                    : "text-slate-400 hover:text-slate-600"
+                )}
+              >
+                <span>Mais</span>
+                <ChevronDown size={14} />
+                {MORE_QUEUES.some(q => q.id === selectedQueue) && (
+                  <motion.div 
+                    layoutId="activeQueue"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
+                  />
+                )}
+              </button>
+              
+              <div className="absolute top-full right-0 lg:left-0 lg:right-auto mt-1 w-48 bg-white rounded-xl shadow-xl border border-slate-200 p-2 opacity-0 invisible group-hover/more:opacity-100 group-hover/more:visible transition-all z-50">
+                {MORE_QUEUES.map((q) => {
+                  const isActive = selectedQueue === q.id;
+                  const count = queueCounts?.[q.id] || 0;
+                  return (
+                    <button
+                      key={q.id}
+                      onClick={() => setSelectedQueue(q.id)}
+                      className={cn(
+                        "w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg transition-colors",
+                        isActive ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50"
+                      )}
+                    >
+                      <span>{q.label}</span>
+                      {count > 0 && (
+                        <span className={cn(
+                          "px-2 py-0.5 rounded-full text-[10px] font-bold tracking-tight",
+                          isActive ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500"
+                        )}>
+                          {count > 99 ? '99+' : count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-            
-            <TicketAdvancedFilters 
-              filters={advancedFilters}
-              onFilterChange={setAdvancedFilters}
-              status={statusFilter}
-              onStatusChange={setStatusFilter}
-              priority={priorityFilter}
-              onPriorityChange={setPriorityFilter}
-              category={categoryFilter}
-              onCategoryChange={setCategoryFilter}
-              onClear={() => {
-                setAdvancedFilters({ sla_status: 'todos' });
-                setStatusFilter('todos');
-                setPriorityFilter('todas');
-                setCategoryFilter('todas');
-              }}
-              agents={agents}
-              isOpen={showAdvanced}
-              onClose={() => setShowAdvanced(false)}
-            />
-
-            {/* Active Filter Chips */}
-            <AnimatePresence>
-              {hasAnyFilters && (
-                <motion.div 
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="px-2 pb-2 pt-1 border-t border-slate-50 flex flex-wrap items-center gap-1.5"
-                >
-                  {getActiveFilterChips().map((chip) => {
-                    const props = {
-                      label: chip.label,
-                      value: chip.value,
-                      onRemove: () => removeFilter(chip.id)
-                    };
-                    return (
-                      <FilterChip 
-                        key={chip.id}
-                        {...props}
-                      />
-                    );
-                  })}
-                  <button 
-                    onClick={clearFilters}
-                    className="text-[9px] font-bold text-red-500 hover:text-red-600 px-1.5 py-1 rounded hover:bg-red-50 transition-colors uppercase tracking-tight"
-                  >
-                    Limpar tudo
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
+
+          <TicketFilterDrawer
+            isOpen={showAdvanced}
+            onClose={() => setShowAdvanced(false)}
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
+            priorityFilter={priorityFilter}
+            setPriorityFilter={setPriorityFilter}
+            categoryFilter={categoryFilter}
+            setCategoryFilter={setCategoryFilter}
+            filters={advancedFilters}
+            onFilterChange={setAdvancedFilters}
+            onClear={clearFilters}
+            agents={agents}
+          />
+
+          <AnimatePresence>
+            {hasAnyFilters && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="flex flex-wrap items-center gap-2 pt-1"
+              >
+                {getActiveFilterChips().map((chip) => (
+                  <FilterChip 
+                    key={chip.id}
+                    label={chip.label}
+                    value={chip.value}
+                    onRemove={() => removeFilter(chip.id)}
+                  />
+                ))}
+                <button 
+                  onClick={clearFilters}
+                  className="text-xs font-semibold text-red-500 hover:text-red-700 px-2 py-1 rounded-md hover:bg-red-50 transition-colors"
+                >
+                  Limpar todos
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {viewMode === 'list' && ticketsResponse && <TicketSummaryCards summary={ticketsResponse.summary} />}
           {viewMode === 'kanban' && kanbanResponse && <TicketSummaryCards summary={kanbanResponse.totals} />}
