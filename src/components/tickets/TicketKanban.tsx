@@ -337,11 +337,17 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                                 )}
                                 <div className="flex items-center justify-between gap-2">
                                   <div className="flex items-center gap-1.5 min-w-0">
+                                    {ticket.nao_lido && (
+                                      <div className="w-1.5 h-1.5 rounded-full bg-blue-600 ring-4 ring-blue-50 animate-pulse shrink-0" title="Mensagem não lida" />
+                                    )}
                                     <span className="text-[9px] font-black text-blue-600 tracking-tighter shrink-0 bg-blue-50/50 px-1 rounded border border-blue-100/30">
                                       #{ticket.id}
                                     </span>
                                     {isAbertoESemResp && (
-                                      <span className="text-[8px] font-black text-amber-600 uppercase tracking-tighter px-1 bg-amber-50 rounded border border-amber-100/50">Novo</span>
+                                      <span className="text-[8px] font-black text-amber-600 uppercase tracking-tighter px-1 bg-amber-50 rounded border border-amber-100/50">Novo Chamado</span>
+                                    )}
+                                    {ticket.estado_atendimento === 'cliente_respondeu' && (
+                                      <span className="text-[8px] font-black text-emerald-600 uppercase tracking-tighter px-1 bg-emerald-50 rounded border border-emerald-100/50">Nova Resposta</span>
                                     )}
                                     {ticket.origem === 'email' && (
                                       <span className="text-slate-400" title="Origem: E-mail">

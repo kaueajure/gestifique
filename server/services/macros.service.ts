@@ -35,19 +35,48 @@ class MacrosService {
   }
 
   async update(id: number, empresaId: number, data: any) {
-    const { titulo, conteudo, categoria, ativo } = data;
+    const fields: string[] = [];
+    const params: any[] = [];
+
+    if (data.titulo !== undefined) {
+      fields.push('titulo = ?');
+      params.push(data.titulo);
+    }
+    if (data.conteudo !== undefined) {
+      fields.push('conteudo = ?');
+      params.push(data.conteudo);
+    }
+    if (data.categoria !== undefined) {
+      fields.push('categoria = ?');
+      params.push(data.categoria || null);
+    }
+    if (data.ativo !== undefined) {
+      fields.push('ativo = ?');
+      params.push(data.ativo ? 1 : 0);
+    }
+
+    if (fields.length === 0) return true;
+
+    params.push(id, empresaId);
     await pool.query(
-      'UPDATE ticket_macros SET titulo = ?, conteudo = ?, categoria = ?, ativo = ? WHERE id = ? AND empresa_id = ?',
-      [titulo, conteudo, categoria || null, ativo ? 1 : 0, id, empresaId]
+      `UPDATE ticket_macros SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND empresa_id = ?`,
+      params
     );
     return true;
   }
 
-  async delete(id: number, empresaId: number) {
-    await pool.query(
-      'DELETE FROM ticket_macros WHERE id = ? AND empresa_id = ?',
-      [id, empresaId]
-    );
+  async delete(id: number, empresaId: number, softDelete = true) {
+    if (softDelete) {
+      await pool.query(
+        'UPDATE ticket_macros SET ativo = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND empresa_id = ?',
+        [id, empresaId]
+      );
+    } else {
+      await pool.query(
+        'DELETE FROM ticket_macros WHERE id = ? AND empresa_id = ?',
+        [id, empresaId]
+      );
+    }
     return true;
   }
 }

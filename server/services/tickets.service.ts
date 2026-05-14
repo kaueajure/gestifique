@@ -266,6 +266,31 @@ class TicketsService {
     const safePage = toPositiveInt(page) ?? 1;
     const safeLimit = toPositiveInt(limit) ?? 20;
     const offset = (safePage - 1) * safeLimit;
+
+    // Prioridade operacional: 
+    // 1. Precisa resposta
+    // 2. SLA vencido
+    // 3. Vence breve
+    // 4. Urgente
+    // 5. Sem responsável
+    const orderBy = `
+      (CASE WHEN t.status NOT IN ('resolvido', 'fechado') AND (
+        NOT EXISTS (SELECT 1 FROM ticket_mensagens m_pr WHERE m_pr.ticket_id = t.id AND m_pr.interno = 0)
+        OR EXISTS (
+          SELECT 1 FROM ticket_mensagens m_pr 
+          WHERE m_pr.ticket_id = t.id AND m_pr.interno = 0 
+          AND m_pr.usuario_id = t.usuario_id
+          AND m_pr.id = (SELECT MAX(id) FROM ticket_mensagens WHERE ticket_id = t.id AND interno = 0)
+        )
+      ) THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.prazo_sla < NOW() AND t.status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.prioridade = 'urgente' THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.prioridade = 'alta' THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.responsavel_id IS NULL THEN 1 ELSE 0 END) DESC,
+      t.updated_at DESC
+    `;
+
     const [items]: any = await pool.query(`
       SELECT t.*, 
              COALESCE(t.solicitante_nome, u.nome, 'Usuário Removido') as cliente_nome, 
@@ -277,9 +302,9 @@ class TicketsService {
       LEFT JOIN empresas e ON t.empresa_id = e.id
       LEFT JOIN usuarios r ON t.responsavel_id = r.id
       ${baseWhere}
-      ORDER BY t.created_at DESC
+      ORDER BY ${orderBy}
       LIMIT ? OFFSET ?
-    `, [...params, safeLimit, offset]);
+    `, [...finalParams, safeLimit, offset]);
 
     // Enriquecer com tags
     if (items.length > 0) {
@@ -291,7 +316,7 @@ class TicketsService {
     }
 
     // Enriquecer com produtividade
-    await this.enrichTicketsWithProductivity(items);
+    await this.enrichTicketsWithProductivity(items, filters.usuario_id);
 
     return {
       data: items,
@@ -484,6 +509,25 @@ class TicketsService {
     }
 
     const summaryParams = [...finalParams];
+    
+    // Prioridade operacional
+    const orderBy_K = `
+      (CASE WHEN t.status NOT IN ('resolvido', 'fechado') AND (
+        NOT EXISTS (SELECT 1 FROM ticket_mensagens m_pr WHERE m_pr.ticket_id = t.id AND m_pr.interno = 0)
+        OR EXISTS (
+          SELECT 1 FROM ticket_mensagens m_pr 
+          WHERE m_pr.ticket_id = t.id AND m_pr.interno = 0 
+          AND m_pr.usuario_id = t.usuario_id
+          AND m_pr.id = (SELECT MAX(id) FROM ticket_mensagens WHERE ticket_id = t.id AND interno = 0)
+        )
+      ) THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.prazo_sla < NOW() AND t.status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.prioridade = 'urgente' THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.prioridade = 'alta' THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.responsavel_id IS NULL THEN 1 ELSE 0 END) DESC,
+      t.updated_at DESC
+    `;
 
     const [tickets]: any = await pool.query(`
       SELECT t.id, t.titulo, t.status, t.prioridade, t.categoria, t.created_at, t.updated_at, t.prazo_sla, t.responsavel_id, t.empresa_id,
@@ -496,7 +540,7 @@ class TicketsService {
       LEFT JOIN empresas e ON t.empresa_id = e.id
       LEFT JOIN usuarios r ON t.responsavel_id = r.id
       ${baseWhere}
-      ORDER BY t.created_at DESC
+      ORDER BY ${orderBy_K}
     `, params);
 
     // Enriquecer com tags
@@ -523,7 +567,7 @@ class TicketsService {
     const summary = summaryRows[0] || { total: 0, aberto: 0, em_andamento: 0, aguardando_cliente: 0, resolvido: 0, fechado: 0 };
 
     // Enriquecer com produtividade
-    await this.enrichTicketsWithProductivity(tickets);
+    await this.enrichTicketsWithProductivity(tickets, filters.usuario_id);
 
     const columnsConfig = [
       { id: 'aberto', title: 'Aberto' },
@@ -629,7 +673,7 @@ class TicketsService {
     return ticket;
   }
 
-  async getById(id: number) {
+  async getById(id: number, currentUserId?: number) {
     const [rows]: any = await pool.query(
       `SELECT 
         t.id, t.empresa_id, t.usuario_id, t.responsavel_id, t.titulo, t.descricao, 
@@ -655,7 +699,7 @@ class TicketsService {
     ticket.custom_fields = await this.getCustomFields(id);
     
     // Enriquecer com produtividade
-    const enriched = await this.enrichTicketsWithProductivity([ticket]);
+    const enriched = await this.enrichTicketsWithProductivity([ticket], currentUserId);
     return enriched[0];
   }
 
@@ -665,7 +709,7 @@ class TicketsService {
       throw new Error(`Status inválido: ${status}`);
     }
 
-    const oldTicket = await this.getById(id);
+    const oldTicket = await this.getById(id, changedByUserId);
     if (!oldTicket) {
       throw new Error('Chamado não encontrado');
     }
@@ -682,10 +726,8 @@ class TicketsService {
       finalizado_em ? [status, finalizado_em, id] : [status, id]
     );
 
-    // Logging se req for passado (seria ideal importar o logger, mas vou deixar pro routes)
-    // Para simplificar, vou confiar no retorno e deixar o route logar. Mas vou retornar oldTicket para comparar.
-
     // Notificações de Status
+// ... (rest of the code seems fine)
     try {
       const translateStatus: any = { aberto: 'Aberto', em_andamento: 'Em Andamento', aguardando_cliente: 'Aguardando Cliente', resolvido: 'Resolvido', fechado: 'Fechado' };
       const newStatusText = translateStatus[status] || status;
@@ -820,9 +862,25 @@ class TicketsService {
     const messageId = result.insertId;
     await pool.query('UPDATE tickets SET updated_at = NOW() WHERE id = ?', [ticket_id]);
 
-    // Notificações
+    // Lógica de Auto-Status
     try {
       const ticket = await this.getById(ticket_id);
+      if (ticket && !['resolvido', 'fechado'].includes(ticket.status)) {
+        const isClient = Number(usuario_id) === Number(ticket.usuario_id);
+        
+        if (!isClient && !interno) {
+          // Atendente respondeu: se estava aberto, vai para em_andamento
+          if (ticket.status === 'aberto') {
+            await pool.query('UPDATE tickets SET status = "em_andamento" WHERE id = ?', [ticket_id]);
+          }
+        } else if (isClient) {
+          // Cliente respondeu: se estava aguardando_cliente, volta para em_andamento ou aberto
+          if (ticket.status === 'aguardando_cliente') {
+            await pool.query('UPDATE tickets SET status = "em_andamento" WHERE id = ?', [ticket_id]);
+          }
+        }
+      }
+
       if (ticket) {
         const [author]: any = await pool.query('SELECT nome FROM usuarios WHERE id = ?', [usuario_id]);
         const authorName = author[0]?.nome || 'Alguém';
@@ -871,7 +929,7 @@ class TicketsService {
         }
       }
     } catch (e) {
-      console.error('Erro ao notificar nova mensagem:', e);
+      console.error('Erro ao processar nova mensagem e auto-status:', e);
     }
 
     return messageId;
@@ -1279,7 +1337,17 @@ class TicketsService {
     return { updated, skipped, errors };
   }
 
-  async enrichTicketsWithProductivity(tickets: any[]) {
+  async markAsRead(ticketId: number, usuarioId: number) {
+    await pool.query(
+      `INSERT INTO ticket_leituras (ticket_id, usuario_id, last_read_at) 
+       VALUES (?, ?, NOW()) 
+       ON DUPLICATE KEY UPDATE last_read_at = NOW()`,
+      [ticketId, usuarioId]
+    );
+    return true;
+  }
+
+  async enrichTicketsWithProductivity(tickets: any[], currentUserId?: number) {
     if (tickets.length === 0) return tickets;
 
     const ticketIds = tickets.map(t => t.id);
@@ -1295,13 +1363,26 @@ class TicketsService {
 
     // 2. Fetch last overall message for each ticket (for "last message in list")
     const [lastMessages]: any = await pool.query(`
-      SELECT m.ticket_id, m.created_at as ultima_mensagem_em, u.nome as ultima_mensagem_por_nome, m.interno as ultima_mensagem_interna
+      SELECT m.ticket_id, m.id as mensagem_id, m.usuario_id as mensagem_usuario_id, m.created_at as ultima_mensagem_em, u.nome as ultima_mensagem_por_nome, m.interno as ultima_mensagem_interna
       FROM ticket_mensagens m
       LEFT JOIN usuarios u ON m.usuario_id = u.id
       WHERE m.id IN (
         SELECT MAX(id) FROM ticket_mensagens WHERE ticket_id IN (?) GROUP BY ticket_id
       )
     `, [ticketIds]);
+
+    // 3. Fetch read receipts if currentUserId is provided
+    let readReceiptsMap: Record<number, string> = {};
+    if (currentUserId) {
+      const [readRows]: any = await pool.query(
+        'SELECT ticket_id, last_read_at FROM ticket_leituras WHERE usuario_id = ? AND ticket_id IN (?)',
+        [currentUserId, ticketIds]
+      );
+      readReceiptsMap = readRows.reduce((acc: any, r: any) => {
+        acc[r.ticket_id] = r.last_read_at;
+        return acc;
+      }, {});
+    }
 
     const publicMsgMap = publicMessages.reduce((acc: any, m: any) => {
       acc[m.ticket_id] = m;
@@ -1316,12 +1397,13 @@ class TicketsService {
     tickets.forEach(t => {
       const lmPub = publicMsgMap[t.id];
       const lmAll = lastMsgMap[t.id];
+      const lastRead = readReceiptsMap[t.id];
 
       // Calculate estado_atendimento
-      let estado: 'cliente_respondeu' | 'aguardando_cliente' | 'atendente_respondeu' | 'sem_resposta' = 'sem_resposta';
+      let estado: 'cliente_respondeu' | 'aguardando_cliente' | 'atendente_respondeu' | 'sem_resposta' | 'finalizado' = 'sem_resposta';
       
       if (['resolvido', 'fechado'].includes(t.status)) {
-        estado = 'atendente_respondeu';
+        estado = 'finalizado';
       } else if (t.status === 'aguardando_cliente') {
         estado = 'aguardando_cliente';
       } else if (!lmPub) {
@@ -1339,11 +1421,34 @@ class TicketsService {
         t.ultima_mensagem_em = lmAll.ultima_mensagem_em;
         t.ultima_mensagem_por_nome = lmAll.ultima_mensagem_por_nome;
         t.ultima_mensagem_interna = Number(lmAll.ultima_mensagem_interna) === 1;
+
+        // "Unread" Logic
+        if (currentUserId) {
+          const isOwnMessage = Number(lmAll.mensagem_usuario_id) === Number(currentUserId);
+          if (isOwnMessage) {
+            t.nao_lido = false;
+          } else {
+            const lastMsgDate = new Date(lmAll.ultima_mensagem_em).getTime();
+            const lastReadDate = lastRead ? new Date(lastRead).getTime() : 0;
+            t.nao_lido = lastMsgDate > lastReadDate;
+          }
+        }
       } else {
         // Se sem mensagens, a última movimentação foi a criação
         t.ultima_mensagem_em = t.created_at;
         t.ultima_mensagem_por_nome = t.cliente_nome || 'Solicitante';
         t.ultima_mensagem_interna = false;
+        
+        if (currentUserId) {
+          const isOwnTicket = Number(t.usuario_id) === Number(currentUserId);
+          if (isOwnTicket) {
+             t.nao_lido = false;
+          } else {
+             const creationDate = new Date(t.created_at).getTime();
+             const lastReadDate = lastRead ? new Date(lastRead).getTime() : 0;
+             t.nao_lido = creationDate > lastReadDate;
+          }
+        }
       }
     });
 

@@ -4,11 +4,12 @@ import { cn } from '../../../lib/utils';
 import { Button } from '../../ui/Button';
 import { FileUpload } from '../../ui/FileUpload';
 import { AnimatePresence, motion } from 'motion/react';
-import { Ticket } from '../../../types';
+import { Ticket, User } from '../../../types';
 import { TicketMacroList } from './TicketMacroList';
 
 interface TicketReplyBoxProps {
   ticket: Ticket;
+  currentUser: User;
   onSendMessage: (mensagem: string, isInternal: boolean, files: File[]) => Promise<boolean>;
   loadingSend: boolean;
   actionError: string | null;
@@ -16,7 +17,7 @@ interface TicketReplyBoxProps {
   canAddInternalNote: boolean;
 }
 
-export const TicketReplyBox = ({ ticket, onSendMessage, loadingSend, actionError, actionSuccess, canAddInternalNote }: TicketReplyBoxProps) => {
+export const TicketReplyBox = ({ ticket, currentUser, onSendMessage, loadingSend, actionError, actionSuccess, canAddInternalNote }: TicketReplyBoxProps) => {
   const [newMessage, setNewMessage] = useState('');
   const [isInternal, setIsInternal] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -91,6 +92,7 @@ export const TicketReplyBox = ({ ticket, onSendMessage, loadingSend, actionError
                 <div className="absolute bottom-full right-0 mb-3 z-[60]">
                   <TicketMacroList 
                     ticket={ticket}
+                    currentUser={currentUser}
                     onSelect={handleSelectMacro}
                     onClose={() => setShowMacros(false)}
                   />

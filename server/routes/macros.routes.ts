@@ -1,36 +1,48 @@
 import { Router } from 'express';
 import macrosService from '../services/macros.service.js';
 import { sendSuccess, sendError } from '../utils/response.js';
+import { authMiddleware, AuthRequest } from '../middlewares/auth.js';
 
 const router = Router();
 
+// Aplicar middleware de autenticação em todas as rotas
+router.use(authMiddleware as any);
+
 // Listar macros da empresa
-router.get('/', async (req: any, res) => {
+router.get('/', async (req: AuthRequest, res) => {
   try {
-    const { empresa_id } = req.currentUser;
-    const macros = await macrosService.list(empresa_id);
+    if (!req.user) return sendError(res, 'Não autorizado', 401);
+    
+    // Qualquer usuário autenticado com empresa vínculos pode ver macros
+    const macros = await macrosService.list(req.user.empresa_id!);
     sendSuccess(res, macros);
   } catch (error: any) {
     sendError(res, error.message);
   }
 });
 
-// Criar macro
-router.post('/', async (req: any, res) => {
+// Criar macro (Apenas admin/desenvolvedor)
+router.post('/', async (req: AuthRequest, res) => {
   try {
-    const { empresa_id, id: usuario_id } = req.currentUser;
+    if (!req.user) return sendError(res, 'Não autorizado', 401);
+    if (!req.user.administrador && !req.user.desenvolvedor) {
+      return sendError(res, 'Permissão negada', 403);
+    }
+
     const { titulo, conteudo, categoria } = req.body;
     
     if (!titulo || !conteudo) {
       return sendError(res, 'Título e conteúdo são obrigatórios', 400);
     }
 
+    if (titulo.length > 120) return sendError(res, 'Título muito longo (máx 120)', 400);
+
     const macroId = await macrosService.create({
-      empresa_id,
+      empresa_id: req.user.empresa_id,
       titulo,
       conteudo,
       categoria,
-      created_by: usuario_id
+      created_by: req.user.id
     });
 
     sendSuccess(res, { id: macroId }, 'Macro criada com sucesso', 201);
@@ -39,14 +51,18 @@ router.post('/', async (req: any, res) => {
   }
 });
 
-// Atualizar macro
-router.put('/:id', async (req: any, res) => {
+// Atualizar macro (Apenas admin/desenvolvedor)
+router.put('/:id', async (req: AuthRequest, res) => {
   try {
-    const { empresa_id } = req.currentUser;
+    if (!req.user) return sendError(res, 'Não autorizado', 401);
+    if (!req.user.administrador && !req.user.desenvolvedor) {
+      return sendError(res, 'Permissão negada', 403);
+    }
+
     const { id } = req.params;
     const { titulo, conteudo, categoria, ativo } = req.body;
 
-    await macrosService.update(Number(id), empresa_id, {
+    await macrosService.update(Number(id), req.user.empresa_id!, {
       titulo,
       conteudo,
       categoria,
@@ -59,13 +75,17 @@ router.put('/:id', async (req: any, res) => {
   }
 });
 
-// Excluir macro
-router.delete('/:id', async (req: any, res) => {
+// Excluir macro (Apenas admin/desenvolvedor)
+router.delete('/:id', async (req: AuthRequest, res) => {
   try {
-    const { empresa_id } = req.currentUser;
+    if (!req.user) return sendError(res, 'Não autorizado', 401);
+    if (!req.user.administrador && !req.user.desenvolvedor) {
+      return sendError(res, 'Permissão negada', 403);
+    }
+
     const { id } = req.params;
 
-    await macrosService.delete(Number(id), empresa_id);
+    await macrosService.delete(Number(id), req.user.empresa_id!);
     sendSuccess(res, null, 'Macro excluída com sucesso');
   } catch (error: any) {
     sendError(res, error.message);

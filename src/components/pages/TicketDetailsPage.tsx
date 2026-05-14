@@ -62,6 +62,11 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
       setTicketAttachments(attachmentsData);
       setTimeline(timelineData);
 
+      // Marcar como lido
+      api.post(`/tickets/${ticketId}/read`, {}).catch(err => {
+        console.error('Erro ao marcar ticket como lido:', err);
+      });
+
       if (!!(currentUser.administrador || currentUser.desenvolvedor)) {
         const usersData = await api.get<User[]>('/users');
         const filteredAgents = usersData.filter(u => {
@@ -397,6 +402,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                 <TicketConversation 
                    ticket={ticket}
                    messages={messages}
+                   currentUser={currentUser}
                    onSendMessage={handleSendMessage}
                    onDeleteAttachment={handleDeleteAttachment}
                    loadingSend={loadingSend}

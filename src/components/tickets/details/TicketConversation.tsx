@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { Message, Ticket } from '../../../types';
+import { Message, Ticket, User } from '../../../types';
 import { Clock, MessageSquare, ShieldCheck, User as UserIcon, Lock } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { Badge } from '../../ui/Badge';
@@ -9,6 +9,7 @@ import { TicketReplyBox } from './TicketReplyBox';
 interface TicketConversationProps {
   ticket: Ticket;
   messages: Message[];
+  currentUser: User;
   onSendMessage: (mensagem: string, isInternal: boolean, files: File[]) => Promise<boolean>;
   onDeleteAttachment: (id: number) => Promise<void>;
   loadingSend: boolean;
@@ -108,7 +109,7 @@ const MessageBubble = ({
 };
 
 export const TicketConversation = ({ 
-  ticket, messages, onSendMessage, onDeleteAttachment, 
+  ticket, messages, currentUser, onSendMessage, onDeleteAttachment, 
   loadingSend, actionError, actionSuccess, canAddInternalNote 
 }: TicketConversationProps) => {
 
@@ -174,6 +175,7 @@ export const TicketConversation = ({
            ) : (
               <TicketReplyBox 
                  ticket={ticket}
+                 currentUser={currentUser}
                  onSendMessage={onSendMessage}
                  loadingSend={loadingSend}
                  actionError={actionError}

@@ -235,6 +235,43 @@ async function initDB() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    // Ticket Macros
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS ticket_macros (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        empresa_id INT NOT NULL,
+        titulo VARCHAR(120) NOT NULL,
+        conteudo TEXT NOT NULL,
+        categoria VARCHAR(80) NULL,
+        ativo TINYINT(1) DEFAULT 1,
+        created_by INT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        KEY idx_ticket_macros_empresa (empresa_id),
+        KEY idx_ticket_macros_ativo (ativo),
+        KEY idx_ticket_macros_categoria (categoria),
+        FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
+        FOREIGN KEY (created_by) REFERENCES usuarios(id) ON DELETE SET NULL
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // Ticket Leituras (Controle de não lidos)
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS ticket_leituras (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        ticket_id INT NOT NULL,
+        usuario_id INT NOT NULL,
+        last_read_at DATETIME NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_ticket_usuario (ticket_id, usuario_id),
+        KEY idx_ticket_leituras_ticket (ticket_id),
+        KEY idx_ticket_leituras_usuario (usuario_id),
+        FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
     console.log('[BOOT] 📚 Tabelas base validadas. Iniciando migrações de colunas...');
 
     // Migrações Horizontais (Garantir colunas novas em bancos antigos)
@@ -275,6 +312,23 @@ async function initDB() {
     await ensureColumn('tickets', 'solicitante_nome', 'VARCHAR(255) NULL');
     await ensureColumn('tickets', 'solicitante_email', 'VARCHAR(255) NULL');
     
+    // Ticket Macros Migration (Rename atalho to titulo if exists)
+    try {
+      const [cols]: any = await connection.query(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+        AND TABLE_NAME = 'ticket_macros' 
+        AND COLUMN_NAME = 'atalho'
+      `);
+      if (cols.length > 0) {
+        console.log('[MIGRATE] 🔄 Renomeando coluna atalho para titulo na tabela ticket_macros...');
+        await connection.query('ALTER TABLE ticket_macros CHANGE COLUMN atalho titulo VARCHAR(120) NOT NULL');
+      }
+    } catch (e) {
+      console.warn('[MIGRATE] ⚠️ Falha ao migrar ticket_macros:', e);
+    }
+
     // Status enum check/update
     await connection.query(`
       ALTER TABLE tickets MODIFY status ENUM('aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado') DEFAULT 'aberto'

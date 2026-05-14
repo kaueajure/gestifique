@@ -17,12 +17,32 @@ function parseTicketQueue(value: unknown): string {
     'urgentes',
     'sla_vencido',
     'vence_em_breve',
-    'aguardando_cliente'
+    'aguardando_cliente',
+    'precisa_resposta'
   ];
   return typeof value === 'string' && validQueues.includes(value) ? value : 'todos';
 }
 
 router.use(authMiddleware);
+
+router.post('/:id/read', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
+    const id = parseInt(req.params.id);
+    const result: any = await ticketsService.getByIdForUser(id, currentUser);
+    
+    if (!result) return sendError(res, 'Ticket não encontrado', 404);
+    if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
+
+    await ticketsService.markAsRead(id, currentUser.id);
+    sendSuccess(res, null, 'Ticket marcado como lido');
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao marcar como lido';
+    sendError(res, message);
+  }
+});
 
 router.delete('/cleanup-spam', async (req: AuthRequest, res) => {
   try {

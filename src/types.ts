@@ -100,7 +100,8 @@ export interface Ticket {
   origem?: string;
   prazo_sla?: string | null;
   precisa_revisao_responsavel?: boolean;
-  estado_atendimento?: 'cliente_respondeu' | 'aguardando_cliente' | 'atendente_respondeu' | 'sem_resposta';
+  estado_atendimento?: 'cliente_respondeu' | 'aguardando_cliente' | 'atendente_respondeu' | 'sem_resposta' | 'finalizado';
+  nao_lido?: boolean;
   precisa_resposta?: boolean;
   ultima_mensagem_em?: string;
   ultima_mensagem_por_nome?: string;
@@ -161,8 +162,10 @@ export interface TicketCustomField {
 export interface TicketMacro {
   id: number;
   empresa_id: number;
-  atalho: string;
+  titulo: string;
   conteudo: string;
+  categoria?: string;
+  ativo?: boolean;
   created_at: string;
 }
 

@@ -252,15 +252,16 @@ export const TicketList = ({
               const needsClientAction = ticket.status === 'aguardando_cliente';
 
               return (
-              <tr 
-                key={ticket.id}
-                onClick={() => onSelectTicket(ticket.id)}
-                className={cn(
-                  "group hover:bg-slate-50/60 transition-all cursor-pointer relative",
-                  isSelected && "bg-blue-50/30",
-                  sla.status === 'vencido' && "bg-red-50/10 hover:bg-red-50/30"
-                )}
-              >
+                <tr 
+                  key={ticket.id}
+                  onClick={() => onSelectTicket(ticket.id)}
+                  className={cn(
+                    "group hover:bg-slate-50/60 transition-all cursor-pointer relative",
+                    isSelected && "bg-blue-50/30",
+                    sla.status === 'vencido' && "bg-red-50/10 hover:bg-red-50/30",
+                    ticket.nao_lido && "bg-blue-50/20 font-bold"
+                  )}
+                >
                 {canSelectBulk && (
                   <td className="px-3 py-2 text-center" onClick={(e) => e.stopPropagation()}>
                     <input 
@@ -274,9 +275,15 @@ export const TicketList = ({
                 <td className="px-3 py-2">
                   <div className="flex flex-col gap-0.5 min-w-0">
                     <div className="flex items-center gap-1.5 min-w-0">
+                      {ticket.nao_lido && (
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-600 ring-4 ring-blue-50 animate-pulse shrink-0" title="Mensagem não lida" />
+                      )}
                       <span className="text-[9px] font-black text-blue-600 tracking-tighter bg-blue-50/50 px-1 py-0.5 rounded border border-blue-100/30">#{ticket.id}</span>
                       {isAbertoESemResp && (
-                        <span className="text-[8px] font-black text-white bg-amber-500 px-1 rounded border border-amber-500 uppercase tracking-tighter">Novo</span>
+                        <span className="text-[8px] font-black text-white bg-amber-500 px-1 rounded border border-amber-500 uppercase tracking-tighter">Novo Chamado</span>
+                      )}
+                      {ticket.estado_atendimento === 'cliente_respondeu' && (
+                        <span className="text-[8px] font-black text-white bg-emerald-500 px-1 rounded border border-emerald-500 uppercase tracking-tighter animate-pulse">Nova Resposta</span>
                       )}
                       {needsAgentAction && ticket.responsavel_id === currentUser.id && (
                         <span className="text-[8px] font-black text-blue-600 bg-blue-50 px-1 rounded border border-blue-100 uppercase tracking-tighter shrink-0">Sua Vez</span>
