@@ -91,14 +91,14 @@ export const Sidebar = ({ currentUser, activeTab, setActiveTab, isOpen, onClose,
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 py-6 space-y-8">
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
           {sections.map((section) => {
             const accessibleItems = section.items.filter(i => i.access);
             if (accessibleItems.length === 0) return null;
 
             return (
               <div key={section.title} className="space-y-2">
-                <h3 className="px-3 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400/80">
+                <h3 className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   {section.title}
                 </h3>
                 <div className="space-y-1">
@@ -107,7 +107,7 @@ export const Sidebar = ({ currentUser, activeTab, setActiveTab, isOpen, onClose,
                       key={item.id}
                       onClick={() => handleNav(item.id)}
                       className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200",
+                        "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-200",
                         activeTab === item.id 
                           ? "bg-blue-50 text-blue-600 shadow-sm shadow-blue-100/50" 
                           : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
@@ -131,13 +131,13 @@ export const Sidebar = ({ currentUser, activeTab, setActiveTab, isOpen, onClose,
         </div>
 
         <div className="p-3 border-t border-slate-200 bg-white space-y-3">
-          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-50 border border-slate-100">
-             <div className="w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-600 font-bold text-xs uppercase shrink-0">
-               {currentUser.nome.charAt(0)}
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-100">
+             <div className="w-8 h-8 rounded-md bg-white border border-slate-200 flex items-center justify-center text-slate-600 font-bold text-xs shrink-0">
+               {currentUser.nome.charAt(0).toUpperCase()}
              </div>
              <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold text-slate-900 truncate">{currentUser.nome}</div>
-                <div className="text-[10px] font-medium text-slate-500 truncate uppercase tracking-tighter">{currentUser.cargo || 'Membro do Time'}</div>
+                <div className="text-[10px] font-medium text-slate-500 truncate">{currentUser.cargo || 'Membro do Time'}</div>
              </div>
              <NotificationsDropdown 
                currentUser={currentUser} 

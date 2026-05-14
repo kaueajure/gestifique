@@ -307,7 +307,7 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                               )} />
                             )}
 
-                            <div className="p-2.5">
+                            <div className="p-2">
                               {/* Quick Actions (Hover Only) */}
                               <div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-white/90 backdrop-blur-sm p-0.5 rounded-md shadow-sm border border-slate-100">
                                 {canManage && isAbertoESemResp && (
@@ -363,7 +363,7 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                                   </div>
                                 </div>
 
-                                <h4 className="font-bold text-[12px] leading-tight text-slate-700 min-h-[30px] line-clamp-2">
+                                <h4 className="font-bold text-xs leading-tight text-slate-700 mt-1 line-clamp-2">
                                   {ticket.titulo}
                                 </h4>
 

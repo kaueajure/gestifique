@@ -472,7 +472,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
               className={cn(
-                "px-4 py-2.5 rounded-xl shadow-2xl border text-[11px] font-bold uppercase tracking-widest flex items-center gap-2 pointer-events-auto",
+                "px-3 py-2 rounded-lg shadow-lg border text-xs font-semibold flex items-center gap-2 pointer-events-auto",
                 toast.type === 'success' && "bg-emerald-600 border-emerald-500 text-white",
                 toast.type === 'error' && "bg-red-600 border-red-500 text-white",
                 toast.type === 'info' && "bg-blue-600 border-blue-500 text-white"
@@ -485,10 +485,10 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
         </AnimatePresence>
       </div>
 
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 py-4">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 py-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Atendimentos</h1>
-          <p className="text-sm text-slate-500 font-medium">Gerencie, priorize e acompanhe os chamados da equipe</p>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Atendimentos</h1>
+          <p className="text-xs text-slate-500 mt-1">Gerencie chamados da equipe</p>
         </div>
         <div className="flex items-center gap-2">
           {!!currentUser.desenvolvedor && (
@@ -498,7 +498,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                 value={devCompanyId}
                 onChange={setDevCompanyId}
                 placeholder="Empresa..."
-                buttonClassName="pl-8 h-9 text-xs font-semibold"
+                buttonClassName="pl-8 h-8 text-xs font-semibold"
                 options={[
                   { value: '', label: 'Selecione a empresa' },
                   ...companies.map(emp => ({
@@ -510,11 +510,11 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
             </div>
           )}
           <Button 
-            className="h-10 px-5 shadow-lg shadow-blue-100 bg-blue-600 hover:bg-blue-700" 
+            className="h-8 px-4 shadow-sm bg-blue-600 hover:bg-blue-700" 
             onClick={() => setIsModalOpen(true)}
           >
-            <Plus size={18} className="mr-2" /> 
-            <span className="text-sm font-bold uppercase tracking-tight">Novo Atendimento</span>
+            <Plus size={16} className="mr-2" /> 
+            <span className="text-sm font-semibold">Novo atendimento</span>
           </Button>
         </div>
       </div>
@@ -528,7 +528,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                  <input 
                    type="text" 
                    placeholder="Buscar por ID, cliente ou assunto..." 
-                   className="w-full h-10 bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-4 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all focus:bg-white"
+                   className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-blue-100 transition-all focus:bg-white"
                    value={searchTerm}
                    onChange={(e) => setSearchTerm(e.target.value)}
                  />
@@ -546,7 +546,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                 variant="outline" 
                 onClick={() => setShowAdvanced(true)}
                 className={cn(
-                  "h-10 px-4 text-sm font-semibold border-slate-200 shadow-sm transition-all",
+                  "h-8 px-3 text-sm font-semibold border-slate-200 shadow-sm transition-all",
                   hasAnyFilters ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-white text-slate-700 hover:bg-slate-50"
                 )}
               >
@@ -561,21 +561,21 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
             </div>
             
             <div className="flex items-center gap-2">
-              <div className="flex items-center p-1 bg-slate-50 rounded-xl border border-slate-100">
+              <div className="flex items-center p-1 bg-slate-50 rounded-lg border border-slate-100">
                 <button 
                   onClick={() => setViewMode('list')}
                   className={cn(
-                    "p-2 rounded-lg transition-all",
+                    "p-1.5 rounded-md transition-all",
                     viewMode === 'list' ? "bg-white text-blue-600 shadow-sm border border-slate-200" : "text-slate-400 hover:text-slate-600"
                   )}
                   title="Lista"
                 >
-                  <ListIcon size={18} />
+                  <ListIcon size={16} />
                 </button>
                 <button 
                   onClick={() => setViewMode('kanban')}
                   className={cn(
-                    "p-2 rounded-lg transition-all",
+                    "p-1.5 rounded-md transition-all",
                     viewMode === 'kanban' ? "bg-white text-blue-600 shadow-sm border border-slate-200" : "text-slate-400 hover:text-slate-600"
                   )}
                   title="Kanban"
@@ -599,7 +599,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                    { value: 'exportar', label: 'Exportar CSV' },
                    { value: 'atualizar', label: 'Atualizar agora' }
                 ]}
-                buttonClassName="h-10 px-3 bg-white border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-semibold shadow-sm"
+                buttonClassName="h-8 px-3 bg-white border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-semibold shadow-sm"
                 className="w-36 hidden md:block"
               />
             </div>
@@ -615,7 +615,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                   key={q.id}
                   onClick={() => setSelectedQueue(q.id)}
                   className={cn(
-                    "relative flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-all whitespace-nowrap",
+                    "relative flex items-center gap-2 px-3 py-2 text-[13px] font-semibold transition-all whitespace-nowrap",
                     isActive 
                       ? "text-blue-600" 
                       : "text-slate-400 hover:text-slate-600"
@@ -624,7 +624,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                   <span>{q.label}</span>
                   {count > 0 && (
                     <span className={cn(
-                      "px-2 py-0.5 rounded-full text-[10px] font-bold tracking-tight",
+                      "px-1.5 py-0.5 rounded-full text-[10px] font-bold tracking-tight",
                       isActive ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500"
                     )}>
                       {count > 99 ? '99+' : count}
@@ -643,7 +643,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
             <div className="relative group/more ml-auto sm:ml-0">
               <button
                 className={cn(
-                  "relative flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-all whitespace-nowrap",
+                  "relative flex items-center gap-2 px-3 py-2 text-[13px] font-semibold transition-all whitespace-nowrap",
                   MORE_QUEUES.some(q => q.id === selectedQueue)
                     ? "text-blue-600"
                     : "text-slate-400 hover:text-slate-600"
@@ -659,7 +659,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                 )}
               </button>
               
-              <div className="absolute top-full right-0 lg:left-0 lg:right-auto mt-1 w-48 bg-white rounded-xl shadow-xl border border-slate-200 p-2 opacity-0 invisible group-hover/more:opacity-100 group-hover/more:visible transition-all z-50">
+              <div className="absolute top-full right-0 lg:left-0 lg:right-auto mt-1 w-48 bg-white rounded-lg shadow-lg border border-slate-200 p-2 opacity-0 invisible group-hover/more:opacity-100 group-hover/more:visible transition-all z-50">
                 {MORE_QUEUES.map((q) => {
                   const isActive = selectedQueue === q.id;
                   const count = queueCounts?.[q.id] || 0;

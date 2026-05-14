@@ -277,7 +277,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
       {/* Header */}
       <div className="flex flex-col gap-4">
         <div className="flex items-start gap-4">
-          <Button variant="outline" size="sm" onClick={onBack} className="h-9 w-9 p-0 rounded-xl bg-white border-slate-200 text-slate-500 shadow-sm shrink-0">
+          <Button variant="outline" size="sm" onClick={onBack} className="h-8 w-8 p-0 rounded-lg bg-white border-slate-200 text-slate-500 shadow-sm shrink-0">
             <ChevronLeft size={20} />
           </Button>
           <div className="flex-1 min-w-0">
@@ -305,7 +305,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                   SLA: {getSlaInfo(ticket.prazo_sla, ticket.status).compactText || getSlaInfo(ticket.prazo_sla, ticket.status).label}
                 </span>
             </div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight leading-tight">{ticket.titulo}</h1>
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight leading-tight">{ticket.titulo}</h1>
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
@@ -313,14 +313,14 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
               <Button 
                 onClick={() => handleUpdateTicket({ status: 'aberto' })}
                 variant="outline"
-                className="font-semibold"
+                className="h-8 px-4 text-sm font-semibold"
               >
                 Reabrir Atendimento
               </Button>
             ) : (
               <Button 
                 onClick={() => handleUpdateTicket({ status: 'resolvido' })}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-sm"
+                className="h-8 px-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-sm"
               >
                 Finalizar Atendimento
               </Button>
@@ -329,17 +329,17 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-0 overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 min-h-0 overflow-hidden">
         {/* Coluna Principal */}
-        <div className="lg:col-span-8 flex flex-col gap-6 min-h-0 overflow-hidden">
+        <div className="lg:col-span-8 flex flex-col gap-4 min-h-0 overflow-hidden">
           {/* Conversa */}
-          <Card className="flex flex-col flex-1 min-h-0 border-slate-200/60 shadow-sm overflow-hidden rounded-2xl bg-white">
-            <div className="bg-slate-50/20 px-8 border-b border-slate-100 flex items-center justify-between shrink-0">
-               <div className="flex -mb-px gap-8">
+          <Card className="flex flex-col flex-1 min-h-0 border-slate-200/60 shadow-sm overflow-hidden rounded-xl bg-white">
+            <div className="bg-slate-50/20 px-5 border-b border-slate-100 flex items-center justify-between shrink-0">
+               <div className="flex -mb-px gap-6">
                   <button 
                     onClick={() => setActiveTab('messages')}
                     className={cn(
-                      "flex items-center gap-2.5 py-5 text-[11px] font-bold uppercase tracking-widest transition-all border-b-2",
+                      "flex items-center gap-2 py-3 text-xs font-bold uppercase tracking-widest transition-all border-b-2",
                       activeTab === 'messages' ? "text-blue-600 border-blue-600" : "text-slate-400 border-transparent hover:text-slate-600"
                     )}
                   >
@@ -348,14 +348,14 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                   <button 
                     onClick={() => setActiveTab('timeline')}
                     className={cn(
-                      "flex items-center gap-2.5 py-5 text-[11px] font-bold uppercase tracking-widest transition-all border-b-2",
+                      "flex items-center gap-2 py-3 text-xs font-bold uppercase tracking-widest transition-all border-b-2",
                       activeTab === 'timeline' ? "text-blue-600 border-blue-600" : "text-slate-400 border-transparent hover:text-slate-600"
                     )}
                   >
                     Histórico
                   </button>
                </div>
-               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1 rounded-full">
+               <div className="text-[10px] font-medium text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-md">
                  {activeTab === 'messages' ? `${messages.length} mensagens` : `${timeline.length} eventos`}
                </div>
             </div>
@@ -374,7 +374,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                    canAddInternalNote={!!(currentUser.administrador || currentUser.desenvolvedor)}
                 />
               ) : (
-                <div className="h-full overflow-y-auto p-8 custom-scrollbar">
+                <div className="h-full overflow-y-auto p-5 custom-scrollbar">
                   <TicketTimeline 
                     timeline={timeline}
                     loading={loadingTimeline}
@@ -387,7 +387,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
 
         {/* Coluna Lateral */}
         <div className="lg:col-span-4 h-full min-h-0 overflow-hidden">
-            <div className="h-full overflow-y-auto pr-1 flex flex-col gap-6 custom-scrollbar">
+            <div className="h-full overflow-y-auto pr-1 flex flex-col gap-4 custom-scrollbar">
               <TicketProperties 
                   ticket={ticket}
                   currentUser={currentUser}
@@ -405,22 +405,22 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
       {/* Resolution Modal */}
       {isResolveModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200 border border-slate-200">
-             <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200 border border-slate-200">
+             <div className="p-5 border-b border-slate-100 flex items-center justify-between">
                 <h3 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
                    <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
                       <CheckCircle2 size={18} />
                    </div>
                    Finalizar Atendimento
                 </h3>
-                <Badge variant={resolutionData.status === 'resolvido' ? 'emerald' : 'slate'} className="uppercase text-[10px] font-bold">
+                <Badge variant={resolutionData.status === 'resolvido' ? 'emerald' : 'slate'} className="text-xs font-semibold px-2 py-0.5">
                    {resolutionData.status}
                 </Badge>
              </div>
 
-             <div className="p-6 space-y-4">
+             <div className="p-5 space-y-4">
                 <div className="space-y-1.5">
-                   <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Motivo da Resolução</label>
+                   <label className="text-xs font-semibold text-slate-600">Motivo da Resolução</label>
                    <Select 
                      value={resolutionData.resolucao_motivo}
                      onChange={(value) => setResolutionData(prev => ({ ...prev, resolucao_motivo: value }))}
@@ -438,24 +438,24 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                 </div>
 
                 <div className="space-y-1.5">
-                   <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Observações (Opcional)</label>
+                   <label className="text-xs font-semibold text-slate-600">Observações (Opcional)</label>
                    <textarea 
                      value={resolutionData.resolucao_observacao}
                      onChange={(e) => setResolutionData(prev => ({ ...prev, resolucao_observacao: e.target.value }))}
                      placeholder="Detalhes sobre a solução aplicada..."
-                     className="w-full h-32 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-emerald-100 transition-all resize-none"
+                     className="w-full h-24 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:ring-2 focus:ring-emerald-100 transition-all resize-none"
                    />
                 </div>
              </div>
 
-             <div className="p-6 bg-slate-50 flex justify-end gap-3 rounded-b-2xl">
-                <Button variant="ghost" onClick={() => setIsResolveModalOpen(false)} className="text-slate-500 font-semibold">
+             <div className="p-4 bg-slate-50 flex justify-end gap-3 rounded-b-xl border-t border-slate-100">
+                <Button variant="ghost" className="h-8 text-sm" onClick={() => setIsResolveModalOpen(false)}>
                    Cancelar
                 </Button>
                 <Button 
                   onClick={handleConfirmResolution} 
                   disabled={!resolutionData.resolucao_motivo}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-10 px-6 rounded-xl shadow-lg ring-2 ring-emerald-50"
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold h-8 px-4 rounded-lg shadow-sm"
                 >
                    Finalizar Chamado
                 </Button>

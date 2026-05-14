@@ -81,45 +81,44 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Dashboard</h1>
-        <p className="text-sm text-slate-500 font-medium">Resumo da operação de atendimento</p>
+        <h1 className="text-xl font-bold text-slate-900 tracking-tight">Dashboard</h1>
+        <p className="text-xs text-slate-500 font-medium">Resumo da operação de atendimento</p>
       </div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard label="Ativos" value={chamadosAtivos} icon={<TicketIcon size={18} />} color="blue" loading={loading} />
         <MetricCard label="SLA vencido" value={slaAtrasados} icon={<AlertCircle size={18} />} color="red" loading={loading} />
         <MetricCard label="Resolvidos (Mês)" value={resolvidosMes} icon={<CheckCircle2 size={18} />} color="emerald" loading={loading} />
+        <MetricCard label="Total de Usuários" value={totalUsuarios} icon={<UserIcon size={18} />} color="slate" loading={loading} />
       </div>
 
       {/* Atenção agora */}
       {(slaAtrasados > 0 || chamadosAtivos > 0) && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-          <h2 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
-            <AlertCircle size={18} className="text-red-500" />
+        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+          <h2 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+            <AlertCircle size={16} className="text-red-500" />
             Atenção agora
           </h2>
-          <div className="grid sm:grid-cols-3 gap-4">
+          <div className="grid sm:grid-cols-4 gap-3">
             {slaAtrasados > 0 && (
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-red-50 border border-red-100/50">
-                <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center text-red-600 font-bold text-lg">
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-red-50 border border-red-100/50">
+                <div className="w-8 h-8 rounded-md bg-red-100 flex items-center justify-center text-red-600 font-bold text-sm">
                   {slaAtrasados}
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-red-700 uppercase tracking-tight">SLA Vencido</div>
-                  <div className="text-[11px] text-red-600/70 font-medium">Chamados críticos</div>
+                  <div className="text-xs font-semibold text-red-700">SLA Vencido</div>
                 </div>
               </div>
             )}
             {chamadosAtivos > 0 && (
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-blue-50 border border-blue-100/50">
-                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-lg">
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-blue-50 border border-blue-100/50">
+                <div className="w-8 h-8 rounded-md bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
                   {chamadosAtivos}
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-blue-700 uppercase tracking-tight">Atendimentos Ativos</div>
-                  <div className="text-[11px] text-blue-600/70 font-medium">Precisam de acompanhamento</div>
+                  <div className="text-xs font-semibold text-blue-700">Abertos</div>
                 </div>
               </div>
             )}
@@ -127,11 +126,11 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
         </div>
       )}
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        <Card className="overflow-hidden border-slate-200/60 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 bg-slate-50/20 py-4 px-6">
-            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest">Atendimentos Recentes</h3>
-            <Button variant="ghost" size="sm" className="h-8 text-xs font-bold text-blue-600" onClick={() => onNavigate?.('tickets')}>
+      <div className="grid lg:grid-cols-2 gap-4">
+        <Card className="overflow-hidden border-slate-200 shadow-sm rounded-xl">
+          <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 bg-slate-50/20 py-3 px-4">
+            <h3 className="text-sm font-semibold text-slate-900">Atendimentos Recentes</h3>
+            <Button variant="ghost" size="sm" className="h-8 text-[11px] font-semibold text-blue-600" onClick={() => onNavigate?.('tickets')}>
               Ver todos <ChevronRight size={14} className="ml-1" />
             </Button>
           </CardHeader>
@@ -156,7 +155,7 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
                   fechado: 'slate'
                 };
                 return (
-                  <div key={ticket.id} onClick={() => onNavigate?.('tickets')} className="p-3 px-4 flex items-center gap-3 hover:bg-slate-50 transition-colors cursor-pointer group">
+                  <div key={ticket.id} onClick={() => onNavigate?.('tickets')} className="p-2.5 px-4 flex items-center gap-3 hover:bg-slate-50 transition-colors cursor-pointer group">
                     <div className="w-8 h-8 rounded-lg border border-slate-100 bg-white flex items-center justify-center text-slate-400 group-hover:text-blue-600 transition-colors shadow-sm">
                       <TicketIcon size={14} />
                     </div>

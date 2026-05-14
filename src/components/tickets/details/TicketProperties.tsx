@@ -68,10 +68,10 @@ export const TicketProperties = ({
   const canManage = !!(currentUser.administrador || currentUser.desenvolvedor);
 
   const SectionHeader = ({ id, label, count }: { id: string, label: string, count?: number }) => (
-    <button 
-      onClick={() => toggleSection(id)}
-      className="flex items-center justify-between w-full py-3 hover:bg-slate-50 transition-colors group"
-    >
+      <button 
+        onClick={() => toggleSection(id)}
+        className="flex items-center justify-between w-full py-2 hover:bg-slate-50 transition-colors group"
+      >
       <div className="flex items-center gap-2">
         {openSections[id] ? (
           <ChevronDown size={16} className="text-slate-400 group-hover:text-slate-600" />
@@ -89,7 +89,7 @@ export const TicketProperties = ({
   );
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col pt-1">
+    <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col pt-1">
       <ConfirmDialog 
         isOpen={isArchiveConfirmOpen}
         onClose={() => setIsArchiveConfirmOpen(false)}
@@ -104,24 +104,24 @@ export const TicketProperties = ({
         variant="danger"
       />
 
-      <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+      <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50">
          <h2 className="text-sm font-bold text-slate-900">Detalhes do atendimento</h2>
       </div>
 
       <div className="flex flex-col divide-y divide-slate-100">
         
         {/* Cliente */}
-        <div className="px-5 py-1">
+        <div className="px-4">
           <SectionHeader id="cliente" label="Cliente" />
           {openSections['cliente'] && (
-            <div className="pb-4 space-y-4 pt-1">
+            <div className="pb-3 space-y-3 pt-1">
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 shrink-0">
-                  <UserIcon size={20} />
+                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 shrink-0">
+                  <UserIcon size={16} />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-sm font-bold text-slate-900 truncate">{clienteNome}</div>
-                  <div className="text-sm text-slate-500 truncate">{ticket.cliente_email || 'Sem e-mail'}</div>
+                  <div className="text-sm font-semibold text-slate-900 truncate">{clienteNome}</div>
+                  <div className="text-xs text-slate-500 truncate">{ticket.cliente_email || 'Sem e-mail'}</div>
                 </div>
               </div>
               <div className="space-y-2 pt-3 border-t border-slate-50">
@@ -139,20 +139,20 @@ export const TicketProperties = ({
         </div>
 
         {/* Responsável */}
-        <div className="px-5 py-1">
+        <div className="px-4">
           <SectionHeader id="responsavel" label="Responsável" />
           {openSections['responsavel'] && (
-            <div className="pb-4 pt-1">
+            <div className="pb-3 pt-1">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 shrink-0">
-                  <UserIcon size={20} />
+                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 shrink-0">
+                  <UserIcon size={16} />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-sm font-bold text-slate-900 truncate">
+                  <div className="text-sm font-semibold text-slate-900 truncate">
                     {agents.find(a => a.id === ticket.responsavel_id)?.nome || 'Não atribuído'}
                   </div>
-                  <div className="text-sm text-slate-500 truncate">
-                    Para atribuir a você, vá nas ações do ticket.
+                  <div className="text-xs text-slate-500 truncate">
+                    Para atribuir, vá nas ações.
                   </div>
                 </div>
               </div>
@@ -161,10 +161,10 @@ export const TicketProperties = ({
         </div>
 
         {/* Tags */}
-        <div className="px-5 py-1">
+        <div className="px-4">
           <SectionHeader id="tags" label="Tags" count={ticket.tags?.length || 0} />
           {openSections['tags'] && (
-            <div className="pb-4 pt-1">
+            <div className="pb-3 pt-1">
               <TicketTags 
                 tags={ticket.tags || []}
                 onAdd={(tag) => onUpdateTags?.([...(ticket.tags || []), tag])}
@@ -177,10 +177,10 @@ export const TicketProperties = ({
 
         {/* Campos Adicionais */}
         {ticket.custom_fields && ticket.custom_fields.length > 0 && (
-          <div className="px-5 py-1">
+          <div className="px-4">
             <SectionHeader id="campos" label="Campos adicionais" count={ticket.custom_fields?.length || 0} />
             {openSections['campos'] && (
-              <div className="pb-4 pt-1">
+              <div className="pb-3 pt-1">
                 <TicketCustomFields 
                   fields={ticket.custom_fields || []}
                   onUpdate={onUpdateCustomFields || (() => {})}
@@ -192,10 +192,10 @@ export const TicketProperties = ({
         )}
 
         {/* Anexos */}
-        <div className="px-5 py-1">
+        <div className="px-4">
           <SectionHeader id="anexos" label="Anexos" count={attachments.length} />
           {openSections['anexos'] && (
-            <div className="pb-4 pt-1">
+            <div className="pb-3 pt-1">
               {attachments.length === 0 ? (
                 <p className="text-sm text-slate-500 italic">Nenhum anexo</p>
               ) : (
@@ -206,10 +206,10 @@ export const TicketProperties = ({
         </div>
 
         {/* Datas e resolução */}
-        <div className="px-5 py-1">
+        <div className="px-4">
           <SectionHeader id="datas" label="Datas e resolução" />
           {openSections['datas'] && (
-            <div className="pb-4 pt-1 space-y-3">
+            <div className="pb-3 pt-1 space-y-3">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-slate-500 flex items-center gap-2"><Calendar size={14}/> Criado em</span>
                 <span className="text-slate-900 font-medium">{formatDate(ticket.created_at)}</span>
@@ -225,11 +225,11 @@ export const TicketProperties = ({
       </div>
 
       {canManage && ticket.status !== 'fechado' && (
-        <div className="p-4 bg-slate-50 border-t border-slate-100 mt-2">
+        <div className="p-3 bg-slate-50 border-t border-slate-100 mt-auto">
           <Button 
             variant="ghost"
             onClick={() => setIsArchiveConfirmOpen(true)}
-            className="w-full text-sm font-semibold text-slate-500 hover:text-red-700 hover:bg-red-50 border border-slate-200 hover:border-red-200 transition-colors"
+            className="w-full text-xs font-semibold text-slate-500 hover:text-red-700 hover:bg-red-50 border border-slate-200 hover:border-red-200 transition-colors h-8"
           >
             <Trash2 size={16} className="mr-2" /> 
             Arquivar atendimento
