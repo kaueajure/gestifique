@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { User, Ticket, TicketAttachment } from '../../../types';
 import { Badge } from '../../ui/Badge';
 import { Button } from '../../ui/Button';
+import { Select } from '../../ui/Select';
+import { cn, formatRelativeTime, getSlaInfo } from '../../../lib/utils';
 import { 
   User as UserIcon, 
   Building2, 
@@ -12,7 +14,6 @@ import {
 } from 'lucide-react';
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { AttachmentList } from '../../ui/AttachmentList';
-import { formatRelativeTime } from '../../../lib/utils';
 import { TicketTags } from '../TicketTags';
 import { TicketCustomFields } from './TicketCustomFields';
 
@@ -94,26 +95,123 @@ export const TicketProperties = ({
           <h3 className="text-xs font-semibold text-slate-800 mb-2.5">Atendimento</h3>
           <div className="flex flex-col gap-2 text-xs">
             <div className="flex items-center justify-between">
-               <span className="text-slate-500">Status</span>
-               <span className="font-medium text-slate-900 capitalize">{ticket.status?.replace('_', ' ')}</span>
+               <span className="text-slate-500 shrink-0 mr-2">Status</span>
+               {canManage ? (
+                 <Select 
+                   value={ticket.status || 'aberto'}
+                   onChange={(value) => onUpdate({ status: value as any })}
+                   options={[
+                     { value: 'aberto', label: 'Aberto' },
+                     { value: 'em_andamento', label: 'Em andamento' },
+                     { value: 'aguardando_cliente', label: 'Aguard. cliente' },
+                     { value: 'resolvido', label: 'Resolvido' },
+                     { value: 'fechado', label: 'Fechado' }
+                   ]}
+                   size="sm"
+                   buttonClassName="w-[140px]"
+                 />
+               ) : (
+                 <span className="font-medium text-slate-900 capitalize truncate">{ticket.status?.replace('_', ' ')}</span>
+               )}
             </div>
-            <div className="flex items-center justify-between">
-               <span className="text-slate-500">Prioridade</span>
-               <span className="font-medium text-slate-900 capitalize">{ticket.prioridade}</span>
+            <div className="flex items-center justify-between mt-0.5">
+               <span className="text-slate-500 shrink-0 mr-2">Prioridade</span>
+               {canManage ? (
+                 <Select 
+                   value={ticket.prioridade || 'media'}
+                   onChange={(value) => onUpdate({ prioridade: value as any })}
+                   options={[
+                     { value: 'baixa', label: 'Baixa' },
+                     { value: 'media', label: 'Média' },
+                     { value: 'alta', label: 'Alta' },
+                     { value: 'urgente', label: 'Urgente' }
+                   ]}
+                   size="sm"
+                   buttonClassName="w-[140px]"
+                 />
+               ) : (
+                 <span className="font-medium text-slate-900 capitalize truncate">{ticket.prioridade}</span>
+               )}
             </div>
-            <div className="flex items-center justify-between">
-               <span className="text-slate-500">Responsável</span>
-               <span className="font-medium text-slate-900">{agents.find(a => a.id === ticket.responsavel_id)?.nome || 'Nenhum'}</span>
+            <div className="flex items-center justify-between mt-0.5">
+               <span className="text-slate-500 shrink-0 mr-2">Responsável</span>
+               {canManage ? (
+                 <Select 
+                   value={ticket.responsavel_id ? String(ticket.responsavel_id) : ''}
+                   onChange={(value) => onUpdate({ responsavel_id: value ? Number(value) : null })}
+                   options={[
+                     { value: '', label: 'Nenhum' },
+                     ...agents.map(a => ({ value: String(a.id), label: a.nome }))
+                   ]}
+                   size="sm"
+                   buttonClassName="w-[140px]"
+                 />
+               ) : (
+                 <span className="font-medium text-slate-900 truncate">{agents.find(a => a.id === ticket.responsavel_id)?.nome || 'Nenhum'}</span>
+               )}
             </div>
-            <div className="flex items-center justify-between">
-               <span className="text-slate-500">Categoria</span>
-               <span className="font-medium text-slate-900 capitalize">{ticket.categoria?.replace('_', ' ')}</span>
+            <div className="flex items-center justify-between mt-0.5">
+               <span className="text-slate-500 shrink-0 mr-2">Categoria</span>
+               {canManage ? (
+                 <Select 
+                   value={ticket.categoria || 'suporte_tecnico'}
+                   onChange={(value) => onUpdate({ categoria: value })}
+                   options={[
+                     { value: 'suporte_tecnico', label: 'Suporte Técnico' },
+                     { value: 'financeiro', label: 'Financeiro' },
+                     { value: 'recursos_humanos', label: 'RH' },
+                     { value: 'comercial', label: 'Comercial' },
+                     { value: 'outros', label: 'Outros' }
+                   ]}
+                   size="sm"
+                   buttonClassName="w-[140px]"
+                 />
+               ) : (
+                 <span className="font-medium text-slate-900 capitalize truncate">{ticket.categoria?.replace('_', ' ')}</span>
+               )}
             </div>
-            <div className="flex items-center justify-between">
-               <span className="text-slate-500">Origem</span>
-               <span className="font-medium text-slate-900">{origemLabel}</span>
+            <div className="flex items-center justify-between mt-0.5">
+               <span className="text-slate-500 shrink-0 mr-2">Origem</span>
+               {canManage ? (
+                 <Select 
+                   value={ticket.origem || 'portal'}
+                   onChange={(value) => onUpdate({ origem: value })}
+                   options={[
+                     { value: 'portal', label: 'Portal' },
+                     { value: 'email', label: 'E-mail' },
+                     { value: 'whatsapp', label: 'WhatsApp' },
+                     { value: 'chat', label: 'Chat' },
+                     { value: 'manual', label: 'Manual' },
+                     { value: 'outros', label: 'Outros' }
+                   ]}
+                   size="sm"
+                   buttonClassName="w-[140px]"
+                 />
+               ) : (
+                 <span className="font-medium text-slate-900 truncate">{origemLabel}</span>
+               )}
             </div>
           </div>
+        </div>
+
+        {/* SLA */}
+        <div>
+          <h3 className="text-xs font-semibold text-slate-800 mb-2.5">SLA</h3>
+          {ticket.prazo_sla ? (
+            <div className="flex flex-col gap-1 text-xs">
+              <span className={cn(
+                "font-semibold",
+                getSlaInfo(ticket.prazo_sla, ticket.status).color.replace('bg-', 'text-').replace('text-white', 'text-slate-900')
+              )}>
+                {getSlaInfo(ticket.prazo_sla, ticket.status).label}
+              </span>
+              <span className="text-slate-500">
+                Prazo: {formatDate(ticket.prazo_sla)}
+              </span>
+            </div>
+          ) : (
+             <span className="text-slate-500 text-xs italic">Sem SLA definido</span>
+          )}
         </div>
 
         {/* Tags */}
@@ -142,24 +240,89 @@ export const TicketProperties = ({
         </div>
 
         {/* Campos Adicionais */}
-        {ticket.custom_fields && ticket.custom_fields.length > 0 && (
-          <div>
-             <h3 className="text-xs font-semibold text-slate-800 mb-2.5">Campos adicionais</h3>
+        <div>
+           <h3 className="text-xs font-semibold text-slate-800 mb-2.5">Campos adicionais</h3>
+           {ticket.custom_fields && ticket.custom_fields.length > 0 ? (
              <TicketCustomFields 
                 fields={ticket.custom_fields || []}
                 onUpdate={onUpdateCustomFields || (() => {})}
                 readOnly={!canManage}
              />
+           ) : (
+             <span className="text-slate-400 text-xs italic">Nenhum campo adicional</span>
+           )}
+        </div>
+
+        {/* Resumo */}
+        <div>
+          <h3 className="text-xs font-semibold text-slate-800 mb-2.5">Resumo</h3>
+          <div className="flex flex-col gap-2 text-xs">
+            <div className="flex items-center justify-between">
+               <span className="text-slate-500">ID</span>
+               <span className="font-semibold text-slate-900">#{ticket.id}</span>
+            </div>
+            <div className="flex items-center justify-between">
+               <span className="text-slate-500">Anexos</span>
+               <span className="font-medium text-slate-900">{attachments.length}</span>
+            </div>
+            <div className="flex items-center justify-between">
+               <span className="text-slate-500">Atualização</span>
+               <span className="font-medium text-slate-900">{formatRelativeTime(ticket.updated_at)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Resolução */}
+        {(ticket.status === 'resolvido' || ticket.status === 'fechado') && ticket.finalizado_em && (
+          <div>
+            <h3 className="text-xs font-semibold text-slate-800 mb-2.5">Resolução</h3>
+            <div className="flex flex-col gap-2 text-xs">
+              <div className="flex items-center justify-between">
+                 <span className="text-slate-500">Motivo</span>
+                 <span className="font-medium text-slate-900 capitalize">{ticket.resolucao_motivo?.replace('_', ' ') || 'Não inf.'}</span>
+              </div>
+              <div className="flex items-center justify-between mt-1">
+                 <span className="text-slate-500">Finalizado em</span>
+                 <span className="font-medium text-slate-900">{formatDate(ticket.finalizado_em)}</span>
+              </div>
+              {ticket.resolucao_observacao && (
+                <div className="flex flex-col gap-1 mt-1">
+                   <span className="text-slate-500">Observação</span>
+                   <span className="text-slate-900 border-l-2 border-slate-200 pl-2 text-[11px] leading-relaxed break-words">{ticket.resolucao_observacao}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Reabertura */}
+        {ticket.reaberto_em && (
+          <div>
+            <h3 className="text-xs font-semibold text-slate-800 mb-2.5">Reabertura</h3>
+            <div className="flex flex-col gap-2 text-xs">
+              <div className="flex items-center justify-between">
+                 <span className="text-slate-500">Reaberto em</span>
+                 <span className="font-medium text-slate-900">{formatDate(ticket.reaberto_em)}</span>
+              </div>
+              {ticket.reaberto_por && (
+                 <div className="flex items-center justify-between">
+                    <span className="text-slate-500">Por</span>
+                    <span className="font-medium text-slate-900">{agents.find(a => a.id === ticket.reaberto_por)?.nome || 'Não inf.'}</span>
+                 </div>
+              )}
+            </div>
           </div>
         )}
 
         {/* Anexos */}
-        {attachments.length > 0 && (
-          <div>
-            <h3 className="text-xs font-semibold text-slate-800 mb-2.5">Anexos ({attachments.length})</h3>
+        <div>
+          <h3 className="text-xs font-semibold text-slate-800 mb-2.5">Anexos</h3>
+          {attachments.length > 0 ? (
             <AttachmentList attachments={attachments} compact />
-          </div>
-        )}
+          ) : (
+            <span className="text-slate-400 text-xs italic">Nenhum anexo</span>
+          )}
+        </div>
 
         {/* Datas */}
         <div>
@@ -178,7 +341,7 @@ export const TicketProperties = ({
       </div>
 
       {canManage && ticket.status !== 'fechado' && (
-        <div className="p-3 bg-slate-50 border-t border-slate-100 mt-auto shrink-0">
+        <div className="p-3 bg-slate-50 border-t border-slate-100 mt-2 shrink-0">
           <Button 
             variant="ghost"
             onClick={() => setIsArchiveConfirmOpen(true)}
