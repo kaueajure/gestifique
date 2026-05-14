@@ -15,6 +15,8 @@ import {
   Clock,
   History,
   MessageSquare,
+  Filter,
+  Search,
   Download
 } from 'lucide-react';
 import { Button } from '../ui/Button';
@@ -26,7 +28,7 @@ import { CreateTicketModal } from '../tickets/CreateTicketModal';
 import { TeamSidebar } from '../tickets/TeamSidebar';
 import { PageHeader } from '../ui/PageHeader';
 import { TicketAdvancedFilters as IAdvancedFilters, TicketView } from '../../types';
-import { TicketAdvancedFilters } from '../tickets/TicketAdvancedFilters';
+import { TicketFilterDrawer } from '../tickets/TicketFilterDrawer';
 import { TicketSavedViews } from '../tickets/TicketSavedViews';
 import { Select } from '../ui/Select';
 import { TicketQueue } from '../../types';
@@ -43,13 +45,16 @@ interface TicketsPageProps {
 }
 
 const QUEUES: { id: TicketQueue; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
-  { id: 'todos', label: 'Todos', icon: Layers },
-  { id: 'meus', label: 'Meus tickets', icon: UserIcon },
-  { id: 'sem_responsavel', label: 'Sem resp.', icon: UserMinus },
+  { id: 'meus', label: 'Minha fila', icon: UserIcon },
   { id: 'urgentes', label: 'Urgentes', icon: AlertCircle },
   { id: 'sla_vencido', label: 'SLA vencido', icon: Clock },
-  { id: 'vence_em_breve', label: 'Vence breve', icon: History },
-  { id: 'aguardando_cliente', label: 'Aguardando', icon: MessageSquare },
+  { id: 'sem_responsavel', label: 'Sem resp.', icon: UserMinus },
+  { id: 'todos', label: 'Todos', icon: Layers },
+];
+
+const MORE_QUEUES: { id: TicketQueue; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
+  { id: 'vence_em_breve', label: 'Vence em breve', icon: History },
+  { id: 'aguardando_cliente', label: 'Aguardando cliente', icon: MessageSquare },
   { id: 'precisa_resposta', label: 'Precisa resposta', icon: AlertCircle },
 ];
 
@@ -480,143 +485,156 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
         </AnimatePresence>
       </div>
 
-      <PageHeader 
-        title="Atendimentos" 
-        action={
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            {!!currentUser.desenvolvedor && (
-              <div className="relative w-40 sm:w-48">
-                <Building className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 z-10" size={12} />
-                <Select 
-                  value={devCompanyId}
-                  onChange={setDevCompanyId}
-                  placeholder="Empresa..."
-                  buttonClassName="pl-8 h-8 text-[11px] font-bold uppercase tracking-tight"
-                  options={[
-                    { value: '', label: 'Selecione a empresa' },
-                    ...companies.map(emp => ({
-                      value: String(emp.id),
-                      label: emp.nome
-                    }))
-                  ]}
-                />
-              </div>
-            )}
-
-            <div className="flex items-center gap-1.5 bg-white border border-slate-200 p-1 rounded-xl shadow-sm">
-              <button 
-                onClick={() => setViewMode('kanban')}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all",
-                  viewMode === 'kanban' ? "bg-blue-600 text-white shadow-md shadow-blue-100" : "text-slate-500 hover:bg-slate-50"
-                )}
-              >
-                <Kanban size={14} />
-                <span className="hidden sm:inline">Kanban</span>
-              </button>
-              <button 
-                onClick={() => setViewMode('list')}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all",
-                  viewMode === 'list' ? "bg-blue-600 text-white shadow-md shadow-blue-100" : "text-slate-500 hover:bg-slate-50"
-                )}
-              >
-                <ListIcon size={14} />
-                <span className="hidden sm:inline">Lista</span>
-              </button>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 py-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Atendimentos</h1>
+          <p className="text-sm text-slate-500 font-medium">Gerencie, priorize e acompanhe os chamados da equipe</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {!!currentUser.desenvolvedor && (
+            <div className="relative w-40 sm:w-48">
+              <Building className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 z-10" size={12} />
+              <Select 
+                value={devCompanyId}
+                onChange={setDevCompanyId}
+                placeholder="Empresa..."
+                buttonClassName="pl-8 h-9 text-xs font-semibold"
+                options={[
+                  { value: '', label: 'Selecione a empresa' },
+                  ...companies.map(emp => ({
+                    value: String(emp.id),
+                    label: emp.nome
+                  }))
+                ]}
+              />
             </div>
-
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="sm"
-                className={cn(
-                  "h-8 w-8 p-0 bg-white border-slate-200 text-slate-500 hover:bg-slate-50",
-                  showTeamSidebar && "bg-blue-50 border-blue-200 text-blue-600"
-                )}
-                onClick={() => setShowTeamSidebar(!showTeamSidebar)}
-                title="Equipe"
-              >
-                <UserIcon size={16} />
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-8 w-8 p-0 bg-white border-slate-200 text-slate-500 hover:bg-slate-50" 
-                onClick={fetchData}
-                title="Atualizar"
-              >
-                <RefreshCw size={14} className={loading ? "animate-spin text-blue-600" : ""} />
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-8 w-8 p-0 bg-white border-slate-200 text-slate-500 hover:bg-slate-50" 
-                onClick={exportToCSV}
-                title="Exportar CSV"
-              >
-                <Download size={14} />
-              </Button>
-            </div>
-
-            <Button className="h-8 pr-4 shadow-lg shadow-blue-100" onClick={() => setIsModalOpen(true)}>
-              <Plus size={16} className="mr-1.5" /> 
-              <span className="text-[11px] font-bold uppercase tracking-tight">Novo Atendimento</span>
-            </Button>
-          </div>
-        }
-      />
+          )}
+          <Button 
+            className="h-10 px-5 shadow-lg shadow-blue-100 bg-blue-600 hover:bg-blue-700" 
+            onClick={() => setIsModalOpen(true)}
+          >
+            <Plus size={18} className="mr-2" /> 
+            <span className="text-sm font-bold uppercase tracking-tight">Novo Atendimento</span>
+          </Button>
+        </div>
+      </div>
 
       <div className="flex flex-col lg:flex-row gap-3 items-start">
-        <div className="flex-1 w-full space-y-2">
-          {/* Smart Queues Tabs - More Compact Refined */}
-          <div className="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar">
+        <div className="flex-1 w-full space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-2 md:p-3 rounded-xl border border-slate-200/60 shadow-sm">
+            <div className="flex-1 w-full max-w-2xl flex items-center gap-2">
+              <div className="relative flex-1 group">
+                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={16} />
+                 <input 
+                   type="text" 
+                   placeholder="Buscar por ID, cliente ou assunto..." 
+                   className="w-full h-10 bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-4 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all focus:bg-white"
+                   value={searchTerm}
+                   onChange={(e) => setSearchTerm(e.target.value)}
+                 />
+              </div>
+
+              <TicketSavedViews 
+                views={savedViews}
+                currentViewId={currentViewId}
+                onSelectView={handleSelectView}
+                onSaveCurrent={handleSaveView}
+                onDeleteView={handleDeleteView}
+              />
+
+              <Button 
+                variant="outline" 
+                onClick={() => setShowAdvanced(true)}
+                className={cn(
+                  "h-10 px-4 text-sm font-semibold border-slate-200 shadow-sm transition-all",
+                  hasAnyFilters ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-white text-slate-700 hover:bg-slate-50"
+                )}
+              >
+                <Filter size={16} className={cn("mr-2", hasAnyFilters ? "text-blue-600" : "text-slate-400")} />
+                Filtros
+                {hasAnyFilters && (
+                  <span className="ml-2 flex items-center justify-center w-5 h-5 rounded bg-blue-600 text-white text-[10px] font-bold">
+                    {getActiveFilterChips().length}
+                  </span>
+                )}
+              </Button>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <div className="flex items-center p-1 bg-slate-50 rounded-xl border border-slate-100">
+                <button 
+                  onClick={() => setViewMode('list')}
+                  className={cn(
+                    "p-2 rounded-lg transition-all",
+                    viewMode === 'list' ? "bg-white text-blue-600 shadow-sm border border-slate-200" : "text-slate-400 hover:text-slate-600"
+                  )}
+                  title="Lista"
+                >
+                  <ListIcon size={18} />
+                </button>
+                <button 
+                  onClick={() => setViewMode('kanban')}
+                  className={cn(
+                    "p-2 rounded-lg transition-all",
+                    viewMode === 'kanban' ? "bg-white text-blue-600 shadow-sm border border-slate-200" : "text-slate-400 hover:text-slate-600"
+                  )}
+                  title="Kanban"
+                >
+                  <Kanban size={18} />
+                </button>
+              </div>
+
+              <div className="w-px h-6 bg-slate-200 mx-1 hidden sm:block" />
+
+              <Select
+                value=""
+                onChange={(val) => {
+                  if (val === 'equipe') setShowTeamSidebar(!showTeamSidebar);
+                  if (val === 'exportar') exportToCSV();
+                  if (val === 'atualizar') fetchData();
+                }}
+                options={[
+                   { value: '', label: 'Mais opções' },
+                   { value: 'equipe', label: 'Ver equipe' },
+                   { value: 'exportar', label: 'Exportar CSV' },
+                   { value: 'atualizar', label: 'Atualizar agora' }
+                ]}
+                buttonClassName="h-10 px-3 bg-white border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-semibold shadow-sm"
+                className="w-36 hidden md:block"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar border-b border-slate-100">
             {QUEUES.map((q) => {
-              const Icon = q.icon;
               const isActive = selectedQueue === q.id;
               const count = queueCounts?.[q.id] || 0;
               
-              // Special colors for critical queues
-              const isUrgent = q.id === 'urgentes' || q.id === 'sla_vencido';
-              const isWarning = q.id === 'sem_responsavel' || q.id === 'vence_em_breve';
-              const isInfo = q.id === 'precisa_resposta';
-
               return (
                 <button
                   key={q.id}
                   onClick={() => setSelectedQueue(q.id)}
                   className={cn(
-                    "relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all border shrink-0",
+                    "relative flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-all whitespace-nowrap",
                     isActive 
-                      ? "bg-blue-600 border-blue-600 text-white shadow-md translate-y-[-1px]" 
-                      : cn(
-                          "bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50",
-                          isUrgent && count > 0 && "text-red-500 border-red-100 bg-red-50/20",
-                          isWarning && count > 0 && "text-amber-600 border-amber-100 bg-amber-50/20",
-                          isInfo && count > 0 && "text-blue-600 border-blue-100 bg-blue-50/20"
-                        )
+                      ? "text-blue-600" 
+                      : "text-slate-400 hover:text-slate-600"
                   )}
                 >
-                  <Icon size={12} className={cn(
-                    "shrink-0",
-                    isActive ? "text-blue-100" : (
-                      isUrgent && count > 0 ? "text-red-400" : (
-                        isInfo && count > 0 ? "text-blue-400" : "text-slate-400"
-                      )
-                    )
-                  )} />
                   <span>{q.label}</span>
                   {count > 0 && (
-                    <span 
-                      className={cn(
-                        "ml-0.5 px-1 py-0.5 rounded text-[8px] font-black tracking-tight",
-                        isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500",
-                        !isActive && isUrgent && "bg-red-100 text-red-600",
-                        !isActive && isWarning && "bg-amber-100 text-amber-700"
-                      )}
-                    >
+                    <span className={cn(
+                      "px-2 py-0.5 rounded-full text-[10px] font-bold tracking-tight",
+                      isActive ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500"
+                    )}>
                       {count > 99 ? '99+' : count}
                     </span>
+                  )}
+                  {isActive && (
+                    <motion.div 
+                      layoutId="activeQueue"
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
+                    />
                   )}
                 </button>
               );
@@ -651,9 +669,21 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
             <TicketAdvancedFilters 
               filters={advancedFilters}
               onFilterChange={setAdvancedFilters}
-              onClear={() => setAdvancedFilters({ sla_status: 'todos' })}
+              status={statusFilter}
+              onStatusChange={setStatusFilter}
+              priority={priorityFilter}
+              onPriorityChange={setPriorityFilter}
+              category={categoryFilter}
+              onCategoryChange={setCategoryFilter}
+              onClear={() => {
+                setAdvancedFilters({ sla_status: 'todos' });
+                setStatusFilter('todos');
+                setPriorityFilter('todas');
+                setCategoryFilter('todas');
+              }}
               agents={agents}
               isOpen={showAdvanced}
+              onClose={() => setShowAdvanced(false)}
             />
 
             {/* Active Filter Chips */}

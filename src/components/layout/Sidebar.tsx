@@ -29,15 +29,35 @@ interface SidebarProps {
 }
 
 export const Sidebar = ({ currentUser, activeTab, setActiveTab, isOpen, onClose, onLogout, onNavigate }: SidebarProps) => {
-  const menuItems = [
-    { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', access: true },
-    { id: 'tickets', icon: Ticket, label: 'Atendimentos', access: true },
-    { id: 'reports', icon: BarChart3, label: 'Relatórios', access: !!(currentUser.administrador || currentUser.desenvolvedor) },
-    { id: 'users', icon: Users, label: 'Usuários', access: !!(currentUser.administrador || currentUser.desenvolvedor) },
-    { id: 'companies', icon: Building2, label: 'Empresas', access: !!currentUser.desenvolvedor },
-    { id: 'logs', icon: Shield, label: 'Logs do Sistema', access: !!(currentUser.administrador || currentUser.desenvolvedor) },
-    { id: 'profile', icon: UserCircle, label: 'Meu Perfil', access: true },
-    { id: 'settings', icon: Settings, label: 'Configurações', access: true },
+  const sections = [
+    {
+      title: 'Operação',
+      items: [
+        { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', access: true },
+        { id: 'tickets', icon: Ticket, label: 'Atendimentos', access: true },
+      ]
+    },
+    {
+      title: 'Gestão',
+      items: [
+        { id: 'reports', icon: BarChart3, label: 'Relatórios', access: !!(currentUser.administrador || currentUser.desenvolvedor) },
+        { id: 'users', icon: Users, label: 'Usuários', access: !!(currentUser.administrador || currentUser.desenvolvedor) },
+        { id: 'companies', icon: Building2, label: 'Empresas', access: !!currentUser.desenvolvedor },
+      ]
+    },
+    {
+      title: 'Sistema',
+      items: [
+        { id: 'settings', icon: Settings, label: 'Configurações', access: true },
+        { id: 'logs', icon: Shield, label: 'Logs do Sistema', access: !!(currentUser.administrador || currentUser.desenvolvedor) },
+      ]
+    },
+    {
+      title: 'Conta',
+      items: [
+        { id: 'profile', icon: UserCircle, label: 'Meu Perfil', access: true },
+      ]
+    }
   ];
 
   const handleNav = (id: string) => {
@@ -56,37 +76,58 @@ export const Sidebar = ({ currentUser, activeTab, setActiveTab, isOpen, onClose,
       )}
 
       <aside className={cn(
-        "fixed lg:static inset-y-0 left-0 w-64 bg-slate-50 border-r border-slate-200 z-50 flex flex-col transition-transform duration-300 ease-in-out",
+        "fixed lg:static inset-y-0 left-0 w-64 bg-white border-r border-slate-200/60 z-50 flex flex-col transition-transform duration-300 ease-in-out",
         isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
-        <div className="h-16 flex items-center justify-between px-6 border-b border-slate-200 bg-white">
-          <div className="flex items-center gap-1.5">
-            <AppLogo size={20} />
-            <span className="text-lg font-bold text-slate-900 tracking-tight">Gestifique</span>
+        <div className="h-16 flex items-center justify-between px-6 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-sm shadow-blue-200">
+              <Plus size={20} strokeWidth={3} />
+            </div>
+            <span className="text-xl font-black text-slate-900 tracking-tight">Gestifique</span>
           </div>
           <button onClick={onClose} className="lg:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-lg">
             <X size={18} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-3 py-6 space-y-1">
-           <div className="space-y-0.5">
-             {menuItems.filter(item => item.access).map((item) => (
-               <button
-                 key={item.id}
-                 onClick={() => handleNav(item.id)}
-                 className={cn(
-                   "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                   activeTab === item.id 
-                    ? "bg-white text-blue-700 border border-slate-200 shadow-sm" 
-                    : "text-slate-500 hover:text-slate-900 hover:bg-slate-200/50"
-                 )}
-               >
-                 <item.icon size={18} className={activeTab === item.id ? "text-blue-700" : "text-slate-400"} />
-                 {item.label}
-               </button>
-             ))}
-           </div>
+        <div className="flex-1 overflow-y-auto px-4 py-6 space-y-8">
+          {sections.map((section) => {
+            const accessibleItems = section.items.filter(i => i.access);
+            if (accessibleItems.length === 0) return null;
+
+            return (
+              <div key={section.title} className="space-y-2">
+                <h3 className="px-3 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400/80">
+                  {section.title}
+                </h3>
+                <div className="space-y-1">
+                  {accessibleItems.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => handleNav(item.id)}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200",
+                        activeTab === item.id 
+                          ? "bg-blue-50 text-blue-600 shadow-sm shadow-blue-100/50" 
+                          : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+                      )}
+                    >
+                      <item.icon 
+                        size={18} 
+                        className={cn(
+                          "transition-colors",
+                          activeTab === item.id ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600"
+                        )} 
+                        strokeWidth={activeTab === item.id ? 2.5 : 2}
+                      />
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         <div className="p-3 border-t border-slate-200 bg-white space-y-3">

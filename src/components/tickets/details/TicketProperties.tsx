@@ -67,7 +67,7 @@ export const TicketProperties = ({
   );
 
   return (
-    <>
+    <div className="space-y-6">
       <ConfirmDialog 
         isOpen={isArchiveConfirmOpen}
         onClose={() => setIsArchiveConfirmOpen(false)}
@@ -82,129 +82,105 @@ export const TicketProperties = ({
         variant="danger"
       />
 
-      <Card className="border-slate-200 shadow-sm overflow-hidden bg-white rounded-2xl">
-          <CardHeader className="py-3 px-5 border-b border-slate-50 bg-slate-50/30">
-             <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-500">DADOS TÉCNICOS</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 space-y-4">
-             {/* Seções Colapsáveis */}
-             <div className="space-y-1">
-                {/* Solicitante */}
-                <div>
-                   <SectionHeader id="customer" label="Solicitante" icon={UserIcon} />
-                   {openSections.customer && (
-                     <div className="space-y-1.5 py-1.5 animate-in slide-in-from-top-1 duration-200">
-                        <div className="flex items-center gap-2 bg-slate-50/50 p-1.5 rounded-lg border border-slate-100/50">
-                           <div className="w-6 h-6 rounded bg-white border border-slate-200 flex items-center justify-center text-slate-400 shrink-0">
-                               <UserIcon size={11} />
-                           </div>
-                           <div className="min-w-0">
-                              <div className="text-[10px] font-black text-slate-800 truncate leading-tight uppercase">{clienteNome}</div>
-                              <div className="text-[8px] font-bold text-slate-400 truncate tracking-tight uppercase leading-none mt-0.5">{ticket.cliente_email || 's/ email'}</div>
-                           </div>
-                        </div>
-                        <div className="flex items-center gap-2 px-1">
-                           <Building2 size={9} className="text-slate-300" />
-                           <span className="text-[9px] font-black text-slate-500 truncate uppercase tracking-tighter">{empresaNome}</span>
-                        </div>
-                        <div className="flex items-center gap-2 px-1">
-                           <Calendar size={9} className="text-slate-300" />
-                           <span className="text-[9px] font-black text-slate-500 truncate uppercase tracking-tighter">{origemLabel}</span>
-                        </div>
-                     </div>
-                   )}
-                </div>
+      {/* Solicitante */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Solicitante</h3>
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 shrink-0">
+            <UserIcon size={20} />
+          </div>
+          <div className="min-w-0">
+            <div className="text-sm font-bold text-slate-900 truncate">{clienteNome}</div>
+            <div className="text-xs font-medium text-slate-500 truncate">{ticket.cliente_email || 'Sem e-mail'}</div>
+          </div>
+        </div>
+        <div className="space-y-2 pt-2 border-t border-slate-50">
+          <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+            <Building2 size={14} className="text-slate-300" />
+            <span className="truncate">{empresaNome}</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+            <Globe size={14} className="text-slate-300" />
+            <span className="truncate">Origem: {origemLabel}</span>
+          </div>
+        </div>
+      </div>
 
-                {/* Tags */}
-                <div className="border-t border-slate-50 pt-1">
-                   <SectionHeader id="tags" label="Tags" icon={Tag} count={ticket.tags?.length || 0} />
-                   {openSections.tags && (
-                     <div className="py-2 animate-in slide-in-from-top-1 duration-200">
-                        <TicketTags 
-                          tags={ticket.tags || []}
-                          onAdd={(tag) => onUpdateTags?.([...(ticket.tags || []), tag])}
-                          onRemove={(tag) => onUpdateTags?.((ticket.tags || []).filter(t => t !== tag))}
-                          readOnly={!canManage}
-                        />
-                     </div>
-                   )}
-                </div>
+      {/* Tags */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Tags</h3>
+          {ticket.tags && ticket.tags.length > 0 && (
+            <Badge variant="slate" className="text-[9px] font-bold px-1.5 py-0">{ticket.tags.length}</Badge>
+          )}
+        </div>
+        <TicketTags 
+          tags={ticket.tags || []}
+          onAdd={(tag) => onUpdateTags?.([...(ticket.tags || []), tag])}
+          onRemove={(tag) => onUpdateTags?.((ticket.tags || []).filter(t => t !== tag))}
+          readOnly={!canManage}
+        />
+      </div>
 
-                {/* Campos Personalizados */}
-                <div className="border-t border-slate-50 pt-1">
-                   <SectionHeader id="custom" label="Personalizados" icon={Activity} count={ticket.custom_fields?.length || 0} />
-                   {openSections.custom && (
-                     <div className="py-2 animate-in slide-in-from-top-1 duration-200">
-                        <TicketCustomFields 
-                          fields={ticket.custom_fields || []}
-                          onUpdate={onUpdateCustomFields || (() => {})}
-                          readOnly={!canManage}
-                        />
-                     </div>
-                   )}
-                </div>
+      {/* Atividade */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Atividade</h3>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
+              <Calendar size={14} />
+              Criado
+            </div>
+            <span className="text-xs font-bold text-slate-700">{formatDate(ticket.created_at)}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
+              <Clock size={14} />
+              Última atividade
+            </div>
+            <span className="text-xs font-bold text-blue-600">{formatRelativeTime(ticket.updated_at)}</span>
+          </div>
+        </div>
+      </div>
 
-                {/* Datas e Histórico */}
-                <div className="border-t border-slate-50 pt-1">
-                   <SectionHeader id="history" label="Histórico" icon={Clock} />
-                   {openSections.history && (
-                     <div className="py-2 space-y-2 animate-in slide-in-from-top-1 duration-200">
-                        <div className="flex justify-between items-center text-[10px] font-bold px-1">
-                           <span className="text-slate-400 uppercase">Criado</span>
-                           <span className="text-slate-700 tracking-tight">{formatDate(ticket.created_at)}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-[10px] font-bold px-1">
-                           <span className="text-slate-400 uppercase">Atividade</span>
-                           <span className="text-blue-600 uppercase tracking-tighter">{formatRelativeTime(ticket.updated_at)}</span>
-                        </div>
-                        {['resolvido', 'fechado'].includes(ticket.status) && (
-                          <div className="bg-slate-50 p-2 rounded border border-slate-100 mt-2">
-                             <div className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">Solução Aplicada</div>
-                             <div className="text-[10px] font-bold text-slate-700">{ticket.resolucao_motivo?.replace(/_/g, ' ') || 'Não inf.'}</div>
-                             {ticket.resolucao_observacao && (
-                               <div className="text-[9px] text-slate-500 italic mt-1 border-t border-slate-100 pt-1 line-clamp-2">
-                                 "{ticket.resolucao_observacao}"
-                               </div>
-                             )}
-                          </div>
-                        )}
-                     </div>
-                   )}
-                </div>
+      {/* Campos Personalizados */}
+      {ticket.custom_fields && ticket.custom_fields.length > 0 && (
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+          <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Campos Adicionais</h3>
+          <TicketCustomFields 
+            fields={ticket.custom_fields || []}
+            onUpdate={onUpdateCustomFields || (() => {})}
+            readOnly={!canManage}
+          />
+        </div>
+      )}
 
-                {/* Anexos */}
-                <div className="border-t border-slate-50 pt-1">
-                   <SectionHeader id="attachments" label="Anexos" icon={Paperclip} count={attachments.length} />
-                   {openSections.attachments && (
-                     <div className="py-2 animate-in slide-in-from-top-1 duration-200">
-                        {attachments.length === 0 ? (
-                           <div className="text-[9px] font-bold text-slate-400 uppercase text-center py-2 italic">Nenhum arquivo</div>
-                        ) : (
-                           <AttachmentList 
-                             attachments={attachments} 
-                             compact 
-                             className="gap-2"
-                           />
-                        )}
-                     </div>
-                   )}
-                </div>
-             </div>
+      {/* Anexos */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Anexos</h3>
+          {attachments.length > 0 && (
+            <Badge variant="slate" className="text-[9px] font-bold px-1.5 py-0">{attachments.length}</Badge>
+          )}
+        </div>
+        {attachments.length === 0 ? (
+          <p className="text-[11px] font-medium text-slate-400 italic text-center py-2">Nenhum anexo</p>
+        ) : (
+          <AttachmentList attachments={attachments} compact />
+        )}
+      </div>
 
-                 {!!(currentUser.administrador || currentUser.desenvolvedor) && ticket.status !== 'fechado' && (
-               <div className="pt-4 mt-2">
-                  <Button 
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsArchiveConfirmOpen(true)}
-                    className="w-full h-10 border-slate-200 text-slate-400 hover:text-red-500 hover:bg-red-50 hover:border-red-100 transition-all text-[10px] font-bold uppercase tracking-widest rounded-xl shadow-none"
-                  >
-                     <Trash2 size={12} className="mr-2" /> Arquivar Chamado
-                  </Button>
-               </div>
-             )}
-          </CardContent>
-       </Card>
-    </>
+      {/* Arquivar */}
+      {canManage && ticket.status !== 'fechado' && (
+        <Button 
+          variant="ghost"
+          onClick={() => setIsArchiveConfirmOpen(true)}
+          className="w-full h-12 text-xs font-bold text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-2xl border border-dashed border-slate-200 hover:border-red-100 transition-all uppercase tracking-widest"
+        >
+          <Trash2 size={14} className="mr-2" /> 
+          Arquivar Chamado
+        </Button>
+      )}
+    </div>
   );
 };
