@@ -3,7 +3,6 @@ import { Badge } from '../../ui/Badge';
 import { Button } from '../../ui/Button';
 import { ArrowLeft } from 'lucide-react';
 import { TicketStatus } from '../../../types';
-import { cn } from '../../../lib/utils';
 
 interface TicketHeaderProps {
   id: number;

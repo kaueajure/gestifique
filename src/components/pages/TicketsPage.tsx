@@ -119,11 +119,9 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
   const [selectedTicketIds, setSelectedTicketIds] = useState<number[]>([]);
 
   useEffect(() => {
-    if (currentUser.desenvolvedor) {
+    if (!!(currentUser.administrador || currentUser.desenvolvedor)) {
       api.get<Empresa[]>('/companies').then(setCompanies).catch(console.error);
-    }
-
-    if (currentUser.administrador || currentUser.desenvolvedor) {
+      
       // Fetch agents for bulk assignment
       api.get<User[]>('/users').then(users => {
         const filteredAgents = users.filter(u => 
@@ -480,9 +478,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
             </motion.div>
           ))}
         </AnimatePresence>
-      </div>
-
-      <PageHeader 
+       <PageHeader 
         title="Atendimentos" 
         action={
           <div className="flex items-center gap-4">
@@ -562,7 +558,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
       />
 
       <div className="flex flex-col lg:flex-row gap-4 items-start">
-        <div className="flex-1 min-w-0 space-y-4">
+        <div className="flex-1 w-full space-y-4">
           {/* Smart Queues - More Premium Tab System */}
           <div className="flex items-center gap-4 border-b border-slate-200/60 pb-0.5 overflow-x-auto no-scrollbar">
             {QUEUES.map((q) => {
@@ -606,7 +602,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
             })}
           </div>
 
-          <div className="relative z-[200] bg-white rounded-2xl border border-slate-200/70 shadow-sm overflow-visible">
+          <div className="relative z-[200] bg-white rounded-2xl border border-slate-200/70 shadow-sm overflow-hidden">
             <div className="flex flex-col xl:flex-row xl:items-center justify-between p-2.5 gap-3">
               <div className="flex flex-wrap items-center gap-3">
                 <TicketSavedViews 
@@ -644,8 +640,8 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                   <span className="text-[10px] font-black uppercase tracking-widest">Equipe</span>
                 </Button>
               </div>
-            </div>
-
+            </div>       </div>
+            
             <TicketAdvancedFilters 
               filters={advancedFilters}
               onFilterChange={setAdvancedFilters}
@@ -728,12 +724,12 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
           </div>
         </div>
         
-        {showTeamSidebar && (currentUser.administrador || (currentUser.desenvolvedor && devCompanyId)) && (
+        {showTeamSidebar && (
           <motion.div 
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
-            className="w-full lg:w-80 shrink-0 sticky top-4 h-fit"
+            className="w-full lg:w-56 shrink-0"
           >
             <TeamSidebar currentUser={currentUser} devCompanyId={devCompanyId} />
           </motion.div>
