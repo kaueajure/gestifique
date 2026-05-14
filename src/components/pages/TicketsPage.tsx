@@ -38,6 +38,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { TicketBulkActions } from '../tickets/TicketBulkActions';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useTicketOptions } from '../../hooks/useTicketOptions';
 
 interface TicketsPageProps {
   onSelectTicket: (id: number) => void;
@@ -100,6 +101,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
   const [statusFilter, setStatusFilter] = useState('todos');
   const [priorityFilter, setPriorityFilter] = useState('todas');
   const [categoryFilter, setCategoryFilter] = useState('todas');
+  const [serviceFilter, setServiceFilter] = useState('todos');
   const [selectedQueue, setSelectedQueue] = useState<TicketQueue>('todos');
   
   // Advanced Filters
@@ -122,6 +124,31 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
 
   // Bulk Selection
   const [selectedTicketIds, setSelectedTicketIds] = useState<number[]>([]);
+
+  const { activeCategories, activeServices } = useTicketOptions(
+    currentUser.desenvolvedor ? (devCompanyId || undefined) : String(currentUser.empresa_id)
+  );
+
+  const categoryOptionsForFilter = activeCategories.length > 0 
+    ? [{ value: 'todas', label: 'Todas' }, ...activeCategories.map(c => ({ value: c.valor, label: c.nome }))]
+    : [
+        { value: 'todas', label: 'Todas' },
+        { value: 'suporte_tecnico', label: 'Suporte Técnico' },
+        { value: 'financeiro', label: 'Financeiro' },
+        { value: 'recursos_humanos', label: 'Recursos Humanos' },
+        { value: 'comercial', label: 'Comercial' },
+        { value: 'outros', label: 'Outros' }
+      ];
+
+  const serviceOptionsForFilter = activeServices.length > 0 
+    ? [{ value: 'todos', label: 'Todos' }, ...activeServices.map(s => ({ value: s.valor, label: s.nome }))]
+    : [
+        { value: 'todos', label: 'Todos' },
+        { value: 'suporte', label: 'Suporte' },
+        { value: 'implantacao', label: 'Implantação' },
+        { value: 'treinamento', label: 'Treinamento' },
+        { value: 'outros', label: 'Outros' }
+      ];
 
   useEffect(() => {
     if (!!(currentUser.administrador || currentUser.desenvolvedor)) {
@@ -186,6 +213,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
       if (statusFilter !== 'todos') query.append('status', statusFilter);
       if (priorityFilter !== 'todas') query.append('prioridade', priorityFilter);
       if (categoryFilter !== 'todas') query.append('categoria', categoryFilter);
+      if (serviceFilter !== 'todos') query.append('servico', serviceFilter);
       if (selectedQueue !== 'todos') query.append('fila', selectedQueue);
 
       // Advanced Filters
@@ -275,6 +303,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
       setStatusFilter('todos');
       setPriorityFilter('todas');
       setCategoryFilter('todas');
+      setServiceFilter('todos');
       setSelectedQueue('todos');
       setAdvancedFilters({ sla_status: 'todos' });
       return;
@@ -285,6 +314,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
     if (f.status) setStatusFilter(f.status);
     if (f.prioridade) setPriorityFilter(f.prioridade);
     if (f.categoria) setCategoryFilter(f.categoria);
+    if (f.servico) setServiceFilter(f.servico);
     if (f.fila) setSelectedQueue(f.fila);
     if (f.search !== undefined) setSearchTerm(f.search);
     if (f.advanced) setAdvancedFilters(f.advanced);
@@ -302,6 +332,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
         status: statusFilter as any,
         prioridade: priorityFilter as any,
         categoria: categoryFilter,
+        servico: serviceFilter,
         fila: selectedQueue,
         search: searchTerm,
         advanced: advancedFilters,
@@ -408,6 +439,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
     statusFilter !== 'todos' ||
     priorityFilter !== 'todas' ||
     categoryFilter !== 'todas' ||
+    serviceFilter !== 'todos' ||
     selectedQueue !== 'todos' ||
     hasAdvancedFilters;
 
@@ -416,6 +448,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
     setStatusFilter('todos');
     setPriorityFilter('todas');
     setCategoryFilter('todas');
+    setServiceFilter('todos');
     setSelectedQueue('todos');
     setAdvancedFilters({ sla_status: 'todos' });
     setCurrentViewId(null);
@@ -426,6 +459,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
     else if (key === 'status') setStatusFilter('todos');
     else if (key === 'priority') setPriorityFilter('todas');
     else if (key === 'category') setCategoryFilter('todas');
+    else if (key === 'service') setServiceFilter('todos');
     else if (key === 'queue') setSelectedQueue('todos');
     else if (key.startsWith('adv:')) {
       const advKey = key.replace('adv:', '') as keyof IAdvancedFilters;
@@ -439,7 +473,14 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
     if (searchTerm) chips.push({ id: 'search', label: 'Busca', value: searchTerm });
     if (statusFilter !== 'todos') chips.push({ id: 'status', label: 'Status', value: statusFilter.replace('_', ' ') });
     if (priorityFilter !== 'todas') chips.push({ id: 'priority', label: 'Prioridade', value: priorityFilter });
-    if (categoryFilter !== 'todas') chips.push({ id: 'category', label: 'Categoria', value: categoryFilter.replace('_', ' ') });
+    if (categoryFilter !== 'todas') {
+       const catLabel = categoryOptionsForFilter.find(c => c.value === categoryFilter)?.label || categoryFilter.replace('_', ' ');
+       chips.push({ id: 'category', label: 'Categoria', value: catLabel });
+    }
+    if (serviceFilter !== 'todos') {
+       const srvLabel = serviceOptionsForFilter.find(c => c.value === serviceFilter)?.label || serviceFilter.replace('_', ' ');
+       chips.push({ id: 'service', label: 'Serviço', value: srvLabel });
+    }
     if (selectedQueue !== 'todos') {
       const queueLabel = QUEUES.find(q => q.id === selectedQueue)?.label || selectedQueue;
       chips.push({ id: 'queue', label: 'Fila', value: queueLabel });
@@ -697,10 +738,14 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
             setPriorityFilter={setPriorityFilter}
             categoryFilter={categoryFilter}
             setCategoryFilter={setCategoryFilter}
+            serviceFilter={serviceFilter}
+            setServiceFilter={setServiceFilter}
             filters={advancedFilters}
             onFilterChange={setAdvancedFilters}
             onClear={clearFilters}
             agents={agents}
+            categoryOptions={categoryOptionsForFilter}
+            serviceOptions={serviceOptionsForFilter}
           />
 
           <AnimatePresence>

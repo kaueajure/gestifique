@@ -272,6 +272,38 @@ async function initDB() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    // Categorias de ticket da empresa
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS empresa_ticket_categorias (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        empresa_id INT NOT NULL,
+        nome VARCHAR(100) NOT NULL,
+        valor VARCHAR(100) NOT NULL,
+        ativo TINYINT(1) DEFAULT 1,
+        ordem INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_empresa_categoria (empresa_id, valor),
+        FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // Serviços de ticket da empresa
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS empresa_ticket_servicos (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        empresa_id INT NOT NULL,
+        nome VARCHAR(100) NOT NULL,
+        valor VARCHAR(100) NOT NULL,
+        ativo TINYINT(1) DEFAULT 1,
+        ordem INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_empresa_servico (empresa_id, valor),
+        FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
     console.log('[BOOT] 📚 Tabelas base validadas. Iniciando migrações de colunas...');
 
     // Migrações Horizontais (Garantir colunas novas em bancos antigos)
@@ -306,6 +338,7 @@ async function initDB() {
     await ensureColumn('tickets', 'reaberto_em', 'DATETIME NULL');
     await ensureColumn('tickets', 'reaberto_por', 'INT NULL');
     await ensureColumn('tickets', 'origem', 'VARCHAR(50) NULL');
+    await ensureColumn('tickets', 'servico', 'VARCHAR(100) NULL');
     await ensureColumn('tickets', 'responsavel_id', 'INT NULL');
     await ensureColumn('tickets', 'precisa_revisao_responsavel', 'TINYINT(1) DEFAULT 0');
     // Campos para suporte a abertura por remetentes externos (email-channels)

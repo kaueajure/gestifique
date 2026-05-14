@@ -10,6 +10,7 @@ import { Card } from '../ui/Card';
 import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { EmailChannelsManager } from '../companies/EmailChannelsManager';
+import { TicketOptionsManager } from '../settings/TicketOptionsManager';
 
 type AppTab = 'dashboard' | 'tickets' | 'users' | 'companies' | 'logs' | 'profile' | 'settings' | 'reports';
 
@@ -29,7 +30,7 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [activeSubTab, setActiveSubTab] = useState<'general' | 'company' | 'system'>('general');
+  const [activeSubTab, setActiveSubTab] = useState<'general' | 'company' | 'system' | 'tickets'>('general');
   const [dbStatus, setDbStatus] = useState<string | null>(null);
 
   const checkDb = async () => {
@@ -127,6 +128,18 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
             )}
           >
             <Building2 size={14} /> Empresa
+          </button>
+        )}
+
+        {!!(currentUser.administrador || currentUser.desenvolvedor) && (
+          <button 
+            onClick={() => setActiveSubTab('tickets')}
+            className={cn(
+              "h-9 px-4 rounded-lg text-xs font-semibold transition-all flex items-center gap-2",
+              activeSubTab === 'tickets' ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:text-slate-950 hover:bg-slate-50"
+            )}
+          >
+            <Layout size={14} /> Atendimento
           </button>
         )}
 
@@ -457,6 +470,12 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
                     </div>
                   </Card>
                </div>
+            )}
+
+            {activeSubTab === 'tickets' && (
+              <div className="space-y-6">
+                 <TicketOptionsManager currentUser={currentUser} />
+              </div>
             )}
           </motion.div>
         </AnimatePresence>

@@ -6,6 +6,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { api } from '../../lib/api';
+import { useTicketOptions } from '../../hooks/useTicketOptions';
 
 interface CreateTicketModalProps {
   isOpen: boolean;
@@ -21,8 +22,41 @@ export const CreateTicketModal = ({ isOpen, onClose, currentUser, onSuccess }: C
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
   const [empresaId, setEmpresaId] = useState<string>('');
-  const [categoria, setCategoria] = useState<string>('suporte_tecnico');
+  
+  const { activeCategories, activeServices, loading: optionsLoading } = useTicketOptions();
+
+  // Fallbacks
+  const defaultCategories = [
+    { value: 'suporte_tecnico', label: 'Suporte Técnico' },
+    { value: 'financeiro', label: 'Financeiro' },
+    { value: 'recursos_humanos', label: 'RH' },
+    { value: 'comercial', label: 'Comercial' },
+    { value: 'outros', label: 'Outros' }
+  ];
+  
+  const defaultServices = [
+    { value: 'suporte', label: 'Suporte' },
+    { value: 'implantacao', label: 'Implantação' },
+    { value: 'treinamento', label: 'Treinamento' },
+    { value: 'outros', label: 'Outros' }
+  ];
+
+  const categoryOptions = activeCategories.length > 0 
+    ? activeCategories.map(c => ({ value: c.valor, label: c.nome }))
+    : defaultCategories;
+
+  const serviceOptions = activeServices.length > 0 
+    ? activeServices.map(s => ({ value: s.valor, label: s.nome }))
+    : defaultServices;
+
+  const [categoria, setCategoria] = useState<string>('');
+  const [servico, setServico] = useState<string>('');
   const [prioridade, setPrioridade] = useState<string>('media');
+
+  useEffect(() => {
+    if (categoryOptions.length > 0 && !categoria) setCategoria(categoryOptions[0].value);
+    if (serviceOptions.length > 0 && !servico) setServico(serviceOptions[0].value);
+  }, [categoryOptions, serviceOptions, categoria, servico]);
 
   useEffect(() => {
     if (isOpen && !!currentUser.desenvolvedor && !currentUser.empresa_id) {
@@ -123,16 +157,19 @@ export const CreateTicketModal = ({ isOpen, onClose, currentUser, onSuccess }: C
               name="categoria"
               value={categoria}
               onChange={setCategoria}
-              options={[
-                { value: 'suporte_tecnico', label: 'Suporte Técnico' },
-                { value: 'financeiro', label: 'Financeiro' },
-                { value: 'recursos_humanos', label: 'Recursos Humanos' },
-                { value: 'comercial', label: 'Comercial' },
-                { value: 'outros', label: 'Outros' }
-              ]}
+              options={categoryOptions}
             />
           </div>
           <div className="space-y-1.5">
+            <label className="text-sm font-medium text-slate-700">Serviço</label>
+            <Select 
+              name="servico"
+              value={servico}
+              onChange={setServico}
+              options={serviceOptions}
+            />
+          </div>
+          <div className="space-y-1.5 md:col-span-2">
             <label className="text-sm font-medium text-slate-700">Prioridade</label>
             <Select 
               name="prioridade"

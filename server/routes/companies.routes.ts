@@ -79,6 +79,8 @@ router.patch('/:id', async (req: AuthRequest, res) => {
   }
 });
 
+import  pool from  '../db/connection.js';
+
 router.patch('/:id/status', isDev, async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
@@ -92,6 +94,160 @@ router.patch('/:id/status', isDev, async (req: AuthRequest, res) => {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erro ao alterar status da empresa';
     sendError(res, message);
+  }
+});
+
+// Settings: Ticket Categories
+router.get('/:id/ticket-categories', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+    const id = parseInt(req.params.id);
+    if (!currentUser.desenvolvedor && currentUser.empresa_id !== id) return sendError(res, 'Acesso negado', 403);
+    
+    // Everyone in company can list categories
+    const [rows]: any = await pool.query('SELECT * FROM empresa_ticket_categorias WHERE empresa_id = ? ORDER BY ordem ASC, id ASC', [id]);
+    sendSuccess(res, rows);
+  } catch(error: unknown) {
+    sendError(res, 'Erro ao buscar categorias');
+  }
+});
+
+router.post('/:id/ticket-categories', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+    const id = parseInt(req.params.id);
+    if (!currentUser.desenvolvedor && (!currentUser.administrador || currentUser.empresa_id !== id)) return sendError(res, 'Acesso negado', 403);
+    
+    const { nome, valor, ativo, ordem } = req.body;
+    if (!nome || !valor) return sendError(res, 'Nome e valor são obrigatórios', 400);
+
+    const [result]: any = await pool.query(
+      'INSERT INTO empresa_ticket_categorias (empresa_id, nome, valor, ativo, ordem) VALUES (?, ?, ?, ?, ?)',
+      [id, nome, valor, ativo !== undefined ? ativo : 1, ordem || 0]
+    );
+    sendSuccess(res, { id: result.insertId });
+  } catch(error: unknown) {
+    sendError(res, 'Erro ao criar categoria. Tente usar um valor único.');
+  }
+});
+
+router.patch('/:id/ticket-categories/:catId', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+    const id = parseInt(req.params.id);
+    const catId = parseInt(req.params.catId);
+    if (!currentUser.desenvolvedor && (!currentUser.administrador || currentUser.empresa_id !== id)) return sendError(res, 'Acesso negado', 403);
+    
+    const { nome, valor, ativo, ordem } = req.body;
+    let updates = [];
+    let params = [];
+    if (nome !== undefined) { updates.push('nome = ?'); params.push(nome); }
+    if (valor !== undefined) { updates.push('valor = ?'); params.push(valor); }
+    if (ativo !== undefined) { updates.push('ativo = ?'); params.push(ativo); }
+    if (ordem !== undefined) { updates.push('ordem = ?'); params.push(ordem); }
+
+    if (updates.length > 0) {
+      params.push(id, catId);
+      await pool.query(`UPDATE empresa_ticket_categorias SET ${updates.join(', ')} WHERE empresa_id = ? AND id = ?`, params);
+    }
+    sendSuccess(res, null);
+  } catch(error: unknown) {
+    sendError(res, 'Erro ao atualizar categoria');
+  }
+});
+
+router.delete('/:id/ticket-categories/:catId', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+    const id = parseInt(req.params.id);
+    const catId = parseInt(req.params.catId);
+    if (!currentUser.desenvolvedor && (!currentUser.administrador || currentUser.empresa_id !== id)) return sendError(res, 'Acesso negado', 403);
+    
+    await pool.query('DELETE FROM empresa_ticket_categorias WHERE empresa_id = ? AND id = ?', [id, catId]);
+    sendSuccess(res, null);
+  } catch(error: unknown) {
+    sendError(res, 'Erro ao deletar categoria');
+  }
+});
+
+// Settings: Ticket Services
+router.get('/:id/ticket-services', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+    const id = parseInt(req.params.id);
+    if (!currentUser.desenvolvedor && currentUser.empresa_id !== id) return sendError(res, 'Acesso negado', 403);
+    
+    // Everyone in company can list services
+    const [rows]: any = await pool.query('SELECT * FROM empresa_ticket_servicos WHERE empresa_id = ? ORDER BY ordem ASC, id ASC', [id]);
+    sendSuccess(res, rows);
+  } catch(error: unknown) {
+    sendError(res, 'Erro ao buscar servicos');
+  }
+});
+
+router.post('/:id/ticket-services', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+    const id = parseInt(req.params.id);
+    if (!currentUser.desenvolvedor && (!currentUser.administrador || currentUser.empresa_id !== id)) return sendError(res, 'Acesso negado', 403);
+    
+    const { nome, valor, ativo, ordem } = req.body;
+    if (!nome || !valor) return sendError(res, 'Nome e valor são obrigatórios', 400);
+
+    const [result]: any = await pool.query(
+      'INSERT INTO empresa_ticket_servicos (empresa_id, nome, valor, ativo, ordem) VALUES (?, ?, ?, ?, ?)',
+      [id, nome, valor, ativo !== undefined ? ativo : 1, ordem || 0]
+    );
+    sendSuccess(res, { id: result.insertId });
+  } catch(error: unknown) {
+    sendError(res, 'Erro ao criar serviço. Tente usar um valor único.');
+  }
+});
+
+router.patch('/:id/ticket-services/:servId', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+    const id = parseInt(req.params.id);
+    const servId = parseInt(req.params.servId);
+    if (!currentUser.desenvolvedor && (!currentUser.administrador || currentUser.empresa_id !== id)) return sendError(res, 'Acesso negado', 403);
+    
+    const { nome, valor, ativo, ordem } = req.body;
+    let updates = [];
+    let params = [];
+    if (nome !== undefined) { updates.push('nome = ?'); params.push(nome); }
+    if (valor !== undefined) { updates.push('valor = ?'); params.push(valor); }
+    if (ativo !== undefined) { updates.push('ativo = ?'); params.push(ativo); }
+    if (ordem !== undefined) { updates.push('ordem = ?'); params.push(ordem); }
+
+    if (updates.length > 0) {
+      params.push(id, servId);
+      await pool.query(`UPDATE empresa_ticket_servicos SET ${updates.join(', ')} WHERE empresa_id = ? AND id = ?`, params);
+    }
+    sendSuccess(res, null);
+  } catch(error: unknown) {
+    sendError(res, 'Erro ao atualizar serviço');
+  }
+});
+
+router.delete('/:id/ticket-services/:servId', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+    const id = parseInt(req.params.id);
+    const servId = parseInt(req.params.servId);
+    if (!currentUser.desenvolvedor && (!currentUser.administrador || currentUser.empresa_id !== id)) return sendError(res, 'Acesso negado', 403);
+    
+    await pool.query('DELETE FROM empresa_ticket_servicos WHERE empresa_id = ? AND id = ?', [id, servId]);
+    sendSuccess(res, null);
+  } catch(error: unknown) {
+    sendError(res, 'Erro ao deletar serviço');
   }
 });
 

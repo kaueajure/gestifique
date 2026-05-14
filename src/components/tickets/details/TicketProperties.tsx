@@ -16,6 +16,7 @@ import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { AttachmentList } from '../../ui/AttachmentList';
 import { TicketTags } from '../TicketTags';
 import { TicketCustomFields } from './TicketCustomFields';
+import { useTicketOptions } from '../../../hooks/useTicketOptions';
 
 interface TicketPropertiesProps {
   ticket: Ticket;
@@ -39,7 +40,8 @@ export const TicketProperties = ({
   onUpdateCustomFields
 }: TicketPropertiesProps) => {
   const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
-  
+  const { activeCategories, activeServices, loading } = useTicketOptions();
+
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleString('pt-BR', {
       day: '2-digit', month: '2-digit', year: 'numeric',
@@ -52,6 +54,33 @@ export const TicketProperties = ({
   const origemLabel = ticket.origem || 'Não inf.';
 
   const canManage = !!(currentUser.administrador || currentUser.desenvolvedor);
+
+  // Fallbacks if empty
+  const defaultCategories = [
+    { value: 'suporte_tecnico', label: 'Suporte Técnico' },
+    { value: 'financeiro', label: 'Financeiro' },
+    { value: 'recursos_humanos', label: 'RH' },
+    { value: 'comercial', label: 'Comercial' },
+    { value: 'outros', label: 'Outros' }
+  ];
+  
+  const defaultServices = [
+    { value: 'suporte', label: 'Suporte' },
+    { value: 'implantacao', label: 'Implantação' },
+    { value: 'treinamento', label: 'Treinamento' },
+    { value: 'outros', label: 'Outros' }
+  ];
+
+  const categoryOptions = activeCategories.length > 0 
+    ? activeCategories.map(c => ({ value: c.valor, label: c.nome }))
+    : defaultCategories;
+
+  const serviceOptions = activeServices.length > 0 
+    ? activeServices.map(s => ({ value: s.valor, label: s.nome }))
+    : defaultServices;
+
+  const categoryLabel = categoryOptions.find(c => c.value === ticket.categoria)?.label || ticket.categoria || 'Não inf.';
+  const serviceLabel = serviceOptions.find(s => s.value === ticket.servico)?.label || ticket.servico || 'Não inf.';
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col h-full overflow-y-auto">
@@ -154,20 +183,28 @@ export const TicketProperties = ({
                <span className="text-slate-500 shrink-0 mr-2">Categoria</span>
                {canManage ? (
                  <Select 
-                   value={ticket.categoria || 'suporte_tecnico'}
+                   value={ticket.categoria || categoryOptions[0]?.value || ''}
                    onChange={(value) => onUpdate({ categoria: value })}
-                   options={[
-                     { value: 'suporte_tecnico', label: 'Suporte Técnico' },
-                     { value: 'financeiro', label: 'Financeiro' },
-                     { value: 'recursos_humanos', label: 'RH' },
-                     { value: 'comercial', label: 'Comercial' },
-                     { value: 'outros', label: 'Outros' }
-                   ]}
+                   options={categoryOptions}
                    size="sm"
                    buttonClassName="w-[140px]"
                  />
                ) : (
-                 <span className="font-medium text-slate-900 capitalize truncate">{ticket.categoria?.replace('_', ' ')}</span>
+                 <span className="font-medium text-slate-900 capitalize truncate">{categoryLabel}</span>
+               )}
+            </div>
+            <div className="flex items-center justify-between mt-0.5">
+               <span className="text-slate-500 shrink-0 mr-2">Serviço</span>
+               {canManage ? (
+                 <Select 
+                   value={ticket.servico || serviceOptions[0]?.value || ''}
+                   onChange={(value) => onUpdate({ servico: value })}
+                   options={serviceOptions}
+                   size="sm"
+                   buttonClassName="w-[140px]"
+                 />
+               ) : (
+                 <span className="font-medium text-slate-900 capitalize truncate">{serviceLabel}</span>
                )}
             </div>
             <div className="flex items-center justify-between mt-0.5">

@@ -85,6 +85,14 @@ export interface TicketKanbanResponse {
   queues?: Record<TicketQueue, number>;
 }
 
+export interface TicketOption {
+  id: number;
+  nome: string;
+  valor: string;
+  ativo: boolean;
+  ordem?: number;
+}
+
 export interface Ticket {
   id: number;
   empresa_id: number;
@@ -97,6 +105,7 @@ export interface Ticket {
   status: TicketStatus;
   prioridade: TicketPriority;
   categoria: string;
+  servico?: string;
   origem?: string;
   prazo_sla?: string | null;
   precisa_revisao_responsavel?: boolean;
@@ -142,6 +151,7 @@ export interface TicketView {
     status?: TicketStatus | 'todos';
     prioridade?: TicketPriority | 'todas';
     categoria?: string | 'todas';
+    servico?: string | 'todos';
     fila?: TicketQueue;
     search?: string;
     advanced?: TicketAdvancedFilters;

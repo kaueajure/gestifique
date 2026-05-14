@@ -14,10 +14,14 @@ interface TicketFilterDrawerProps {
   setPriorityFilter: (v: string) => void;
   categoryFilter: string;
   setCategoryFilter: (v: string) => void;
+  serviceFilter: string;
+  setServiceFilter: (v: string) => void;
   filters: IFilters;
   onFilterChange: (filters: IFilters) => void;
   onClear: () => void;
   agents: any[];
+  categoryOptions?: {value: string; label: string}[];
+  serviceOptions?: {value: string; label: string}[];
 }
 
 export const TicketFilterDrawer: React.FC<TicketFilterDrawerProps> = ({
@@ -29,10 +33,14 @@ export const TicketFilterDrawer: React.FC<TicketFilterDrawerProps> = ({
   setPriorityFilter,
   categoryFilter,
   setCategoryFilter,
+  serviceFilter,
+  setServiceFilter,
   filters,
   onFilterChange,
   onClear,
-  agents
+  agents,
+  categoryOptions,
+  serviceOptions
 }) => {
   const handleChange = (field: keyof IFilters, value: any) => {
     onFilterChange({ ...filters, [field]: value });
@@ -111,13 +119,22 @@ export const TicketFilterDrawer: React.FC<TicketFilterDrawerProps> = ({
                   value={categoryFilter}
                   onChange={setCategoryFilter}
                   size="sm"
-                  options={[
-                    { value: 'todas', label: 'Todas' },
-                    { value: 'suporte_tecnico', label: 'Suporte' },
-                    { value: 'financeiro', label: 'Financeiro' },
-                    { value: 'recursos_humanos', label: 'RH' },
-                    { value: 'comercial', label: 'Comercial' },
-                    { value: 'outros', label: 'Outros' }
+                  options={categoryOptions || [
+                    { value: 'todas', label: 'Todas' }
+                  ]}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Service */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">Serviço</label>
+                <Select
+                  value={serviceFilter}
+                  onChange={setServiceFilter}
+                  size="sm"
+                  options={serviceOptions || [
+                    { value: 'todos', label: 'Todos' }
                   ]}
                   className="w-full"
                 />

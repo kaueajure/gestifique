@@ -376,17 +376,15 @@ router.post('/', async (req: AuthRequest, res) => {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
 
-    let { titulo, descricao, prioridade, categoria } = req.body;
+    let { titulo, descricao, prioridade, categoria, servico } = req.body;
     
     // Validations
     if (!titulo || titulo.trim().length < 3) return sendError(res, 'Título obrigatório (min 3 caracteres)', 400);
     if (!descricao || descricao.trim().length < 5) return sendError(res, 'Descrição obrigatória (min 5 caracteres)', 400);
 
     const validPriorities = ['baixa', 'media', 'alta', 'urgente'];
-    const validCategories = ['suporte_tecnico', 'financeiro', 'recursos_humanos', 'comercial', 'outros'];
 
     if (prioridade && !validPriorities.includes(prioridade)) return sendError(res, 'Prioridade inválida', 400);
-    if (categoria && !validCategories.includes(categoria)) return sendError(res, 'Categoria inválida', 400);
     
     if (!prioridade) prioridade = 'media';
     if (!categoria) categoria = 'suporte_tecnico';
@@ -408,7 +406,7 @@ router.post('/', async (req: AuthRequest, res) => {
     const ticketId = await ticketsService.create({
       empresa_id: targetEmpresaId,
       usuario_id: currentUser.id,
-      titulo, descricao, prioridade, categoria
+      titulo, descricao, prioridade, categoria, servico
     });
 
     await logSystemAction(req, currentUser.id, targetEmpresaId, 'TICKET_CREATE', `Novo chamado criado: #${ticketId}`);

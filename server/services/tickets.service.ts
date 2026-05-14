@@ -530,7 +530,7 @@ class TicketsService {
     `;
 
     const [tickets]: any = await pool.query(`
-      SELECT t.id, t.titulo, t.status, t.prioridade, t.categoria, t.created_at, t.updated_at, t.prazo_sla, t.responsavel_id, t.empresa_id,
+      SELECT t.id, t.titulo, t.status, t.prioridade, t.categoria, t.servico, t.created_at, t.updated_at, t.prazo_sla, t.responsavel_id, t.empresa_id,
              COALESCE(t.solicitante_nome, u.nome, 'Usuário Removido') as cliente_nome, 
              COALESCE(t.solicitante_email, u.email, 'Usuário Removido') as cliente_email, 
              COALESCE(r.nome, 'Não Atribuído') as responsavel_nome, 
@@ -599,7 +599,7 @@ class TicketsService {
   }
 
   async create(data: any) {
-    const { empresa_id, usuario_id, solicitante_nome, solicitante_email, titulo, descricao, prioridade, categoria } = data;
+    const { empresa_id, usuario_id, solicitante_nome, solicitante_email, titulo, descricao, prioridade, categoria, servico } = data;
 
     let horasSla = 24; // media padrão
     if (prioridade === 'urgente') horasSla = 4;
@@ -611,8 +611,8 @@ class TicketsService {
     const prazoSlaFormatado = prazoSla.toISOString().slice(0, 19).replace('T', ' ');
 
     const [result]: any = await pool.query(
-      'INSERT INTO tickets (empresa_id, usuario_id, solicitante_nome, solicitante_email, titulo, descricao, prioridade, categoria, prazo_sla) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [empresa_id, usuario_id || null, solicitante_nome || null, solicitante_email || null, titulo, descricao, prioridade || 'media', categoria || 'suporte', prazoSlaFormatado]
+      'INSERT INTO tickets (empresa_id, usuario_id, solicitante_nome, solicitante_email, titulo, descricao, prioridade, categoria, servico, prazo_sla) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [empresa_id, usuario_id || null, solicitante_nome || null, solicitante_email || null, titulo, descricao, prioridade || 'media', categoria || 'suporte', servico || null, prazoSlaFormatado]
     );
     const ticketId = result.insertId;
 
@@ -677,7 +677,7 @@ class TicketsService {
     const [rows]: any = await pool.query(
       `SELECT 
         t.id, t.empresa_id, t.usuario_id, t.responsavel_id, t.titulo, t.descricao, 
-        t.status, t.prioridade, t.categoria, t.origem, t.prazo_sla, t.finalizado_em,
+        t.status, t.prioridade, t.categoria, t.servico, t.origem, t.prazo_sla, t.finalizado_em,
         t.resolucao_motivo, t.resolucao_observacao, t.reaberto_em, t.reaberto_por,
         t.created_at, t.updated_at,
         COALESCE(t.solicitante_nome, u.nome, 'Usuário Removido') as cliente_nome, 
@@ -780,7 +780,7 @@ class TicketsService {
     }
 
     Object.keys(data).forEach(key => {
-      if (['titulo', 'descricao', 'status', 'prioridade', 'responsavel_id', 'categoria', 'origem', 'prazo_sla'].includes(key)) {
+      if (['titulo', 'descricao', 'status', 'prioridade', 'responsavel_id', 'categoria', 'servico', 'origem', 'prazo_sla'].includes(key)) {
         fields.push(`${key} = ?`);
         paramsList.push(data[key]);
       }
