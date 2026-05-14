@@ -275,57 +275,74 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
   return (
     <div className="h-full flex flex-col gap-6 min-h-0 overflow-hidden">
       {/* Header */}
-      <div className="flex flex-col gap-4">
-        <div className="flex items-start gap-4">
-          <Button variant="outline" size="sm" onClick={onBack} className="h-8 w-8 p-0 rounded-lg bg-white border-slate-200 text-slate-500 shadow-sm shrink-0">
-            <ChevronLeft size={20} />
-          </Button>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-              <span className="text-sm font-semibold text-slate-500">#{ticket.id}</span>
-              <Badge variant={ticket.prioridade === 'urgente' ? 'red' : 'slate'} className="text-xs px-2 py-0">
-                {ticket.prioridade}
-              </Badge>
-              <div className="w-1 h-1 rounded-full bg-slate-300" />
-              <div className="flex items-center gap-1.5">
-                <div className={cn(
-                  "w-2 h-2 rounded-full",
-                  ticket.status === 'aberto' ? "bg-blue-500" :
-                  ticket.status === 'em_andamento' ? "bg-indigo-500" :
-                  ticket.status === 'aguardando_cliente' ? "bg-amber-500" :
-                  ticket.status === 'resolvido' ? "bg-emerald-500" : "bg-slate-500"
-                )} />
-                <span className="text-sm font-medium text-slate-600 capitalize">{ticket.status?.replace('_', ' ')}</span>
-              </div>
-              <div className="w-1 h-1 rounded-full bg-slate-300" />
-               <span className={cn(
-                  "text-sm font-medium",
-                  getSlaInfo(ticket.prazo_sla, ticket.status).color.replace('bg-', 'text-').replace('text-white', 'text-slate-900')
-                )}>
-                  SLA: {getSlaInfo(ticket.prazo_sla, ticket.status).compactText || getSlaInfo(ticket.prazo_sla, ticket.status).label}
-                </span>
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" onClick={onBack} className="h-8 w-8 p-0 rounded-lg bg-white border-slate-200 text-slate-500 shadow-sm shrink-0">
+              <ChevronLeft size={18} />
+            </Button>
+            <div className="flex-1 min-w-0 flex items-center gap-2">
+              <span className="text-slate-500 font-semibold text-lg shrink-0">#{ticket.id}</span>
+              <h1 className="text-lg font-bold text-slate-900 tracking-tight leading-tight truncate">{ticket.titulo}</h1>
             </div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight leading-tight">{ticket.titulo}</h1>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 md:ml-auto">
             {ticket.status === 'resolvido' || ticket.status === 'fechado' ? (
               <Button 
                 onClick={() => handleUpdateTicket({ status: 'aberto' })}
                 variant="outline"
-                className="h-8 px-4 text-sm font-semibold"
+                className="h-8 px-4 text-xs font-semibold"
               >
-                Reabrir Atendimento
+                Reabrir
               </Button>
             ) : (
               <Button 
                 onClick={() => handleUpdateTicket({ status: 'resolvido' })}
-                className="h-8 px-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-sm"
+                className="h-8 px-4 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm"
               >
-                Finalizar Atendimento
+                Finalizar
               </Button>
             )}
           </div>
+        </div>
+
+        {/* Metadados linha 2 */}
+        <div className="flex items-center gap-y-1 gap-x-2 flex-wrap text-sm text-slate-600 md:pl-11">
+          <span className="font-semibold text-slate-800">Cliente:</span>
+          <span className="font-medium text-slate-900">{ticket.cliente_nome || 'Não identificado'}</span>
+          <span className="text-slate-300">•</span>
+          
+          <span className="font-semibold text-slate-800">Resp.:</span>
+          <span className="font-medium text-slate-900">{agents.find(a => a.id === ticket.responsavel_id)?.nome || 'Não atribuído'}</span>
+          <span className="text-slate-300">•</span>
+          
+          <div className="flex items-center gap-1.5">
+            <div className={cn(
+              "w-2 h-2 rounded-full",
+              ticket.status === 'aberto' ? "bg-blue-500" :
+              ticket.status === 'em_andamento' ? "bg-indigo-500" :
+              ticket.status === 'aguardando_cliente' ? "bg-amber-500" :
+              ticket.status === 'resolvido' ? "bg-emerald-500" : "bg-slate-500"
+            )} />
+            <span className="font-medium text-slate-700 capitalize">{ticket.status?.replace('_', ' ')}</span>
+          </div>
+          <span className="text-slate-300">•</span>
+          
+          <Badge variant={ticket.prioridade === 'urgente' ? 'red' : 'slate'} className="text-[10px] font-semibold px-1.5 py-0">
+            {ticket.prioridade}
+          </Badge>
+          <span className="text-slate-300">•</span>
+          
+          <span className={cn(
+            "font-medium",
+            getSlaInfo(ticket.prazo_sla, ticket.status).color.replace('bg-', 'text-').replace('text-white', 'text-slate-900')
+          )}>
+            SLA: {getSlaInfo(ticket.prazo_sla, ticket.status).compactText || getSlaInfo(ticket.prazo_sla, ticket.status).label}
+          </span>
+          <span className="text-slate-300">•</span>
+
+          <span className="text-slate-500">{ticket.origem || 'Não inf.'}</span>
         </div>
       </div>
 

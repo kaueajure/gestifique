@@ -6,9 +6,10 @@ import { NotificationsDropdown } from '../ui/NotificationsDropdown';
 interface TopbarProps {
   title: string;
   onMenuClick: () => void;
+  showSearch?: boolean;
 }
 
-export const Topbar = ({ title, onMenuClick }: TopbarProps) => {
+export const Topbar = ({ title, onMenuClick, showSearch = true }: TopbarProps) => {
   return (
     <header className="h-14 bg-white border-b border-slate-100 flex items-center justify-between px-6 sticky top-0 z-30 shrink-0">
       <div className="flex items-center gap-4">
@@ -21,14 +22,16 @@ export const Topbar = ({ title, onMenuClick }: TopbarProps) => {
       </div>
 
       <div className="flex-1 max-w-lg mx-6 hidden md:block">
-        <div className="relative group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={15} />
-          <input 
-            type="text" 
-            placeholder="Pesquisar chamados, usuários ou documentos..."
-            className="w-full h-9 bg-slate-50 border border-slate-100 rounded-lg pl-9 pr-3 text-xs font-medium text-slate-600 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-100 focus:border-blue-200 transition-all outline-none"
-          />
-        </div>
+        {showSearch && (
+          <div className="relative group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={15} />
+            <input 
+              type="text" 
+              placeholder="Pesquisar chamados, usuários ou documentos..."
+              className="w-full h-9 bg-slate-50 border border-slate-100 rounded-lg pl-9 pr-3 text-xs font-medium text-slate-600 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-100 focus:border-blue-200 transition-all outline-none"
+            />
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-4">

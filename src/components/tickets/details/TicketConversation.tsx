@@ -34,38 +34,39 @@ const MessageBubble = ({
   
   return (
     <div className={cn(
-      "flex flex-col gap-2 transition-all max-w-full",
+      "flex flex-col gap-1 transition-all max-w-full",
       isCliente || isAbertura ? "items-start" : "items-end"
     )}>
       {/* Meta Info Above Bubble */}
       <div className={cn(
-        "flex items-center gap-2 px-1",
+        "flex items-center gap-2 px-1 text-[11px] text-slate-500",
         isCliente || isAbertura ? "flex-row" : "flex-row-reverse text-right"
       )}>
-        <span className="text-[11px] font-bold text-slate-900 uppercase tracking-tight">
+        <span className="font-semibold text-slate-700">
           {msg.usuario_nome || (isAbertura ? 'Solicitante' : 'Sistema')}
         </span>
-        <span className="text-[10px] font-medium text-slate-400 flex items-center gap-1 uppercase tracking-tighter">
-          <Clock size={10} /> {date.toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+        <span>·</span>
+        <span className="flex items-center gap-1 font-medium">
+          {date.toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
         </span>
         {isAbertura && (
-          <Badge variant="blue" className="text-[9px] font-black px-1.5 py-0 uppercase border-none rounded bg-blue-50 text-blue-600 h-4 tracking-widest">Início</Badge>
+          <Badge variant="blue" className="text-[9px] font-bold px-1.5 py-0 border-none rounded bg-blue-50 text-blue-600 h-4 ml-1">Início</Badge>
         )}
         {isInternal && (
-          <Badge variant="amber" className="text-[9px] font-black px-1.5 py-0 uppercase border-none rounded bg-amber-100 text-amber-700 h-4 tracking-widest flex items-center gap-1">
-            <Lock size={8} /> Nota Interna
+          <Badge variant="amber" className="text-[9px] font-bold px-1.5 py-0 border-none rounded bg-amber-100 text-amber-700 h-4 ml-1 flex items-center gap-1">
+            <Lock size={8} /> Nota
           </Badge>
         )}
       </div>
 
       {/* Bubble Container */}
       <div className={cn(
-        "relative group flex gap-3 max-w-[92%] md:max-w-[80%] lg:max-w-[75%]",
-        isCliente || isAbertura ? "flex-row" : "flex-row-reverse"
+        "relative group flex gap-2 w-full",
+        isCliente || isAbertura ? "flex-row justify-start" : "flex-row-reverse justify-start"
       )}>
         {/* Avatar */}
         <div className={cn(
-          "shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-sm border",
+          "shrink-0 w-7 h-7 mt-1 rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm border",
           isAbertura || isCliente 
             ? "bg-white border-slate-200 text-slate-600" 
             : isInternal 
@@ -77,28 +78,29 @@ const MessageBubble = ({
 
         {/* Content Card */}
         <div className={cn(
-          "p-4 rounded-2xl shadow-sm border text-sm leading-relaxed min-w-[200px]",
+          "p-3 rounded-lg shadow-sm border text-[13px] leading-relaxed max-w-[85%] md:max-w-[70%]",
           isAbertura || (isCliente && !isInternal)
-            ? "bg-white border-slate-200 text-slate-800 rounded-tl-none"
+            ? "bg-white border-slate-200 text-slate-800"
             : isInternal
-              ? "bg-amber-50/50 border-amber-100 text-slate-800 italic rounded-tr-none"
-              : "bg-blue-50/50 border-blue-100 text-slate-800 rounded-tr-none"
+              ? "bg-amber-50/70 border-amber-200/50 text-slate-800"
+              : "bg-blue-50/50 border-blue-100 text-slate-800"
         )}>
           {isInternal && (
-            <div className="flex items-center gap-1.5 mb-2 pb-2 border-b border-amber-100/50 text-[10px] font-bold text-amber-600 uppercase tracking-widest">
-              <Lock size={10} /> Visível apenas para a equipe
+            <div className="flex items-center gap-1 mb-1.5 pb-1.5 border-b border-amber-200/50 text-[10px] font-semibold text-amber-700">
+              <Lock size={10} /> Privado para equipe
             </div>
           )}
 
-          <div className="whitespace-pre-wrap font-medium">
+          <div className="whitespace-pre-wrap font-medium text-slate-700">
             {msg.mensagem || msg.descricao}
           </div>
 
           {msg.attachments && msg.attachments.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-slate-100">
+            <div className="mt-3 pt-3 border-t border-slate-100/50">
                <AttachmentList 
                  attachments={msg.attachments} 
                  onRemove={onDeleteAttachment}
+                 compact
                />
             </div>
           )}
@@ -125,8 +127,8 @@ export const TicketConversation = ({
   }, [messages]);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-slate-50/10">
-        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-4 md:p-8 space-y-8 custom-scrollbar">
+    <div className="flex flex-col h-full overflow-hidden bg-slate-50/30">
+        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-4 md:p-5 space-y-5 custom-scrollbar">
           {/* Abertura do Chamado */}
           {ticket.descricao && (
             <MessageBubble 

@@ -398,6 +398,7 @@ export default function App() {
           <Topbar 
             title={getPageTitle()} 
             onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} 
+            showSearch={!(activeTab === 'tickets' && selectedTicketId)}
           />
 
           <main className={cn(

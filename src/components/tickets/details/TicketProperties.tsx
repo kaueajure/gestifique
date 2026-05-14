@@ -8,8 +8,6 @@ import {
   Calendar, 
   Trash2, 
   Clock, 
-  ChevronDown, 
-  ChevronRight, 
   Globe
 } from 'lucide-react';
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
@@ -41,22 +39,9 @@ export const TicketProperties = ({
 }: TicketPropertiesProps) => {
   const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
   
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    cliente: true,
-    responsavel: true,
-    tags: true,
-    campos: false,
-    anexos: false,
-    datas: false
-  });
-
-  const toggleSection = (id: string) => {
-    setOpenSections(prev => ({ ...prev, [id]: !prev[id] }));
-  };
-
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleString('pt-BR', {
-      day: '2-digit', month: 'short', year: 'numeric',
+      day: '2-digit', month: '2-digit', year: 'numeric',
       hour: '2-digit', minute: '2-digit'
     });
   };
@@ -67,29 +52,8 @@ export const TicketProperties = ({
 
   const canManage = !!(currentUser.administrador || currentUser.desenvolvedor);
 
-  const SectionHeader = ({ id, label, count }: { id: string, label: string, count?: number }) => (
-      <button 
-        onClick={() => toggleSection(id)}
-        className="flex items-center justify-between w-full py-2 hover:bg-slate-50 transition-colors group"
-      >
-      <div className="flex items-center gap-2">
-        {openSections[id] ? (
-          <ChevronDown size={16} className="text-slate-400 group-hover:text-slate-600" />
-        ) : (
-          <ChevronRight size={16} className="text-slate-400 group-hover:text-slate-600" />
-        )}
-        <span className="text-sm font-semibold text-slate-800">{label}</span>
-        {count !== undefined && count > 0 && (
-          <Badge variant="slate" className="text-xs px-1.5 py-0 h-5 border-transparent bg-slate-100 text-slate-600">
-            {count}
-          </Badge>
-        )}
-      </div>
-    </button>
-  );
-
   return (
-    <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col pt-1">
+    <div className="bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col h-full overflow-y-auto">
       <ConfirmDialog 
         isOpen={isArchiveConfirmOpen}
         onClose={() => setIsArchiveConfirmOpen(false)}
@@ -104,135 +68,124 @@ export const TicketProperties = ({
         variant="danger"
       />
 
-      <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50">
-         <h2 className="text-sm font-bold text-slate-900">Detalhes do atendimento</h2>
+      <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50 shrink-0">
+         <h2 className="text-sm font-bold text-slate-900">Painel do ticket</h2>
       </div>
 
-      <div className="flex flex-col divide-y divide-slate-100">
+      <div className="flex flex-col flex-1 p-4 gap-5 text-sm">
         
         {/* Cliente */}
-        <div className="px-4">
-          <SectionHeader id="cliente" label="Cliente" />
-          {openSections['cliente'] && (
-            <div className="pb-3 space-y-3 pt-1">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 shrink-0">
-                  <UserIcon size={16} />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold text-slate-900 truncate">{clienteNome}</div>
-                  <div className="text-xs text-slate-500 truncate">{ticket.cliente_email || 'Sem e-mail'}</div>
-                </div>
+        <div>
+          <h3 className="text-xs font-semibold text-slate-800 mb-2.5">Cliente</h3>
+          <div className="flex flex-col gap-1">
+            <div className="font-semibold text-slate-900">{clienteNome}</div>
+            <div className="text-slate-500 text-xs">{ticket.cliente_email || 'n/a'}</div>
+            {empresaNome !== 'Não vinculada' && (
+              <div className="text-slate-600 mt-1 flex items-center gap-1.5 align-middle text-xs">
+                <Building2 size={13} className="text-slate-400" />
+                 {empresaNome}
               </div>
-              <div className="space-y-2 pt-3 border-t border-slate-50">
-                <div className="flex items-center gap-2 text-sm text-slate-600">
-                  <Building2 size={16} className="text-slate-400" />
-                  <span className="truncate">{empresaNome}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-slate-600">
-                  <Globe size={16} className="text-slate-400" />
-                  <span className="truncate">Origem: {origemLabel}</span>
-                </div>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
-        {/* Responsável */}
-        <div className="px-4">
-          <SectionHeader id="responsavel" label="Responsável" />
-          {openSections['responsavel'] && (
-            <div className="pb-3 pt-1">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 shrink-0">
-                  <UserIcon size={16} />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold text-slate-900 truncate">
-                    {agents.find(a => a.id === ticket.responsavel_id)?.nome || 'Não atribuído'}
-                  </div>
-                  <div className="text-xs text-slate-500 truncate">
-                    Para atribuir, vá nas ações.
-                  </div>
-                </div>
-              </div>
+        {/* Atendimento */}
+        <div>
+          <h3 className="text-xs font-semibold text-slate-800 mb-2.5">Atendimento</h3>
+          <div className="flex flex-col gap-2 text-xs">
+            <div className="flex items-center justify-between">
+               <span className="text-slate-500">Status</span>
+               <span className="font-medium text-slate-900 capitalize">{ticket.status?.replace('_', ' ')}</span>
             </div>
-          )}
+            <div className="flex items-center justify-between">
+               <span className="text-slate-500">Prioridade</span>
+               <span className="font-medium text-slate-900 capitalize">{ticket.prioridade}</span>
+            </div>
+            <div className="flex items-center justify-between">
+               <span className="text-slate-500">Responsável</span>
+               <span className="font-medium text-slate-900">{agents.find(a => a.id === ticket.responsavel_id)?.nome || 'Nenhum'}</span>
+            </div>
+            <div className="flex items-center justify-between">
+               <span className="text-slate-500">Categoria</span>
+               <span className="font-medium text-slate-900 capitalize">{ticket.categoria?.replace('_', ' ')}</span>
+            </div>
+            <div className="flex items-center justify-between">
+               <span className="text-slate-500">Origem</span>
+               <span className="font-medium text-slate-900">{origemLabel}</span>
+            </div>
+          </div>
         </div>
 
         {/* Tags */}
-        <div className="px-4">
-          <SectionHeader id="tags" label="Tags" count={ticket.tags?.length || 0} />
-          {openSections['tags'] && (
-            <div className="pb-3 pt-1">
-              <TicketTags 
-                tags={ticket.tags || []}
-                onAdd={(tag) => onUpdateTags?.([...(ticket.tags || []), tag])}
-                onRemove={(tag) => onUpdateTags?.((ticket.tags || []).filter(t => t !== tag))}
-                readOnly={!canManage}
-              />
+        <div>
+          <h3 className="text-xs font-semibold text-slate-800 mb-2.5">Tags</h3>
+          {ticket.tags && ticket.tags.length > 0 ? (
+            <TicketTags 
+              tags={ticket.tags || []}
+              onAdd={(tag) => onUpdateTags?.([...(ticket.tags || []), tag])}
+              onRemove={(tag) => onUpdateTags?.((ticket.tags || []).filter(t => t !== tag))}
+              readOnly={!canManage}
+            />
+          ) : (
+            <div className="flex flex-col gap-2 items-start">
+              <span className="text-slate-400 text-xs italic">Nenhuma tag</span>
+              {canManage && (
+                <TicketTags 
+                  tags={[]}
+                  onAdd={(tag) => onUpdateTags?.([tag])}
+                  onRemove={() => {}}
+                  readOnly={false}
+                />
+              )}
             </div>
           )}
         </div>
 
         {/* Campos Adicionais */}
         {ticket.custom_fields && ticket.custom_fields.length > 0 && (
-          <div className="px-4">
-            <SectionHeader id="campos" label="Campos adicionais" count={ticket.custom_fields?.length || 0} />
-            {openSections['campos'] && (
-              <div className="pb-3 pt-1">
-                <TicketCustomFields 
-                  fields={ticket.custom_fields || []}
-                  onUpdate={onUpdateCustomFields || (() => {})}
-                  readOnly={!canManage}
-                />
-              </div>
-            )}
+          <div>
+             <h3 className="text-xs font-semibold text-slate-800 mb-2.5">Campos adicionais</h3>
+             <TicketCustomFields 
+                fields={ticket.custom_fields || []}
+                onUpdate={onUpdateCustomFields || (() => {})}
+                readOnly={!canManage}
+             />
           </div>
         )}
 
         {/* Anexos */}
-        <div className="px-4">
-          <SectionHeader id="anexos" label="Anexos" count={attachments.length} />
-          {openSections['anexos'] && (
-            <div className="pb-3 pt-1">
-              {attachments.length === 0 ? (
-                <p className="text-sm text-slate-500 italic">Nenhum anexo</p>
-              ) : (
-                <AttachmentList attachments={attachments} compact />
-              )}
-            </div>
-          )}
-        </div>
+        {attachments.length > 0 && (
+          <div>
+            <h3 className="text-xs font-semibold text-slate-800 mb-2.5">Anexos ({attachments.length})</h3>
+            <AttachmentList attachments={attachments} compact />
+          </div>
+        )}
 
-        {/* Datas e resolução */}
-        <div className="px-4">
-          <SectionHeader id="datas" label="Datas e resolução" />
-          {openSections['datas'] && (
-            <div className="pb-3 pt-1 space-y-3">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-500 flex items-center gap-2"><Calendar size={14}/> Criado em</span>
-                <span className="text-slate-900 font-medium">{formatDate(ticket.created_at)}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-500 flex items-center gap-2"><Clock size={14}/> Última atividade</span>
-                <span className="text-slate-900 font-medium">{formatRelativeTime(ticket.updated_at)}</span>
-              </div>
+        {/* Datas */}
+        <div>
+          <h3 className="text-xs font-semibold text-slate-800 mb-2.5">Datas</h3>
+          <div className="flex flex-col gap-2 text-xs">
+            <div className="flex items-center justify-between">
+               <span className="text-slate-500">Criado em</span>
+               <span className="font-medium text-slate-900">{formatDate(ticket.created_at)}</span>
             </div>
-          )}
+            <div className="flex items-center justify-between">
+               <span className="text-slate-500">Atualizado em</span>
+               <span className="font-medium text-slate-900">{formatRelativeTime(ticket.updated_at)}</span>
+            </div>
+          </div>
         </div>
-
       </div>
 
       {canManage && ticket.status !== 'fechado' && (
-        <div className="p-3 bg-slate-50 border-t border-slate-100 mt-auto">
+        <div className="p-3 bg-slate-50 border-t border-slate-100 mt-auto shrink-0">
           <Button 
             variant="ghost"
             onClick={() => setIsArchiveConfirmOpen(true)}
             className="w-full text-xs font-semibold text-slate-500 hover:text-red-700 hover:bg-red-50 border border-slate-200 hover:border-red-200 transition-colors h-8"
           >
-            <Trash2 size={16} className="mr-2" /> 
-            Arquivar atendimento
+            <Trash2 size={15} className="mr-2" /> 
+            Arquivar
           </Button>
         </div>
       )}
