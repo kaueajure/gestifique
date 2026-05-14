@@ -24,25 +24,25 @@ export const TicketHeader = ({ id, titulo, status, prioridade, estado_atendiment
       case 'cliente_respondeu':
         return { 
           label: 'Cliente respondeu', 
-          color: 'bg-blue-500 text-white border-blue-600 shadow-md shadow-blue-100',
-          dot: 'bg-white'
+          color: 'bg-blue-600 text-white border-blue-700 shadow-lg ring-1 ring-blue-400',
+          dot: 'bg-blue-100'
         };
       case 'aguardando_cliente':
         return { 
           label: 'Aguardando cliente', 
-          color: 'bg-amber-50 text-amber-700 border-amber-200/50 shadow-sm',
+          color: 'bg-amber-100 text-amber-700 border-amber-200 shadow-sm',
           dot: 'bg-amber-500'
         };
       case 'atendente_respondeu':
         return { 
           label: 'Atendente respondeu', 
-          color: 'bg-slate-50 text-slate-500 border-slate-200/50 shadow-sm',
-          dot: 'bg-slate-400'
+          color: 'bg-slate-50 text-slate-500 border-slate-200',
+          dot: 'bg-slate-300'
         };
       case 'sem_resposta':
         return { 
           label: 'Sem resposta', 
-          color: 'bg-rose-50 text-rose-600 border-rose-200/50 shadow-sm',
+          color: 'bg-rose-50 text-rose-600 border-rose-100 ring-1 ring-rose-200',
           dot: 'bg-rose-500'
         };
       default:
@@ -53,44 +53,41 @@ export const TicketHeader = ({ id, titulo, status, prioridade, estado_atendiment
   const estadoInfo = getEstadoAtendimentoInfo(estado_atendimento);
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/80 backdrop-blur-md border border-slate-200/60 p-4 px-6 rounded-2xl shadow-sm relative overflow-hidden">
-      <div className="flex items-center gap-5 min-w-0">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-slate-200 p-4 px-6 rounded-xl shadow-sm relative overflow-hidden">
+      {estadoInfo && (
+        <div className={`absolute top-0 right-0 left-0 h-0.5 ${estadoInfo.dot.replace('bg-', 'bg-')}`} />
+      )}
+      <div className="flex items-center gap-4">
         <button 
           onClick={onBack}
-          className="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-white hover:border-blue-100 hover:shadow-sm transition-all shrink-0 border border-slate-100"
+          className="h-9 w-9 flex items-center justify-center rounded-lg bg-slate-50 text-slate-400 hover:text-slate-900 transition-all shrink-0 border border-slate-100"
           title="Voltar"
         >
-          <ArrowLeft size={18} />
+          <ArrowLeft size={16} />
         </button>
         <div className="min-w-0">
-          <div className="flex items-center gap-2 mb-1 opacity-60 group">
-             <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] bg-blue-50 px-1.5 py-0.5 rounded leading-none">#{id}</span>
-             <div className="w-1 h-1 rounded-full bg-slate-300" />
-             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">Ticket Management</span>
+          <div className="flex items-center gap-2 leading-none mb-1">
+            <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest shrink-0 bg-blue-50 px-1.5 py-0.5 rounded">#{id}</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">Atendimento</span>
           </div>
-          <h2 className="text-[20px] font-black text-slate-900 truncate tracking-tight uppercase leading-tight">{titulo || 'Atendimento'}</h2>
+          <h2 className="text-lg font-black text-slate-900 truncate tracking-tight uppercase leading-none">{titulo || 'Atendimento'}</h2>
         </div>
       </div>
 
-      <div className="flex items-center gap-4 shrink-0">
+      <div className="flex items-center gap-3 shrink-0">
         {estadoInfo && (
-          <div className={cn(
-            "flex items-center gap-2 px-3.5 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all",
-            estadoInfo.color
-          )}>
-            <div className={cn("w-1.5 h-1.5 rounded-full", estadoInfo.dot, estadoInfo.label === 'Cliente respondeu' ? 'animate-pulse' : '')} />
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-widest ${estadoInfo.color}`}>
+            <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${estadoInfo.dot}`} />
             {estadoInfo.label}
           </div>
         )}
-
-        <div className="h-6 w-px bg-slate-100 mx-1" />
 
         {showResolveButton && onUpdateStatus && (
           <Button 
             variant="emerald" 
             size="sm" 
             onClick={() => onUpdateStatus({ status: 'resolvido' })}
-            className="h-10 px-6 text-[10px] uppercase font-black tracking-widest shrink-0 shadow-lg shadow-emerald-50 rounded-xl"
+            className="h-9 px-4 text-[10px] uppercase font-bold tracking-widest shrink-0 shadow-sm"
           >
             Finalizar
           </Button>
@@ -101,9 +98,9 @@ export const TicketHeader = ({ id, titulo, status, prioridade, estado_atendiment
             variant="outline" 
             size="sm" 
             onClick={() => onUpdateStatus({ status: 'aberto' })}
-            className="h-10 px-6 text-[10px] uppercase font-black tracking-widest shrink-0 border-blue-200 text-blue-600 hover:bg-blue-50 rounded-xl"
+            className="h-9 px-4 text-[10px] uppercase font-bold tracking-widest shrink-0 border-blue-200 text-blue-600 hover:bg-blue-50"
           >
-            Reabrir Ticket
+            Reabrir
           </Button>
         )}
       </div>
