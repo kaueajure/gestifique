@@ -29,7 +29,7 @@ router.post('/', async (req: AuthRequest, res) => {
       return sendError(res, 'Permissão negada', 403);
     }
 
-    const { titulo, conteudo, categoria } = req.body;
+    const { titulo, conteudo, categoria, servico, tags_json } = req.body;
     
     if (!titulo || !conteudo) {
       return sendError(res, 'Título e conteúdo são obrigatórios', 400);
@@ -42,6 +42,8 @@ router.post('/', async (req: AuthRequest, res) => {
       titulo,
       conteudo,
       categoria,
+      servico,
+      tags_json,
       created_by: req.user.id
     });
 
@@ -60,12 +62,14 @@ router.put('/:id', async (req: AuthRequest, res) => {
     }
 
     const { id } = req.params;
-    const { titulo, conteudo, categoria, ativo } = req.body;
+    const { titulo, conteudo, categoria, servico, tags_json, ativo } = req.body;
 
     await macrosService.update(Number(id), req.user.empresa_id!, {
       titulo,
       conteudo,
       categoria,
+      servico,
+      tags_json,
       ativo
     });
 

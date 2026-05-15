@@ -172,6 +172,8 @@ class ReportsService {
     if (filters.responsavel_id) { resClausesList.push('responsavel_id = ?'); resParamsList.push(filters.responsavel_id); }
     if (filters.status) { resClausesList.push('status = ?'); resParamsList.push(filters.status); }
     if (filters.prioridade) { resClausesList.push('prioridade = ?'); resParamsList.push(filters.prioridade); }
+    if (filters.categoria) { resClausesList.push('categoria = ?'); resParamsList.push(filters.categoria); }
+    if (filters.servico) { resClausesList.push('servico = ?'); resParamsList.push(filters.servico); }
 
     interface ResDayRow extends RowDataPacket { date: Date | string; resolved: number };
     const [resDayRows] = await pool.query<ResDayRow[]>(`

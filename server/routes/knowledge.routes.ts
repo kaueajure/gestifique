@@ -8,15 +8,25 @@ const router = Router();
 router.use(authMiddleware as any);
 
 const sendSuccess = (res: any, data: any) => res.json({ success: true, data });
-const sendError = (res: any, error: string, num = 500) => res.status(num).json({ success: false, error });
+const sendError = (res: any, error: string, num = 500) => res.status(num).json({ success: false, message: error, error });
 
 router.get('/', async (req: AuthRequest, res) => {
   try {
     if (!req.user) return sendError(res, 'Não autenticado', 401);
-    const empresaId = req.user.empresa_id;
     
-    let query = 'SELECT * FROM knowledge_articles WHERE empresa_id = ?';
-    let params: any[] = [empresaId];
+    let query = 'SELECT * FROM knowledge_articles';
+    let params: any[] = [];
+    
+    const requestedEmpresaId = req.user.desenvolvedor && req.query.empresa_id
+      ? Number(req.query.empresa_id)
+      : req.user.empresa_id;
+
+    if (requestedEmpresaId) {
+      query += ' WHERE empresa_id = ?';
+      params.push(requestedEmpresaId);
+    } else if (!req.user.desenvolvedor) {
+      return sendError(res, 'Empresa não identificada', 400);
+    }
     
     // User can see public or internal, let's just show all for employee (since we don't have portal yet)
     query += ' ORDER BY created_at DESC';

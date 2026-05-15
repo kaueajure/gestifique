@@ -815,6 +815,20 @@ class TicketsService {
       finalizado_em ? [status, finalizado_em, id] : [status, id]
     );
 
+    if (['resolvido', 'fechado'].includes(status) && !['resolvido', 'fechado'].includes(oldTicket.status)) {
+      await this.ensureSatisfactionSurvey(id, oldTicket.empresa_id, changedByUserId);
+
+      try {
+        await recordTicketEvent({
+          ticket_id: id,
+          empresa_id: oldTicket.empresa_id,
+          usuario_id: changedByUserId,
+          tipo: 'ticket_finalizado',
+          descricao: `Chamado ${status}`
+        });
+      } catch (err) {}
+    }
+
     // Notificações de Status
 // ... (rest of the code seems fine)
     try {
@@ -955,17 +969,69 @@ class TicketsService {
     // Automations & CSAT
     try {
       if (data.status && ['resolvido', 'fechado'].includes(data.status) && !['resolvido', 'fechado'].includes(oldTicket.status)) {
-        const { randomUUID } = await import('crypto');
-        const token = randomUUID();
-        await pool.query(
-          'INSERT IGNORE INTO ticket_satisfacao (ticket_id, empresa_id, token) VALUES (?, ?, ?)',
-          [id, oldTicket.empresa_id, token]
-        );
+        await this.ensureSatisfactionSurvey(id, oldTicket.empresa_id, currentUser?.id || null);
+
+        await recordTicketEvent({
+          ticket_id: id,
+          empresa_id: oldTicket.empresa_id,
+          usuario_id: currentUser?.id || null,
+          tipo: 'ticket_finalizado',
+          descricao: `Chamado ${data.status}`
+        });
       }
       if (data.status && data.status !== oldTicket.status) {
         const { runAutomations } = await import('./automations.service.js');
         await runAutomations('status_alterado', { ...oldTicket, ...data }, {});
       }
+      
+      if (data.categoria && data.categoria !== oldTicket.categoria) {
+        try {
+          await recordTicketEvent({
+            ticket_id: id,
+            empresa_id: oldTicket.empresa_id,
+            usuario_id: currentUser ? currentUser.id : null,
+            tipo: 'categoria_alterada',
+            descricao: `Categoria alterada de "${oldTicket.categoria || 'Nenhuma'}" para "${data.categoria || 'Nenhuma'}"`
+          });
+        } catch(err) {}
+      }
+      
+      if (data.servico && data.servico !== oldTicket.servico) {
+        try {
+          await recordTicketEvent({
+            ticket_id: id,
+            empresa_id: oldTicket.empresa_id,
+            usuario_id: currentUser ? currentUser.id : null,
+            tipo: 'servico_alterado',
+            descricao: `Serviço alterado de "${oldTicket.servico || 'Nenhum'}" para "${data.servico || 'Nenhum'}"`
+          });
+        } catch(err) {}
+      }
+      
+      if (data.origem && data.origem !== oldTicket.origem) {
+        try {
+          await recordTicketEvent({
+            ticket_id: id,
+            empresa_id: oldTicket.empresa_id,
+            usuario_id: currentUser ? currentUser.id : null,
+            tipo: 'origem_alterada',
+            descricao: `Origem alterada de "${oldTicket.origem || 'Não informada'}" para "${data.origem || 'Não informada'}"`
+          });
+        } catch(err) {}
+      }
+      
+      if (data.prazo_sla && String(data.prazo_sla) !== String(oldTicket.prazo_sla)) {
+        try {
+          await recordTicketEvent({
+            ticket_id: id,
+            empresa_id: oldTicket.empresa_id,
+            usuario_id: currentUser ? currentUser.id : null,
+            tipo: 'sla_recalculado',
+            descricao: `Prazo SLA alterado`
+          });
+        } catch (err) {}
+      }
+
       if (data.prioridade && data.prioridade !== oldTicket.prioridade) {
         try {
           await recordTicketEvent({
@@ -1106,6 +1172,35 @@ class TicketsService {
     return messageId;
   }
 
+  private async ensureSatisfactionSurvey(ticketId: number, empresaId: number, usuarioId: number | null) {
+    try {
+      const [existingCsat]: any = await pool.query(
+        'SELECT id FROM ticket_satisfacao WHERE ticket_id = ? LIMIT 1',
+        [ticketId]
+      );
+
+      if (existingCsat.length === 0) {
+        const { randomUUID } = await import('crypto');
+        const token = randomUUID();
+
+        await pool.query(
+          'INSERT INTO ticket_satisfacao (ticket_id, empresa_id, token) VALUES (?, ?, ?)',
+          [ticketId, empresaId, token]
+        );
+
+        await recordTicketEvent({
+          ticket_id: ticketId,
+          empresa_id: empresaId,
+          usuario_id: usuarioId,
+          tipo: 'satisfacao_enviada',
+          descricao: 'Pesquisa de satisfação gerada para o atendimento'
+        });
+      }
+    } catch (error) {
+      console.warn('Erro ao gerar pesquisa de satisfação:', error);
+    }
+  }
+
   async resolveTicket(id: number, data: any, currentUser: any) {
     const { status, resolucao_motivo, resolucao_observacao } = data;
     if (!['resolvido', 'fechado'].includes(status)) throw new Error('Status inválido para resolução');
@@ -1122,12 +1217,27 @@ class TicketsService {
       throw new Error('Motivo de resolução inválido');
     }
 
+    const oldTicket = await this.getById(id);
+    if (!oldTicket) throw new Error('Ticket não encontrado');
+
     const observacao = resolucao_observacao ? String(resolucao_observacao).substring(0, 2000) : null;
 
     await pool.query(
       'UPDATE tickets SET status = ?, resolucao_motivo = ?, resolucao_observacao = ?, finalizado_em = NOW(), updated_at = NOW() WHERE id = ?',
       [status, resolucao_motivo, observacao, id]
     );
+
+    if (!['resolvido', 'fechado'].includes(oldTicket.status)) {
+      await this.ensureSatisfactionSurvey(id, oldTicket.empresa_id, currentUser?.id || null);
+
+      await recordTicketEvent({
+        ticket_id: id,
+        empresa_id: oldTicket.empresa_id,
+        usuario_id: currentUser?.id || null,
+        tipo: 'ticket_finalizado',
+        descricao: `Chamado ${status}`
+      });
+    }
 
     return { success: true };
   }
