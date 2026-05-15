@@ -439,6 +439,7 @@ async function initDB() {
     // Empresas Migrations
     await ensureColumn('empresas', 'email_suporte', 'VARCHAR(255) NULL');
     await ensureColumn('empresas', 'endereco', 'TEXT NULL');
+    await ensureColumn('empresas', 'horario_atendimento_json', 'JSON NULL');
 
     // Usuarios Migrations
     await ensureColumn('usuarios', 'reset_token', 'VARCHAR(255) NULL');
@@ -446,6 +447,7 @@ async function initDB() {
     await ensureColumn('usuarios', 'perfil', 'VARCHAR(50) DEFAULT "atendente"');
 
     // Tickets Migrations
+    await ensureColumn('tickets', 'sla_status', 'VARCHAR(50) NULL');
     await ensureColumn('tickets', 'prazo_sla', 'DATETIME NULL');
     await ensureColumn('tickets', 'finalizado_em', 'DATETIME NULL');
     await ensureColumn('tickets', 'resolucao_motivo', 'VARCHAR(100) NULL');
@@ -459,6 +461,9 @@ async function initDB() {
     // Campos para suporte a abertura por remetentes externos (email-channels)
     await ensureColumn('tickets', 'solicitante_nome', 'VARCHAR(255) NULL');
     await ensureColumn('tickets', 'solicitante_email', 'VARCHAR(255) NULL');
+    
+    // Ticket Mensagens Migrations (Portal support)
+    await ensureColumn('ticket_mensagens', 'tipo', 'VARCHAR(50) DEFAULT "texto"');
     
     // Ticket Macros Migration (Rename atalho to titulo if exists)
     try {

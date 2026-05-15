@@ -34,7 +34,9 @@ import {
   AlertCircle
 } from 'lucide-react';
 
-type ViewState = 'landing' | 'login' | 'forgot-password' | 'reset-password' | 'dashboard';
+import { PortalLayout } from './components/portal/PortalLayout';
+
+type ViewState = 'landing' | 'login' | 'forgot-password' | 'reset-password' | 'dashboard' | 'portal';
 type ActiveTab = 'dashboard' | 'tickets' | 'users' | 'companies' | 'logs' | 'profile' | 'settings' | 'reports' | 'knowledge';
 
 export default function App() {
@@ -61,7 +63,11 @@ export default function App() {
       try {
         const user = await api.get<User>('/profile');
         setCurrentUser(user);
-        setView('dashboard');
+        if (user.perfil === 'cliente') {
+          setView('portal');
+        } else {
+          setView('dashboard');
+        }
       } catch (err) {
         setView('landing');
       } finally {
@@ -114,7 +120,11 @@ export default function App() {
       // Fetch full profile after login to guarantee consistent corporate data
       const profile = await api.get<User>('/profile');
       setCurrentUser(profile);
-      setView('dashboard');
+      if (profile.perfil === 'cliente') {
+        setView('portal');
+      } else {
+        setView('dashboard');
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao autenticar.';
       setAuthError(message);
@@ -373,6 +383,10 @@ export default function App() {
         </motion.div>
       </div>
     );
+  }
+
+  if (view === 'portal' && currentUser) {
+    return <PortalLayout currentUser={currentUser} onLogout={handleLogout} />;
   }
 
   // --- DASHBOARD LAYOUT ---

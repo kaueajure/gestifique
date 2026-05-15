@@ -10,6 +10,7 @@ import  apiRoutes from  './routes/index.js';
 import  { errorHandler } from  './middlewares/error-handler.js';
 import  { env } from  './config/env.js';
 import { EmailListenerService } from './services/email-listener.service.js';
+import { runTicketAutomations } from './jobs/ticketAutomationJob.js';
 
 export let io: SocketIOServer;
 
@@ -141,6 +142,15 @@ async function startServer() {
     console.log(`🚀 Gestifique Server running on http://localhost:${PORT}`);
     console.log(`Environment: ${env.NODE_ENV}`);
     EmailListenerService.init();
+
+    // Start Ticket Automations Polling (every 5 minutes)
+    setInterval(() => {
+      runTicketAutomations().catch(console.error);
+    }, 5 * 60 * 1000);
+    // Run once on startup
+    setTimeout(() => {
+      runTicketAutomations().catch(console.error);
+    }, 5000);
   });
 }
 
