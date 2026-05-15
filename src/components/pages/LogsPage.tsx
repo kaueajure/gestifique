@@ -101,18 +101,17 @@ export const LogsPage = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader 
         title="Logs do Sistema"
         action={
           <Button 
             variant="outline"
             size="sm"
-            className="h-9"
             onClick={fetchLogs}
             disabled={loading}
           >
-            <RefreshCw size={14} className={cn("mr-2", loading ? "animate-spin" : "")} /> Sincronizar
+            <RefreshCw size={14} className={cn("mr-1.5", loading ? "animate-spin" : "")} /> Sincronizar
           </Button>
         }
       />
@@ -125,7 +124,7 @@ export const LogsPage = () => {
                <input 
                  type="text" 
                  placeholder="Buscar por descrição, usuário ou empresa..." 
-                 className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 text-xs font-semibold outline-none focus:ring-2 focus:ring-blue-100 transition-all font-sans"
+                 className="w-full h-8 bg-slate-50 border border-slate-200 rounded-md pl-9 pr-4 text-xs font-medium outline-none focus:ring-1 focus:ring-blue-500 transition-all font-sans"
                  value={filters.search}
                  onChange={(e) => setFilters(f => ({ ...f, search: e.target.value }))}
                />
@@ -135,7 +134,7 @@ export const LogsPage = () => {
                 value={filters.action}
                 onChange={(value) => setFilters(f => ({ ...f, action: value, page: 1 }))}
                 className="min-w-[120px]"
-                buttonClassName="h-8"
+                buttonClassName="h-8 text-xs font-medium"
                 options={[
                   { value: '', label: 'Ações' },
                   { value: 'LOGIN', label: 'Login' },
@@ -150,29 +149,29 @@ export const LogsPage = () => {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-slate-100">
+          <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-slate-100">
              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Início</span>
+                <span className="text-[11px] font-medium text-slate-500">Início</span>
                 <input 
                   type="date" 
                   value={filters.start_date}
                   onChange={(e) => setFilters(f => ({ ...f, start_date: e.target.value, page: 1 }))}
-                  className="h-7 px-2 bg-slate-50 border border-slate-200 rounded-md text-[10px] font-bold outline-none focus:ring-1 focus:ring-blue-400 transition-all text-slate-600"
+                  className="h-7 px-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-medium outline-none focus:ring-1 focus:ring-blue-400 transition-all text-slate-600"
                 />
              </div>
              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Fim</span>
+                <span className="text-[11px] font-medium text-slate-500">Fim</span>
                 <input 
                   type="date" 
                   value={filters.end_date}
                   onChange={(e) => setFilters(f => ({ ...f, end_date: e.target.value, page: 1 }))}
-                  className="h-7 px-2 bg-slate-50 border border-slate-200 rounded-md text-[10px] font-bold outline-none focus:ring-1 focus:ring-blue-400 transition-all text-slate-600"
+                  className="h-7 px-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-medium outline-none focus:ring-1 focus:ring-blue-400 transition-all text-slate-600"
                 />
              </div>
              <button 
                type="button"
                onClick={clearFilters}
-               className="h-7 px-3 flex items-center gap-1.5 text-[10px] font-bold text-slate-400 hover:text-red-600 transition-colors ml-auto uppercase tracking-widest"
+               className="h-7 px-2 flex items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-red-600 transition-colors ml-auto"
              >
                 <FilterX size={12} /> Limpar
              </button>
@@ -182,62 +181,61 @@ export const LogsPage = () => {
 
       <Card className="overflow-hidden">
         {loading && logs.length === 0 ? (
-          <div className="p-20 flex flex-col items-center justify-center space-y-3">
-             <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
-             <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Sincronizando Auditoria...</p>
+          <div className="p-12 flex flex-col items-center justify-center space-y-3">
+             <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+             <p className="text-[11px] text-slate-500 font-medium">Sincronizando Auditoria...</p>
           </div>
         ) : error ? (
-          <div className="p-20 text-center flex flex-col items-center">
-             <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
-             <h4 className="text-sm font-semibold text-slate-900 mb-1">Falha na Auditoria</h4>
-             <p className="text-xs text-slate-500 mb-6 max-w-sm">{error}</p>
+           <div className="p-10 text-center flex flex-col items-center">
+             <AlertCircle className="w-10 h-10 text-red-500 mb-3" />
+             <p className="text-xs font-medium text-slate-600 mb-4">{error}</p>
              <Button variant="outline" size="sm" onClick={fetchLogs}>Tentar Novamente</Button>
-          </div>
+           </div>
         ) : (
           <>
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead className="bg-slate-50/50 border-b border-slate-100">
                   <tr>
-                    <th className="px-5 py-2.5 text-[10px] font-bold text-slate-400 tracking-wider uppercase bg-slate-50/30">Ação</th>
-                    <th className="px-5 py-2.5 text-[10px] font-bold text-slate-400 tracking-wider uppercase bg-slate-50/30">Descrição</th>
-                    <th className="px-5 py-2.5 text-[10px] font-bold text-slate-400 tracking-wider uppercase bg-slate-50/30">Operador</th>
-                    <th className="px-5 py-2.5 text-[10px] font-bold text-slate-400 tracking-wider uppercase bg-slate-50/30">Data / IP</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-500">Ação</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-500">Descrição</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-500">Operador</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-500">Data / IP</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {Array.isArray(logs) && logs.map((log) => (
-                    <tr key={log.id} className="hover:bg-slate-50/30 transition-colors group">
-                      <td className="px-5 py-3">
-                        <Badge variant={getActionColor(log.acao)} className="px-1.5 py-0 font-bold text-[9px] tracking-tight uppercase">{log.acao || 'SYSTEM'}</Badge>
+                    <tr key={log.id} className="hover:bg-slate-50/50 transition-colors group">
+                      <td className="px-3 py-2">
+                        <Badge variant={getActionColor(log.acao)} className="px-1.5 py-0 font-medium text-[9px]">{log.acao || 'SYSTEM'}</Badge>
                       </td>
-                      <td className="px-5 py-3 max-w-xs">
+                      <td className="px-3 py-2 max-w-xs">
                          <div className="flex items-start gap-2">
-                            <span className="text-xs font-semibold text-slate-600 leading-normal line-clamp-2">{log.descricao || 'Registrado'}</span>
+                            <span className="text-xs font-medium text-slate-700 leading-normal line-clamp-2">{log.descricao || 'Registrado'}</span>
                          </div>
                       </td>
-                      <td className="px-5 py-3">
-                        <div className="flex items-center gap-2.5">
+                      <td className="px-3 py-2">
+                        <div className="flex items-center gap-2">
                            <div className={cn(
-                             "w-7 h-7 rounded-lg flex items-center justify-center font-bold text-[10px] uppercase shadow-sm border",
-                             log.usuario_nome ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-400 border-slate-100"
+                             "w-7 h-7 rounded-md flex items-center justify-center font-medium text-xs border",
+                             log.usuario_nome ? "bg-slate-100 text-slate-700 border-slate-200" : "bg-slate-50 text-slate-400 border-slate-100"
                            )}>
-                              {(log.usuario_nome || 'S').charAt(0)}
+                              {(log.usuario_nome || 'S').charAt(0).toUpperCase()}
                            </div>
                            <div className="min-w-0">
-                              <div className="text-xs font-bold text-slate-900 leading-tight truncate">{log.usuario_nome || 'Sistema'}</div>
-                              <div className="text-[9px] font-bold text-blue-600 leading-tight flex items-center gap-1 mt-0.5 uppercase tracking-tighter">
-                                 <Building2 size={8} /> {log.empresa_nome || 'Master'}
+                              <div className="text-[13px] font-medium text-slate-900 leading-tight truncate">{log.usuario_nome || 'Sistema'}</div>
+                              <div className="text-[11px] font-medium text-slate-500 leading-tight flex items-center gap-1 mt-0.5">
+                                 <Building2 size={10} /> {log.empresa_nome || 'Master'}
                               </div>
                            </div>
                         </div>
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="px-3 py-2">
                          <div className="flex flex-col gap-0.5">
-                            <span className="text-[10px] font-bold text-slate-700 flex items-center gap-1 whitespace-nowrap">
-                               <Calendar size={10} className="text-slate-400" /> {log.created_at ? new Date(log.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'Data indisponível'}
+                            <span className="text-xs font-medium text-slate-600 flex items-center gap-1 whitespace-nowrap">
+                               <Calendar size={12} className="text-slate-400" /> {log.created_at ? new Date(log.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'Data indisponível'}
                             </span>
-                            <span className="text-[9px] font-bold text-slate-400 truncate opacity-60">
+                            <span className="text-[11px] font-medium text-slate-500 truncate">
                                {log.ip || 'Local'}
                             </span>
                          </div>
@@ -246,12 +244,12 @@ export const LogsPage = () => {
                   ))}
                   {logs.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="px-5 py-20 text-center">
+                      <td colSpan={4} className="px-3 py-12 text-center">
                          <div className="flex flex-col items-center">
-                            <div className="w-10 h-10 bg-slate-50 text-slate-200 rounded-xl flex items-center justify-center mb-3">
-                               <Search size={20} />
+                            <div className="w-10 h-10 bg-slate-50 text-slate-300 rounded-lg flex items-center justify-center mb-3 border border-slate-100">
+                               <Search size={18} />
                             </div>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nenhum log encontrado.</p>
+                            <h3 className="text-[13px] font-semibold text-slate-900">Nenhum log encontrado.</h3>
                          </div>
                       </td>
                     </tr>
@@ -262,8 +260,8 @@ export const LogsPage = () => {
 
             {/* Paginação */}
             {pagination && pagination.totalPages > 1 && (
-              <div className="p-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
-                <div className="text-xs text-slate-500 font-medium font-mono">
+              <div className="p-3 border-t border-slate-100 flex items-center justify-between">
+                <div className="text-[11px] text-slate-500 font-medium">
                   {logs.length} / {pagination.total} registros
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -278,7 +276,7 @@ export const LogsPage = () => {
                   </Button>
                   
                   <div className="flex items-center gap-1">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase px-2">Página {filters.page} de {pagination.totalPages}</span>
+                    <span className="text-xs font-medium text-slate-600 px-2">Página {filters.page} de {pagination.totalPages}</span>
                   </div>
 
                   <Button 

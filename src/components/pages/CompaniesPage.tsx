@@ -169,17 +169,17 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Empresas"
         action={
-          <Button size="sm" onClick={() => { setSelectedCompany(null); setSaveError(null); setIsModalOpen(true); }} className="font-semibold text-xs h-9">
-            <Plus size={14} className="mr-2" /> Nova Empresa
+          <Button size="sm" onClick={() => { setSelectedCompany(null); setSaveError(null); setIsModalOpen(true); }}>
+            <Plus size={14} className="mr-1.5" /> Nova Empresa
           </Button>
         }
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
          <MetricCard 
           label="Total de Empresas"
           value={stats.total.toString()}
@@ -211,7 +211,7 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
       </div>
 
       <Card>
-        <div className="p-4 border-b border-slate-50 flex flex-col lg:flex-row gap-3">
+        <div className="p-3 border-b border-slate-100 flex flex-col lg:flex-row gap-3">
           <div className="relative flex-1">
              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
              <input 
@@ -219,10 +219,10 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
                placeholder="Buscar por nome ou CNPJ..." 
                value={searchTerm}
                onChange={(e) => setSearchTerm(e.target.value)}
-               className="w-full h-9 bg-slate-50 border border-slate-100 rounded-lg pl-9 pr-4 text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 placeholder:text-slate-400 placeholder:font-medium transition-all" 
+               className="w-full h-8 bg-slate-50 border border-slate-200 rounded-md pl-9 pr-4 text-xs font-medium text-slate-600 outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-400 transition-all" 
              />
           </div>
-          <div className="flex bg-slate-100/50 p-1 rounded-lg">
+          <div className="flex bg-slate-100/50 p-1 rounded-md">
              {[
                { id: 'todos', label: 'Todas' },
                { id: 'ativo', label: 'Ativas' },
@@ -232,10 +232,10 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
                 key={f.id}
                 onClick={() => setStatusFilter(f.id)}
                 className={cn(
-                  "h-7 px-4 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all",
+                  "h-7 px-3 rounded text-[11px] font-medium transition-all",
                   statusFilter === f.id 
                     ? "bg-white text-slate-900 shadow-sm" 
-                    : "text-slate-400 hover:text-slate-600"
+                    : "text-slate-500 hover:text-slate-700"
                 )}
                >
                 {f.label}
@@ -251,81 +251,81 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
         )}
 
         {loading && companies.length === 0 ? (
-          <div className="p-20 flex flex-col items-center justify-center space-y-3">
-             <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
-             <p className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">Carregando empresas...</p>
+          <div className="p-12 flex flex-col items-center justify-center space-y-3">
+             <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+             <p className="text-[11px] text-slate-500 font-medium">Carregando empresas...</p>
           </div>
         ) : error ? (
-           <div className="p-20 text-center flex flex-col items-center">
-             <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
-             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{error}</p>
-             <Button variant="outline" size="sm" onClick={fetchCompanies} className="mt-4 text-[10px] font-bold uppercase tracking-widest">Tentar novamente</Button>
+           <div className="p-10 text-center flex flex-col items-center">
+             <AlertCircle className="w-10 h-10 text-red-500 mb-3" />
+             <p className="text-xs font-medium text-slate-600">{error}</p>
+             <Button variant="outline" size="sm" onClick={fetchCompanies} className="mt-3">Tentar novamente</Button>
            </div>
         ) : companies.length === 0 ? (
-           <div className="p-20 text-center flex flex-col items-center">
-             <div className="w-16 h-16 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300 mb-4">
-                <Building2 size={32} />
+           <div className="p-10 text-center flex flex-col items-center">
+             <div className="w-12 h-12 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 mb-3">
+                <Building2 size={24} />
              </div>
-             <h3 className="text-sm font-bold text-slate-900">Nenhuma empresa encontrada</h3>
-             <p className="text-xs font-medium text-slate-500 max-w-xs mx-auto mt-1">Crie sua primeira empresa cliente para começar.</p>
+             <h3 className="text-[13px] font-semibold text-slate-900">Nenhuma empresa encontrada</h3>
+             <p className="text-xs text-slate-500 max-w-xs mx-auto mt-1">Crie sua primeira empresa cliente para começar.</p>
            </div>
         ) : (
           <div className="overflow-x-auto">
              <table className="w-full">
                <thead>
-                 <tr className="bg-slate-50/30">
-                   <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-left">Empresa</th>
-                   <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-left">Metadados</th>
-                   <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-left">Engajamento</th>
-                   <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Ações</th>
+                 <tr className="bg-slate-50/50 border-b border-slate-100">
+                   <th className="px-3 py-2 text-xs font-semibold text-slate-500 text-left">Empresa</th>
+                   <th className="px-3 py-2 text-xs font-semibold text-slate-500 text-left">Metadados</th>
+                   <th className="px-3 py-2 text-xs font-semibold text-slate-500 text-left">Engajamento</th>
+                   <th className="px-3 py-2 text-xs font-semibold text-slate-500 text-right">Ações</th>
                  </tr>
                </thead>
-               <tbody className="divide-y divide-slate-100/50">
+               <tbody className="divide-y divide-slate-100">
                  {companies.map((company) => (
                    <tr key={company.id} className="hover:bg-slate-50/50 transition-colors group">
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
+                      <td className="px-3 py-2.5">
+                        <div className="flex items-center gap-2.5">
                            <div className={cn(
-                             "w-10 h-10 rounded-lg flex items-center justify-center text-white shadow-sm border",
-                             company.ativo ? "bg-slate-900 border-slate-950" : "bg-white text-slate-300 border-slate-100"
+                             "w-8 h-8 rounded-md flex items-center justify-center shadow-sm border",
+                             company.ativo ? "bg-blue-50 text-blue-600 border-blue-100" : "bg-slate-50 text-slate-400 border-slate-100"
                            )}>
-                              <Building2 size={20} />
+                              <Building2 size={16} />
                            </div>
                            <div className="min-w-0">
-                              <div className="text-sm font-bold text-slate-900 truncate tracking-tight">{company.nome || "Empresa"}</div>
-                              <div className="text-[10px] font-bold text-slate-400 truncate tracking-tighter uppercase">{company.email || 'Email não informado'}</div>
+                              <div className="text-[13px] font-medium text-slate-900 truncate">{company.nome || "Empresa"}</div>
+                              <div className="text-[11px] text-slate-500 truncate">{company.email || 'Email não informado'}</div>
                            </div>
                         </div>
                       </td>
-                      <td className="px-5 py-4">
+                      <td className="px-3 py-2.5">
                          <div className="space-y-1">
-                            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-tight">
-                               <Target size={10} className="text-slate-300" /> {company.cnpj || 'CNPJ não informado'}
+                            <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-600">
+                               <Target size={12} className="text-slate-400" /> {company.cnpj || 'CNPJ não informado'}
                             </div>
-                            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-300 uppercase tracking-tight">
-                               <Phone size={10} className="text-slate-300" /> {company.telefone || 'Telefone não informado'}
+                            <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
+                               <Phone size={12} className="text-slate-400" /> {company.telefone || 'Telefone não informado'}
                             </div>
                          </div>
                       </td>
-                      <td className="px-5 py-4">
-                         <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-1.5 min-w-[60px]">
-                               <Users size={12} className="text-indigo-400" />
-                               <span className="text-xs font-bold text-slate-600">{company.total_usuarios || 0}</span>
+                      <td className="px-3 py-2.5">
+                         <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1.5 min-w-[50px]">
+                               <Users size={14} className="text-slate-400" />
+                               <span className="text-[11px] font-medium text-slate-700">{company.total_usuarios || 0}</span>
                             </div>
-                            <div className="flex items-center gap-1.5 min-w-[60px]">
-                               <Ticket size={12} className="text-amber-400" />
-                               <span className="text-xs font-bold text-slate-600">{company.total_tickets || 0}</span>
+                            <div className="flex items-center gap-1.5 min-w-[50px]">
+                               <Ticket size={14} className="text-slate-400" />
+                               <span className="text-[11px] font-medium text-slate-700">{company.total_tickets || 0}</span>
                             </div>
                             <Badge 
                               variant={company.ativo ? 'emerald' : 'slate'} 
-                              className="text-[8px] py-0 px-1.5 font-bold uppercase border-none"
+                              className="text-[10px] py-0 px-1.5 font-medium border-none"
                             >
                               {company.ativo ? 'Ativa' : 'Inativa'}
                             </Badge>
                          </div>
                       </td>
-                      <td className="px-5 py-4 text-right">
+                      <td className="px-3 py-2.5 text-right">
                          <div className="flex items-center justify-end gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                             <button 
                               onClick={() => { setSelectedCompany(company); setSaveError(null); setIsModalOpen(true); }}
@@ -356,106 +356,106 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={selectedCompany ? 'Configurar Empresa' : 'Nova Empresa'}
-        size="lg"
+        size="md"
       >
-        <form onSubmit={handleSaveCompany} className="space-y-6">
+        <form onSubmit={handleSaveCompany} className="space-y-4">
            {saveError && (
-             <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-xs font-bold mb-4">
+             <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-xs font-medium mb-2">
                 {saveError}
              </div>
            )}
            
-           <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-500 px-1">Nome Fantasia / Razão Social</label>
+           <div className="space-y-1">
+              <label className="text-xs font-medium text-slate-700">Nome Fantasia / Razão Social</label>
               <Input 
                 name="nome" 
                 defaultValue={selectedCompany?.nome} 
                 required 
                 placeholder="Ex: Minha Empresa LTDA"
-                className="h-10 bg-slate-50/50 border-slate-100 font-bold text-xs"
+                className="h-8 text-xs"
               />
            </div>
 
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                 <label className="text-xs font-medium text-slate-500 px-1">CNPJ</label>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                 <label className="text-xs font-medium text-slate-700">CNPJ</label>
                  <Input 
                    name="cnpj" 
                    defaultValue={selectedCompany?.cnpj || ''} 
                    placeholder="00.000.000/0000-00"
-                   className="h-10 bg-slate-50/50 border-slate-100 font-bold text-xs"
+                   className="h-8 text-xs"
                  />
               </div>
-              <div className="space-y-1.5">
-                 <label className="text-xs font-medium text-slate-500 px-1">Telefone Principal</label>
+              <div className="space-y-1">
+                 <label className="text-xs font-medium text-slate-700">Telefone Principal</label>
                  <Input 
                    name="telefone" 
                    defaultValue={selectedCompany?.telefone || ''} 
                    placeholder="(00) 00000-0000"
-                   className="h-10 bg-slate-50/50 border-slate-100 font-bold text-xs"
+                   className="h-8 text-xs"
                  />
               </div>
            </div>
 
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                 <label className="text-xs font-medium text-slate-500 px-1">E-mail Institucional</label>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                 <label className="text-xs font-medium text-slate-700">E-mail Institucional</label>
                  <Input 
                    name="email" 
                    type="email" 
                    defaultValue={selectedCompany?.email || ''} 
                    placeholder="contato@empresa.com"
-                   className="h-10 bg-slate-50/50 border-slate-100 font-bold text-xs"
+                   className="h-8 text-xs"
                  />
               </div>
-              <div className="space-y-1.5">
-                 <label className="text-xs font-medium text-slate-500 px-1">E-mail de Suporte (Legado / Opcional)</label>
+              <div className="space-y-1">
+                 <label className="text-xs font-medium text-slate-700">E-mail de Suporte</label>
                  <Input 
                    name="email_suporte" 
                    type="email" 
                    defaultValue={selectedCompany?.email_suporte || ''} 
                    placeholder="suporte@empresa.com"
-                   className="h-10 bg-slate-50/50 border-slate-100 font-bold text-xs"
+                   className="h-8 text-xs"
                  />
               </div>
            </div>
 
-           <div className="pt-4 border-t border-slate-50">
-              <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4 text-center">Visual & Identidade</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-slate-500 px-1">Cor Principal (Hex)</label>
+           <div className="pt-2">
+              <h4 className="text-[11px] font-semibold text-slate-800 mb-3">Visual & Identidade</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                 <div className="space-y-1">
+                    <label className="text-xs font-medium text-slate-700">Cor Principal (Hex)</label>
                     <Input 
                       name="cor_principal" 
                       defaultValue={selectedCompany?.cor_principal || '#2563eb'} 
                       placeholder="#000000"
-                      className="h-10 bg-slate-50/50 border-slate-100 font-bold text-xs"
+                      className="h-8 text-xs"
                     />
                  </div>
-                 <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-slate-500 px-1">URL da Logo</label>
+                 <div className="space-y-1">
+                    <label className="text-xs font-medium text-slate-700">URL da Logo</label>
                     <Input 
                       name="logo" 
                       defaultValue={selectedCompany?.logo || ''} 
                       placeholder="https://exemplo.com/logo.png"
-                      className="h-10 bg-slate-50/50 border-slate-100 font-bold text-xs"
+                      className="h-8 text-xs"
                     />
                  </div>
               </div>
            </div>
 
-           <div className="pt-6 flex items-center justify-end gap-3 border-t border-slate-50">
-              <Button variant="ghost" size="sm" type="button" onClick={() => setIsModalOpen(false)} className="font-bold text-[10px] uppercase tracking-widest text-slate-400">
+           <div className="pt-4 flex items-center justify-end gap-2 border-t border-slate-100">
+              <Button variant="ghost" size="sm" type="button" onClick={() => setIsModalOpen(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" loading={loadingSave} size="sm" className="font-bold text-[10px] uppercase tracking-widest px-6 h-9">
-                {selectedCompany ? 'Salvar Alterações' : 'Criar Empresa'}
+              <Button type="submit" loading={loadingSave} size="sm">
+                {selectedCompany ? 'Salvar' : 'Criar Conta'}
               </Button>
            </div>
         </form>
 
         {selectedCompany && (
-           <div className="mt-8 pt-8 border-t border-slate-100">
+           <div className="mt-4 pt-4 border-t border-slate-100">
              <EmailChannelsManager empresaId={selectedCompany.id} />
            </div>
         )}
