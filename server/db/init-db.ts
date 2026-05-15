@@ -476,6 +476,11 @@ async function initDB() {
       console.warn('[MIGRATE] ⚠️ Falha ao migrar ticket_macros:', e);
     }
 
+    // Ticket Macros Migration additions
+    await ensureColumn('ticket_macros', 'servico', 'VARCHAR(100) NULL');
+    await ensureColumn('ticket_macros', 'tags_json', 'JSON NULL');
+    await ensureColumn('ticket_macros', 'uso_count', 'INT DEFAULT 0');
+
     // Status enum check/update
     await connection.query(`
       ALTER TABLE tickets MODIFY status ENUM('aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado') DEFAULT 'aberto'

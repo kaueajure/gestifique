@@ -40,9 +40,16 @@ export const TicketMacroList = ({ ticket, currentUser, onSelect, onClose }: Tick
       .replace(/{{empresa_nome}}/g, ticket.empresa_nome || 'empresa');
   };
 
-  const handleSelect = (macro: TicketMacro) => {
+  const handleSelect = async (macro: TicketMacro) => {
     const processed = replaceVariables(macro.conteudo);
     onSelect(processed);
+    try {
+      if (macro.id) {
+        await api.post(`/macros/${macro.id}/use`, {});
+      }
+    } catch (e) {
+      console.warn('Erro ao registrar uso de macro', e);
+    }
   };
 
   const filteredMacros = macros.filter(m => 

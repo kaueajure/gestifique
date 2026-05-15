@@ -72,12 +72,20 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<SummaryData | null>(null);
   const [detailedReport, setDetailedReport] = useState<DetailedReportData | null>(null);
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<{
+    start_date: string;
+    end_date: string;
+    empresa_id: string;
+    status: string;
+    prioridade: string;
+    responsavel_id: string;
+  }>({
     start_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     end_date: new Date().toISOString().split('T')[0],
     empresa_id: '',
     status: '',
-    prioridade: ''
+    prioridade: '',
+    responsavel_id: ''
   });
   const [companies, setCompanies] = useState<CompanyOption[]>([]);
 
@@ -149,56 +157,28 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
     return str;
   };
 
-  const handleExportCSV = () => {
-    if (!data) return;
+  const handleExportCSV = async (type: string) => {
+    try {
+      const params = new URLSearchParams();
+      if (filters.start_date) params.append('start_date', filters.start_date);
+      if (filters.end_date) params.append('end_date', filters.end_date);
+      if (filters.empresa_id) params.append('empresa_id', filters.empresa_id);
+      if (filters.responsavel_id) params.append('responsavel_id', filters.responsavel_id);
+      if (filters.status) params.append('status', filters.status);
+      if (filters.prioridade) params.append('prioridade', filters.prioridade);
+      params.append('type', type);
 
-    let csvContent = "\uFEFF"; // Add BOM for Excel UTF-8 support
-    
-    // 1. Totals
-    csvContent += "METRICAS TOTAIS\n";
-    csvContent += "Métrica,Valor\n";
-    csvContent += `Total de Atendimentos,${data.totals.total_tickets}\n`;
-    csvContent += `Em Aberto,${data.totals.open_tickets}\n`;
-    csvContent += `Em Andamento,${data.totals.in_progress_tickets}\n`;
-    csvContent += `Resolvidos,${data.totals.resolved_tickets}\n`;
-    csvContent += `Fechados,${data.totals.closed_tickets}\n`;
-    csvContent += `Urgentes,${data.totals.urgent_tickets}\n`;
-    csvContent += `Tempo Médio Resolução (h),${data.totals.average_resolution_hours}\n\n`;
-
-    // 2. By Status
-    csvContent += "POR STATUS\n";
-    csvContent += "Status,Quantidade\n";
-    data.by_status.forEach(item => {
-      csvContent += `${escapeCsv(item.name)},${item.value}\n`;
-    });
-    csvContent += "\n";
-
-    // 3. By Priority
-    csvContent += "POR PRIORIDADE\n";
-    csvContent += "Prioridade,Quantidade\n";
-    data.by_priority.forEach(item => {
-      csvContent += `${escapeCsv(item.name)},${item.value}\n`;
-    });
-    csvContent += "\n";
-
-    // 4. By Responsible
-    csvContent += "POR RESPONSAVEL\n";
-    csvContent += "Responsável,Quantidade\n";
-    data.by_responsible.forEach(item => {
-      csvContent += `${escapeCsv(item.name)},${item.value}\n`;
-    });
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `gestifique-relatorio-${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      const url = `/api/reports/export?${params.toString()}`;
+      window.open(url, '_blank');
+    } catch (err) {
+      console.error('Erro ao exportar', err);
+      alert('Erro ao exportar relatório. Verifique os logs.');
+    } finally {
+      setDropdownOpen(false);
+    }
   };
 
-  if (loading && !data) {
+  if (loading && !data && !filters.start_date) { // Avoid full block when downloading
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
         <RefreshCw className="w-10 h-10 text-blue-600 animate-spin" />
@@ -208,6 +188,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
   }
 
   const hasData = data && data.totals.total_tickets > 0;
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   return (
     <div className="space-y-8 pb-12">
@@ -220,9 +201,18 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
             <Button variant="secondary" onClick={() => window.print()} className="print:hidden">
               <Printer size={18} className="mr-2" /> Imprimir Relatório
             </Button>
-            <Button variant="secondary" onClick={handleExportCSV} disabled={!data || data.totals.total_tickets === 0} className="print:hidden">
-              <Download size={18} className="mr-2" /> Exportar CSV
-            </Button>
+            <div className="relative print:hidden">
+              <Button variant="secondary" onClick={() => setDropdownOpen(!dropdownOpen)}>
+                <Download size={18} className="mr-2" /> Exportar CSV
+              </Button>
+              {dropdownOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 shadow-xl rounded-lg overflow-hidden py-1 z-50">
+                   <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-sm text-slate-700" onClick={() => { handleExportCSV('tickets'); setDropdownOpen(false); }}>Tickets Detalhados</button>
+                   <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-sm text-slate-700" onClick={() => { handleExportCSV('agents'); setDropdownOpen(false); }}>Atendentes</button>
+                   <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-sm text-slate-700" onClick={() => { handleExportCSV('satisfaction'); setDropdownOpen(false); }}>Satisfação (CSAT)</button>
+                </div>
+              )}
+            </div>
             <Button onClick={fetchData} className="print:hidden">
               <RefreshCw size={18} className={`mr-2 ${loading ? 'animate-spin' : ''}`} /> Atualizar Dashboard
             </Button>
@@ -593,7 +583,7 @@ function KPICard({ title, value, icon, color }: { title: string, value: string |
   return (
     <Card className="p-6 relative overflow-hidden group hover:border-blue-400 transition-all border-slate-200">
       <div className={`w-10 h-10 rounded-xl mb-4 flex items-center justify-center ${colorMap[color]}`}>
-        {React.cloneElement(icon as React.ReactElement, { size: 20 })}
+        {React.cloneElement(icon as React.ReactElement<any>, { size: 20 })}
       </div>
       <div className="space-y-1">
         <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{title}</p>

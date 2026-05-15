@@ -8,6 +8,8 @@ export interface ReportFilters {
   responsavel_id?: number;
   status?: string;
   prioridade?: string;
+  categoria?: string;
+  servico?: string;
 }
 
 export interface SummaryData {
@@ -282,6 +284,73 @@ class ReportsService {
     `, params);
 
     return { metrics, tickets };
+  }
+
+  async exportCSV(filters: ReportFilters, type: string): Promise<string> {
+    const { clauses, params } = this.buildWhere(filters, 't');
+    const whereString = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
+
+    let query = '';
+    
+    if (type === 'tickets') {
+      query = `
+        SELECT t.id, t.titulo, t.status, t.prioridade, t.categoria, t.servico,
+               u.nome as responsavel, t.solicitante_nome as cliente,
+               DATE_FORMAT(t.created_at, '%Y-%m-%d %H:%i:%s') as criado_em,
+               DATE_FORMAT(t.updated_at, '%Y-%m-%d %H:%i:%s') as atualizado_em
+        FROM tickets t
+        LEFT JOIN usuarios u ON t.responsavel_id = u.id
+        ${whereString}
+        ORDER BY t.created_at DESC
+      `;
+    } else if (type === 'agents') {
+      query = `
+        SELECT u.nome as atendente,
+               COUNT(t.id) as total_tickets,
+               SUM(CASE WHEN t.status = 'aberto' THEN 1 ELSE 0 END) as abertos,
+               SUM(CASE WHEN t.status IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) as resolvidos
+        FROM tickets t
+        LEFT JOIN usuarios u ON t.responsavel_id = u.id
+        ${whereString}
+        GROUP BY u.nome
+      `;
+    } else if (type === 'satisfaction') {
+      query = `
+        SELECT s.ticket_id, t.titulo, s.nota, s.comentario, 
+               DATE_FORMAT(s.respondido_em, '%Y-%m-%d %H:%i:%s') as respondido_em
+        FROM ticket_satisfacao s
+        JOIN tickets t ON s.ticket_id = t.id
+        ${whereString.replace(/t\./g, 't.')} AND s.respondido_em IS NOT NULL
+        ORDER BY s.respondido_em DESC
+      `;
+    } else {
+      // default simple ticket select if type not matched
+      query = `SELECT t.id, t.titulo, t.status, t.prioridade FROM tickets t ${whereString}`;
+    }
+
+    const [rows]: any = await pool.query(query, params);
+
+    if (rows.length === 0) return 'Nenhum registro encontrado\n';
+
+    // Build CSV
+    const headers = Object.keys(rows[0]);
+    let csv = headers.join(';') + '\n';
+
+    for (const row of rows) {
+      const line = headers.map(header => {
+        let val = row[header];
+        if (val === null || val === undefined) val = '';
+        if (typeof val === 'string') {
+          // escape quotes and text
+          val = val.replace(/"/g, '""');
+          if (val.includes(';') || val.includes('\n')) val = `"${val}"`;
+        }
+        return val;
+      });
+      csv += line.join(';') + '\n';
+    }
+
+    return csv;
   }
 
   async getDashboardStats(user: any) {

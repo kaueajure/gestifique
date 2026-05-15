@@ -13,6 +13,7 @@ import { SettingsPage } from './components/pages/SettingsPage';
 import { ReportsPage } from './components/pages/ReportsPage';
 import { AccessDenied } from './components/ui/AccessDenied';
 import { LandingPage } from './components/public/LandingPage';
+import { SatisfactionPage } from './components/public/SatisfactionPage';
 import { User } from './types';
 import { api } from './lib/api';
 import { Card } from './components/ui/Card';
@@ -44,6 +45,13 @@ export default function App() {
   const [authSuccess, setAuthSuccess] = useState<string | null>(null);
   const [isBooting, setIsBooting] = useState(true);
   const [resetEmail, setResetEmail] = useState('');
+
+  // CSAT Route Check
+  const path = window.location.pathname;
+  if (path.startsWith('/csat/')) {
+    const token = path.replace('/csat/', '');
+    return <SatisfactionPage token={token} />;
+  }
 
   useEffect(() => {
     // Check session on load
@@ -387,7 +395,7 @@ export default function App() {
         <Sidebar 
           currentUser={currentUser} 
           activeTab={activeTab} 
-          setActiveTab={(tab) => { setActiveTab(tab); setSelectedTicketId(null); }} 
+          setActiveTab={(tab) => { setActiveTab(tab as ActiveTab); setSelectedTicketId(null); }} 
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
           onLogout={handleLogout}
@@ -418,7 +426,7 @@ export default function App() {
                   transition={{ duration: 0.2 }}
                   className={cn(activeTab === 'tickets' && selectedTicketId && "h-full")}
                 >
-                  {activeTab === 'dashboard' && <DashboardPage onNavigate={(tab) => setActiveTab(tab)} />}
+                  {activeTab === 'dashboard' && <DashboardPage onNavigate={(tab) => setActiveTab(tab as ActiveTab)} />}
                   
                   {activeTab === 'tickets' && !selectedTicketId && (
                     <TicketsPage 

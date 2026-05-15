@@ -26,10 +26,10 @@ class MacrosService {
   }
 
   async create(data: any) {
-    const { empresa_id, titulo, conteudo, categoria, created_by } = data;
+    const { empresa_id, titulo, conteudo, categoria, servico, tags_json, created_by } = data;
     const [result]: any = await pool.query(
-      'INSERT INTO ticket_macros (empresa_id, titulo, conteudo, categoria, created_by) VALUES (?, ?, ?, ?, ?)',
-      [empresa_id, titulo, conteudo, categoria || null, created_by]
+      'INSERT INTO ticket_macros (empresa_id, titulo, conteudo, categoria, servico, tags_json, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [empresa_id, titulo, conteudo, categoria || null, servico || null, tags_json ? JSON.stringify(tags_json) : null, created_by]
     );
     return result.insertId;
   }
@@ -50,6 +50,14 @@ class MacrosService {
       fields.push('categoria = ?');
       params.push(data.categoria || null);
     }
+    if (data.servico !== undefined) {
+      fields.push('servico = ?');
+      params.push(data.servico || null);
+    }
+    if (data.tags_json !== undefined) {
+      fields.push('tags_json = ?');
+      params.push(JSON.stringify(data.tags_json || []));
+    }
     if (data.ativo !== undefined) {
       fields.push('ativo = ?');
       params.push(data.ativo ? 1 : 0);
@@ -63,6 +71,10 @@ class MacrosService {
       params
     );
     return true;
+  }
+
+  async incrementUse(id: number, empresaId: number) {
+    await pool.query('UPDATE ticket_macros SET uso_count = COALESCE(uso_count, 0) + 1 WHERE id = ? AND empresa_id = ?', [id, empresaId]);
   }
 
   async delete(id: number, empresaId: number, softDelete = true) {

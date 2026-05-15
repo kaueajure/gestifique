@@ -30,8 +30,8 @@ export const TicketOptionsManager = ({ currentUser }: TicketOptionsManagerProps)
     try {
       setLoading(true);
       const [catRes, servRes] = await Promise.all([
-        api.get(`/companies/${companyId}/ticket-categories`),
-        api.get(`/companies/${companyId}/ticket-services`)
+        api.get<TicketOption[]>(`/companies/${companyId}/ticket-categories`),
+        api.get<TicketOption[]>(`/companies/${companyId}/ticket-services`)
       ]);
       setCategories(catRes);
       setServices(servRes);
@@ -115,7 +115,7 @@ export const TicketOptionsManager = ({ currentUser }: TicketOptionsManagerProps)
           <div key={item.id} className="flex justify-between items-center p-3 border border-slate-100 rounded-lg hover:border-slate-200 bg-slate-50/50">
             {editingId === `${type}_${item.id}` ? (
               <div className="flex-1 flex gap-2 mr-4">
-                <Input value={editName} onChange={e => setEditName(e.target.value)} size="sm" autoFocus />
+                <Input value={editName} onChange={e => setEditName(e.target.value)} autoFocus />
                 <Button size="sm" onClick={() => handleSaveEdit(type, item.id)}><Check size={14}/></Button>
                 <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}><X size={14}/></Button>
               </div>

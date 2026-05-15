@@ -92,4 +92,16 @@ router.delete('/:id', async (req: AuthRequest, res) => {
   }
 });
 
+// Registrar uso de macro
+router.post('/:id/use', async (req: AuthRequest, res) => {
+  try {
+    if (!req.user) return sendError(res, 'Não autorizado', 401);
+    const { id } = req.params;
+    await macrosService.incrementUse(Number(id), req.user.empresa_id!);
+    sendSuccess(res, { success: true });
+  } catch (error: any) {
+    sendError(res, error.message);
+  }
+});
+
 export default router;

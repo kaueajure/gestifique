@@ -61,7 +61,7 @@ export const TicketCustomFields = ({ fields, onUpdate, readOnly }: TicketCustomF
         {!readOnly && (
           <Button 
             variant="ghost" 
-            size="xs" 
+            size="sm" 
             onClick={() => setIsAdding(true)}
             className="h-6 px-2 text-[9px] uppercase font-bold"
           >

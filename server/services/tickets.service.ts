@@ -648,29 +648,6 @@ class TicketsService {
 
     let responsavel_id = data.responsavel_id || null;
 
-    // Auto-distribute if missing and logic exists
-    if (!responsavel_id) {
-       try {
-         const [regras]: any = await pool.query(
-           "SELECT * FROM empresa_distribuicao_regras WHERE empresa_id = ? AND ativo = 1", [empresa_id]
-         );
-         if (regras.length > 0) {
-           const rule = regras[0]; // just picking first for now
-           const [agents]: any = await pool.query(
-             "SELECT id FROM usuarios WHERE empresa_id = ? AND cargo LIKE '%suporte%'", [empresa_id]
-           );
-           if (agents.length > 0) {
-              const randAgent = agents[Math.floor(Math.random() * agents.length)];
-              responsavel_id = randAgent.id;
-              await pool.query(
-                "INSERT INTO ticket_eventos (ticket_id, empresa_id, tipo, descricao) VALUES (?, ?, ?, ?)",
-                [0, empresa_id, 'distribuicao_automatica', `Atribuído para ${responsavel_id} via regra ${rule.nome}`]
-              );
-           }
-         }
-       } catch(e) {}
-    }
-
     const [result]: any = await pool.query(
       'INSERT INTO tickets (empresa_id, usuario_id, solicitante_nome, solicitante_email, titulo, descricao, prioridade, categoria, servico, prazo_sla, responsavel_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [empresa_id, usuario_id || null, solicitante_nome || null, solicitante_email || null, titulo, descricao, prioridade || 'media', categoria || 'suporte', servico || null, prazoSlaFormatado, responsavel_id]
@@ -678,10 +655,14 @@ class TicketsService {
     const ticketId = result.insertId;
 
     try {
-      if (responsavel_id) {
-         // update ticket_eventos ticket_id because it was 0 for the auto-distribute case
-         await pool.query('UPDATE ticket_eventos SET ticket_id = ? WHERE ticket_id = 0 AND empresa_id = ?', [ticketId, empresa_id]);
-      }
+       if (!responsavel_id) {
+          const { distributeTicket } = await import('./distribution.service.js');
+          const distributedAgentId = await distributeTicket({ id: ticketId, empresa_id, categoria, servico });
+          if (distributedAgentId) responsavel_id = distributedAgentId;
+       }
+    } catch(e) {}
+
+    try {
       const { runAutomations } = await import('./automations.service.js');
       // Pass the fully assembled ticket object
       await runAutomations('ticket_criado', { id: ticketId, empresa_id, status: 'aberto', prioridade: prioridade || 'media', categoria, servico, responsavel_id }, { usuario_id });

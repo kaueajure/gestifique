@@ -284,4 +284,39 @@ router.post('/:id/sla-policies', async (req: AuthRequest, res) => {
   }
 });
 
+router.patch('/:id/sla-policies/:policyId', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+    const id = parseInt(req.params.id);
+    const policyId = parseInt(req.params.policyId);
+    if (!currentUser.desenvolvedor && (!currentUser.administrador || currentUser.empresa_id !== id)) return sendError(res, 'Acesso negado', 403);
+    
+    const { nome, prioridade, categoria, servico, tempo_primeira_resposta_minutos, tempo_resolucao_minutos, ativo, ordem } = req.body;
+    
+    await pool.query(
+      'UPDATE empresa_sla_politicas SET nome = ?, prioridade = ?, categoria = ?, servico = ?, tempo_primeira_resposta_minutos = ?, tempo_resolucao_minutos = ?, ativo = ?, ordem = ? WHERE id = ? AND empresa_id = ?',
+      [nome, prioridade || null, categoria || null, servico || null, tempo_primeira_resposta_minutos || null, tempo_resolucao_minutos || 24 * 60, ativo !== undefined ? ativo : 1, ordem || 0, policyId, id]
+    );
+    sendSuccess(res, { success: true });
+  } catch (error: unknown) {
+    sendError(res, 'Erro ao atualizar política de SLA');
+  }
+});
+
+router.delete('/:id/sla-policies/:policyId', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+    const id = parseInt(req.params.id);
+    const policyId = parseInt(req.params.policyId);
+    if (!currentUser.desenvolvedor && (!currentUser.administrador || currentUser.empresa_id !== id)) return sendError(res, 'Acesso negado', 403);
+    
+    await pool.query('DELETE FROM empresa_sla_politicas WHERE id = ? AND empresa_id = ?', [policyId, id]);
+    sendSuccess(res, { success: true });
+  } catch (error: unknown) {
+    sendError(res, 'Erro ao deletar política de SLA');
+  }
+});
+
 export default router;

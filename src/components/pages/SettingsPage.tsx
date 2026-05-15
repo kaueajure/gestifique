@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User } from '../../types';
 import { api } from '../../lib/api';
-import { Building2, Keyboard, ShieldCheck, Database, Cpu, Lock, Save, Zap, Palette, ChevronRight, CheckCircle2, AlertCircle, Layout, Globe, Building, Shield, TrendingUp } from 'lucide-react';
+import { Building2, Keyboard, ShieldCheck, Database, Cpu, Lock, Save, Zap, Palette, ChevronRight, CheckCircle2, AlertCircle, Layout, Globe, Building, Shield, TrendingUp, BookOpen } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -13,6 +13,7 @@ import { EmailChannelsManager } from '../companies/EmailChannelsManager';
 import { TicketOptionsManager } from '../settings/TicketOptionsManager';
 import { SlaPoliciesManager } from '../settings/SlaPoliciesManager';
 import { AutomationsManager } from '../settings/AutomationsManager';
+import { KnowledgeManager } from '../settings/KnowledgeManager';
 
 type AppTab = 'dashboard' | 'tickets' | 'users' | 'companies' | 'logs' | 'profile' | 'settings' | 'reports';
 
@@ -32,7 +33,7 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [activeSubTab, setActiveSubTab] = useState<'general' | 'company' | 'system' | 'tickets'>('general');
+  const [activeSubTab, setActiveSubTab] = useState<'general' | 'company' | 'system' | 'tickets' | 'knowledge'>('general');
   const [dbStatus, setDbStatus] = useState<string | null>(null);
 
   const checkDb = async () => {
@@ -142,6 +143,18 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
             )}
           >
             <Layout size={14} /> Atendimento
+          </button>
+        )}
+
+        {!!(currentUser.administrador || currentUser.desenvolvedor) && (
+          <button 
+            onClick={() => setActiveSubTab('knowledge')}
+            className={cn(
+              "h-9 px-4 rounded-lg text-xs font-semibold transition-all flex items-center gap-2",
+              activeSubTab === 'knowledge' ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:text-slate-950 hover:bg-slate-50"
+            )}
+          >
+            <BookOpen size={14} /> Base de Conhecimento
           </button>
         )}
 
@@ -465,7 +478,7 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
                                <span className="text-[10px] font-medium text-slate-400 uppercase tracking-tight">Gerenciar</span>
                             </div>
                             <div className="p-1.5 rounded-md bg-white border border-slate-100">
-                               {React.cloneElement(action.icon as React.ReactElement, { size: 14 })}
+                               {React.cloneElement(action.icon as React.ReactElement<any>, { size: 14 })}
                             </div>
                          </Button>
                        ))}
@@ -480,6 +493,10 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
                  <SlaPoliciesManager currentCompanyId={currentUser.empresa_id!} />
                  <AutomationsManager currentCompanyId={currentUser.empresa_id!} />
               </div>
+            )}
+
+            {activeSubTab === 'knowledge' && (
+              <KnowledgeManager currentUser={currentUser} />
             )}
           </motion.div>
         </AnimatePresence>

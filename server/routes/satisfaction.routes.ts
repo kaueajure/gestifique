@@ -18,6 +18,10 @@ router.post('/:token', async (req, res) => {
   const { token } = req.params;
   const { nota, comentario } = req.body;
 
+  if (typeof nota !== 'number' || nota < 1 || nota > 5) {
+    return res.status(400).json({ error: 'Nota deve ser entre 1 e 5.' });
+  }
+
   try {
     const [rows]: any = await pool.query('SELECT * FROM ticket_satisfacao WHERE token = ?', [token]);
     if (rows.length === 0) return res.status(404).json({ error: 'Pesquisa não encontrada ou inválida.' });
@@ -32,10 +36,20 @@ router.post('/:token', async (req, res) => {
       [nota, comentario || null, token]
     );
 
-    await pool.query(
-      'INSERT INTO ticket_eventos (ticket_id, empresa_id, tipo, descricao) VALUES (?, ?, ?, ?)',
-      [csat.ticket_id, csat.empresa_id, 'satisfacao_respondida', `Cliente respondeu CSAT com nota ${nota}`]
-    );
+    try {
+      const { recordTicketEvent } = await import('../services/ticket-events.service.js');
+      await recordTicketEvent({
+        ticket_id: csat.ticket_id,
+        empresa_id: csat.empresa_id,
+        tipo: 'satisfacao_respondida',
+        descricao: `Cliente respondeu CSAT com nota ${nota}`
+      });
+    } catch (e) {
+      await pool.query(
+        'INSERT INTO ticket_eventos (ticket_id, empresa_id, tipo, descricao) VALUES (?, ?, ?, ?)',
+        [csat.ticket_id, csat.empresa_id, 'satisfacao_respondida', `Cliente respondeu CSAT com nota ${nota}`]
+      );
+    }
 
     res.json({ success: true, message: 'Avaliação registrada com sucesso.' });
   } catch (err) {

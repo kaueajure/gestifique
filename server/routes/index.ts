@@ -12,6 +12,7 @@ import  notificationsRoutes from  './notifications.routes.js';
 import  macrosRoutes from './macros.routes.js';
 import  satisfactionRoutes from './satisfaction.routes.js';
 import  automationsRoutes from './automations.routes.js';
+import  knowledgeRoutes from './knowledge.routes.js';
 import { emailChannelsRoutes } from './email-channels.routes.js';
 
 const router = Router();
@@ -29,6 +30,7 @@ router.use('/notifications', notificationsRoutes);
 router.use('/macros', macrosRoutes);
 router.use('/satisfaction', satisfactionRoutes);
 router.use('/automations', automationsRoutes);
+router.use('/knowledge', knowledgeRoutes);
 router.use('/', emailChannelsRoutes); // mounted at /api/companies/:companyId/email-channels
 
 export default router;

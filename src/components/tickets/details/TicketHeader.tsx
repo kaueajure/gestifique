@@ -84,10 +84,10 @@ export const TicketHeader = ({ id, titulo, status, prioridade, estado_atendiment
 
         {showResolveButton && onUpdateStatus && (
           <Button 
-            variant="emerald" 
+            variant="primary" 
             size="sm" 
             onClick={() => onUpdateStatus({ status: 'resolvido' })}
-            className="h-9 px-4 text-[10px] uppercase font-bold tracking-widest shrink-0 shadow-sm"
+            className="h-9 px-4 text-[10px] uppercase font-bold tracking-widest shrink-0 shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white"
           >
             Finalizar
           </Button>
