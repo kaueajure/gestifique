@@ -7,6 +7,19 @@ import { Select } from '../ui/Select';
 import { Plus, Zap, Edit2, Trash2, X, PlusCircle, AlertCircle } from 'lucide-react';
 import { api } from '../../lib/api';
 
+const parseJsonArray = (value: any) => {
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+};
+
 export const AutomationsManager = ({ currentCompanyId }: { currentCompanyId: number }) => {
   const [automations, setAutomations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,8 +61,8 @@ export const AutomationsManager = ({ currentCompanyId }: { currentCompanyId: num
       setAtivo(item.ativo === 1 || item.ativo === true);
       setOrdem(String(item.ordem || 0));
       try {
-        setCondicoes(typeof item.condicoes_json === 'string' ? JSON.parse(item.condicoes_json) : (item.condicoes_json || []));
-        setAcoes(typeof item.acoes_json === 'string' ? JSON.parse(item.acoes_json) : (item.acoes_json || []));
+        setCondicoes(parseJsonArray(item.condicoes_json));
+        setAcoes(parseJsonArray(item.acoes_json));
       } catch (e) {
         setCondicoes([]);
         setAcoes([]);
@@ -159,8 +172,8 @@ export const AutomationsManager = ({ currentCompanyId }: { currentCompanyId: num
                  </div>
                  <div className="text-xs text-slate-500 mb-2 font-medium">Evento: {a.evento}</div>
                  <div className="flex flex-wrap gap-2 text-[10px]">
-                   <Badge variant="blue" className="bg-blue-50 text-blue-600 font-semibold">{Array.isArray(JSON.parse(a.condicoes_json || '[]')) ? JSON.parse(a.condicoes_json || '[]').length : 0} Condições</Badge>
-                   <Badge variant="orange" className="bg-orange-50 text-orange-600 font-semibold">{Array.isArray(JSON.parse(a.acoes_json || '[]')) ? JSON.parse(a.acoes_json || '[]').length : 0} Ações</Badge>
+                   <Badge variant="blue" className="bg-blue-50 text-blue-600 font-semibold">{parseJsonArray(a.condicoes_json).length} Condições</Badge>
+                   <Badge variant="orange" className="bg-orange-50 text-orange-600 font-semibold">{parseJsonArray(a.acoes_json).length} Ações</Badge>
                  </div>
                </div>
                <div className="flex items-center gap-2">

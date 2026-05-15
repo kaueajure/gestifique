@@ -129,9 +129,12 @@ export interface Ticket {
   tags?: string[];
   custom_fields?: TicketCustomField[];
   satisfacao?: {
-    nota: number;
+    id?: number;
+    token?: string;
+    nota?: number;
     comentario?: string;
-    respondido_em: string;
+    respondido_em?: string;
+    status: 'nao_enviada' | 'aguardando_resposta' | 'respondida';
   };
 }
 

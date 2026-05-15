@@ -25,14 +25,31 @@ export async function distributeTicket(ticket: any) {
 
     // Get eligible agents
     let agents: any[] = [];
-    const config = matchedRule.config_json || {};
     
-    if (config.agents && config.agents.length > 0) {
-       const agentIds = config.agents.join(',');
-       const [rows]: any = await pool.query(`SELECT id FROM usuarios WHERE empresa_id = ? AND id IN (${agentIds}) AND ativo = 1`, [empresa_id]);
-       agents = rows;
-    } else {
-       const [rows]: any = await pool.query(`SELECT id FROM usuarios WHERE empresa_id = ? AND ativo = 1 AND perfil IN ('atendente', 'gestor', 'administrador', 'desenvolvedor')`, [empresa_id]);
+    let config: any = {};
+    if (typeof matchedRule.config_json === 'string') {
+      try { config = JSON.parse(matchedRule.config_json); } catch(e) {}
+    } else if (matchedRule.config_json) {
+      config = matchedRule.config_json;
+    }
+    
+    if (Array.isArray(config.agents) && config.agents.length > 0) {
+       const ids = config.agents.map(Number).filter(Boolean);
+       if (ids.length > 0) {
+         const placeholders = ids.map(() => '?').join(',');
+         const [rows]: any = await pool.query(
+           `SELECT id FROM usuarios WHERE empresa_id = ? AND ativo = 1 AND id IN (${placeholders}) AND (perfil IN ('atendente', 'gestor', 'administrador', 'desenvolvedor') OR administrador = 1)`,
+           [empresa_id, ...ids]
+         );
+         agents = rows;
+       }
+    }
+    
+    if (agents.length === 0) {
+       const [rows]: any = await pool.query(
+         `SELECT id FROM usuarios WHERE empresa_id = ? AND ativo = 1 AND (perfil IN ('atendente', 'gestor', 'administrador', 'desenvolvedor') OR administrador = 1)`,
+         [empresa_id]
+       );
        agents = rows;
     }
 

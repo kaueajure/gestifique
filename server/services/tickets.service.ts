@@ -765,14 +765,25 @@ class TicketsService {
     
     // Buscar satisfação se houver
     const [csatRows]: any = await pool.query(
-      'SELECT nota, comentario, respondido_em FROM ticket_satisfacao WHERE ticket_id = ? AND token_usado = 1',
+      'SELECT id, nota, comentario, token, respondido_em FROM ticket_satisfacao WHERE ticket_id = ? ORDER BY created_at DESC LIMIT 1',
       [id]
     );
-    if (csatRows[0]) {
+    if (!csatRows[0]) {
+      ticket.satisfacao = { status: 'nao_enviada' };
+    } else if (!csatRows[0].respondido_em) {
       ticket.satisfacao = {
+        id: csatRows[0].id,
+        token: csatRows[0].token,
+        status: 'aguardando_resposta'
+      };
+    } else {
+      ticket.satisfacao = {
+        id: csatRows[0].id,
+        token: csatRows[0].token,
         nota: csatRows[0].nota,
         comentario: csatRows[0].comentario,
-        respondido_em: csatRows[0].respondido_em
+        respondido_em: csatRows[0].respondido_em,
+        status: 'respondida'
       };
     }
     
@@ -1267,6 +1278,50 @@ class TicketsService {
          icon: 'rotate-ccw'
        });
     }
+
+    // 6. Ticket Eventos
+    const [eventos]: any = await pool.query(`
+      SELECT te.*, u.nome as usuario_nome
+      FROM ticket_eventos te
+      LEFT JOIN usuarios u ON te.usuario_id = u.id
+      WHERE te.ticket_id = ?
+    `, [ticketId]);
+
+    const mapEventIcon = (tipo: string) => {
+      switch (tipo) {
+        case 'automacao_executada': return 'zap';
+        case 'distribuicao_automatica': return 'user-check';
+        case 'sla_recalculado': return 'clock';
+        case 'satisfacao_enviada': return 'star';
+        case 'satisfacao_respondida': return 'star';
+        case 'macro_usada': return 'message-square';
+        case 'status_alterado': return 'refresh-cw';
+        case 'prioridade_alterada': return 'alert-circle';
+        case 'responsavel_alterado': return 'user-check';
+        case 'categoria_alterada': return 'tag';
+        case 'servico_alterado': return 'briefcase';
+        default: return 'activity';
+      }
+    };
+
+    eventos.forEach((e: any) => {
+      let parsedMetadata = {};
+      if (typeof e.metadata_json === 'string') {
+        try { parsedMetadata = JSON.parse(e.metadata_json); } catch (_) {}
+      } else if (e.metadata_json) {
+        parsedMetadata = e.metadata_json;
+      }
+      
+      timeline.push({
+        type: 'event',
+        date: e.created_at,
+        author: e.usuario_nome || 'Sistema',
+        action: e.tipo,
+        description: e.descricao,
+        metadata: parsedMetadata,
+        icon: mapEventIcon(e.tipo)
+      });
+    });
 
     // Sort by date ascending (oldest first)
     timeline.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());

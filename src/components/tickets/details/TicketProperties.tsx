@@ -352,30 +352,46 @@ export const TicketProperties = ({
         )}
 
         {/* Satisfação (CSAT) */}
-        {ticket.satisfacao && (
+        {ticket.satisfacao && ticket.satisfacao.status !== 'nao_enviada' && (
           <Section title="Avaliação do Cliente (CSAT)">
-            <div className="flex flex-col gap-1.5 text-[11px]">
-              <div className="flex items-center gap-1 mb-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <svg 
-                    key={star} 
-                    className={cn("w-4 h-4", star <= ticket.satisfacao!.nota ? "text-yellow-400 fill-yellow-400" : "text-slate-200 fill-slate-200")} 
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                  </svg>
-                ))}
-                <span className="ml-1 text-[10px] font-bold text-slate-500">{ticket.satisfacao.nota} / 5</span>
-              </div>
-              {ticket.satisfacao.comentario && (
-                <div className="bg-slate-50 p-2 rounded-lg border border-slate-100 text-slate-700 italic">
-                  "{ticket.satisfacao.comentario}"
+            {ticket.satisfacao.status === 'aguardando_resposta' && (
+               <div className="flex flex-col gap-2 text-[11px] bg-yellow-50 p-3 rounded-lg border border-yellow-100">
+                 <div className="flex items-center gap-1.5 text-yellow-800 font-medium">
+                   <Clock size={14} /> Aguardando resposta
+                 </div>
+                 <div className="flex flex-col gap-1 mt-1">
+                   <span className="text-[10px] text-yellow-700">Link da pesquisa:</span>
+                   <div className="flex items-center gap-1 bg-white p-1 rounded border border-yellow-200">
+                     <input type="text" readOnly value={`${window.location.origin}/csat/${ticket.satisfacao.token}`} className="text-[10px] flex-1 bg-transparent border-0 focus:ring-0 text-slate-600 truncate px-1" />
+                     <button onClick={() => navigator.clipboard.writeText(`${window.location.origin}/csat/${ticket.satisfacao.token}`)} className="text-blue-600 hover:text-blue-800 p-1 bg-blue-50 rounded" title="Copiar link" type="button">Copiar</button>
+                   </div>
+                 </div>
+               </div>
+            )}
+            {ticket.satisfacao.status === 'respondida' && (
+              <div className="flex flex-col gap-1.5 text-[11px]">
+                <div className="flex items-center gap-1 mb-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <svg 
+                      key={star} 
+                      className={cn("w-4 h-4", star <= (ticket.satisfacao?.nota || 0) ? "text-yellow-400 fill-yellow-400" : "text-slate-200 fill-slate-200")} 
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
+                  ))}
+                  <span className="ml-1 text-[10px] font-bold text-slate-500">{ticket.satisfacao?.nota} / 5</span>
                 </div>
-              )}
-              <div className="text-[9px] text-slate-400 mt-0.5">
-                Respondido em: {formatDate(ticket.satisfacao.respondido_em)}
+                {ticket.satisfacao?.comentario && (
+                  <div className="bg-slate-50 p-2 rounded-lg border border-slate-100 text-slate-700 italic">
+                    "{ticket.satisfacao.comentario}"
+                  </div>
+                )}
+                <div className="text-[9px] text-slate-400 mt-0.5">
+                  Respondido em: {ticket.satisfacao?.respondido_em ? formatDate(ticket.satisfacao.respondido_em) : '-'}
+                </div>
               </div>
-            </div>
+            )}
           </Section>
         )}
 
