@@ -6,7 +6,7 @@ export interface AttachmentData {
   id: number;
   ticket_id: number;
   mensagem_id?: number | null;
-  usuario_id: number;
+  usuario_id: number | null;
   empresa_id: number | null;
   nome_original: string;
   nome_arquivo: string;
@@ -23,9 +23,9 @@ export interface AttachmentData {
 class AttachmentsService {
   async listByTicket(ticketId: number, includeInternal: boolean): Promise<AttachmentData[]> {
     let query = `
-      SELECT a.*, u.nome as usuario_nome
+      SELECT a.*, COALESCE(u.nome, 'Cliente Externo') as usuario_nome
       FROM ticket_anexos a
-      JOIN usuarios u ON a.usuario_id = u.id
+      LEFT JOIN usuarios u ON a.usuario_id = u.id
       WHERE a.ticket_id = ?
     `;
     if (!includeInternal) {
@@ -57,7 +57,7 @@ class AttachmentsService {
   async create(data: {
     ticket_id: number;
     mensagem_id?: number | null;
-    usuario_id: number;
+    usuario_id: number | null;
     empresa_id: number | null;
     nome_original: string;
     nome_arquivo: string;
@@ -82,8 +82,11 @@ class AttachmentsService {
       const ticket = ticketRows[0];
 
       if (ticket) {
-        const [author]: any = await pool.query('SELECT nome FROM usuarios WHERE id = ?', [usuario_id]);
-        const authorName = author[0]?.nome || 'Alguém';
+        let authorName = 'Cliente Externo';
+        if (usuario_id) {
+          const [author]: any = await pool.query('SELECT nome FROM usuarios WHERE id = ?', [usuario_id]);
+          authorName = author[0]?.nome || 'Alguém';
+        }
 
         const recipients = new Set<number>();
         
@@ -98,7 +101,7 @@ class AttachmentsService {
         }
 
         // 3. Se for interno, notificar admins/devs da empresa (que não sejam o autor)
-        if (interno) {
+        if (interno && ticket.empresa_id) {
             const [admins]: any = await pool.query(
               'SELECT id FROM usuarios WHERE empresa_id = ? AND administrador = 1',
               [ticket.empresa_id]
@@ -131,10 +134,10 @@ class AttachmentsService {
     const attachment = await this.getById(id);
     if (!attachment) return false;
 
-    // Remove from DB
+    // Remove do DB
     await pool.query('DELETE FROM ticket_anexos WHERE id = ?', [id]);
 
-    // Remove file from storage
+    // Remove o arquivo do storage
     try {
       await storageService.delete(attachment.caminho);
     } catch (err) {

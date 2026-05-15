@@ -2,10 +2,12 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
+import { env } from '../config/env.js';
 
-const uploadDir = path.join(process.cwd(), 'uploads', 'tickets');
+// Resolve o caminho de upload a partir da configuração do env
+const uploadDir = path.resolve(process.cwd(), env.STORAGE_CONFIG.LOCAL_PATH);
 
-// Ensure directory exists
+// Garante que o diretório existe
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
@@ -15,10 +17,11 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    // Generate secure unique name using crypto
+    // Gera nome único seguro usando crypto
     const ext = path.extname(file.originalname).toLowerCase();
     const randomName = crypto.randomBytes(16).toString('hex');
     const timestamp = Date.now();
+    // Prefixamos com tk- para facilitar identificação
     cb(null, `tk-${timestamp}-${randomName}${ext}`);
   }
 });
@@ -38,7 +41,7 @@ const fileFilter = (req: any, file: any, cb: any) => {
     'text/plain'
   ];
 
-  // Prevent suspicious file names (e.g. .exe.jpg or path traversal)
+  // Prevenção de ataques de Path Traversal ou nomes maliciosos
   if (file.originalname.includes('..') || file.originalname.includes('/') || file.originalname.includes('\\')) {
     return cb(new Error('Nome de arquivo inválido e suspeito.'), false);
   }
@@ -53,12 +56,12 @@ const fileFilter = (req: any, file: any, cb: any) => {
   const isSpecificAllowed = allowedMimetypes.includes(file.mimetype);
   const isGenericMime = ['application/octet-stream', 'application/x-download', 'application/download'].includes(file.mimetype);
   
-  // Images MUST have specific MIME
+  // Imagens DEVEM ter MIME específico válido
   if (isImageFile && !isSpecificAllowed) {
     return cb(new Error('Imagens devem ter um tipo MIME específico e válido.'), false);
   }
 
-  // Other types can be specific or generic
+  // Outros tipos podem ser específicos ou genéricos
   if (!isSpecificAllowed && !isGenericMime) {
     return cb(new Error('Tipo de arquivo (MIME) não permitido.'), false);
   }
@@ -71,6 +74,6 @@ export const ticketUpload = multer({
   fileFilter,
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB
-    files: 5
+    files: 5 // Máximo de 5 arquivos por vez
   }
 });

@@ -52,7 +52,7 @@ async function startServer() {
 
   const app = express();
   
-  // 1. Security Headers (Helmet)
+  // 1. Security Headers (Helmet) - Hardened for Production
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {
@@ -61,19 +61,19 @@ async function startServer() {
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         imgSrc: ["'self'", "data:", "blob:", "https://images.unsplash.com", "https://res.cloudinary.com"],
-        connectSrc: ["'self'", "ws:", "wss:", "https://*.run.app", "https://*.studio"],
+        connectSrc: ["'self'", "ws:", "wss:", "https://*.run.app", "https://*.studio", ...env.CORS_ORIGINS],
         frameAncestors: ["'self'", "https://ai.studio", "https://*.studio.google.com"],
         upgradeInsecureRequests: env.IS_PROD ? [] : null,
       },
     },
     crossOriginResourcePolicy: { policy: "cross-origin" },
-    crossOriginEmbedderPolicy: false // Required for some Vite/SPA features
+    crossOriginEmbedderPolicy: false
   }));
 
   // 2. Global Rate Limiting
   const globalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 1000, // Limit each IP to 1000 requests per window
+    windowMs: 15 * 60 * 1000,
+    max: 1000,
     standardHeaders: true,
     legacyHeaders: false,
     message: { success: false, message: 'Too many requests, please try again later.' },
@@ -83,12 +83,10 @@ async function startServer() {
 
   const httpServer = createServer(app);
   
-  // WebSocket only initialization if web server is enabled
+  // WebSocket initialization if web server role is enabled
   if (env.ENABLE_WEB_SERVER) {
     io = new SocketIOServer(httpServer, {
-      cors: corsOptions,
-      // Preparação para Escala: No futuro, adicionar Redis Adapter aqui
-      // adapter: createAdapter(pubClient, subClient)
+      cors: corsOptions
     });
 
     app.set('io', io);
@@ -113,7 +111,7 @@ async function startServer() {
   app.use(express.json({ limit: '1mb' }));
   app.use(cookieParser());
   
-  // Hardened Boot Sequence
+  // Database Boot
   try {
      console.log('[BOOT] Initializing database...');
      await initDB();
@@ -122,12 +120,10 @@ async function startServer() {
      if (env.IS_PROD) {
        console.error("Stopping server due to database failure in production.");
        process.exit(1);
-     } else {
-       console.warn("⚠️ Continuing in Development mode, but database features will be unavailable.");
      }
   }
 
-  // Health Checks (Global and API)
+  // Health Checks
   app.get('/health', (req, res) => {
     res.json({ 
       success: true, 
@@ -141,30 +137,10 @@ async function startServer() {
     });
   });
 
-  app.get('/api/health/db', async (req, res) => {
-    try {
-      const { default: pool } = await import('./db/connection.js');
-      await pool.query('SELECT 1');
-      res.json({ success: true, status: 'CONNECTED' });
-    } catch (err) {
-      res.status(503).json({ success: false, status: 'DISCONNECTED', error: err instanceof Error ? err.message : String(err) });
-    }
-  });
-
-  // API Routes only if web server enabled (or we can keep them for management if needed, 
-  // but usually web instance handles routes)
+  // Services & Routes according to process roles
   if (env.ENABLE_WEB_SERVER) {
     app.use('/api', apiRoutes);
 
-    // API 404 Fallback
-    app.use('/api', (req, res) => {
-      res.status(404).json({
-        success: false,
-        message: `Rota API não encontrada: ${req.originalUrl}`
-      });
-    });
-
-    // Static Assets / SPA Fallback
     if (!env.IS_PROD) {
       const vite = await createViteServer({
         server: { middlewareMode: true },
@@ -176,22 +152,16 @@ async function startServer() {
       app.use(express.static(distPath));
       app.get('*', (req: express.Request, res: express.Response) => {
         if (req.path.startsWith('/api')) {
-          return res.status(404).json({ 
-            success: false, 
-            message: `Rota API não encontrada: ${req.originalUrl}` 
-          });
+          return res.status(404).json({ success: false, message: 'Rota API não encontrada' });
         }
         res.sendFile(path.join(distPath, 'index.html'));
       });
     }
   } else {
-    // If not a web server, provide a minimal response for any request
-    app.use((req, res) => {
-      res.status(503).send('Worker Node: HTTP server disabled for this instance.');
-    });
+    // Worker role minimal responder
+    app.get('/', (req, res) => res.status(503).send('Worker Node: HTTP server role disabled.'));
   }
 
-  // Error Handler
   app.use(errorHandler);
 
   httpServer.listen(PORT, "0.0.0.0", () => {
@@ -199,21 +169,19 @@ async function startServer() {
     console.log(`Environment: ${env.NODE_ENV}`);
     console.log(`Roles: [WEB: ${env.ENABLE_WEB_SERVER}] [EMAIL_LISTENER: ${env.ENABLE_EMAIL_LISTENER}] [JOBS: ${env.ENABLE_TICKET_JOBS}]`);
 
-    // Initialize Email Listener if enabled
+    // Start Email Listener only if role is enabled
     if (env.ENABLE_EMAIL_LISTENER) {
       console.log('[BOOT] Starting Email Listener Service...');
       EmailListenerService.init();
     }
 
-    // Initialize Jobs if enabled
+    // Start Jobs only if role is enabled
     if (env.ENABLE_TICKET_JOBS) {
       console.log('[BOOT] Starting Ticket Automation Jobs...');
-      // Start Ticket Automations Polling (every 5 minutes)
       setInterval(() => {
         runTicketAutomations().catch(err => console.error('[JOB ERROR] runTicketAutomations:', err));
       }, 5 * 60 * 1000);
       
-      // Run once on startup (with small delay to avoid DB race conditions)
       setTimeout(() => {
         runTicketAutomations().catch(err => console.error('[JOB ERROR INITIAL] runTicketAutomations:', err));
       }, 5000);
