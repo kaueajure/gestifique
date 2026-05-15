@@ -15,6 +15,7 @@ import  automationsRoutes from './automations.routes.js';
 import  knowledgeRoutes from './knowledge.routes.js';
 import { portalRoutes } from './portal.routes.js';
 import { emailChannelsRoutes } from './email-channels.routes.js';
+import healthRoutes from './health.routes.js';
 
 const router = Router();
 
@@ -33,6 +34,7 @@ router.use('/satisfaction', satisfactionRoutes);
 router.use('/automations', automationsRoutes);
 router.use('/knowledge', knowledgeRoutes);
 router.use('/portal', portalRoutes);
+router.use('/health', healthRoutes);
 router.use('/', emailChannelsRoutes); // mounted at /api/companies/:companyId/email-channels
 
 export default router;

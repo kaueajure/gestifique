@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User } from '../../types';
 import { api } from '../../lib/api';
-import { Building2, Keyboard, ShieldCheck, Database, Cpu, Lock, Save, Zap, Palette, ChevronRight, CheckCircle2, AlertCircle, Layout, Globe, Building, Shield, TrendingUp, BookOpen } from 'lucide-react';
+import { Building2, Keyboard, ShieldCheck, Database, Cpu, Lock, Save, Zap, Palette, ChevronRight, CheckCircle2, AlertCircle, Layout, Globe, Building, Shield, TrendingUp, BookOpen, RefreshCw } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -22,10 +22,35 @@ interface SettingsPageProps {
   onUpdateUser?: (user: User) => void;
 }
 
-type DbHealthResponse = {
-  success?: boolean;
-  status?: string;
-  database?: string;
+type HealthOverviewResponse = {
+  success: boolean;
+  database: {
+    success: boolean;
+    status: string;
+    latencyMs?: number;
+    database?: string;
+    message?: string;
+  };
+  system: {
+    success: boolean;
+    status: string;
+    environment: string;
+    uptimeSeconds: number;
+    roles: {
+      web: boolean;
+      emailListener: boolean;
+      ticketJobs: boolean;
+    };
+  };
+  security: {
+    success: boolean;
+    status: string;
+    auth: boolean;
+    helmet: boolean;
+    rateLimit: boolean;
+    trustProxy: any;
+    warnings: string[];
+  };
 };
 
 export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: SettingsPageProps) => {
@@ -33,22 +58,26 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeSubTab, setActiveSubTab] = useState<'general' | 'company' | 'system' | 'tickets'>('general');
-  const [dbStatus, setDbStatus] = useState<string | null>(null);
+  const [loadingHealth, setLoadingHealth] = useState(false);
+  const [healthError, setHealthError] = useState<string | null>(null);
+  const [healthData, setHealthData] = useState<HealthOverviewResponse | null>(null);
 
-  const checkDb = async () => {
+  const fetchHealthOverview = async () => {
+    setLoadingHealth(true);
+    setHealthError(null);
     try {
-      const res = await api.get<DbHealthResponse>('/health/db');
-      const statusValue = res.status || res.database || (res.success ? 'CONNECTED' : 'ERROR');
-      setDbStatus(statusValue === 'CONNECTED' ? 'CONECTADO' : statusValue);
-    } catch {
-      setDbStatus('ERRO');
+      const res = await api.get<HealthOverviewResponse>('/health/overview');
+      setHealthData(res);
+    } catch (err: any) {
+      setHealthError(err.message || 'Falha ao buscar diagnóstico do sistema');
+    } finally {
+      setLoadingHealth(false);
     }
   };
 
   React.useEffect(() => {
     if (activeSubTab === 'system') {
-      setDbStatus('VERIFICANDO...');
-      checkDb();
+      fetchHealthOverview();
     }
   }, [activeSubTab]);
 
@@ -389,53 +418,138 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
 
             {activeSubTab === 'system' && (
               <div className="space-y-6">
-                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Card className="p-5 space-y-4 bg-slate-900 border-slate-800 text-white">
-                       <div className="w-10 h-10 bg-white/5 rounded-lg flex items-center justify-center text-blue-400 border border-white/10">
-                          <Database size={20} />
-                       </div>
-                       <div>
-                          <div className="text-lg font-bold">Banco de Dados</div>
-                          <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Conexão principal</div>
-                       </div>
-                       <div className="pt-3 border-t border-white/5 flex items-center justify-between">
-                          <Badge variant={dbStatus === 'CONECTADO' ? 'emerald' : dbStatus === 'ERRO' ? 'red' : 'slate'} className="font-semibold text-[10px]">
-                             {dbStatus || 'VERIFICANDO...'}
-                          </Badge>
-                          <span className="text-[10px] font-mono text-slate-500">Produção</span>
-                       </div>
-                    </Card>
+                 {loadingHealth ? (
+                   <div className="flex flex-col items-center justify-center p-12 space-y-4">
+                     <RefreshCw className="animate-spin text-slate-300" size={32} />
+                     <p className="text-sm font-semibold text-slate-500">Coletando diagnósticos do ecossistema...</p>
+                   </div>
+                 ) : healthError ? (
+                   <Card className="p-6">
+                     <div className="flex flex-col items-center justify-center text-center space-y-4">
+                        <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center">
+                           <AlertCircle size={32} />
+                        </div>
+                        <div className="space-y-1">
+                           <h4 className="text-base font-semibold text-slate-900">Falha no Diagnóstico</h4>
+                           <p className="text-sm text-slate-500 max-w-sm mx-auto">{healthError}</p>
+                        </div>
+                        <Button variant="outline" size="sm" onClick={fetchHealthOverview}>
+                           Tentar Novamente
+                        </Button>
+                     </div>
+                   </Card>
+                 ) : healthData ? (
+                   <>
+                     <div className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <span className="text-xs font-medium text-slate-500">Última verificação: {new Date().toLocaleTimeString()}</span>
+                        <Button variant="outline" size="sm" onClick={fetchHealthOverview} className="h-8">
+                          <RefreshCw size={14} className="mr-2" /> Atualizar Diagnóstico
+                        </Button>
+                     </div>
 
-                    <Card className="p-5 space-y-4">
-                       <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600">
-                          <Globe size={20} />
-                       </div>
-                       <div>
-                          <div className="text-lg font-bold text-slate-900">API do Sistema</div>
-                          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Ambiente</div>
-                       </div>
-                       <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                          <Badge variant="indigo" className="font-semibold text-[10px]">OPERACIONAL</Badge>
-                          <span className="text-[10px] font-mono text-slate-400">Protegido</span>
-                       </div>
-                    </Card>
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Banco de Dados Card */}
+                        <Card className="p-5 space-y-4 bg-slate-900 border-slate-800 text-white">
+                           <div className="w-10 h-10 bg-white/5 rounded-lg flex items-center justify-center text-blue-400 border border-white/10">
+                              <Database size={20} />
+                           </div>
+                           <div>
+                              <div className="text-lg font-bold">Banco de Dados</div>
+                              <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Conexão principal</div>
+                           </div>
+                           <div className="space-y-2">
+                             <div className="pt-3 border-t border-white/5 flex items-center justify-between">
+                                <Badge 
+                                  variant={healthData.database.status === 'CONNECTED' ? 'emerald' : 'red'} 
+                                  className="font-semibold text-[10px]"
+                                >
+                                   {healthData.database.status === 'CONNECTED' ? 'CONECTADO' : 'ERRO'}
+                                </Badge>
+                                <span className="text-[10px] font-mono text-slate-500">
+                                  {healthData.database.latencyMs ? `${healthData.database.latencyMs}ms` : '---'}
+                                </span>
+                             </div>
+                             {healthData.database.message && (
+                               <div className="text-xs text-red-400">{healthData.database.message}</div>
+                             )}
+                           </div>
+                        </Card>
 
-                    <Card className="p-5 space-y-4">
-                       <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600">
-                          <ShieldCheck size={20} />
-                       </div>
-                       <div>
-                          <div className="text-lg font-bold text-slate-900">Camada de Segurança</div>
-                          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Autenticação</div>
-                       </div>
-                       <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                          <Badge variant="emerald" className="font-semibold text-[10px]">ATIVO</Badge>
-                          <span className="text-[10px] font-mono text-slate-400">Conectado</span>
-                       </div>
-                    </Card>
-                 </div>
+                        {/* API SYSTEM CARD */}
+                        <Card className="p-5 space-y-4">
+                           <div className="flex justify-between items-start">
+                             <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600">
+                                <Globe size={20} />
+                             </div>
+                             <div className="flex flex-col items-end">
+                               <div className="flex gap-1">
+                                  {healthData.system.roles.web && <Badge variant="slate" className="text-[9px]">WEB</Badge>}
+                                  {healthData.system.roles.emailListener && <Badge variant="slate" className="text-[9px]">EMAIL</Badge>}
+                                  {healthData.system.roles.ticketJobs && <Badge variant="slate" className="text-[9px]">JOBS</Badge>}
+                               </div>
+                             </div>
+                           </div>
+                           <div>
+                              <div className="text-lg font-bold text-slate-900">API do Sistema</div>
+                              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">{healthData.system.environment}</div>
+                           </div>
+                           <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                              <Badge 
+                                variant={healthData.system.status === 'OPERATIONAL' ? 'indigo' : 'red'} 
+                                className="font-semibold text-[10px]"
+                              >
+                                {healthData.system.status === 'OPERATIONAL' ? 'OPERACIONAL' : 'ERRO'}
+                              </Badge>
+                              <span className="text-[10px] font-mono text-slate-400">
+                                Up: {Math.floor(healthData.system.uptimeSeconds / 3600)}h {Math.floor((healthData.system.uptimeSeconds % 3600) / 60)}m
+                              </span>
+                           </div>
+                        </Card>
 
-                 <Card className="p-6 space-y-6">
+                        {/* SECURITY CARD */}
+                        <Card className="p-5 space-y-4">
+                           <div className="flex justify-between items-start">
+                             <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600">
+                                <ShieldCheck size={20} />
+                             </div>
+                             <div className="text-2xl font-bold text-slate-300">
+                               {healthData.security.warnings.length}
+                             </div>
+                           </div>
+                           <div>
+                              <div className="text-lg font-bold text-slate-900">Camada de Segurança</div>
+                              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
+                                {healthData.security.auth ? 'Autenticação Ativa' : 'Autenticação Mista'}
+                              </div>
+                           </div>
+                           <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                              <Badge 
+                                variant={healthData.security.status === 'ACTIVE' ? 'emerald' : healthData.security.status === 'WARNING' ? 'amber' : 'red'} 
+                                className="font-semibold text-[10px]"
+                              >
+                                {healthData.security.status === 'ACTIVE' ? 'ATIVO' : healthData.security.status === 'WARNING' ? 'AVISOS' : 'ERRO'}
+                              </Badge>
+                              <span className="text-[10px] font-mono text-slate-400">
+                                {healthData.security.helmet ? 'Protegido' : 'Sem Proteção'}
+                              </span>
+                           </div>
+                        </Card>
+                     </div>
+
+                     {healthData.security.warnings.length > 0 && (
+                       <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
+                         <div className="flex gap-2 items-center text-amber-800 font-semibold text-sm">
+                           <AlertCircle size={16} /> Avisos de Segurança
+                         </div>
+                         <ul className="list-disc pl-5 text-xs text-amber-700 space-y-1">
+                           {healthData.security.warnings.map((warn, i) => (
+                             <li key={i}>{warn}</li>
+                           ))}
+                         </ul>
+                       </div>
+                     )}
+
+                     <Card className="p-6 space-y-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 bg-slate-950 text-white rounded-lg flex items-center justify-center">
@@ -471,6 +585,8 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
                        ))}
                     </div>
                   </Card>
+                   </>
+                 ) : null}
                </div>
             )}
 
