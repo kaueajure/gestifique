@@ -47,9 +47,9 @@ interface TicketsPageProps {
 
 const QUEUES: { id: TicketQueue; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
   { id: 'meus', label: 'Minha fila', icon: UserIcon },
+  { id: 'sem_responsavel', label: 'Sem responsável', icon: UserMinus },
   { id: 'urgentes', label: 'Urgentes', icon: AlertCircle },
   { id: 'sla_vencido', label: 'SLA vencido', icon: Clock },
-  { id: 'sem_responsavel', label: 'Sem resp.', icon: UserMinus },
   { id: 'todos', label: 'Todos', icon: Layers },
 ];
 
@@ -110,6 +110,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
   });
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showTeamSidebar, setShowTeamSidebar] = useState(false);
+  const [showMoreQueues, setShowMoreQueues] = useState(false);
 
   // Saved Views
   const [savedViews, setSavedViews] = useState<TicketView[]>([]);
@@ -646,7 +647,8 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
             </div>
           </div>
 
-          <div className="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar border-b border-slate-100">
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
+            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest px-1 mr-1 shrink-0">Filas</span>
             {QUEUES.map((q) => {
               const isActive = selectedQueue === q.id;
               const count = queueCounts?.[q.id] || 0;
@@ -656,76 +658,80 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                   key={q.id}
                   onClick={() => setSelectedQueue(q.id)}
                   className={cn(
-                    "relative flex items-center gap-2 px-3 py-2 text-[13px] font-semibold transition-all whitespace-nowrap",
+                    "relative flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap border shrink-0",
                     isActive 
-                      ? "text-blue-600" 
-                      : "text-slate-400 hover:text-slate-600"
+                      ? "bg-blue-50 text-blue-700 border-blue-200 shadow-sm" 
+                      : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
                   )}
                 >
                   <span>{q.label}</span>
-                  {count > 0 && (
+                  {(count > 0 || q.id === 'todos') && (
                     <span className={cn(
-                      "px-1.5 py-0.5 rounded-full text-[10px] font-bold tracking-tight",
+                      "flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold tracking-tight",
                       isActive ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500"
                     )}>
                       {count > 99 ? '99+' : count}
                     </span>
                   )}
-                  {isActive && (
-                    <motion.div 
-                      layoutId="activeQueue"
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
-                    />
-                  )}
                 </button>
               );
             })}
             
-            <div className="relative group/more ml-auto sm:ml-0">
+            <div className="relative shrink-0 ml-auto sm:ml-0">
               <button
+                onClick={() => setShowMoreQueues(prev => !prev)}
                 className={cn(
-                  "relative flex items-center gap-2 px-3 py-2 text-[13px] font-semibold transition-all whitespace-nowrap",
+                  "relative flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap border shrink-0",
                   MORE_QUEUES.some(q => q.id === selectedQueue)
-                    ? "text-blue-600"
-                    : "text-slate-400 hover:text-slate-600"
+                    ? "bg-blue-50 text-blue-700 border-blue-200 shadow-sm"
+                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
                 )}
               >
-                <span>Mais</span>
-                <ChevronDown size={14} />
-                {MORE_QUEUES.some(q => q.id === selectedQueue) && (
-                  <motion.div 
-                    layoutId="activeQueue"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
-                  />
+                <span>
+                  {MORE_QUEUES.find(q => q.id === selectedQueue)?.label || 'Mais filas'}
+                </span>
+                {MORE_QUEUES.some(q => q.id === selectedQueue) && (queueCounts?.[selectedQueue] || 0) > 0 && (
+                  <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold tracking-tight bg-blue-100 text-blue-700">
+                    {(queueCounts?.[selectedQueue] || 0) > 99 ? '99+' : (queueCounts?.[selectedQueue] || 0)}
+                  </span>
                 )}
+                <ChevronDown size={14} className={cn("transition-transform", showMoreQueues && "rotate-180")} />
               </button>
               
-              <div className="absolute top-full right-0 lg:left-0 lg:right-auto mt-1 w-48 bg-white rounded-lg shadow-lg border border-slate-200 p-2 opacity-0 invisible group-hover/more:opacity-100 group-hover/more:visible transition-all z-50">
-                {MORE_QUEUES.map((q) => {
-                  const isActive = selectedQueue === q.id;
-                  const count = queueCounts?.[q.id] || 0;
-                  return (
-                    <button
-                      key={q.id}
-                      onClick={() => setSelectedQueue(q.id)}
-                      className={cn(
-                        "w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg transition-colors",
-                        isActive ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50"
-                      )}
-                    >
-                      <span>{q.label}</span>
-                      {count > 0 && (
-                        <span className={cn(
-                          "px-2 py-0.5 rounded-full text-[10px] font-bold tracking-tight",
-                          isActive ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500"
-                        )}>
-                          {count > 99 ? '99+' : count}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+              {showMoreQueues && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowMoreQueues(false)} />
+                  <div className="absolute top-full right-0 lg:left-0 lg:right-auto mt-1 w-48 bg-white rounded-lg shadow-lg border border-slate-200 p-1.5 z-50">
+                    {MORE_QUEUES.map((q) => {
+                      const isActive = selectedQueue === q.id;
+                      const count = queueCounts?.[q.id] || 0;
+                      return (
+                        <button
+                          key={q.id}
+                          onClick={() => {
+                            setSelectedQueue(q.id);
+                            setShowMoreQueues(false);
+                          }}
+                          className={cn(
+                            "w-full flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-md transition-colors",
+                            isActive ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50"
+                          )}
+                        >
+                          <span>{q.label}</span>
+                          {count > 0 && (
+                            <span className={cn(
+                              "flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold tracking-tight",
+                              isActive ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500"
+                            )}>
+                              {count > 99 ? '99+' : count}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
