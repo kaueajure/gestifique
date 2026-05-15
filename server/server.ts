@@ -51,6 +51,12 @@ async function startServer() {
   };
 
   const app = express();
+
+  // Configuração de Trust Proxy para lidar com X-Forwarded-For (necessário para express-rate-limit atrás de proxy)
+  if (env.TRUST_PROXY !== false) {
+    app.set('trust proxy', env.TRUST_PROXY);
+    console.log(`[BOOT] Trust Proxy configured as: ${env.TRUST_PROXY}`);
+  }
   
   // 1. Security Headers (Helmet) - Hardened for Production
   app.use(helmet({

@@ -43,8 +43,18 @@ export const env = {
   },
   // Scaling & Features
   ENABLE_WEB_SERVER: process.env.ENABLE_WEB_SERVER !== 'false',
-  ENABLE_EMAIL_LISTENER: process.env.ENABLE_EMAIL_LISTENER !== 'false',
+  ENABLE_EMAIL_LISTENER: process.env.ENABLE_EMAIL_LISTENER === 'true', // Default false to be safe
   ENABLE_TICKET_JOBS: process.env.ENABLE_TICKET_JOBS !== 'false',
+  
+  // Proxy configuration for express-rate-limit compatibility (Hostinger/Nginx/Cloudflare)
+  TRUST_PROXY: (() => {
+    const val = process.env.TRUST_PROXY;
+    if (val === undefined || val === '' || val === 'false' || val === '0') return false;
+    if (val === 'true') return true;
+    const num = parseInt(val, 10);
+    return isNaN(num) ? val : num;
+  })(),
+
   STORAGE_TYPE: (process.env.STORAGE_TYPE || 'local') as 'local' | 's3' | 'gcs',
   STORAGE_CONFIG: {
     LOCAL_PATH: process.env.UPLOAD_DIR || 'uploads/tickets',
