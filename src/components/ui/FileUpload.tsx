@@ -1,8 +1,14 @@
-import React, { useRef, useState } from 'react';
-import { Paperclip, X, Upload, File as FileIconLucide, AlertCircle } from 'lucide-react';
-import { Button } from './Button';
-import { cn } from '../../lib/utils';
-import { FileIcon } from './FileIcon';
+import React, { useRef, useState } from "react";
+import {
+  Paperclip,
+  X,
+  Upload,
+  File as FileIconLucide,
+  AlertCircle,
+} from "lucide-react";
+import { Button } from "./Button";
+import { cn } from "../../lib/utils";
+import { FileIcon } from "./FileIcon";
 
 interface FileUploadProps {
   onFilesChange: (files: File[]) => void;
@@ -12,28 +18,34 @@ interface FileUploadProps {
   compact?: boolean;
 }
 
-export const FileUpload = ({ onFilesChange, maxFiles = 5, maxSizeMB = 10, className, compact = false }: FileUploadProps) => {
+export const FileUpload = ({
+  onFilesChange,
+  maxFiles = 5,
+  maxSizeMB = 10,
+  className,
+  compact = false,
+}: FileUploadProps) => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const formatSize = (bytes: number) => {
-    if (bytes === 0) return '0 B';
+    if (bytes === 0) return "0 B";
     const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const sizes = ["B", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []) as File[];
     addFiles(files);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const addFiles = (newFiles: File[]) => {
     setError(null);
-    
+
     // Validate max files
     if (selectedFiles.length + newFiles.length > maxFiles) {
       setError(`Limite de ${maxFiles} arquivos atingido.`);
@@ -41,11 +53,22 @@ export const FileUpload = ({ onFilesChange, maxFiles = 5, maxSizeMB = 10, classN
     }
 
     // Validate size and blocked extensions
-    const blockedExtensions = ['.exe', '.bat', '.cmd', '.sh', '.js', '.ts', '.php', '.html', '.svg', '.htm'];
+    const blockedExtensions = [
+      ".exe",
+      ".bat",
+      ".cmd",
+      ".sh",
+      ".js",
+      ".ts",
+      ".php",
+      ".html",
+      ".svg",
+      ".htm",
+    ];
     const validatedFiles: File[] = [];
 
     for (const file of newFiles) {
-      const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+      const ext = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
       if (blockedExtensions.includes(ext) || !ext) {
         setError(`O arquivo ${file.name} tem um formato não permitido.`);
         return;
@@ -72,19 +95,19 @@ export const FileUpload = ({ onFilesChange, maxFiles = 5, maxSizeMB = 10, classN
   return (
     <div className={cn("space-y-3", className)}>
       <div className="flex items-center gap-2">
-        <input 
-          type="file" 
+        <input
+          type="file"
           ref={fileInputRef}
           onChange={handleFileChange}
           multiple
           className="hidden"
         />
-        <Button 
+        <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={() => fileInputRef.current?.click()}
-          className="h-8 text-[11px] font-bold uppercase tracking-wider gap-2 border-slate-200"
+          className="text-slate-600 gap-1.5 font-semibold"
           disabled={selectedFiles.length >= maxFiles}
         >
           <Paperclip size={14} /> Anexar Arquivos
@@ -104,17 +127,24 @@ export const FileUpload = ({ onFilesChange, maxFiles = 5, maxSizeMB = 10, classN
       {selectedFiles.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {selectedFiles.map((file, index) => (
-            <div key={`${file.name}-${index}`} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200 group">
+            <div
+              key={`${file.name}-${index}`}
+              className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200 group"
+            >
               <div className="flex items-center gap-2 min-w-0 flex-1">
-                 <div className="w-7 h-7 rounded bg-white border border-slate-200 flex items-center justify-center text-slate-400 shrink-0">
-                    <FileIcon mimeType={file.type} size={14} />
-                 </div>
-                 <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-semibold text-slate-600 truncate">{file.name}</p>
-                    <p className="text-[9px] font-medium text-slate-400">{formatSize(file.size)}</p>
-                 </div>
+                <div className="w-7 h-7 rounded bg-white border border-slate-200 flex items-center justify-center text-slate-400 shrink-0">
+                  <FileIcon mimeType={file.type} size={14} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-semibold text-slate-600 truncate">
+                    {file.name}
+                  </p>
+                  <p className="text-[9px] font-medium text-slate-400">
+                    {formatSize(file.size)}
+                  </p>
+                </div>
               </div>
-              <button 
+              <button
                 type="button"
                 onClick={() => removeFile(index)}
                 className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"

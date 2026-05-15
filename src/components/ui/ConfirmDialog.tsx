@@ -1,8 +1,8 @@
-import React from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { AlertTriangle, X } from 'lucide-react';
-import { cn } from '../../lib/utils';
-import { Button } from './Button';
+import React from "react";
+import { motion, AnimatePresence } from "motion/react";
+import { AlertTriangle, X } from "lucide-react";
+import { cn } from "../../lib/utils";
+import { Button } from "./Button";
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -12,7 +12,7 @@ interface ConfirmDialogProps {
   description: string;
   confirmLabel?: string;
   cancelLabel?: string;
-  variant?: 'danger' | 'warning' | 'info';
+  variant?: "danger" | "warning" | "info";
 }
 
 export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
@@ -21,9 +21,9 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   onConfirm,
   title,
   description,
-  confirmLabel = 'Confirmar',
-  cancelLabel = 'Cancelar',
-  variant = 'warning'
+  confirmLabel = "Confirmar",
+  cancelLabel = "Cancelar",
+  variant = "warning",
 }) => {
   if (!isOpen) return null;
 
@@ -45,16 +45,20 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         >
           <div className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className={cn(
-                "w-10 h-10 rounded-lg flex items-center justify-center border",
-                variant === 'danger' ? "bg-red-50 text-red-600 border-red-100" : 
-                variant === 'warning' ? "bg-amber-50 text-amber-600 border-amber-100" : 
-                "bg-blue-50 text-blue-600 border-blue-100"
-              )}>
+              <div
+                className={cn(
+                  "w-10 h-10 rounded-lg flex items-center justify-center border",
+                  variant === "danger"
+                    ? "bg-red-50 text-red-600 border-red-100"
+                    : variant === "warning"
+                      ? "bg-amber-50 text-amber-600 border-amber-100"
+                      : "bg-blue-50 text-blue-600 border-blue-100",
+                )}
+              >
                 <AlertTriangle size={20} />
               </div>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="icon"
                 onClick={onClose}
                 className="h-8 w-8 text-slate-400"
@@ -63,29 +67,28 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
               </Button>
             </div>
 
-            <h3 className="text-lg font-semibold text-slate-950 mb-1.5">{title}</h3>
+            <h3 className="text-lg font-semibold text-slate-950 mb-1.5">
+              {title}
+            </h3>
             <p className="text-sm text-slate-500 leading-normal">
               {description}
             </p>
           </div>
 
           <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center gap-3">
-            <Button
-              variant="ghost"
-              onClick={onClose}
-              className="flex-1"
-            >
+            <Button variant="ghost" onClick={onClose} className="flex-1">
               {cancelLabel}
             </Button>
             <Button
-              variant={variant === 'danger' ? 'danger' : 'primary'}
+              variant={variant === "danger" ? "danger" : "primary"}
               onClick={() => {
                 onConfirm();
                 onClose();
               }}
               className={cn(
                 "flex-1",
-                variant === 'warning' && "bg-amber-600 hover:bg-amber-700 border-amber-600"
+                variant === "warning" &&
+                  "bg-amber-600 hover:bg-amber-700 border-amber-600",
               )}
             >
               {confirmLabel}

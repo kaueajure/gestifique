@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Bell, Check, Clock, Inbox, ChevronRight } from 'lucide-react';
-import { api } from '../../lib/api';
-import { Notification, User } from '../../types';
-import { formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { Badge } from './Badge';
-import { Button } from './Button';
-import { cn } from '../../lib/utils';
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { Bell, Check, Clock, Inbox, ChevronRight } from "lucide-react";
+import { api } from "../../lib/api";
+import { Notification, User } from "../../types";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Badge } from "./Badge";
+import { Button } from "./Button";
+import { cn } from "../../lib/utils";
 
 type UnreadCountResponse =
   | { count: number }
@@ -14,7 +14,10 @@ type UnreadCountResponse =
 
 type NotificationsListResponse =
   | { items: Notification[]; unread_count: number }
-  | { success?: boolean; data?: { items: Notification[]; unread_count: number } };
+  | {
+      success?: boolean;
+      data?: { items: Notification[]; unread_count: number };
+    };
 
 interface NotificationsDropdownProps {
   currentUser: User;
@@ -22,7 +25,11 @@ interface NotificationsDropdownProps {
   compact?: boolean;
 }
 
-export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({ currentUser, onNavigate, compact }) => {
+export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({
+  currentUser,
+  onNavigate,
+  compact,
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -31,10 +38,12 @@ export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({ cu
 
   const fetchUnreadCount = useCallback(async () => {
     try {
-      const res = await api.get<UnreadCountResponse>('/notifications/unread-count');
+      const res = await api.get<UnreadCountResponse>(
+        "/notifications/unread-count",
+      );
       let count = 0;
       if (res) {
-        if ('count' in res) {
+        if ("count" in res) {
           count = res.count;
         } else if (res.success && res.data) {
           count = res.data.count;
@@ -42,19 +51,21 @@ export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({ cu
       }
       setUnreadCount(count || 0);
     } catch (err) {
-      console.error('Erro ao buscar contagem de notificações:', err);
+      console.error("Erro ao buscar contagem de notificações:", err);
     }
   }, []);
 
   const fetchNotifications = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get<NotificationsListResponse>('/notifications?limit=10&unread_only=true');
+      const res = await api.get<NotificationsListResponse>(
+        "/notifications?limit=10&unread_only=true",
+      );
       let items: Notification[] = [];
       let unread_count = 0;
 
       if (res) {
-        if ('items' in res) {
+        if ("items" in res) {
           items = res.items;
           unread_count = res.unread_count;
         } else if (res.success && res.data) {
@@ -66,7 +77,7 @@ export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({ cu
       setNotifications(Array.isArray(items) ? items : []);
       setUnreadCount(unread_count || 0);
     } catch (err) {
-      console.error('Erro ao buscar notificações:', err);
+      console.error("Erro ao buscar notificações:", err);
     } finally {
       setLoading(false);
     }
@@ -83,15 +94,18 @@ export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({ cu
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
   const toggleDropdown = () => {
@@ -105,20 +119,22 @@ export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({ cu
   const markAsRead = async (id: number) => {
     try {
       await api.patch(`/notifications/${id}/read`, {});
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, lida: true } : n));
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, lida: true } : n)),
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (err) {
-      console.error('Erro ao marcar como lida:', err);
+      console.error("Erro ao marcar como lida:", err);
     }
   };
 
   const markAllAsRead = async () => {
     try {
-      await api.patch('/notifications/read-all', {});
-      setNotifications(prev => prev.map(n => ({ ...n, lida: true })));
+      await api.patch("/notifications/read-all", {});
+      setNotifications((prev) => prev.map((n) => ({ ...n, lida: true })));
       setUnreadCount(0);
     } catch (err) {
-      console.error('Erro ao marcar todas como lidas:', err);
+      console.error("Erro ao marcar todas como lidas:", err);
     }
   };
 
@@ -138,28 +154,34 @@ export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({ cu
         onClick={toggleDropdown}
         className={cn(
           "relative flex items-center justify-center rounded-lg transition-all focus:outline-none",
-          compact 
+          compact
             ? "w-8 h-8 bg-white border border-slate-200 text-slate-500 hover:text-blue-600 hover:bg-blue-50"
-            : "p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50"
+            : "p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50",
         )}
         title="Notificações"
       >
         <Bell size={compact ? 16 : 20} />
         {unreadCount > 0 && (
-          <span className={cn(
-            "absolute bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white",
-            compact ? "-top-1 -right-1 w-3.5 h-3.5 text-[8px]" : "top-1.5 right-1.5 w-4 h-4"
-          )}>
-            {unreadCount > 9 ? '9+' : unreadCount}
+          <span
+            className={cn(
+              "absolute bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white",
+              compact
+                ? "-top-1 -right-1 w-3.5 h-3.5 text-[8px]"
+                : "top-1.5 right-1.5 w-4 h-4",
+            )}
+          >
+            {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className={cn(
-          "absolute mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden animate-in fade-in zoom-in duration-200 origin-top-right",
-          compact ? "bottom-full left-0 mb-2 origin-bottom-left" : "right-0"
-        )}>
+        <div
+          className={cn(
+            "absolute mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden animate-in fade-in zoom-in duration-200 origin-top-right",
+            compact ? "bottom-full left-0 mb-2 origin-bottom-left" : "right-0",
+          )}
+        >
           <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
             <h3 className="font-bold text-slate-800 flex items-center gap-2">
               Notificações
@@ -193,28 +215,33 @@ export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({ cu
                     key={notification.id}
                     onClick={() => handleNotificationClick(notification)}
                     className={`p-4 hover:bg-blue-50/50 cursor-pointer transition-all flex gap-3 relative group ${
-                      !notification.lida ? 'bg-blue-50/20' : ''
+                      !notification.lida ? "bg-blue-50/20" : ""
                     }`}
                   >
                     {Number(notification.lida) === 0 && (
                       <div className="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-500 rounded-full"></div>
                     )}
-                    
+
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between mb-1">
-                        <p className={`text-sm tracking-tight truncate pr-2 ${!notification.lida ? 'font-bold text-slate-900' : 'font-medium text-slate-600'}`}>
+                        <p
+                          className={`text-sm tracking-tight truncate pr-2 ${!notification.lida ? "font-bold text-slate-900" : "font-medium text-slate-600"}`}
+                        >
                           {notification.titulo}
                         </p>
                         <div className="flex items-center text-[10px] text-slate-400 whitespace-nowrap mt-0.5">
                           <Clock size={10} className="mr-1" />
-                          {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: ptBR })}
+                          {formatDistanceToNow(
+                            new Date(notification.created_at),
+                            { addSuffix: true, locale: ptBR },
+                          )}
                         </div>
                       </div>
                       <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
                         {notification.mensagem}
                       </p>
                     </div>
-                    
+
                     <div className="self-center text-slate-300 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all">
                       <ChevronRight size={16} />
                     </div>
@@ -226,15 +253,19 @@ export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({ cu
                 <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
                   <Inbox size={24} />
                 </div>
-                <p className="text-slate-500 font-medium">Nenhuma notificação</p>
-                <p className="text-xs text-slate-400 mt-1">Você está em dia com tudo!</p>
+                <p className="text-slate-500 font-medium">
+                  Nenhuma notificação
+                </p>
+                <p className="text-xs text-slate-400 mt-1">
+                  Você está em dia com tudo!
+                </p>
               </div>
             )}
           </div>
 
           {notifications.length > 0 && (
             <div className="p-3 bg-slate-50/50 border-t border-slate-100 text-center">
-              <button 
+              <button
                 className="text-xs font-bold text-slate-500 hover:text-blue-600 transition-colors"
                 onClick={() => setIsOpen(false)}
               >

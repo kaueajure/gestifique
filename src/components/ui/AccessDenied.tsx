@@ -1,22 +1,22 @@
-import React from 'react';
-import { ShieldAlert, Home } from 'lucide-react';
+import React from "react";
+import { ShieldAlert, Home } from "lucide-react";
+import { Button } from "./Button";
 
 export const AccessDenied = () => {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-8">
-      <div className="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center text-red-500 mb-8 animate-bounce">
-        <ShieldAlert size={48} />
+    <div className="flex flex-col items-center justify-center min-h-[40vh] text-center p-6">
+      <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center text-red-500 mb-4 border border-red-100">
+        <ShieldAlert size={24} />
       </div>
-      <h2 className="text-3xl font-black text-slate-900 mb-4 tracking-tight">Acesso Bloqueado</h2>
-      <p className="text-slate-500 max-w-sm mx-auto mb-10 font-medium text-lg leading-relaxed">
-        Você não tem permissão de nível "Desenvolvedor" para gerenciar workspaces e empresas.
+      <h2 className="text-base font-semibold text-slate-900 mb-2 tracking-tight">
+        Acesso Bloqueado
+      </h2>
+      <p className="text-sm text-slate-500 max-w-sm mx-auto mb-6">
+        Você não tem permissão de "Desenvolvedor" para gerenciar esta área.
       </p>
-      <button 
-        onClick={() => window.location.href = '/'}
-        className="h-14 px-10 bg-slate-900 text-white font-black rounded-2xl hover:bg-slate-800 transition-all flex items-center gap-3 shadow-xl shadow-slate-100"
-      >
-        <Home size={20} /> Voltar para o Início
-      </button>
+      <Button variant="outline" onClick={() => (window.location.href = "/")}>
+        <Home size={14} /> Voltar para o Início
+      </Button>
     </div>
   );
 };
