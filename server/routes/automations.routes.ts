@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import pool from '../db/connection.js';
-import { AuthRequest } from '../middlewares/auth.js';
+import { authMiddleware, AuthRequest } from '../middlewares/auth.js';
 import { requirePermission } from '../middlewares/permissions.middleware.js';
 
 const router = Router();
+router.use(authMiddleware);
 
 const sendSuccess = (res: any, data: any) => res.json({ success: true, data });
 const sendError = (res: any, error: string, num = 500) => res.status(num).json({ success: false, error });
