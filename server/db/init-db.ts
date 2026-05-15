@@ -304,6 +304,119 @@ async function initDB() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    // Tabela Automações
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS ticket_automacoes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        empresa_id INT NOT NULL,
+        nome VARCHAR(100) NOT NULL,
+        descricao TEXT NULL,
+        evento VARCHAR(100) NOT NULL,
+        condicoes_json JSON,
+        acoes_json JSON,
+        ativo TINYINT(1) DEFAULT 1,
+        ordem INT DEFAULT 0,
+        created_by INT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
+        FOREIGN KEY (created_by) REFERENCES usuarios(id) ON DELETE SET NULL
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // Tabela SLA Policies
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS empresa_sla_politicas (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        empresa_id INT NOT NULL,
+        nome VARCHAR(100) NOT NULL,
+        prioridade VARCHAR(50) NULL,
+        categoria VARCHAR(100) NULL,
+        servico VARCHAR(100) NULL,
+        tempo_primeira_resposta_minutos INT NULL,
+        tempo_resolucao_minutos INT NOT NULL,
+        ativo TINYINT(1) DEFAULT 1,
+        ordem INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // Tabela CSAT
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS ticket_satisfacao (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        ticket_id INT NOT NULL,
+        empresa_id INT NOT NULL,
+        nota INT NULL,
+        comentario TEXT NULL,
+        token VARCHAR(255) NULL,
+        respondido_em DATETIME NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_ticket_satisfacao (ticket_id),
+        UNIQUE KEY unique_token_satisfacao (token),
+        FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
+        FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // Tabela Base de Conhecimento
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS knowledge_articles (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        empresa_id INT NOT NULL,
+        titulo VARCHAR(255) NOT NULL,
+        slug VARCHAR(255) NULL,
+        conteudo TEXT NOT NULL,
+        categoria VARCHAR(100) NULL,
+        tags_json JSON NULL,
+        publico TINYINT(1) DEFAULT 0,
+        ativo TINYINT(1) DEFAULT 1,
+        created_by INT NULL,
+        updated_by INT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
+        FOREIGN KEY (created_by) REFERENCES usuarios(id) ON DELETE SET NULL,
+        FOREIGN KEY (updated_by) REFERENCES usuarios(id) ON DELETE SET NULL
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // Tabela Regras de Distribuição
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS empresa_distribuicao_regras (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        empresa_id INT NOT NULL,
+        nome VARCHAR(100) NOT NULL,
+        metodo VARCHAR(50) NOT NULL,
+        categoria VARCHAR(100) NULL,
+        servico VARCHAR(100) NULL,
+        ativo TINYINT(1) DEFAULT 1,
+        config_json JSON,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // Tabela Ticket Eventos
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS ticket_eventos (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        ticket_id INT NOT NULL,
+        empresa_id INT NOT NULL,
+        usuario_id INT NULL,
+        tipo VARCHAR(100) NOT NULL,
+        descricao TEXT,
+        metadata_json JSON,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
+        FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
     console.log('[BOOT] 📚 Tabelas base validadas. Iniciando migrações de colunas...');
 
     // Migrações Horizontais (Garantir colunas novas em bancos antigos)
@@ -329,6 +442,7 @@ async function initDB() {
     // Usuarios Migrations
     await ensureColumn('usuarios', 'reset_token', 'VARCHAR(255) NULL');
     await ensureColumn('usuarios', 'reset_token_expires', 'DATETIME NULL');
+    await ensureColumn('usuarios', 'perfil', 'VARCHAR(50) NULL');
 
     // Tickets Migrations
     await ensureColumn('tickets', 'prazo_sla', 'DATETIME NULL');

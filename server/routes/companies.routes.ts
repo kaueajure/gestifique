@@ -251,4 +251,37 @@ router.delete('/:id/ticket-services/:servId', async (req: AuthRequest, res) => {
   }
 });
 
+router.get('/:id/sla-policies', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+    const id = parseInt(req.params.id);
+    if (!currentUser.desenvolvedor && currentUser.empresa_id !== id) return sendError(res, 'Acesso negado', 403);
+    
+    const [rows] = await pool.query('SELECT * FROM empresa_sla_politicas WHERE empresa_id = ? ORDER BY ordem ASC', [id]);
+    sendSuccess(res, rows);
+  } catch (error: unknown) {
+    sendError(res, 'Erro ao buscar políticas de SLA');
+  }
+});
+
+router.post('/:id/sla-policies', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+    const id = parseInt(req.params.id);
+    if (!currentUser.desenvolvedor && (!currentUser.administrador || currentUser.empresa_id !== id)) return sendError(res, 'Acesso negado', 403);
+    
+    const { nome, prioridade, categoria, servico, tempo_primeira_resposta_minutos, tempo_resolucao_minutos, ativo, ordem } = req.body;
+    
+    const [result]: any = await pool.query(
+      'INSERT INTO empresa_sla_politicas (empresa_id, nome, prioridade, categoria, servico, tempo_primeira_resposta_minutos, tempo_resolucao_minutos, ativo, ordem) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [id, nome, prioridade || null, categoria || null, servico || null, tempo_primeira_resposta_minutos || null, tempo_resolucao_minutos || 24 * 60, ativo !== undefined ? ativo : 1, ordem || 0]
+    );
+    sendSuccess(res, { id: result.insertId });
+  } catch (error: unknown) {
+    sendError(res, 'Erro ao criar política de SLA');
+  }
+});
+
 export default router;

@@ -28,6 +28,7 @@ interface SummaryData {
   by_status: { name: string; value: number }[];
   by_priority: { name: string; value: number }[];
   by_category: { name: string; value: number }[];
+  by_service: { name: string; value: number }[];
   by_responsible: { name: string; value: number }[];
   by_day: { date: string; created: number; resolved: number }[];
 }
@@ -398,9 +399,9 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
             </Card>
           ) : (
             <>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                 {/* Status Chart */}
-                <Card className="p-6 col-span-1 lg:col-span-1">
+                <Card className="p-6">
                   <h3 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
                     <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
                     Volume por Status
@@ -429,7 +430,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                 </Card>
 
                 {/* Priority Chart */}
-                <Card className="p-6 col-span-1 lg:col-span-1">
+                <Card className="p-6">
                   <h3 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
                     <div className="w-1 h-4 bg-orange-500 rounded-full"></div>
                     Distribuição por Prioridade
@@ -448,7 +449,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                 </Card>
 
                 {/* Categories */}
-                <Card className="p-6 col-span-1 lg:col-span-1">
+                <Card className="p-6">
                   <h3 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
                     <div className="w-1 h-4 bg-emerald-500 rounded-full"></div>
                     Atendimentos por Categoria
@@ -466,6 +467,34 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                         >
                           {data.by_category.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </Card>
+
+                {/* Services */}
+                <Card className="p-6">
+                  <h3 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
+                    <div className="w-1 h-4 bg-purple-500 rounded-full"></div>
+                    Atendimentos por Serviço
+                  </h3>
+                  <div className="h-[250px] min-w-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={data.by_service}
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={80}
+                          dataKey="value"
+                          label={({name, percent}) => `${(percent * 100).toFixed(0)}%`}
+                        >
+                          {data.by_service.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[(index + 4) % COLORS.length]} />
                           ))}
                         </Pie>
                         <Tooltip />

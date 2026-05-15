@@ -23,6 +23,7 @@ export interface SummaryData {
   by_status: { name: string; value: number }[];
   by_priority: { name: string; value: number }[];
   by_category: { name: string; value: number }[];
+  by_service: { name: string; value: number }[];
   by_responsible: { name: string; value: number }[];
   by_day: { date: string; created: number; resolved: number }[];
 }
@@ -118,6 +119,14 @@ class ReportsService {
       GROUP BY categoria
     `, params);
 
+    // 4.5 By Service
+    const [serviceRows] = await pool.query<GroupedRow[]>(`
+      SELECT servico as name, COUNT(*) as value
+      FROM tickets
+      ${whereString}
+      GROUP BY servico
+    `, params);
+
     // 5. By Responsible
     const { clauses: resClauses, params: resParams } = this.buildWhere(filters, 't');
     const resWhereString = resClauses.length > 0 ? `WHERE ${resClauses.join(' AND ')}` : '';
@@ -206,6 +215,10 @@ class ReportsService {
       by_category: categoryRows.map((r) => ({ 
         name: r.name || 'Sem Categoria', 
         value: Number(r.value) 
+      })),
+      by_service: serviceRows.map((r) => ({
+        name: r.name || 'Sem Servico',
+        value: Number(r.value)
       })),
       by_responsible: responsibleRows.map((r) => ({ 
         name: r.name || 'Sem Responsável', 

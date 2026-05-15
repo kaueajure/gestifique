@@ -611,20 +611,83 @@ class TicketsService {
   async create(data: any) {
     const { empresa_id, usuario_id, solicitante_nome, solicitante_email, titulo, descricao, prioridade, categoria, servico } = data;
 
-    let horasSla = 24; // media padrão
-    if (prioridade === 'urgente') horasSla = 4;
-    else if (prioridade === 'alta') horasSla = 12;
-    else if (prioridade === 'baixa') horasSla = 48;
+    // Check SLA policy
+    let minutosSla = 24 * 60; // media padrão
+    try {
+      const [politicas]: any = await pool.query(
+        'SELECT * FROM empresa_sla_politicas WHERE empresa_id = ? AND ativo = 1 ORDER BY ordem ASC',
+        [empresa_id]
+      );
+      
+      let politicaEncontrada = null;
+      for (const pol of politicas) {
+        let matches = true;
+        if (pol.prioridade && pol.prioridade !== prioridade) matches = false;
+        if (pol.categoria && pol.categoria !== categoria) matches = false;
+        if (pol.servico && pol.servico !== servico) matches = false;
+        if (matches) {
+          politicaEncontrada = pol;
+          break;
+        }
+      }
+
+      if (politicaEncontrada) {
+        minutosSla = politicaEncontrada.tempo_resolucao_minutos;
+      } else {
+        if (prioridade === 'urgente') minutosSla = 4 * 60;
+        else if (prioridade === 'alta') minutosSla = 12 * 60;
+        else if (prioridade === 'baixa') minutosSla = 48 * 60;
+      }
+    } catch (err) {
+      console.warn('Erro ao buscar SLA', err);
+    }
 
     const prazoSla = new Date();
-    prazoSla.setHours(prazoSla.getHours() + horasSla);
+    prazoSla.setMinutes(prazoSla.getMinutes() + minutosSla);
     const prazoSlaFormatado = prazoSla.toISOString().slice(0, 19).replace('T', ' ');
 
+    let responsavel_id = data.responsavel_id || null;
+
+    // Auto-distribute if missing and logic exists
+    if (!responsavel_id) {
+       try {
+         const [regras]: any = await pool.query(
+           "SELECT * FROM empresa_distribuicao_regras WHERE empresa_id = ? AND ativo = 1", [empresa_id]
+         );
+         if (regras.length > 0) {
+           const rule = regras[0]; // just picking first for now
+           const [agents]: any = await pool.query(
+             "SELECT id FROM usuarios WHERE empresa_id = ? AND cargo LIKE '%suporte%'", [empresa_id]
+           );
+           if (agents.length > 0) {
+              const randAgent = agents[Math.floor(Math.random() * agents.length)];
+              responsavel_id = randAgent.id;
+              await pool.query(
+                "INSERT INTO ticket_eventos (ticket_id, empresa_id, tipo, descricao) VALUES (?, ?, ?, ?)",
+                [0, empresa_id, 'distribuicao_automatica', `Atribuído para ${responsavel_id} via regra ${rule.nome}`]
+              );
+           }
+         }
+       } catch(e) {}
+    }
+
     const [result]: any = await pool.query(
-      'INSERT INTO tickets (empresa_id, usuario_id, solicitante_nome, solicitante_email, titulo, descricao, prioridade, categoria, servico, prazo_sla) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [empresa_id, usuario_id || null, solicitante_nome || null, solicitante_email || null, titulo, descricao, prioridade || 'media', categoria || 'suporte', servico || null, prazoSlaFormatado]
+      'INSERT INTO tickets (empresa_id, usuario_id, solicitante_nome, solicitante_email, titulo, descricao, prioridade, categoria, servico, prazo_sla, responsavel_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [empresa_id, usuario_id || null, solicitante_nome || null, solicitante_email || null, titulo, descricao, prioridade || 'media', categoria || 'suporte', servico || null, prazoSlaFormatado, responsavel_id]
     );
     const ticketId = result.insertId;
+
+    try {
+      if (responsavel_id) {
+         // update ticket_eventos ticket_id because it was 0 for the auto-distribute case
+         await pool.query('UPDATE ticket_eventos SET ticket_id = ? WHERE ticket_id = 0 AND empresa_id = ?', [ticketId, empresa_id]);
+      }
+      const { runAutomations } = await import('./automations.service.js');
+      // Pass the fully assembled ticket object
+      await runAutomations('ticket_criado', { id: ticketId, empresa_id, status: 'aberto', prioridade: prioridade || 'media', categoria, servico, responsavel_id }, { usuario_id });
+    } catch(err) {
+      console.warn('Erro ao rodar automações', err);
+    }
 
     // Notificações: Admins
     try {
@@ -770,6 +833,22 @@ class TicketsService {
       console.error('Erro ao notificar atualização de status do ticket:', e);
     }
 
+    if (['resolvido', 'fechado'].includes(status) && !['resolvido', 'fechado'].includes(oldTicket.status)) {
+       try {
+         const { randomUUID } = await import('crypto');
+         const token = randomUUID();
+         await pool.query(
+           'INSERT IGNORE INTO ticket_satisfacao (ticket_id, empresa_id, token) VALUES (?, ?, ?)',
+           [id, oldTicket.empresa_id, token]
+         );
+       } catch (err) {}
+    }
+    
+    try {
+       const { runAutomations } = await import('./automations.service.js');
+       await runAutomations('status_alterado', { ...oldTicket, status }, {});
+    } catch(err) {}
+
     return { oldStatus: oldTicket.status, newStatus: status, empresa_id: oldTicket.empresa_id };
   }
 
@@ -845,6 +924,32 @@ class TicketsService {
       }
     } catch (e) {
       console.error('Erro ao notificar atualização de ticket:', e);
+    }
+    
+    // Automations & CSAT
+    try {
+      if (data.status && ['resolvido', 'fechado'].includes(data.status) && !['resolvido', 'fechado'].includes(oldTicket.status)) {
+        const { randomUUID } = await import('crypto');
+        const token = randomUUID();
+        await pool.query(
+          'INSERT IGNORE INTO ticket_satisfacao (ticket_id, empresa_id, token) VALUES (?, ?, ?)',
+          [id, oldTicket.empresa_id, token]
+        );
+      }
+      if (data.status && data.status !== oldTicket.status) {
+        const { runAutomations } = await import('./automations.service.js');
+        await runAutomations('status_alterado', { ...oldTicket, ...data }, {});
+      }
+      if (data.prioridade && data.prioridade !== oldTicket.prioridade) {
+        const { runAutomations } = await import('./automations.service.js');
+        await runAutomations('prioridade_alterada', { ...oldTicket, ...data }, {});
+      }
+      if (data.responsavel_id !== undefined && data.responsavel_id !== oldTicket.responsavel_id) {
+        const { runAutomations } = await import('./automations.service.js');
+        await runAutomations('responsavel_alterado', { ...oldTicket, ...data }, {});
+      }
+    } catch(err) {
+      console.warn('Erro rodar automacoes update', err);
     }
   }
 

@@ -17,6 +17,7 @@ import { AttachmentList } from '../../ui/AttachmentList';
 import { TicketTags } from '../TicketTags';
 import { TicketCustomFields } from './TicketCustomFields';
 import { useTicketOptions } from '../../../hooks/useTicketOptions';
+import { hasPermission } from '../../../lib/permissions';
 
 const EditableField = ({ label, children, readOnly, displayValue }: { label: string, children: React.ReactNode, readOnly?: boolean, displayValue?: string }) => (
   <div className="space-y-1">
@@ -85,7 +86,7 @@ export const TicketProperties = ({
   const empresaNome = ticket.empresa_nome || 'Não vinculada';
   const origemLabel = ticket.origem || 'Não inf.';
 
-  const canManage = !!(currentUser.administrador || currentUser.desenvolvedor);
+  const canManage = hasPermission(currentUser, 'tickets.editar');
 
   // Fallbacks if empty
   const defaultCategories = [

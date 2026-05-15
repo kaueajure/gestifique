@@ -33,6 +33,7 @@ import { TicketSavedViews } from '../tickets/TicketSavedViews';
 import { Select } from '../ui/Select';
 import { TicketQueue } from '../../types';
 import { cn } from '../../lib/utils';
+import { hasPermission } from '../../lib/permissions';
 import { FilterChip } from '../ui/FilterChip';
 import { motion, AnimatePresence } from 'motion/react';
 import { TicketBulkActions } from '../tickets/TicketBulkActions';
@@ -152,7 +153,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
       ];
 
   useEffect(() => {
-    if (!!(currentUser.administrador || currentUser.desenvolvedor)) {
+    if (hasPermission(currentUser, 'tickets.ver_todos')) {
       api.get<Empresa[]>('/companies').then(setCompanies).catch(console.error);
       
       // Fetch agents for bulk assignment
@@ -815,7 +816,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                 hasFilters={hasAnyFilters}
                 selectedTicketIds={selectedTicketIds}
                 onSelectionChange={setSelectedTicketIds}
-                canSelectBulk={!!(currentUser.administrador || currentUser.desenvolvedor)}
+                canSelectBulk={hasPermission(currentUser, 'tickets.editar')}
               />
             ) : null}
           </div>

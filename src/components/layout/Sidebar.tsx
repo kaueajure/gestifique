@@ -17,6 +17,7 @@ import { User } from '../../types';
 import { cn } from '../../lib/utils';
 import { AppLogo } from '../ui/Logo';
 import { NotificationsDropdown } from '../ui/NotificationsDropdown';
+import { hasPermission } from '../../lib/permissions';
 
 interface SidebarProps {
   currentUser: User;
@@ -40,16 +41,16 @@ export const Sidebar = ({ currentUser, activeTab, setActiveTab, isOpen, onClose,
     {
       title: 'Gestão',
       items: [
-        { id: 'reports', icon: BarChart3, label: 'Relatórios', access: !!(currentUser.administrador || currentUser.desenvolvedor) },
-        { id: 'users', icon: Users, label: 'Usuários', access: !!(currentUser.administrador || currentUser.desenvolvedor) },
+        { id: 'reports', icon: BarChart3, label: 'Relatórios', access: hasPermission(currentUser, 'relatorios.visualizar') },
+        { id: 'users', icon: Users, label: 'Equipe', access: hasPermission(currentUser, 'configuracoes.gerenciar') },
         { id: 'companies', icon: Building2, label: 'Empresas', access: !!currentUser.desenvolvedor },
       ]
     },
     {
       title: 'Sistema',
       items: [
-        { id: 'settings', icon: Settings, label: 'Configurações', access: true },
-        { id: 'logs', icon: Shield, label: 'Logs do Sistema', access: !!(currentUser.administrador || currentUser.desenvolvedor) },
+        { id: 'settings', icon: Settings, label: 'Configurações', access: hasPermission(currentUser, 'configuracoes.gerenciar') },
+        { id: 'logs', icon: Shield, label: 'Logs do Sistema', access: hasPermission(currentUser, 'auditoria.visualizar') },
       ]
     },
     {

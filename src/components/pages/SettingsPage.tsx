@@ -11,6 +11,8 @@ import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { EmailChannelsManager } from '../companies/EmailChannelsManager';
 import { TicketOptionsManager } from '../settings/TicketOptionsManager';
+import { SlaPoliciesManager } from '../settings/SlaPoliciesManager';
+import { AutomationsManager } from '../settings/AutomationsManager';
 
 type AppTab = 'dashboard' | 'tickets' | 'users' | 'companies' | 'logs' | 'profile' | 'settings' | 'reports';
 
@@ -475,6 +477,8 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
             {activeSubTab === 'tickets' && (
               <div className="space-y-6">
                  <TicketOptionsManager currentUser={currentUser} />
+                 <SlaPoliciesManager currentCompanyId={currentUser.empresa_id!} />
+                 <AutomationsManager currentCompanyId={currentUser.empresa_id!} />
               </div>
             )}
           </motion.div>
