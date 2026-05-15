@@ -36,7 +36,7 @@ class TicketsService {
     filters: any
   ): { baseWhere: string; summaryWhere: string; params: (string | number)[] } {
     const { 
-      tag, origem, created_from, created_to, 
+      tag, origem, email_channel_id, created_from, created_to, 
       updated_from, updated_to, sla_status, custom_field_search 
     } = filters;
 
@@ -54,6 +54,12 @@ class TicketsService {
       baseWhere += ' AND t.origem = ?';
       summaryWhere += ' AND t.origem = ?';
       params.push(origem);
+    }
+
+    if (email_channel_id) {
+      baseWhere += ' AND t.email_channel_id = ?';
+      summaryWhere += ' AND t.email_channel_id = ?';
+      params.push(email_channel_id);
     }
 
     if (this.isValidDateOnly(created_from)) {
@@ -610,10 +616,15 @@ class TicketsService {
   }
 
   async create(data: any) {
-    const { empresa_id, usuario_id, solicitante_nome, solicitante_email, titulo, descricao, prioridade, categoria, servico } = data;
+    const { 
+      empresa_id, usuario_id, solicitante_nome, solicitante_email, 
+      titulo, descricao, prioridade, categoria, servico,
+      origem, email_channel_id, message_id
+    } = data;
 
     // Check SLA policy
     let minutosSla = 24 * 60; // media padrão
+    let minutosPrimeiraResposta = 60; // 1 hora padrão
     try {
       const [politicas]: any = await pool.query(
         'SELECT * FROM empresa_sla_politicas WHERE empresa_id = ? AND ativo = 1 ORDER BY ordem ASC',
@@ -634,26 +645,58 @@ class TicketsService {
 
       if (politicaEncontrada) {
         minutosSla = politicaEncontrada.tempo_resolucao_minutos;
+        minutosPrimeiraResposta = politicaEncontrada.tempo_primeira_resposta_minutos || 60;
       } else {
-        if (prioridade === 'urgente') minutosSla = 4 * 60;
-        else if (prioridade === 'alta') minutosSla = 12 * 60;
-        else if (prioridade === 'baixa') minutosSla = 48 * 60;
+        if (prioridade === 'urgente') {
+          minutosSla = 4 * 60;
+          minutosPrimeiraResposta = 30;
+        } else if (prioridade === 'alta') {
+          minutosSla = 12 * 60;
+          minutosPrimeiraResposta = 60;
+        } else if (prioridade === 'baixa') {
+          minutosSla = 48 * 60;
+          minutosPrimeiraResposta = 4 * 60;
+        }
       }
     } catch (err) {
       console.warn('Erro ao buscar SLA', err);
     }
 
-    const prazoSla = new Date();
+    const agora = new Date();
+    
+    const prazoSla = new Date(agora);
     prazoSla.setMinutes(prazoSla.getMinutes() + minutosSla);
     const prazoSlaFormatado = prazoSla.toISOString().slice(0, 19).replace('T', ' ');
+
+    const prazoPR = new Date(agora);
+    prazoPR.setMinutes(prazoPR.getMinutes() + minutosPrimeiraResposta);
+    const prazoPRFormatado = prazoPR.toISOString().slice(0, 19).replace('T', ' ');
 
     let responsavel_id = data.responsavel_id || null;
 
     const [result]: any = await pool.query(
-      'INSERT INTO tickets (empresa_id, usuario_id, solicitante_nome, solicitante_email, titulo, descricao, prioridade, categoria, servico, prazo_sla, responsavel_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [empresa_id, usuario_id || null, solicitante_nome || null, solicitante_email || null, titulo, descricao, prioridade || 'media', categoria || 'suporte', servico || null, prazoSlaFormatado, responsavel_id]
+      `INSERT INTO tickets (
+        empresa_id, usuario_id, solicitante_nome, solicitante_email, 
+        titulo, descricao, prioridade, categoria, servico, 
+        origem, email_channel_id, message_id,
+        prazo_sla, prazo_primeira_resposta, sla_primeira_resposta_status, responsavel_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        empresa_id, usuario_id || null, solicitante_nome || null, solicitante_email || null, 
+        titulo, descricao, prioridade || 'media', categoria || 'suporte', servico || null, 
+        origem || 'sistema', email_channel_id || null, message_id || null,
+        prazoSlaFormatado, prazoPRFormatado, 'aguardando', responsavel_id
+      ]
     );
     const ticketId = result.insertId;
+
+    // Track processed email to avoid duplicates
+    if (message_id) {
+      await pool.query(
+        'INSERT IGNORE INTO processed_emails (message_id, empresa_id, ticket_id) VALUES (?, ?, ?)',
+        [message_id, empresa_id, ticketId]
+      );
+    }
 
     try {
        if (!responsavel_id) {
@@ -742,7 +785,9 @@ class TicketsService {
     const [rows]: any = await pool.query(
       `SELECT 
         t.id, t.empresa_id, t.usuario_id, t.responsavel_id, t.titulo, t.descricao, 
-        t.status, t.prioridade, t.categoria, t.servico, t.origem, t.prazo_sla, t.finalizado_em,
+        t.status, t.prioridade, t.categoria, t.servico, t.origem, t.email_channel_id, t.message_id, 
+        t.prazo_sla, t.finalizado_em,
+        t.prazo_primeira_resposta, t.primeira_resposta_em, t.sla_primeira_resposta_status, t.sla_resolucao_status,
         t.resolucao_motivo, t.resolucao_observacao, t.reaberto_em, t.reaberto_por,
         t.created_at, t.updated_at,
         COALESCE(t.solicitante_nome, u.nome, 'Usuário Removido') as cliente_nome, 
@@ -806,13 +851,20 @@ class TicketsService {
     if (oldTicket.status === status) return;
 
     let finalizado_em = null;
+    let sla_resolucao_status = oldTicket.sla_resolucao_status;
+
     if (['resolvido', 'fechado'].includes(status)) {
        finalizado_em = new Date().toISOString().slice(0, 19).replace('T', ' ');
+       if (oldTicket.prazo_sla) {
+         const finalData = new Date();
+         const prazoData = new Date(oldTicket.prazo_sla);
+         sla_resolucao_status = finalData <= prazoData ? 'cumprido' : 'violado';
+       }
     }
 
     await pool.query(
-      `UPDATE tickets SET status = ?, finalizado_em = ${finalizado_em ? '?' : 'NULL'}, updated_at = NOW() WHERE id = ?`,
-      finalizado_em ? [status, finalizado_em, id] : [status, id]
+      `UPDATE tickets SET status = ?, finalizado_em = ${finalizado_em ? '?' : 'NULL'}, sla_resolucao_status = ?, updated_at = NOW() WHERE id = ?`,
+      finalizado_em ? [status, finalizado_em, sla_resolucao_status, id] : [status, sla_resolucao_status, id]
     );
 
     if (['resolvido', 'fechado'].includes(status) && !['resolvido', 'fechado'].includes(oldTicket.status)) {
@@ -1066,7 +1118,7 @@ class TicketsService {
 
   async getMessages(ticketId: number, includeInternal: boolean) {
     let query = `
-      SELECT m.id, m.ticket_id, m.usuario_id, m.mensagem, m.interno, m.anexo, m.created_at,
+      SELECT m.id, m.ticket_id, m.usuario_id, m.mensagem, m.interno, m.anexo, m.message_id, m.created_at,
              COALESCE(u.nome, 'Usuário Removido') as usuario_nome 
       FROM ticket_mensagens m
       LEFT JOIN usuarios u ON m.usuario_id = u.id
@@ -1080,20 +1132,59 @@ class TicketsService {
   }
 
   async addMessage(data: any) {
-    const { ticket_id, usuario_id, mensagem, interno } = data;
+    const { ticket_id, usuario_id, mensagem, interno, message_id } = data;
     const [result]: any = await pool.query(
-      'INSERT INTO ticket_mensagens (ticket_id, usuario_id, mensagem, interno) VALUES (?, ?, ?, ?)',
-      [ticket_id, usuario_id, mensagem, interno ? 1 : 0]
+      'INSERT INTO ticket_mensagens (ticket_id, usuario_id, mensagem, interno, message_id) VALUES (?, ?, ?, ?, ?)',
+      [ticket_id, usuario_id || null, mensagem, interno ? 1 : 0, message_id || null]
     );
     const messageId = result.insertId;
+
+    // Track processed email to avoid duplicates
+    if (message_id) {
+       const ticket = await this.getById(ticket_id);
+       if (ticket) {
+          await pool.query(
+            'INSERT IGNORE INTO processed_emails (message_id, empresa_id, ticket_id) VALUES (?, ?, ?)',
+            [message_id, ticket.empresa_id, ticket_id]
+          );
+       }
+    }
+
     await pool.query('UPDATE tickets SET updated_at = NOW() WHERE id = ?', [ticket_id]);
 
-    // Lógica de Auto-Status
+    // Lógica de Auto-Status e SLA de Primeira Resposta
     try {
       const ticket = await this.getById(ticket_id);
       if (ticket && !['resolvido', 'fechado'].includes(ticket.status)) {
         const isClient = Number(usuario_id) === Number(ticket.usuario_id);
         
+        // Registrar primeira resposta do atendente
+        if (!isClient && !interno && !ticket.primeira_resposta_em) {
+          const agora = new Date();
+          const agoraFormatado = agora.toISOString().slice(0, 19).replace('T', ' ');
+          let prStatus = 'cumprido';
+          
+          if (ticket.prazo_primeira_resposta) {
+            const prazoPR = new Date(ticket.prazo_primeira_resposta);
+            if (agora > prazoPR) prStatus = 'violado';
+          }
+
+          await pool.query(
+            'UPDATE tickets SET primeira_resposta_em = ?, sla_primeira_resposta_status = ? WHERE id = ?',
+            [agoraFormatado, prStatus, ticket_id]
+          );
+
+          try {
+            await recordTicketEvent({
+              ticket_id: ticket_id,
+              empresa_id: ticket.empresa_id,
+              usuario_id: usuario_id,
+              tipo: 'primeira_resposta_registrada',
+              descricao: `Primeira resposta registrada em ${agoraFormatado} (${prStatus === 'cumprido' ? 'Dentro do prazo' : 'Fora do prazo'})`
+            });
+          } catch(e) {}
+        }
+
         if (!isClient && !interno) {
           // Atendente respondeu: se estava aberto, vai para em_andamento
           if (ticket.status === 'aberto') {
@@ -1210,10 +1301,16 @@ class TicketsService {
     if (!oldTicket) throw new Error('Ticket não encontrado');
 
     const observacao = resolucao_observacao ? String(resolucao_observacao).substring(0, 2000) : null;
+    let sla_resolucao_status = oldTicket.sla_resolucao_status;
+    if (oldTicket.prazo_sla) {
+      const finalData = new Date();
+      const prazoData = new Date(oldTicket.prazo_sla);
+      sla_resolucao_status = finalData <= prazoData ? 'cumprido' : 'violado';
+    }
 
     await pool.query(
-      'UPDATE tickets SET status = ?, resolucao_motivo = ?, resolucao_observacao = ?, finalizado_em = NOW(), updated_at = NOW() WHERE id = ?',
-      [status, resolucao_motivo, observacao, id]
+      'UPDATE tickets SET status = ?, resolucao_motivo = ?, resolucao_observacao = ?, finalizado_em = NOW(), sla_resolucao_status = ?, updated_at = NOW() WHERE id = ?',
+      [status, resolucao_motivo, observacao, sla_resolucao_status, id]
     );
 
     if (!['resolvido', 'fechado'].includes(oldTicket.status)) {

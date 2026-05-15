@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { Ticket, Message, User, TicketAttachment, TicketTimelineItem, TicketStatus } from '../../types';
-import { AlertCircle, Loader2, MessageSquare, History, CheckCircle2, Clock, ChevronLeft, User as UserIcon } from 'lucide-react';
+import { AlertCircle, Loader2, MessageSquare, History, CheckCircle2, Clock, ChevronLeft, User as UserIcon, Mail, Globe } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { Card } from '../ui/Card';
+import { TicketHeader } from '../tickets/details/TicketHeader';
 import { TicketProperties } from '../tickets/details/TicketProperties';
 import { TicketConversation } from '../tickets/details/TicketConversation';
 import { TicketTimeline } from '../tickets/details/TicketTimeline';
 import { Select } from '../ui/Select';
 import { cn, getSlaInfo } from '../../lib/utils';
 import { getSocket } from '../../lib/socket';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface TicketDetailsPageProps {
   ticketId: number;
@@ -272,176 +274,134 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
     );
   }
 
+  const canManage = !!(currentUser.administrador || currentUser.desenvolvedor || currentUser.perfil === 'gestor' || currentUser.perfil === 'atendente');
+  const canAddInternalNote = !!(currentUser.administrador || currentUser.desenvolvedor || currentUser.perfil === 'gestor' || currentUser.perfil === 'atendente');
+
   return (
-    <div className="h-full flex flex-col gap-6 min-h-0 overflow-hidden">
-      {/* Header */}
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" onClick={onBack} className="h-8 w-8 p-0 rounded-lg bg-white border-slate-200 text-slate-500 shadow-sm shrink-0">
-              <ChevronLeft size={18} />
-            </Button>
-            <div className="flex-1 min-w-0 flex items-center gap-2">
-              <span className="text-slate-500 font-semibold text-lg shrink-0">#{ticket.id}</span>
-              <h1 className="text-lg font-bold text-slate-900 tracking-tight leading-tight truncate">{ticket.titulo}</h1>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0 md:ml-auto">
-            {ticket.status === 'resolvido' || ticket.status === 'fechado' ? (
-              <Button 
-                onClick={() => handleUpdateTicket({ status: 'aberto' })}
-                variant="outline"
-                className="h-8 px-4 text-xs font-semibold"
-              >
-                Reabrir
-              </Button>
-            ) : (
-              <Button 
-                onClick={() => handleUpdateTicket({ status: 'resolvido' })}
-                className="h-8 px-4 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm"
-              >
-                Finalizar
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Metadados linha 2 */}
-        <div className="flex items-center gap-y-1 gap-x-2 flex-wrap text-sm text-slate-600 md:pl-11">
-          <span className="font-semibold text-slate-800">Cliente:</span>
-          <span className="font-medium text-slate-900">{ticket.cliente_nome || 'Não identificado'}</span>
-          <span className="text-slate-300">•</span>
-          
-          <span className="font-semibold text-slate-800">Resp.:</span>
-          <span className="font-medium text-slate-900">{agents.find(a => a.id === ticket.responsavel_id)?.nome || 'Não atribuído'}</span>
-          <span className="text-slate-300">•</span>
-          
-          <div className="flex items-center gap-1.5">
-            <div className={cn(
-              "w-2 h-2 rounded-full",
-              ticket.status === 'aberto' ? "bg-blue-500" :
-              ticket.status === 'em_andamento' ? "bg-indigo-500" :
-              ticket.status === 'aguardando_cliente' ? "bg-amber-500" :
-              ticket.status === 'resolvido' ? "bg-emerald-500" : "bg-slate-500"
-            )} />
-            <span className="font-medium text-slate-700 capitalize">{ticket.status?.replace('_', ' ')}</span>
-          </div>
-          <span className="text-slate-300">•</span>
-          
-          <Badge variant={ticket.prioridade === 'urgente' ? 'red' : 'slate'} className="text-[10px] font-semibold px-1.5 py-0">
-            {ticket.prioridade}
-          </Badge>
-          <span className="text-slate-300">•</span>
-          
-          <span className={cn(
-            "font-medium",
-            getSlaInfo(ticket.prazo_sla, ticket.status).color.replace('bg-', 'text-').replace('text-white', 'text-slate-900')
-          )}>
-            SLA: {getSlaInfo(ticket.prazo_sla, ticket.status).compactText || getSlaInfo(ticket.prazo_sla, ticket.status).label}
-          </span>
-          <span className="text-slate-300">•</span>
-
-          <span className="text-slate-500">{ticket.origem || 'Não inf.'}</span>
-        </div>
+    <div className="h-full flex flex-col min-h-0 overflow-hidden bg-slate-50">
+      {/* Header Centralizado */}
+      <div className="shrink-0 z-20 bg-white border-b border-slate-200">
+         <TicketHeader 
+           ticket={ticket}
+           currentUser={currentUser}
+           onUpdate={handleUpdateTicket}
+           onResolve={() => {
+              setResolutionData(prev => ({ ...prev, status: 'resolvido' }));
+              setIsResolveModalOpen(true);
+           }}
+           onBack={onBack}
+           canManage={canManage}
+         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 min-h-0 overflow-hidden">
-        {/* Coluna Principal */}
-        <div className="lg:col-span-8 flex flex-col gap-4 min-h-0 overflow-hidden">
-          {/* Conversa */}
-          <Card className="flex flex-col flex-1 min-h-0 border-slate-200/60 shadow-sm overflow-hidden rounded-xl bg-white">
-            <div className="bg-slate-50/20 px-5 border-b border-slate-100 flex items-center justify-between shrink-0">
-               <div className="flex -mb-px gap-6">
-                  <button 
-                    onClick={() => setActiveTab('messages')}
-                    className={cn(
-                      "flex items-center gap-2 py-3 text-xs font-bold uppercase tracking-widest transition-all border-b-2",
-                      activeTab === 'messages' ? "text-blue-600 border-blue-600" : "text-slate-400 border-transparent hover:text-slate-600"
-                    )}
-                  >
-                    Conversa
-                  </button>
-                  <button 
-                    onClick={() => setActiveTab('timeline')}
-                    className={cn(
-                      "flex items-center gap-2 py-3 text-xs font-bold uppercase tracking-widest transition-all border-b-2",
-                      activeTab === 'timeline' ? "text-blue-600 border-blue-600" : "text-slate-400 border-transparent hover:text-slate-600"
-                    )}
-                  >
-                    Histórico
-                  </button>
-               </div>
-               <div className="text-[10px] font-medium text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-md">
-                 {activeTab === 'messages' ? `${messages.length} mensagens` : `${timeline.length} eventos`}
-               </div>
-            </div>
-
-            <div className="flex-1 min-h-0 overflow-hidden bg-white">
-              {activeTab === 'messages' ? (
-                <TicketConversation 
-                   ticket={ticket}
-                   messages={messages}
-                   currentUser={currentUser}
-                   onSendMessage={handleSendMessage}
-                   onDeleteAttachment={handleDeleteAttachment}
-                   loadingSend={loadingSend}
-                   actionError={actionError}
-                   actionSuccess={actionSuccess}
-                   canAddInternalNote={!!(currentUser.administrador || currentUser.desenvolvedor)}
-                />
-              ) : (
-                <div className="h-full overflow-y-auto p-5 custom-scrollbar">
-                  <TicketTimeline 
-                    timeline={timeline}
-                    loading={loadingTimeline}
-                  />
-                </div>
-              )}
-            </div>
-          </Card>
+      {/* Main Workspace Grid */}
+      <div className="flex-1 min-h-0 flex overflow-hidden">
+        {/* Left: Conversation Feed */}
+        <div className="flex-1 flex flex-col min-w-0 bg-white shadow-[1px_0_0_rgba(0,0,0,0.05)] z-10">
+          <TicketConversation 
+            ticket={ticket}
+            messages={messages}
+            currentUser={currentUser}
+            onSendMessage={handleSendMessage}
+            onDeleteAttachment={handleDeleteAttachment}
+            loadingSend={loadingSend}
+            actionError={actionError}
+            actionSuccess={actionSuccess}
+            canAddInternalNote={canAddInternalNote}
+          />
         </div>
 
-        {/* Coluna Lateral */}
-        <div className="lg:col-span-4 h-full min-h-0 overflow-hidden">
-            <div className="h-full overflow-y-auto pr-1 flex flex-col gap-4 custom-scrollbar">
-              <TicketProperties 
-                  ticket={ticket}
-                  currentUser={currentUser}
-                  agents={agents}
-                  attachments={ticketAttachments}
-                  onUpdate={handleUpdateTicket}
-                  onArchive={handleArchiveTicket}
-                  onUpdateTags={handleUpdateTags}
-                  onUpdateCustomFields={handleUpdateCustomFields}
-              />
-            </div>
+        {/* Right Sidebar: Tabs for Props & Timeline */}
+        <div className="w-[400px] shrink-0 overflow-y-auto flex flex-col bg-slate-50/50 border-l border-slate-200 custom-scrollbar">
+          <div className="flex bg-white border-b border-slate-200 shrink-0">
+             <button 
+               onClick={() => setActiveTab('messages')}
+               className={cn(
+                 "flex-1 py-4 text-[10px] font-black uppercase tracking-widest transition-all border-b-2",
+                 activeTab === 'messages' ? "border-blue-600 text-blue-600" : "border-transparent text-slate-400 hover:text-slate-600"
+               )}
+             >
+               Propriedades
+             </button>
+             <button 
+               onClick={() => setActiveTab('timeline')}
+               className={cn(
+                 "flex-1 py-4 text-[10px] font-black uppercase tracking-widest transition-all border-b-2",
+                 activeTab === 'timeline' ? "border-blue-600 text-blue-600" : "border-transparent text-slate-400 hover:text-slate-600"
+               )}
+             >
+               Histórico
+             </button>
+          </div>
+
+          <div className="p-6 pb-20">
+             <AnimatePresence mode="wait">
+               {activeTab === 'messages' ? (
+                 <motion.div
+                   key="props"
+                   initial={{ opacity: 0, y: 10 }}
+                   animate={{ opacity: 1, y: 0 }}
+                   exit={{ opacity: 0, y: -10 }}
+                   transition={{ duration: 0.2 }}
+                 >
+                   <TicketProperties 
+                     ticket={ticket}
+                     currentUser={currentUser}
+                     agents={agents}
+                     attachments={ticketAttachments}
+                     onUpdate={handleUpdateTicket}
+                     onArchive={handleArchiveTicket}
+                     onUpdateTags={handleUpdateTags}
+                     onUpdateCustomFields={handleUpdateCustomFields}
+                   />
+                 </motion.div>
+               ) : (
+                 <motion.div
+                   key="timeline"
+                   initial={{ opacity: 0, y: 10 }}
+                   animate={{ opacity: 1, y: 0 }}
+                   exit={{ opacity: 0, y: -10 }}
+                   transition={{ duration: 0.2 }}
+                 >
+                   <TicketTimeline 
+                     timeline={timeline}
+                     loading={loadingTimeline}
+                   />
+                 </motion.div>
+               )}
+             </AnimatePresence>
+          </div>
         </div>
       </div>
 
       {/* Resolution Modal */}
       {isResolveModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200 border border-slate-200">
-             <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-                <h3 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                   <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                      <CheckCircle2 size={18} />
-                   </div>
-                   Finalizar Atendimento
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden border border-slate-200"
+          >
+             <div className="p-8 border-b border-slate-100 flex flex-col gap-1">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-4">
+                   <CheckCircle2 size={24} />
+                </div>
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">
+                   Concluir Atendimento
                 </h3>
-                <Badge variant={resolutionData.status === 'resolvido' ? 'emerald' : 'slate'} className="text-xs font-semibold px-2 py-0.5">
-                   {resolutionData.status}
-                </Badge>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
+                   Informe como este chamado foi resolvido
+                </p>
              </div>
 
-             <div className="p-5 space-y-4">
-                <div className="space-y-1.5">
-                   <label className="text-xs font-semibold text-slate-600">Motivo da Resolução</label>
+             <div className="p-8 space-y-6">
+                <div className="space-y-2">
+                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Motivo da Resolução</label>
                    <Select 
                      value={resolutionData.resolucao_motivo}
                      onChange={(value) => setResolutionData(prev => ({ ...prev, resolucao_motivo: value }))}
-                     placeholder="Selecione um motivo..."
+                     placeholder="Selecione o motivo..."
+                     buttonClassName="h-12 bg-slate-50 border-slate-200 rounded-xl"
                      options={[
                        { value: "duvida_sanada", label: "Dúvida sanada" },
                        { value: "problema_corrigido", label: "Problema corrigido" },
@@ -454,30 +414,34 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                    />
                 </div>
 
-                <div className="space-y-1.5">
-                   <label className="text-xs font-semibold text-slate-600">Observações (Opcional)</label>
+                <div className="space-y-2">
+                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Observação Final</label>
                    <textarea 
                      value={resolutionData.resolucao_observacao}
                      onChange={(e) => setResolutionData(prev => ({ ...prev, resolucao_observacao: e.target.value }))}
-                     placeholder="Detalhes sobre a solução aplicada..."
-                     className="w-full h-24 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:ring-2 focus:ring-emerald-100 transition-all resize-none"
+                     placeholder="Detalhes sobre a solução..."
+                     className="w-full h-32 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 transition-all resize-none font-medium"
                    />
                 </div>
              </div>
 
-             <div className="p-4 bg-slate-50 flex justify-end gap-3 rounded-b-xl border-t border-slate-100">
-                <Button variant="ghost" className="h-8 text-sm" onClick={() => setIsResolveModalOpen(false)}>
-                   Cancelar
+             <div className="p-6 bg-slate-50/50 flex flex-col md:flex-row gap-3 rounded-b-xl border-t border-slate-100">
+                <Button 
+                   variant="ghost" 
+                   className="flex-1 h-12 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600" 
+                   onClick={() => setIsResolveModalOpen(false)}
+                >
+                   Desistir
                 </Button>
                 <Button 
-                  onClick={handleConfirmResolution} 
-                  disabled={!resolutionData.resolucao_motivo}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold h-8 px-4 rounded-lg shadow-sm"
+                   onClick={handleConfirmResolution} 
+                   disabled={!resolutionData.resolucao_motivo}
+                   className="flex-[2] bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] uppercase tracking-widest h-12 rounded-xl shadow-lg shadow-emerald-200"
                 >
-                   Finalizar Chamado
+                   Finalizar Agora
                 </Button>
              </div>
-          </div>
+          </motion.div>
         </div>
       )}
     </div>

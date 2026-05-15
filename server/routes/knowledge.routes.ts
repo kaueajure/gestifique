@@ -10,6 +10,31 @@ router.use(authMiddleware as any);
 const sendSuccess = (res: any, data: any) => res.json({ success: true, data });
 const sendError = (res: any, error: string, num = 500) => res.status(num).json({ success: false, message: error, error });
 
+router.get('/categories', async (req: AuthRequest, res) => {
+  try {
+    const empresaId = req.user!.desenvolvedor && req.query.empresa_id
+      ? Number(req.query.empresa_id)
+      : req.user!.empresa_id;
+
+    if (!empresaId && !req.user!.desenvolvedor) {
+      return sendError(res, 'Empresa não identificada', 400);
+    }
+
+    let query = 'SELECT DISTINCT categoria FROM knowledge_articles';
+    const params = [];
+    if (empresaId) {
+      query += ' WHERE empresa_id = ?';
+      params.push(empresaId);
+    }
+    query += ' ORDER BY categoria ASC';
+
+    const [rows]: any = await pool.query(query, params);
+    sendSuccess(res, rows.filter((r: any) => r.categoria).map((r: any) => r.categoria));
+  } catch (err) {
+    sendError(res, 'Erro ao buscar categorias');
+  }
+});
+
 router.get('/', async (req: AuthRequest, res) => {
   try {
     if (!req.user) return sendError(res, 'Não autenticado', 401);

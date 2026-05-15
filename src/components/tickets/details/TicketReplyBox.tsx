@@ -1,15 +1,27 @@
 import React, { useState } from 'react';
-import { Send, AlertCircle, CheckCircle2, Loader2, MessageSquare } from 'lucide-react';
+import { 
+  Send, 
+  AlertCircle, 
+  CheckCircle2, 
+  Loader2, 
+  MessageSquare, 
+  Lock, 
+  User, 
+  Paperclip, 
+  X,
+  Zap,
+  EyeOff
+} from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { Button } from '../../ui/Button';
 import { FileUpload } from '../../ui/FileUpload';
 import { AnimatePresence, motion } from 'motion/react';
-import { Ticket, User } from '../../../types';
+import { Ticket, User as UserType } from '../../../types';
 import { TicketMacroList } from './TicketMacroList';
 
 interface TicketReplyBoxProps {
   ticket: Ticket;
-  currentUser: User;
+  currentUser: UserType;
   onSendMessage: (mensagem: string, isInternal: boolean, files: File[]) => Promise<boolean>;
   loadingSend: boolean;
   actionError: string | null;
@@ -17,7 +29,15 @@ interface TicketReplyBoxProps {
   canAddInternalNote: boolean;
 }
 
-export const TicketReplyBox = ({ ticket, currentUser, onSendMessage, loadingSend, actionError, actionSuccess, canAddInternalNote }: TicketReplyBoxProps) => {
+export const TicketReplyBox = ({ 
+  ticket, 
+  currentUser, 
+  onSendMessage, 
+  loadingSend, 
+  actionError, 
+  actionSuccess, 
+  canAddInternalNote 
+}: TicketReplyBoxProps) => {
   const [newMessage, setNewMessage] = useState('');
   const [isInternal, setIsInternal] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -29,7 +49,6 @@ export const TicketReplyBox = ({ ticket, currentUser, onSendMessage, loadingSend
 
     const ok = await onSendMessage(newMessage, isInternal, selectedFiles);
     
-    // Only reset if successful
     if (ok) {
       setNewMessage('');
       setSelectedFiles([]);
@@ -44,30 +63,39 @@ export const TicketReplyBox = ({ ticket, currentUser, onSendMessage, loadingSend
     setShowMacros(false);
   };
 
+  const isMessageEmpty = !newMessage.trim() && selectedFiles.length === 0;
+
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-2.5">
-        <div className="flex items-center justify-between">
-          <div className="flex bg-slate-100 p-0.5 rounded-md">
+    <div className="flex flex-col gap-0 border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-sm transition-all focus-within:shadow-md focus-within:border-blue-300">
+        {/* Composer Tabs */}
+        <div className="flex items-center justify-between px-4 bg-slate-50/50 border-b border-slate-100">
+          <div className="flex -mb-[1px]">
              <button
                 type="button"
                 onClick={() => setIsInternal(false)}
                 className={cn(
-                  "px-3 py-1 text-xs font-semibold rounded transition-all",
-                  !isInternal ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                  "px-6 py-3 text-[10px] font-black uppercase tracking-widest transition-all border-b-2 flex items-center gap-2",
+                  !isInternal 
+                    ? "text-blue-600 border-blue-600 bg-white" 
+                    : "text-slate-400 border-transparent hover:text-slate-600"
                 )}
              >
-                Responder ao cliente
+                <User size={12} />
+                Resposta Pública
              </button>
              {canAddInternalNote && (
                <button
                   type="button"
                   onClick={() => setIsInternal(true)}
                   className={cn(
-                    "px-3 py-1 text-xs font-semibold rounded transition-all",
-                    isInternal ? "bg-white text-amber-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                    "px-6 py-3 text-[10px] font-black uppercase tracking-widest transition-all border-b-2 flex items-center gap-2",
+                    isInternal 
+                      ? "text-amber-600 border-amber-600 bg-white" 
+                      : "text-slate-400 border-transparent hover:text-slate-600"
                   )}
                >
-                  Nota interna
+                  <Lock size={12} />
+                  Nota Interna
                </button>
              )}
           </div>
@@ -78,18 +106,18 @@ export const TicketReplyBox = ({ ticket, currentUser, onSendMessage, loadingSend
                 type="button"
                 onClick={() => setShowMacros(!showMacros)}
                 className={cn(
-                  "flex items-center gap-1.5 h-7 px-2.5 rounded border text-xs font-medium transition-all",
+                  "flex items-center gap-1.5 h-8 px-3 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all shadow-sm",
                   showMacros 
-                    ? "bg-blue-600 border-blue-600 text-white shadow-sm" 
-                    : "bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50 shadow-sm"
+                    ? "bg-blue-600 border-blue-600 text-white" 
+                    : "bg-white border-slate-200 text-slate-500 hover:border-blue-400 hover:text-blue-600"
                 )}
               >
-                <MessageSquare size={13} className={showMacros ? "text-blue-100" : "text-blue-500"} />
-                Respostas prontas
+                <Zap size={12} />
+                Atalhos
               </button>
 
               {showMacros && (
-                <div className="absolute bottom-full right-0 mb-2 z-[60]">
+                <div className="absolute bottom-full right-0 mb-3 z-[60]">
                   <TicketMacroList 
                     ticket={ticket}
                     currentUser={currentUser}
@@ -99,65 +127,87 @@ export const TicketReplyBox = ({ ticket, currentUser, onSendMessage, loadingSend
                 </div>
               )}
             </div>
-
-            {isInternal && (
-               <div className="hidden sm:flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-50 px-2.5 py-1 rounded border border-amber-200/50">
-                  <AlertCircle size={13} /> Privado para equipe
-               </div>
-            )}
           </div>
         </div>
 
-        {(actionError || actionSuccess) && (
-          <AnimatePresence>
-              {actionError && (
-                <motion.div 
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="p-2.5 bg-red-50 border border-red-100 rounded-lg flex items-center gap-2 text-red-600 text-xs font-medium"
-                >
-                  <AlertCircle size={14} /> {actionError}
-                </motion.div>
-              )}
-              {actionSuccess && (
-                <motion.div 
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="p-2.5 bg-emerald-50 border border-emerald-100 rounded-lg flex items-center gap-2 text-emerald-600 text-xs font-medium"
-                >
-                  <CheckCircle2 size={14} /> {actionSuccess}
-                </motion.div>
-              )}
-          </AnimatePresence>
-        )}
+        {/* Text Area Content */}
+        <div className={cn(
+          "relative min-h-[120px] transition-colors",
+          isInternal ? "bg-amber-50/20" : "bg-white"
+        )}>
+          {isInternal && (
+             <div className="absolute top-3 right-4 z-10 flex items-center gap-2 text-[8px] font-black uppercase tracking-widest text-amber-600 bg-amber-100/50 px-2 py-1 rounded-lg border border-amber-200/50 pointer-events-none">
+                <EyeOff size={10} /> Visível apenas para agentes
+             </div>
+          )}
 
-        <div className="relative">
           <textarea 
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            placeholder={isInternal ? "Escreva uma nota interna para a equipe..." : "Escreva uma resposta para o cliente..."}
-            rows={3}
+            placeholder={isInternal ? "Escreva uma observação interna ou detalhe técnico..." : "Digite sua mensagem para o cliente..."}
             className={cn(
-              "w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 transition-all outline-none resize-none min-h-[70px] shadow-sm",
+              "w-full h-full min-h-[120px] p-4 text-sm font-medium focus:ring-0 focus:outline-none transition-all resize-none border-0",
               isInternal 
-                ? "bg-amber-50/30 border-amber-200 focus:ring-amber-100 focus:border-amber-400 text-amber-900 placeholder:text-amber-500/70" 
-                : "bg-slate-50/50 border-slate-200 focus:ring-blue-100 focus:border-blue-400 text-slate-800 placeholder:text-slate-400"
+                ? "text-amber-900 placeholder:text-amber-300" 
+                : "text-slate-700 placeholder:text-slate-300"
             )}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && e.ctrlKey) {
+                handleSubmit(e);
+              }
+            }}
           />
+
+          {/* Feedback Area */}
+          <div className="absolute bottom-2 left-4 right-4">
+             <AnimatePresence>
+                {actionError && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="p-2 mb-2 bg-rose-50 border border-rose-100 rounded-xl flex items-center gap-2 text-rose-600 text-[10px] font-black uppercase tracking-widest"
+                  >
+                    <AlertCircle size={14} /> {actionError}
+                  </motion.div>
+                )}
+                {actionSuccess && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="p-2 mb-2 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-2 text-emerald-600 text-[10px] font-black uppercase tracking-widest"
+                  >
+                    <CheckCircle2 size={14} /> {actionSuccess}
+                  </motion.div>
+                )}
+             </AnimatePresence>
+          </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="w-full sm:flex-1">
-             <FileUpload onFilesChange={setSelectedFiles} />
+        {/* Footer / Actions */}
+        <div className="flex flex-wrap items-center justify-between p-3 bg-slate-50/50 border-t border-slate-100 gap-3">
+          <div className="flex flex-1 min-w-0">
+             <FileUpload 
+               onFilesChange={setSelectedFiles}
+               className="w-full"
+               compact
+             />
           </div>
 
-          <div className="w-full sm:w-auto shrink-0">
-              <Button 
-                type="submit" 
-                disabled={(!newMessage.trim() && selectedFiles.length === 0) || loadingSend}
+          <div className="flex items-center gap-3">
+             <span className="hidden sm:inline-block text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+               CTRL + ENTER para enviar
+             </span>
+             <Button 
+                onClick={handleSubmit}
+                disabled={isMessageEmpty || loadingSend}
                 className={cn(
-                  "w-full sm:w-auto h-8 px-5 font-semibold text-xs transition-all active:scale-95",
-                  isInternal ? "bg-amber-600 hover:bg-amber-700 text-white shadow-sm" : "bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                  "h-10 px-6 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-lg active:scale-95",
+                  isInternal 
+                    ? "bg-amber-600 hover:bg-amber-700 text-white shadow-amber-200 border-b-4 border-amber-800" 
+                    : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200 border-b-4 border-blue-800",
+                  isMessageEmpty && "opacity-50 grayscale"
                 )}
               >
                 {loadingSend ? (
@@ -165,10 +215,10 @@ export const TicketReplyBox = ({ ticket, currentUser, onSendMessage, loadingSend
                 ) : (
                   <Send size={14} className="mr-2" />
                 )}
-                {isInternal ? "Adicionar Nota" : "Enviar Resposta"}
+                {isInternal ? "Postar Nota" : "Enviar Resposta"}
               </Button>
           </div>
         </div>
-    </form>
+    </div>
   );
 };

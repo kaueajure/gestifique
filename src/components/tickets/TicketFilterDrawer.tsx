@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Calendar, Tag as TagIcon, User, Globe, Clock, Search } from 'lucide-react';
+import { X, Calendar, Tag as TagIcon, User, Globe, Clock, Search, Layers, ShieldAlert } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Select } from '../ui/Select';
 import { TicketAdvancedFilters as IFilters } from '../../types';
@@ -64,26 +64,31 @@ export const TicketFilterDrawer: React.FC<TicketFilterDrawerProps> = ({
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className="fixed top-0 right-0 bottom-0 w-[360px] max-w-full bg-white shadow-xl z-[110] flex flex-col border-l border-slate-200"
           >
-            <div className="flex items-center justify-between p-4 border-b border-slate-100">
-              <h2 className="text-lg font-bold text-slate-900 tracking-tight leading-none">Filtros</h2>
+            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+              <div>
+                <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase">Filtros Avançados</h2>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Refine sua busca por atendimentos</p>
+              </div>
               <button
                 onClick={onClose}
-                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all border border-transparent hover:border-slate-200"
               >
-                <X size={18} />
+                <X size={20} />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 pb-20 space-y-4">
+            <div className="flex-1 overflow-y-auto p-6 pb-24 space-y-6 no-scrollbar">
               {/* Status */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">Status</label>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  <Globe size={12} /> Status do Ticket
+                </label>
                 <Select
                   value={statusFilter}
                   onChange={setStatusFilter}
-                  size="sm"
+                  buttonClassName="h-10 text-xs font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-xl px-4"
                   options={[
-                    { value: 'todos', label: 'Todos' },
+                    { value: 'todos', label: 'Todos os Status' },
                     { value: 'aberto', label: 'Aberto' },
                     { value: 'em_andamento', label: 'Em Andamento' },
                     { value: 'aguardando_cliente', label: 'Aguardando' },
@@ -95,14 +100,16 @@ export const TicketFilterDrawer: React.FC<TicketFilterDrawerProps> = ({
               </div>
 
               {/* Priority */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">Prioridade</label>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  <Clock size={12} /> Prioridade
+                </label>
                 <Select
                   value={priorityFilter}
                   onChange={setPriorityFilter}
-                  size="sm"
+                  buttonClassName="h-10 text-xs font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-xl px-4"
                   options={[
-                    { value: 'todas', label: 'Todas' },
+                    { value: 'todas', label: 'Todas as Prioridades' },
                     { value: 'urgente', label: 'Urgente' },
                     { value: 'alta', label: 'Alta' },
                     { value: 'media', label: 'Média' },
@@ -112,45 +119,51 @@ export const TicketFilterDrawer: React.FC<TicketFilterDrawerProps> = ({
                 />
               </div>
 
+              <div className="h-px bg-slate-100 my-2" />
+
               {/* Category */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">Categoria</label>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  <Layers size={12} /> Categoria
+                </label>
                 <Select
                   value={categoryFilter}
                   onChange={setCategoryFilter}
-                  size="sm"
+                  buttonClassName="h-10 text-xs font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-xl px-4"
                   options={categoryOptions || [
-                    { value: 'todas', label: 'Todas' }
+                    { value: 'todas', label: 'Todas as Categorias' }
                   ]}
                   className="w-full"
                 />
               </div>
 
               {/* Service */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">Serviço</label>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  <Search size={12} /> Serviço / Produto
+                </label>
                 <Select
                   value={serviceFilter}
                   onChange={setServiceFilter}
-                  size="sm"
+                  buttonClassName="h-10 text-xs font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-xl px-4"
                   options={serviceOptions || [
-                    { value: 'todos', label: 'Todos' }
+                    { value: 'todos', label: 'Todos os Serviços' }
                   ]}
                   className="w-full"
                 />
               </div>
 
               {/* Responsável */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5 border-t border-slate-100 pt-4">
-                  <User size={14} className="text-slate-400" /> Responsável
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  <User size={12} /> Atendente Responsável
                 </label>
                 <Select
                   value={filters.responsavel_id ? String(filters.responsavel_id) : ''}
                   onChange={(value) => handleChange('responsavel_id', value ? parseInt(value) : undefined)}
-                  size="sm"
+                  buttonClassName="h-10 text-xs font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-xl px-4"
                   options={[
-                    { value: '', label: 'Todos' },
+                    { value: '', label: 'Qualquer Atendente' },
                     ...agents.map(agent => ({
                       value: String(agent.id),
                       label: agent.nome
@@ -161,17 +174,17 @@ export const TicketFilterDrawer: React.FC<TicketFilterDrawerProps> = ({
               </div>
 
               {/* SLA Status */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                  <Clock size={14} className="text-slate-400" /> Status do SLA
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  <ShieldAlert size={12} /> Condição do SLA
                 </label>
                 <Select
                   value={filters.sla_status || 'todos'}
                   onChange={(value) => handleChange('sla_status', value)}
-                  size="sm"
+                  buttonClassName="h-10 text-xs font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-xl px-4"
                   options={[
-                    { value: 'todos', label: 'Todos' },
-                    { value: 'dentro_sla', label: 'Dentro do SLA' },
+                    { value: 'todos', label: 'Todos (Com e Sem SLA)' },
+                    { value: 'dentro_sla', label: 'Dentro do Prazo' },
                     { value: 'vencendo', label: 'Vencendo em breve' },
                     { value: 'vencido', label: 'SLA Vencido' },
                     { value: 'sem_sla', label: 'Sem SLA definido' }
@@ -181,45 +194,47 @@ export const TicketFilterDrawer: React.FC<TicketFilterDrawerProps> = ({
               </div>
 
               {/* Tag */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                  <TagIcon size={14} className="text-slate-400" /> Tag
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                   <TagIcon size={12} /> Filtrar por Tag
                 </label>
-                <input
-                  type="text"
-                  value={filters.tag || ''}
-                  onChange={(e) => handleChange('tag', e.target.value)}
-                  placeholder="Ex: login, urgente..."
-                  className="w-full bg-white border border-slate-200 rounded-lg h-8 px-2.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-colors placeholder:text-slate-400 placeholder:font-medium"
-                />
+                <div className="relative group">
+                  <input
+                    type="text"
+                    value={filters.tag || ''}
+                    onChange={(e) => handleChange('tag', e.target.value)}
+                    placeholder="Ex: login, urgente..."
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-4 text-xs font-black uppercase tracking-widest focus:ring-4 focus:ring-blue-500/10 focus:border-blue-400 outline-none transition-all placeholder:text-slate-400/60 placeholder:font-medium"
+                  />
+                </div>
               </div>
 
               {/* Criado Em */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                  <Calendar size={14} className="text-slate-400" /> Data de criação
+              <div className="space-y-2 pb-6">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  <Calendar size={12} /> Intervalo de Criação
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-3">
                   <input
                     type="date"
                     value={filters.created_from || ''}
                     onChange={(e) => handleChange('created_from', e.target.value)}
-                    className="bg-white border border-slate-200 rounded-lg h-8 px-2.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-colors"
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-[10px] font-black uppercase tracking-tight focus:ring-4 focus:ring-blue-500/10 focus:border-blue-400 outline-none transition-all"
                   />
                   <input
                     type="date"
                     value={filters.created_to || ''}
                     onChange={(e) => handleChange('created_to', e.target.value)}
-                    className="bg-white border border-slate-200 rounded-lg h-8 px-2.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-colors"
+                    className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl px-3 text-[10px] font-black uppercase tracking-tight focus:ring-4 focus:ring-blue-500/10 focus:border-blue-400 outline-none transition-all"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-100 flex items-center gap-3">
+            <div className="absolute bottom-0 left-0 right-0 p-6 bg-white border-t border-slate-100 flex items-center gap-4 bg-white/80 backdrop-blur-lg">
               <Button 
                 variant="outline" 
-                className="flex-[0.5] h-9"
+                className="flex-[0.4] h-11 text-[10px] font-black uppercase tracking-widest border-slate-200 rounded-xl hover:bg-slate-50"
                 onClick={() => {
                   setStatusFilter('todos');
                   setPriorityFilter('todas');
@@ -230,10 +245,10 @@ export const TicketFilterDrawer: React.FC<TicketFilterDrawerProps> = ({
                 Limpar
               </Button>
               <Button 
-                className="flex-[1.5] bg-blue-600 hover:bg-blue-700 text-white h-9"
+                className="flex-[0.6] h-11 text-[10px] font-black uppercase tracking-widest bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20 rounded-xl border-b-4 border-blue-800 active:translate-y-0.5 active:border-b-0"
                 onClick={onClose}
               >
-                Aplicar filtros
+                Aplicar Filtros
               </Button>
             </div>
           </motion.div>

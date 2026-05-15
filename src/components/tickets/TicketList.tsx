@@ -14,10 +14,11 @@ import {
   ArrowUpDown, 
   ArrowUp, 
   ArrowDown,
-  History
+  History,
+  Mail
 } from 'lucide-react';
 import { Badge } from '../ui/Badge';
-import { cn, formatRelativeTime, getSlaInfo } from '../../lib/utils';
+import { cn, formatRelativeTime, getSlaInfo, getFirstResponseSlaInfo } from '../../lib/utils';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { api } from '../../lib/api';
@@ -215,32 +216,32 @@ export const TicketList = ({
   }
 
   return (
-    <Card className="overflow-hidden border-slate-200 shadow-sm bg-white">
+    <Card className="overflow-hidden border-slate-200 shadow-xl shadow-slate-200/50 bg-white rounded-2xl">
       <div className="overflow-x-auto no-scrollbar">
         <table className="w-full text-left border-collapse table-fixed">
           <thead>
-            <tr className="bg-slate-50/50 border-b border-slate-100">
+            <tr className="bg-slate-50/80 border-b border-slate-100">
               {canSelectBulk && (
-                <th className="w-8 px-3 py-2.5 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">
+                <th className="w-12 px-4 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">
                   <input 
                     type="checkbox" 
-                    className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    className="w-4 h-4 rounded-md border-slate-300 text-blue-600 focus:ring-blue-500/20 cursor-pointer shadow-sm"
                     onChange={toggleSelectAll}
                     checked={isAllSelected}
                   />
                 </th>
               )}
-              <SortHeader label="Atendimento" k="titulo" className="w-[300px]" />
-              <th className="w-[140px] px-3 py-2.5 text-[9px] font-black uppercase tracking-widest text-slate-400">Situação</th>
-              <th className="px-3 py-2.5 text-[9px] font-black uppercase tracking-widest text-slate-400 hidden md:table-cell">Solicitante</th>
-              <SortHeader label="Status" k="status" className="w-[120px]" />
-              <SortHeader label="Prioridade" k="prioridade" className="w-[100px] text-center justify-center" />
-              <th className="w-[90px] px-3 py-2.5 text-[9px] font-black uppercase tracking-widest text-slate-400 hidden xl:table-cell text-center">SLA</th>
-              <th className="w-[140px] px-3 py-2.5 text-[9px] font-black uppercase tracking-widest text-slate-400">Responsável</th>
-              <th className="w-[90px] px-3 py-2.5"></th>
+              <SortHeader label="Atendimento" k="titulo" className="w-[340px]" />
+              <th className="w-[160px] px-4 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400">Contexto / Situação</th>
+              <th className="px-4 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400 hidden md:table-cell">Cliente / Empresa</th>
+              <SortHeader label="Status" k="status" className="w-[140px]" />
+              <SortHeader label="Prioridade" k="prioridade" className="w-[120px] text-center justify-center" />
+              <th className="w-[110px] px-4 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400 hidden xl:table-cell text-center">SLA Restante</th>
+              <th className="w-[160px] px-4 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400">Responsável</th>
+              <th className="w-[60px] px-4 py-4"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-50">
+          <tbody className="divide-y divide-slate-100">
             {sortedTickets.map((ticket) => {
               const sla = getSlaInfo(ticket.prazo_sla, ticket.status);
               const isAbertoESemResp = ticket.status === 'aberto' && !ticket.responsavel_id;
@@ -256,138 +257,160 @@ export const TicketList = ({
                   key={ticket.id}
                   onClick={() => onSelectTicket(ticket.id)}
                   className={cn(
-                    "group hover:bg-slate-50/60 transition-all cursor-pointer relative",
-                    isSelected && "bg-blue-50/30",
-                    sla.status === 'vencido' && "bg-red-50/10 hover:bg-red-50/30",
-                    ticket.nao_lido && "bg-blue-50/20 font-bold"
+                    "group transition-all cursor-pointer relative",
+                    isSelected ? "bg-blue-50/50" : "hover:bg-slate-50/40",
+                    sla.status === 'vencido' && !isSelected && "bg-rose-50/10 hover:bg-rose-50/30",
+                    ticket.nao_lido && "font-bold"
                   )}
                 >
                 {canSelectBulk && (
-                  <td className="px-3 py-2 text-center" onClick={(e) => e.stopPropagation()}>
+                  <td className="px-4 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
                     <input 
                       type="checkbox" 
-                      className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      className="w-4 h-4 rounded-md border-slate-300 text-blue-600 focus:ring-blue-500/20 cursor-pointer shadow-sm"
                       checked={isSelected}
                       onChange={() => toggleSelectTicket(ticket.id)}
                     />
                   </td>
                 )}
-                <td className="px-3 py-2">
-                  <div className="flex flex-col gap-0.5 min-w-0">
-                    <div className="flex items-center gap-1.5 min-w-0">
+                <td className="px-4 py-3.5">
+                  <div className="flex flex-col gap-1.5 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap min-w-0">
                       {ticket.nao_lido && (
-                        <div className="w-1.5 h-1.5 rounded-full bg-blue-600 ring-4 ring-blue-50 animate-pulse shrink-0" title="Mensagem não lida" />
+                        <div className="w-2 h-2 rounded-full bg-blue-600 ring-4 ring-blue-50 animate-pulse shrink-0" title="Mensagem não lida" />
                       )}
-                      <span className="text-[9px] font-black text-blue-600 tracking-tighter bg-blue-50/50 px-1 py-0.5 rounded border border-blue-100/30">#{ticket.id}</span>
-                      {isAbertoESemResp && (
-                        <span className="text-[8px] font-black text-white bg-amber-500 px-1 rounded border border-amber-500 uppercase tracking-tighter">Novo Chamado</span>
+                      <span className="text-[10px] font-black text-blue-600 tracking-widest shrink-0 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 uppercase">#{ticket.id}</span>
+                      
+                      {ticket.origem === 'email' && (
+                        <div className="flex items-center gap-1 text-[8px] font-black text-blue-500 bg-blue-50/50 px-2 py-0.5 rounded border border-blue-100 uppercase tracking-widest" title="Origem: E-mail">
+                          <Mail size={10} /> E-mail
+                        </div>
                       )}
-                      {ticket.estado_atendimento === 'cliente_respondeu' && (
-                        <span className="text-[8px] font-black text-white bg-emerald-500 px-1 rounded border border-emerald-500 uppercase tracking-tighter animate-pulse">Nova Resposta</span>
-                      )}
-                      {needsAgentAction && ticket.responsavel_id === currentUser.id && (
-                        <span className="text-[8px] font-black text-blue-600 bg-blue-50 px-1 rounded border border-blue-100 uppercase tracking-tighter shrink-0">Sua Vez</span>
-                      )}
-                      <span className="text-[11px] font-bold text-slate-700 truncate group-hover:text-blue-700 transition-colors uppercase">{ticket.titulo}</span>
+                      
+                      <span className="text-[12px] font-black text-slate-800 truncate group-hover:text-blue-700 transition-colors uppercase tracking-tight">{ticket.titulo}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight flex items-center gap-1">
-                        <Clock size={8} className="text-slate-300" /> {formatRelativeTime(ticket.updated_at).replace('há ', '')}
+                    
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1.5">
+                        <Clock size={10} className="text-slate-300" /> Atualizado {formatRelativeTime(ticket.updated_at)}
                       </span>
-                      {needsClientAction && (
-                        <span className="text-[8px] font-bold text-amber-600 uppercase tracking-tighter flex items-center gap-1 shrink-0">
-                          <History size={8} /> Aguard. Cliente
-                        </span>
+                      
+                      {isAbertoESemResp && (
+                        <span className="text-[9px] font-black text-white bg-amber-500 px-2 py-0.5 rounded-lg border border-amber-500 uppercase tracking-widest shadow-sm shadow-amber-200">Novo</span>
                       )}
+                      
+                      {ticket.estado_atendimento === 'cliente_respondeu' && (
+                        <span className="text-[9px] font-black text-white bg-emerald-500 px-2 py-0.5 rounded-lg border border-emerald-500 uppercase tracking-widest animate-pulse shadow-sm shadow-emerald-200">Resposta</span>
+                      )}
+
                       {ticket.tags && ticket.tags.length > 0 && (
-                        <div className="flex gap-0.5">
-                          {ticket.tags.slice(0, 1).map(tag => (
-                            <span key={tag} className="text-[8px] font-black text-slate-300 bg-slate-50/50 border border-slate-100/50 rounded px-1 uppercase tracking-tighter">{tag}</span>
+                        <div className="flex gap-1">
+                          {ticket.tags.slice(0, 2).map(tag => (
+                            <span key={tag} className="text-[9px] font-black text-slate-400 bg-slate-100 border border-slate-200 rounded-md px-1.5 py-0.5 uppercase tracking-tighter">{tag}</span>
                           ))}
                         </div>
                       )}
                     </div>
                   </div>
                 </td>
-                <td className="px-3 py-2">
-                  {estadoInfo && (
+                <td className="px-4 py-3.5">
+                  {estadoInfo ? (
                     <div className={cn(
-                      "inline-flex items-center gap-1.5 px-2 py-0.5 rounded cursor-help border transition-all",
+                      "inline-flex items-center gap-2 px-3 py-1 rounded-xl cursor-help border transition-all shadow-sm",
                       estadoInfo.color
                     )}>
-                      <div className={cn("w-1 h-1 rounded-full", estadoInfo.dot)} />
-                      <span className="text-[9px] font-black uppercase tracking-tighter whitespace-nowrap">{estadoInfo.label}</span>
+                      <div className={cn("w-1.5 h-1.5 rounded-full", estadoInfo.dot)} />
+                      <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">{estadoInfo.label}</span>
                     </div>
+                  ) : (
+                    <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Sem interação</span>
                   )}
                 </td>
-                <td className="px-3 py-2 hidden md:table-cell">
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-[10px] font-bold text-slate-600 truncate uppercase">{ticket.cliente_nome?.split(' ')[0] || 'Cliente'}</span>
-                    <span className="text-[9px] font-bold text-slate-400 truncate opacity-70 uppercase">{ticket.empresa_nome}</span>
+                <td className="px-4 py-3.5 hidden md:table-cell">
+                  <div className="flex flex-col gap-0.5 min-w-0">
+                    <span className="text-[11px] font-black text-slate-700 truncate uppercase tracking-tight">{ticket.cliente_nome || 'N/A'}</span>
+                    <span className="text-[10px] font-bold text-slate-400 truncate opacity-70 uppercase tracking-widest">{ticket.empresa_nome}</span>
                   </div>
                 </td>
-                <td className="px-3 py-2 hidden sm:table-cell">
+                <td className="px-4 py-3.5">
                    <div className={cn(
-                     "inline-flex px-1.5 py-px rounded-full text-[8px] font-black uppercase tracking-widest border",
+                     "inline-flex px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border shadow-sm",
                      statusColors[ticket.status]
                    )}>
                      {ticket.status.replace('_', ' ')}
                    </div>
                 </td>
-                <td className="px-3 py-2 hidden lg:table-cell text-center">
+                <td className="px-4 py-3.5 text-center">
                    <div className={cn(
-                     "inline-flex px-1.5 py-px rounded-[4px] text-[8px] font-black uppercase tracking-widest border",
+                     "inline-flex px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border shadow-sm",
                      priority.color
                    )}>
                      {priority.label}
                    </div>
                 </td>
-                <td className="px-3 py-2 hidden xl:table-cell text-center">
-                   <div className={cn(
-                     "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] border text-[8px] font-black uppercase tracking-tighter",
-                     sla.color
-                   )}>
-                     <Clock size={8} />
-                     {sla.compactText || sla.label}
+                <td className="px-4 py-3.5 hidden xl:table-cell">
+                   <div className="flex flex-col gap-1.5 items-center">
+                     <div className={cn(
+                       "inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[10px] font-black uppercase tracking-widest shadow-sm",
+                       sla.color
+                     )} title={`Resolução: ${sla.label}`}>
+                       <Clock size={10} />
+                       {sla.compactText || sla.label}
+                     </div>
+                     {!ticket.primeira_resposta_em && ticket.prazo_primeira_resposta && (
+                       <div className={cn(
+                         "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[8px] font-black uppercase tracking-widest opacity-80",
+                         getFirstResponseSlaInfo(ticket).color
+                       )} title={`Primeira Resposta: ${getFirstResponseSlaInfo(ticket).label}`}>
+                         PR: {getFirstResponseSlaInfo(ticket).compactText}
+                       </div>
+                     )}
                    </div>
                 </td>
-                <td className="px-3 py-2">
-                  <div className="flex items-center gap-1.5">
+                <td className="px-4 py-3.5">
+                  <div className="flex items-center gap-3">
                     {ticket.responsavel_id ? (
                       <>
-                        <div className="w-5 h-5 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center text-[8px] font-black text-blue-700 uppercase">
+                        <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-xs font-black text-blue-700 uppercase shadow-sm">
                           {ticket.responsavel_nome?.[0]}
                         </div>
-                        <span className="text-[10px] font-bold text-slate-600 truncate hidden xl:inline uppercase">
-                          {ticket.responsavel_nome?.split(' ')[0]}
-                        </span>
+                        <div className="flex flex-col min-w-0">
+                           <span className="text-[11px] font-black text-slate-700 truncate uppercase tracking-tight">
+                             {ticket.responsavel_nome?.split(' ')[0]}
+                           </span>
+                           {needsAgentAction && ticket.responsavel_id === currentUser.id && (
+                             <span className="text-[8px] font-black text-blue-600 uppercase tracking-widest animate-pulse">Sua Vez</span>
+                           )}
+                        </div>
                       </>
                     ) : (
-                      <div className="flex items-center gap-1 text-amber-500">
-                        <ShieldAlert size={10} />
-                        <span className="text-[8px] font-black uppercase tracking-tighter opacity-80">Pendente</span>
+                      <div className="flex items-center gap-2 p-2 bg-amber-50 rounded-xl border border-amber-100 text-amber-600 shadow-sm shadow-amber-100/50">
+                        <ShieldAlert size={14} />
+                        <span className="text-[9px] font-black uppercase tracking-widest">Pendente</span>
                       </div>
                     )}
                   </div>
                 </td>
-                <td className="px-3 py-2 text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
+                <td className="px-4 py-3.5 text-right">
+                  <div className="flex items-center justify-end">
+                    <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1.5 transition-all">
                       {canManage && isAbertoESemResp && (
-                        <button onClick={(e) => handleAssumirTicket(e, ticket.id)} title="Assumir" className="p-1 hover:bg-blue-50 text-blue-600 rounded">
-                          <UserPlus size={12} />
+                        <button onClick={(e) => handleAssumirTicket(e, ticket.id)} title="Assumir" className="w-8 h-8 flex items-center justify-center hover:bg-blue-600 hover:text-white text-blue-600 border border-blue-100 hover:border-blue-700 rounded-xl transition-all shadow-sm">
+                          <UserPlus size={14} />
                         </button>
                       )}
                       {canManage && ticket.status === 'aberto' && ticket.responsavel_id === currentUser.id && (
-                        <button onClick={(e) => handleMudarStatus(e, ticket.id, 'em_andamento')} title="Iniciar" className="p-1 hover:bg-indigo-50 text-indigo-600 rounded">
-                          <Play size={12} />
+                        <button onClick={(e) => handleMudarStatus(e, ticket.id, 'em_andamento')} title="Iniciar" className="w-8 h-8 flex items-center justify-center hover:bg-indigo-600 hover:text-white text-indigo-600 border border-indigo-100 hover:border-indigo-700 rounded-xl transition-all shadow-sm">
+                          <Play size={14} />
                         </button>
                       )}
-                      <button onClick={(e) => handleCopyId(e, ticket.id)} title="Copiar ID" className="p-1 hover:bg-slate-50 text-slate-400 rounded">
-                        <Copy size={12} />
+                      <button onClick={(e) => handleCopyId(e, ticket.id)} title="Copiar ID" className="w-8 h-8 flex items-center justify-center hover:bg-slate-200 text-slate-400 border border-slate-100 rounded-xl transition-all shadow-sm">
+                        <Copy size={14} />
                       </button>
                     </div>
-                    <ChevronRight size={14} className="text-slate-300 group-hover:text-blue-500 transition-colors ml-1" />
+                    <div className="p-2 text-slate-300 group-hover:text-blue-600 transition-colors group-hover:translate-x-1 duration-200">
+                       <ChevronRight size={18} />
+                    </div>
                   </div>
                 </td>
               </tr>

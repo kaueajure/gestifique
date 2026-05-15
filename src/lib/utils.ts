@@ -128,3 +128,46 @@ export function getSlaInfo(prazo_sla: string | null | undefined, ticketStatus: s
     diffInMinutes 
   };
 }
+
+export function getFirstResponseSlaInfo(ticket: any): SlaInfo {
+  if (ticket.primeira_resposta_em) {
+    const status = ticket.sla_primeira_resposta_status;
+    return {
+      status: status === 'cumprido' ? 'finalizado' : 'vencido',
+      label: status === 'cumprido' ? 'PR Cumprida' : 'PR Violada',
+      compactText: status === 'cumprido' ? 'PR OK' : 'PR Venc',
+      color: status === 'cumprido' ? 'text-emerald-600 bg-emerald-50 border-emerald-100' : 'text-red-600 bg-red-50 border-red-100'
+    };
+  }
+
+  if (!ticket.prazo_primeira_resposta) {
+    return { status: 'sem_sla', label: 'S/ SLA PR', compactText: 'S/ PR', color: 'text-slate-400 bg-slate-50 border-slate-200' };
+  }
+
+  const deadline = new Date(ticket.prazo_primeira_resposta);
+  if (isNaN(deadline.getTime())) {
+    return { status: 'sem_sla', label: 'S/ SLA PR', compactText: 'S/ PR', color: 'text-slate-400 bg-slate-50 border-slate-200' };
+  }
+
+  const now = new Date();
+  const diffInMs = deadline.getTime() - now.getTime();
+  const diffInMinutes = Math.floor(diffInMs / 60000);
+
+  if (diffInMinutes < 0) {
+    return { 
+      status: 'vencido', 
+      label: 'PR Vencida', 
+      compactText: 'PR Venc',
+      color: 'text-red-600 bg-red-50 border-red-100', 
+      diffInMinutes 
+    };
+  }
+
+  return { 
+    status: 'normal', 
+    label: 'Aguardando PR', 
+    compactText: 'Aguard PR',
+    color: 'text-blue-600 bg-blue-50 border-blue-100', 
+    diffInMinutes 
+  };
+}

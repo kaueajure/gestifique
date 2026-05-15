@@ -135,15 +135,54 @@ router.post('/tickets/:id/messages', async (req: any, res: any) => {
 
 router.get('/knowledge', async (req: any, res: any) => {
   try {
-    const [rows] = await pool.query(`
-      SELECT id, titulo, conteudo, categoria
+    const { category } = req.query;
+    let query = `
+      SELECT id, titulo, conteudo, categoria, created_at
       FROM knowledge_articles
       WHERE ativo = 1 AND publico = 1 AND empresa_id = ?
-      ORDER BY titulo ASC
-    `, [req.user.empresa_id]);
+    `;
+    const params: any[] = [req.user.empresa_id];
+
+    if (category) {
+      query += ' AND categoria = ?';
+      params.push(category);
+    }
+
+    query += ' ORDER BY created_at DESC';
+
+    const [rows] = await pool.query(query, params);
     res.json(rows);
   } catch (error) {
     sendError(res, 'Erro ao buscar artigos', 500);
+  }
+});
+
+router.get('/knowledge/categories', async (req: any, res: any) => {
+  try {
+    const [rows]: any = await pool.query(`
+      SELECT DISTINCT categoria
+      FROM knowledge_articles
+      WHERE ativo = 1 AND publico = 1 AND empresa_id = ? AND categoria IS NOT NULL
+      ORDER BY categoria ASC
+    `, [req.user.empresa_id]);
+    res.json(rows.map((row: any) => row.categoria));
+  } catch (error) {
+    sendError(res, 'Erro ao buscar categorias', 500);
+  }
+});
+
+router.get('/knowledge/article/:id', async (req: any, res: any) => {
+  try {
+    const [rows]: any = await pool.query(`
+      SELECT *
+      FROM knowledge_articles
+      WHERE id = ? AND ativo = 1 AND publico = 1 AND empresa_id = ?
+    `, [req.params.id, req.user.empresa_id]);
+
+    if (!rows.length) return sendError(res, 'Artigo não encontrado', 404);
+    res.json(rows[0]);
+  } catch (error) {
+    sendError(res, 'Erro ao buscar artigo', 500);
   }
 });
 
@@ -154,12 +193,15 @@ router.get('/knowledge/search', async (req: any, res: any) => {
     
     const searchTerms = `%${q}%`;
     const [rows] = await pool.query(`
-      SELECT id, titulo, categoria
+      SELECT id, titulo, categoria, SUBSTRING(conteudo, 1, 150) as resumo
       FROM knowledge_articles
       WHERE ativo = 1 AND publico = 1 AND empresa_id = ?
-        AND (titulo LIKE ? OR conteudo LIKE ?)
-      LIMIT 5
-    `, [req.user.empresa_id, searchTerms, searchTerms]);
+        AND (titulo LIKE ? OR conteudo LIKE ? OR categoria LIKE ?)
+      ORDER BY 
+        CASE WHEN titulo LIKE ? THEN 1 ELSE 2 END,
+        created_at DESC
+      LIMIT 10
+    `, [req.user.empresa_id, searchTerms, searchTerms, searchTerms, searchTerms]);
     
     res.json(rows);
   } catch (error) {

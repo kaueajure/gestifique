@@ -9,9 +9,10 @@ interface FileUploadProps {
   maxFiles?: number;
   maxSizeMB?: number;
   className?: string;
+  compact?: boolean;
 }
 
-export const FileUpload = ({ onFilesChange, maxFiles = 5, maxSizeMB = 10, className }: FileUploadProps) => {
+export const FileUpload = ({ onFilesChange, maxFiles = 5, maxSizeMB = 10, className, compact = false }: FileUploadProps) => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);

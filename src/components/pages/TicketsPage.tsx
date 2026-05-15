@@ -528,20 +528,25 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
         </AnimatePresence>
       </div>
 
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 py-3">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-6 border-b border-slate-100 mb-6">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Atendimentos</h1>
-          <p className="text-xs text-slate-500 mt-1">Gerencie chamados da equipe</p>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="p-1.5 bg-blue-600 rounded-lg shadow-blue-200 shadow-lg">
+              <Layers className="text-white" size={18} />
+            </div>
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Central de Atendimentos</h1>
+          </div>
+          <p className="text-xs text-slate-500 font-medium px-1">Gerencie e acompanhe todos os chamados da sua operação.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {!!currentUser.desenvolvedor && (
-            <div className="relative w-40 sm:w-48">
-              <Building className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 z-10" size={12} />
+            <div className="relative w-44">
+              <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10" size={12} />
               <Select 
                 value={devCompanyId}
                 onChange={setDevCompanyId}
                 placeholder="Empresa..."
-                buttonClassName="pl-8 h-8 text-xs font-semibold"
+                buttonClassName="pl-9 h-10 text-xs font-black uppercase tracking-widest bg-slate-50 border-slate-200"
                 options={[
                   { value: '', label: 'Selecione a empresa' },
                   ...companies.map(emp => ({
@@ -553,25 +558,25 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
             </div>
           )}
           <Button 
-            className="h-8 px-4 shadow-sm bg-blue-600 hover:bg-blue-700" 
+            className="h-10 px-6 shadow-xl shadow-blue-500/20 bg-blue-600 hover:bg-blue-700 border-b-4 border-blue-800 transition-all active:translate-y-0.5 active:border-b-0" 
             onClick={() => setIsModalOpen(true)}
           >
-            <Plus size={16} className="mr-2" /> 
-            <span className="text-sm font-semibold">Novo atendimento</span>
+            <Plus size={18} className="mr-2" /> 
+            <span className="text-sm font-black uppercase tracking-widest">Abrir Chamado</span>
           </Button>
         </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-3 items-start">
         <div className="flex-1 w-full space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-2 md:p-3 rounded-xl border border-slate-200/60 shadow-sm">
-            <div className="flex-1 w-full max-w-2xl flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-3 rounded-2xl border border-slate-200/80 shadow-sm">
+            <div className="flex-1 w-full max-w-3xl flex items-center gap-2">
               <div className="relative flex-1 group">
-                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={16} />
+                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} />
                  <input 
                    type="text" 
                    placeholder="Buscar por ID, cliente ou assunto..." 
-                   className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-blue-100 transition-all focus:bg-white"
+                   className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl pl-11 pr-4 text-sm font-medium outline-none focus:ring-4 focus:ring-blue-500/10 transition-all focus:bg-white focus:border-blue-400"
                    value={searchTerm}
                    onChange={(e) => setSearchTerm(e.target.value)}
                  />
@@ -589,14 +594,14 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                 variant="outline" 
                 onClick={() => setShowAdvanced(true)}
                 className={cn(
-                  "h-8 px-3 text-sm font-semibold border-slate-200 shadow-sm transition-all",
-                  hasAnyFilters ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-white text-slate-700 hover:bg-slate-50"
+                  "h-10 px-4 text-xs font-black uppercase tracking-widest border-slate-200 shadow-sm transition-all rounded-xl",
+                  hasAnyFilters ? "bg-blue-50 text-blue-700 border-blue-300 ring-2 ring-blue-100" : "bg-white text-slate-600 hover:bg-slate-50"
                 )}
               >
                 <Filter size={16} className={cn("mr-2", hasAnyFilters ? "text-blue-600" : "text-slate-400")} />
                 Filtros
                 {hasAnyFilters && (
-                  <span className="ml-2 flex items-center justify-center w-5 h-5 rounded bg-blue-600 text-white text-[10px] font-bold">
+                  <span className="ml-2 flex items-center justify-center w-5 h-5 rounded-lg bg-blue-600 text-white text-[10px] font-black">
                     {getActiveFilterChips().length}
                   </span>
                 )}
@@ -604,26 +609,26 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
             </div>
             
             <div className="flex items-center gap-2">
-              <div className="flex items-center p-1 bg-slate-50 rounded-lg border border-slate-100">
+              <div className="flex items-center p-1 bg-slate-100/50 rounded-xl border border-slate-200/50">
                 <button 
                   onClick={() => setViewMode('list')}
                   className={cn(
-                    "p-1.5 rounded-md transition-all",
-                    viewMode === 'list' ? "bg-white text-blue-600 shadow-sm border border-slate-200" : "text-slate-400 hover:text-slate-600"
+                    "px-3 py-1.5 rounded-lg transition-all flex items-center gap-2",
+                    viewMode === 'list' ? "bg-white text-blue-700 shadow-md border border-slate-200" : "text-slate-400 hover:text-slate-600"
                   )}
-                  title="Lista"
                 >
                   <ListIcon size={16} />
+                  <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Lista</span>
                 </button>
                 <button 
                   onClick={() => setViewMode('kanban')}
                   className={cn(
-                    "p-1.5 rounded-md transition-all",
-                    viewMode === 'kanban' ? "bg-white text-blue-600 shadow-sm border border-slate-200" : "text-slate-400 hover:text-slate-600"
+                    "px-3 py-1.5 rounded-lg transition-all flex items-center gap-2",
+                    viewMode === 'kanban' ? "bg-white text-blue-700 shadow-md border border-slate-200" : "text-slate-400 hover:text-slate-600"
                   )}
-                  title="Kanban"
                 >
-                  <Kanban size={18} />
+                  <Kanban size={16} />
+                  <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Kanban</span>
                 </button>
               </div>
 
@@ -637,62 +642,70 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                   if (val === 'atualizar') fetchData();
                 }}
                 options={[
-                   { value: '', label: 'Mais opções' },
-                   { value: 'equipe', label: 'Ver equipe' },
+                   { value: '', label: 'Opções' },
+                   { value: 'equipe', label: 'Ver Equipe' },
                    { value: 'exportar', label: 'Exportar CSV' },
-                   { value: 'atualizar', label: 'Atualizar agora' }
+                   { value: 'atualizar', label: 'Atualizar' }
                 ]}
-                buttonClassName="h-8 px-3 bg-white border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-semibold shadow-sm"
-                className="w-36 hidden md:block"
+                buttonClassName="h-10 px-4 bg-white border-slate-200 text-slate-600 hover:bg-slate-50 text-[10px] uppercase font-black tracking-widest shadow-sm rounded-xl"
+                className="w-40 hidden md:block"
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest px-1 mr-1 shrink-0">Filas</span>
-            {QUEUES.map((q) => {
-              const isActive = selectedQueue === q.id;
-              const count = queueCounts?.[q.id] || 0;
-              
-              return (
-                <button
-                  key={q.id}
-                  onClick={() => setSelectedQueue(q.id)}
-                  className={cn(
-                    "relative flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap border shrink-0",
-                    isActive 
-                      ? "bg-blue-50 text-blue-700 border-blue-200 shadow-sm" 
-                      : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-                  )}
-                >
-                  <span>{q.label}</span>
-                  {(count > 0 || q.id === 'todos') && (
-                    <span className={cn(
-                      "flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold tracking-tight",
-                      isActive ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500"
-                    )}>
-                      {count > 99 ? '99+' : count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+          <div className="flex items-center gap-3 overflow-x-auto pb-4 no-scrollbar -mx-1 px-1">
+            <div className="flex items-center gap-1.5 pr-2 border-r border-slate-200">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Filas</span>
+            </div>
             
-            <div className="relative shrink-0 ml-auto sm:ml-0">
+            <div className="flex items-center gap-2">
+              {QUEUES.map((q) => {
+                const isActive = selectedQueue === q.id;
+                const count = queueCounts?.[q.id] || 0;
+                
+                return (
+                  <button
+                    key={q.id}
+                    onClick={() => setSelectedQueue(q.id)}
+                    className={cn(
+                      "relative flex items-center gap-2.5 px-4 py-2 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all whitespace-nowrap border-b-2",
+                      isActive 
+                        ? "bg-white text-blue-700 border-blue-600 shadow-sm ring-1 ring-slate-200" 
+                        : "bg-transparent text-slate-500 border-transparent hover:text-slate-900 hover:bg-slate-50"
+                    )}
+                  >
+                    <q.icon size={14} className={cn(isActive ? "text-blue-600" : "text-slate-400")} />
+                    <span>{q.label}</span>
+                    {(count > 0 || q.id === 'todos') && (
+                      <span className={cn(
+                        "flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-lg text-[10px] font-black tracking-tight",
+                        isActive ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-500"
+                      )}>
+                        {count > 99 ? '99+' : count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            
+            <div className="w-px h-6 bg-slate-200 mx-2" />
+
+            <div className="relative shrink-0">
               <button
                 onClick={() => setShowMoreQueues(prev => !prev)}
                 className={cn(
-                  "relative flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap border shrink-0",
+                  "relative flex items-center gap-2.5 px-4 py-2 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all whitespace-nowrap border-b-2 shadow-sm",
                   MORE_QUEUES.some(q => q.id === selectedQueue)
-                    ? "bg-blue-50 text-blue-700 border-blue-200 shadow-sm"
-                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                    ? "bg-white text-blue-700 border-blue-600 ring-1 ring-slate-200"
+                    : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
                 )}
               >
                 <span>
-                  {MORE_QUEUES.find(q => q.id === selectedQueue)?.label || 'Mais filas'}
+                  {MORE_QUEUES.find(q => q.id === selectedQueue)?.label || 'Outras Filas'}
                 </span>
                 {MORE_QUEUES.some(q => q.id === selectedQueue) && (queueCounts?.[selectedQueue] || 0) > 0 && (
-                  <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold tracking-tight bg-blue-100 text-blue-700">
+                  <span className="flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-lg text-[10px] font-black tracking-tight bg-blue-600 text-white">
                     {(queueCounts?.[selectedQueue] || 0) > 99 ? '99+' : (queueCounts?.[selectedQueue] || 0)}
                   </span>
                 )}
@@ -761,8 +774,11 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                className="flex flex-wrap items-center gap-2 pt-1"
+                className="flex flex-wrap items-center gap-2 py-3 px-4 bg-slate-50 rounded-2xl border border-slate-200"
               >
+                <div className="flex items-center gap-2 mr-2">
+                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Filtros Ativos</span>
+                </div>
                 {getActiveFilterChips().map((chip) => (
                   <FilterChip 
                     key={chip.id}
@@ -773,7 +789,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                 ))}
                 <button 
                   onClick={clearFilters}
-                  className="text-xs font-semibold text-red-500 hover:text-red-700 px-2 py-1 rounded-md hover:bg-red-50 transition-colors"
+                  className="text-[10px] font-black uppercase tracking-widest text-rose-500 hover:text-rose-700 px-3 py-1.5 rounded-xl hover:bg-rose-50 transition-all border border-transparent hover:border-rose-100 ml-auto"
                 >
                   Limpar todos
                 </button>
@@ -789,18 +805,38 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
             viewMode === 'kanban' ? "h-[calc(100vh-200px)] min-h-[400px]" : ""
           )}>
             {!!currentUser.desenvolvedor && !devCompanyId ? (
-              <div className="h-full flex flex-col items-center justify-center space-y-2 bg-white rounded-xl border border-slate-200 py-8">
-                 <Building className="w-6 h-6 text-slate-300" />
-                 <p className="text-xs text-slate-500 font-bold tracking-tight uppercase">Selecione uma empresa.</p>
+              <div className="h-full flex flex-col items-center justify-center space-y-4 bg-white rounded-3xl border border-slate-200/60 shadow-sm py-20">
+                 <div className="w-16 h-16 bg-slate-50 rounded-3xl border border-slate-100 flex items-center justify-center">
+                    <Building className="w-8 h-8 text-slate-300" />
+                 </div>
+                 <div className="text-center space-y-1">
+                    <h3 className="text-sm font-black text-slate-700 uppercase tracking-tight">Seleção de Ambiente Necessária</h3>
+                    <p className="text-xs text-slate-400 font-medium">Você está no modo desenvolvedor. Escolha uma empresa para visualizar os atendimentos.</p>
+                 </div>
               </div>
             ) : loading && (!kanbanResponse && !ticketsResponse) ? (
-              <div className="h-full flex flex-col items-center justify-center space-y-2 bg-white rounded-xl border border-slate-200 py-8">
-                 <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-                 <p className="text-[9px] text-slate-500 font-bold tracking-tight uppercase">Carregando...</p>
+              <div className="h-full flex flex-col items-center justify-center space-y-6 bg-white rounded-3xl border border-slate-200/60 shadow-sm py-20">
+                 <div className="relative">
+                    <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                       <Layers size={16} className="text-blue-400 opacity-50" />
+                    </div>
+                 </div>
+                 <div className="text-center space-y-1">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sincronizando Atendimentos</h3>
+                    <p className="text-[11px] text-slate-500 font-medium animate-pulse">Organizando sua central de tickets...</p>
+                 </div>
               </div>
             ) : error ? (
-              <div className="p-8 bg-red-50 border border-red-100 text-red-600 text-center rounded-xl text-xs font-bold uppercase">
-                 {error}
+              <div className="p-12 bg-rose-50 border border-rose-100 rounded-3xl text-center space-y-4">
+                 <div className="w-12 h-12 bg-white rounded-2xl shadow-sm border border-rose-100 flex items-center justify-center mx-auto text-rose-600">
+                    <AlertCircle size={24} />
+                 </div>
+                 <div className="space-y-1">
+                    <h3 className="text-sm font-black text-rose-700 uppercase tracking-tight">Falha na Sincronização</h3>
+                    <p className="text-xs text-rose-600 font-medium max-w-xs mx-auto">{error}</p>
+                 </div>
+                 <Button variant="outline" onClick={fetchData} className="text-[10px] font-black uppercase tracking-widest border-rose-200 text-rose-600 bg-white">Tentar Novamente</Button>
               </div>
             ) : viewMode === 'kanban' && kanbanResponse ? (
               <TicketKanban kanbanData={kanbanResponse} onSelectTicket={onSelectTicket} currentUser={currentUser} onStatusChange={() => fetchData()} />

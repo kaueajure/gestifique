@@ -7,6 +7,7 @@ import {
   Download, Filter, RefreshCw, Calendar, TrendingUp, AlertCircle, 
   Clock, CheckCircle2, Inbox, Activity, ChevronRight, FileText, Printer
 } from 'lucide-react';
+import { motion } from 'motion/react';
 import { PageHeader } from '../ui/PageHeader';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -25,13 +26,28 @@ interface SummaryData {
     closed_tickets: number;
     urgent_tickets: number;
     average_resolution_hours: number;
+    average_first_response_hours: number;
+    sla_compliance_first_response: number;
+    sla_compliance_resolution: number;
+    resolution_rate: number;
+    reopen_rate: number;
+  };
+  csat: {
+    average: number;
+    total_reviews: number;
+    score_distribution: { name: string; value: number }[];
   };
   by_status: { name: string; value: number }[];
   by_priority: { name: string; value: number }[];
   by_category: { name: string; value: number }[];
   by_service: { name: string; value: number }[];
-  by_responsible: { name: string; value: number }[];
+  by_responsible: { name: string; value: number; avg_res?: number }[];
+  by_origin: { name: string; value: number }[];
   by_day: { date: string; created: number; resolved: number }[];
+  rankings: {
+    top_agents: { name: string; value: number }[];
+    top_categories: { name: string; value: number }[];
+  };
 }
 
 interface DetailedTicket {
@@ -66,6 +82,7 @@ interface ReportsPageProps {
 }
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#6366f1', '#ec4899', '#8b5cf6'];
+const SCORE_COLORS = ['#10b981', '#4ade80', '#fbbf24', '#f87171', '#ef4444'].reverse();
 
 export function ReportsPage({ currentUser }: ReportsPageProps) {
   const [loading, setLoading] = useState(true);
@@ -82,6 +99,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
     responsavel_id: string;
     categoria: string;
     servico: string;
+    origem: string;
   }>({
     start_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     end_date: new Date().toISOString().split('T')[0],
@@ -90,7 +108,8 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
     prioridade: '',
     responsavel_id: '',
     categoria: '',
-    servico: ''
+    servico: '',
+    origem: ''
   });
   const [companies, setCompanies] = useState<CompanyOption[]>([]);
 
@@ -107,7 +126,6 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
 
       const response = await api.get<ReportsApiResponse>(`/reports/summary?${queryParams.toString()}`);
       
-      // Defensively extract data
       let reportData: SummaryData | null = null;
       if (response) {
         if ('totals' in response) {
@@ -155,26 +173,12 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
     }
   }, [fetchData, !!currentUser.desenvolvedor]);
 
-  const escapeCsv = (val: string | number | null | undefined) => {
-    if (val === null || val === undefined) return '';
-    let str = String(val);
-    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-      str = '"' + str.replace(/"/g, '""') + '"';
-    }
-    return str;
-  };
-
   const handleExportCSV = async (type: string) => {
     try {
       const params = new URLSearchParams();
-      if (filters.start_date) params.append('start_date', filters.start_date);
-      if (filters.end_date) params.append('end_date', filters.end_date);
-      if (filters.empresa_id) params.append('empresa_id', filters.empresa_id);
-      if (filters.responsavel_id) params.append('responsavel_id', filters.responsavel_id);
-      if (filters.status) params.append('status', filters.status);
-      if (filters.prioridade) params.append('prioridade', filters.prioridade);
-      if (filters.categoria) params.append('categoria', filters.categoria);
-      if (filters.servico) params.append('servico', filters.servico);
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, String(value));
+      });
       params.append('type', type);
 
       const url = `/api/reports/export?${params.toString()}`;
@@ -187,11 +191,11 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
     }
   };
 
-  if (loading && !data && !filters.start_date) { // Avoid full block when downloading
+  if (loading && !data && !filters.start_date) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
         <RefreshCw className="w-10 h-10 text-blue-600 animate-spin" />
-        <p className="text-slate-500 font-medium">Processando métricas...</p>
+        <p className="text-slate-500 font-medium">Processando métricas gerenciais...</p>
       </div>
     );
   }
@@ -203,59 +207,59 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
     <div className="space-y-8 pb-12">
       {/* Header */}
       <PageHeader
-        title="Relatórios"
+        title="Relatórios Avançados"
         className="mb-8"
         action={
-          <>
+          <div className="flex gap-2">
             <Button variant="secondary" onClick={() => window.print()} className="print:hidden">
-              <Printer size={18} className="mr-2" /> Imprimir Relatório
+              <Printer size={18} className="mr-2" /> Imprimir
             </Button>
             <div className="relative print:hidden">
               <Button variant="secondary" onClick={() => setDropdownOpen(!dropdownOpen)}>
-                <Download size={18} className="mr-2" /> Exportar CSV
+                <Download size={18} className="mr-2" /> Exportar
               </Button>
               {dropdownOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 shadow-xl rounded-lg overflow-hidden py-1 z-50">
-                   <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-sm text-slate-700" onClick={() => { handleExportCSV('tickets'); setDropdownOpen(false); }}>Tickets Detalhados</button>
-                   <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-sm text-slate-700" onClick={() => { handleExportCSV('agents'); setDropdownOpen(false); }}>Atendentes</button>
-                   <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-sm text-slate-700" onClick={() => { handleExportCSV('satisfaction'); setDropdownOpen(false); }}>Satisfação (CSAT)</button>
+                   <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-sm text-slate-700" onClick={() => handleExportCSV('tickets')}>Tickets Detalhados</button>
+                   <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-sm text-slate-700" onClick={() => handleExportCSV('agents')}>Atendentes</button>
+                   <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-sm text-slate-700" onClick={() => handleExportCSV('satisfaction')}>Satisfação (CSAT)</button>
                 </div>
               )}
             </div>
             <Button onClick={fetchData} className="print:hidden">
-              <RefreshCw size={18} className={`mr-2 ${loading ? 'animate-spin' : ''}`} /> Atualizar Dashboard
+              <RefreshCw size={18} className={`mr-2 ${loading ? 'animate-spin' : ''}`} /> Atualizar
             </Button>
-          </>
+          </div>
         }
       />
 
-        {/* Filters */}
-        <Card className="p-6 bg-slate-50/50 border-slate-200 print:hidden">
+      {/* Filters Container */}
+      <Card className="p-6 bg-slate-50/50 border-slate-200 print:hidden">
         <div className="flex items-center gap-2 mb-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-          <Filter size={14} /> Filtros de Relatório
+          <Filter size={14} /> Refinar Análise
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700">Data Inicial</label>
-            <input 
-              type="date"
-              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-4 focus:ring-blue-100 outline-none"
-              value={filters.start_date}
-              onChange={(e) => setFilters(f => ({ ...f, start_date: e.target.value }))}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700">Data Final</label>
-            <input 
-              type="date"
-              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-4 focus:ring-blue-100 outline-none"
-              value={filters.end_date}
-              onChange={(e) => setFilters(f => ({ ...f, end_date: e.target.value }))}
-            />
+            <label className="text-xs font-semibold text-slate-700">Período</label>
+            <div className="flex gap-2">
+              <input 
+                type="date"
+                className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:ring-4 focus:ring-blue-100 outline-none"
+                value={filters.start_date}
+                onChange={(e) => setFilters(f => ({ ...f, start_date: e.target.value }))}
+              />
+              <input 
+                type="date"
+                className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:ring-4 focus:ring-blue-100 outline-none"
+                value={filters.end_date}
+                onChange={(e) => setFilters(f => ({ ...f, end_date: e.target.value }))}
+              />
+            </div>
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-700">Prioridade</label>
             <Select 
+              className="h-8 py-0"
               value={filters.prioridade}
               onChange={(value) => setFilters(f => ({ ...f, prioridade: value }))}
               options={[
@@ -270,6 +274,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-700">Status</label>
             <Select 
+              className="h-8 py-0"
               value={filters.status}
               onChange={(value) => setFilters(f => ({ ...f, status: value }))}
               options={[
@@ -283,24 +288,17 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700">Categoria</label>
+            <label className="text-xs font-semibold text-slate-700">Origem</label>
             <Select 
-              value={filters.categoria}
-              onChange={(value) => setFilters(f => ({ ...f, categoria: value }))}
+              className="h-8 py-0"
+              value={filters.origem}
+              onChange={(value) => setFilters(f => ({ ...f, origem: value }))}
               options={[
                 { value: '', label: 'Todas' },
-                ...(categories?.map(c => ({ value: c.valor, label: c.nome })) || [])
-              ]}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700">Serviço</label>
-            <Select 
-              value={filters.servico}
-              onChange={(value) => setFilters(f => ({ ...f, servico: value }))}
-              options={[
-                { value: '', label: 'Todos' },
-                ...(services?.map(s => ({ value: s.valor, label: s.nome })) || [])
+                { value: 'email', label: 'E-mail' },
+                { value: 'portal', label: 'Portal Client' },
+                { value: 'interno', label: 'Interno' },
+                { value: 'whatsapp', label: 'WhatsApp' }
               ]}
             />
           </div>
@@ -308,6 +306,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
              <div className="space-y-1.5">
                <label className="text-xs font-semibold text-slate-700">Empresa</label>
                <Select 
+                 className="h-8 py-0"
                  value={filters.empresa_id}
                  onChange={(value) => setFilters(f => ({ ...f, empresa_id: value }))}
                  options={[
@@ -317,312 +316,404 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                />
              </div>
           )}
-          <div className="flex items-end">
-            <Button 
-              className="w-full h-9" 
-              onClick={handleGenerateReport} 
-              disabled={generating}
-            >
-              {generating ? <RefreshCw size={16} className="animate-spin mr-2" /> : <TrendingUp size={16} className="mr-2" />}
-              Gerar Relatório Detalhado
-            </Button>
-          </div>
         </div>
       </Card>
 
       {error && (
-        <Card className="p-6 bg-red-50 border-red-100 text-red-600 flex items-center gap-3">
-          <AlertCircle />
-          <p className="font-medium text-sm">{error}</p>
+        <Card className="p-4 bg-red-50 border-red-100 text-red-600 flex items-center gap-3">
+          <AlertCircle size={20} />
+          <p className="font-semibold text-xs">{error}</p>
         </Card>
       )}
 
-      {detailedReport && (
-        <div className="space-y-6 mt-8 border-t pt-8 border-slate-200">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-1.5 h-6 bg-blue-600 rounded-full"></div>
-            <h2 className="text-xl font-bold text-slate-900">Resultados Detalhados</h2>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <KPICard title="Atendimentos Encontrados" value={detailedReport.metrics.total} icon={<Inbox />} color="blue" />
-            <KPICard title="Taxa de Resolução" value={`${detailedReport.metrics.taxaResolucao}%`} icon={<CheckCircle2 />} color="emerald" />
-            <KPICard title="Período" value={`${filters.start_date} a ${filters.end_date}`} icon={<Calendar />} color="indigo" />
-          </div>
-
-          <Card className="overflow-hidden bg-white border-slate-200">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr>
-                    <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500 tracking-wider">ID</th>
-                    <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500 tracking-wider">Título</th>
-                    {!!currentUser.desenvolvedor && <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500 tracking-wider">Empresa</th>}
-                    <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500 tracking-wider">Status</th>
-                    <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500 tracking-wider">Prioridade</th>
-                    <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500 tracking-wider">Data</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {detailedReport.tickets.length > 0 ? (
-                    detailedReport.tickets.map((t) => (
-                      <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-4 py-3 text-xs font-bold text-blue-600">#{t.id}</td>
-                        <td className="px-4 py-3">
-                          <div className="text-xs font-bold text-slate-800">{t.titulo}</div>
-                          <div className="text-[10px] text-slate-400 font-medium">{t.categoria}</div>
-                        </td>
-                        {!!currentUser.desenvolvedor && <td className="px-4 py-3 text-[10px] font-bold text-slate-600">{t.empresa_nome}</td>}
-                        <td className="px-4 py-3 px-4 py-3">
-                          <Badge variant={t.status === 'resolvido' ? 'emerald' : t.status === 'aberto' ? 'blue' : 'slate'}>
-                            {t.status.replace('_', ' ')}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3 px-4 py-3">
-                          <Badge variant={t.prioridade === 'urgente' ? 'red' : t.prioridade === 'alta' ? 'orange' : 'slate'}>
-                            {t.prioridade}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3 text-[10px] font-medium text-slate-500">
-                          {new Date(t.created_at).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">
-                        Nenhum registro encontrado para a tabela.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </div>
-      )}
-
       {data && (
-        <div className="print:hidden">
-          {/* Metrics Boxes */}
+        <div className="space-y-8 animate-in fade-in duration-500">
+          {/* Main Indicators */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <KPICard title="Total Enviado" value={data.totals.total_tickets} icon={<Inbox />} color="blue" />
-            <KPICard title="Em Aberto" value={data.totals.open_tickets} icon={<Activity />} color="amber" />
-            <KPICard title="Eficiência (h)" value={`${data.totals.average_resolution_hours}h`} icon={<Clock />} color="indigo" />
-            <KPICard title="Altíssima Prioridade" value={data.totals.urgent_tickets} icon={<TrendingUp />} color="red" />
+            <IndicatorCard 
+              title="Tickets Criados" 
+              value={data.totals.total_tickets} 
+              icon={<Inbox />} 
+              color="blue" 
+              trend={`${data.totals.resolution_rate}% resolvidos`}
+            />
+            <IndicatorCard 
+              title="T.M. Resolucao" 
+              value={`${data.totals.average_resolution_hours}h`} 
+              icon={<Clock />} 
+              color="emerald" 
+              trend="Média operacional"
+            />
+            <IndicatorCard 
+              title="T.M. 1ª Resposta" 
+              value={`${data.totals.average_first_response_hours}h`} 
+              icon={<Activity />} 
+              color="indigo" 
+              trend={`SLA: ${data.totals.sla_compliance_first_response}%`}
+            />
+            <IndicatorCard 
+              title="CSAT Médio" 
+              value={data.csat.average > 0 ? data.csat.average : 'N/A'} 
+              icon={<TrendingUp />} 
+              color="amber" 
+              trend={`${data.csat.total_reviews} avaliações`}
+            />
           </div>
 
-          {!hasData && !loading ? (
-            <Card className="p-12 text-center flex flex-col items-center justify-center">
-              <FileText size={48} className="text-slate-200 mb-4" />
-              <h3 className="text-lg font-bold text-slate-900">Nenhum atendimento encontrado</h3>
-              <p className="text-slate-500 max-w-sm mx-auto">Não existem registros para os filtros selecionados no período de análise.</p>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* SLA Compliance Section */}
+            <Card className="p-6 col-span-1 lg:col-span-2">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
+                  Compliance de SLA
+                </h3>
+                <Badge variant="blue" className="text-[10px] font-black uppercase">Meta: 95%</Badge>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-end">
+                    <span className="text-xs font-bold text-slate-500 uppercase">Primeira Resposta</span>
+                    <span className={`text-2xl font-black ${data.totals.sla_compliance_first_response >= 90 ? 'text-emerald-600' : 'text-orange-500'}`}>
+                      {data.totals.sla_compliance_first_response}%
+                    </span>
+                  </div>
+                  <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${data.totals.sla_compliance_first_response}%` }}
+                      className={`h-full ${data.totals.sla_compliance_first_response >= 90 ? 'bg-emerald-500' : 'bg-orange-500'}`}
+                    />
+                  </div>
+                  <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
+                    Percentual de chamados com primeira resposta pública dentro do prazo.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex justify-between items-end">
+                    <span className="text-xs font-bold text-slate-500 uppercase">Resolução Final</span>
+                    <span className={`text-2xl font-black ${data.totals.sla_compliance_resolution >= 90 ? 'text-emerald-600' : 'text-orange-500'}`}>
+                      {data.totals.sla_compliance_resolution}%
+                    </span>
+                  </div>
+                  <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${data.totals.sla_compliance_resolution}%` }}
+                      className={`h-full ${data.totals.sla_compliance_resolution >= 90 ? 'bg-emerald-500' : 'bg-orange-500'}`}
+                    />
+                  </div>
+                  <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
+                    Percentual de chamados resolvidos respeitando o prazo total da política.
+                  </p>
+                </div>
+              </div>
             </Card>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                {/* Status Chart */}
-                <Card className="p-6">
-                  <h3 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
-                    <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
-                    Volume por Status
-                  </h3>
-                  <div className="h-[250px] min-w-0">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={data.by_status}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={60}
-                          outerRadius={80}
-                          paddingAngle={5}
-                          dataKey="value"
-                        >
-                          {data.by_status.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </Card>
 
-                {/* Priority Chart */}
-                <Card className="p-6">
-                  <h3 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
-                    <div className="w-1 h-4 bg-orange-500 rounded-full"></div>
-                    Distribuição por Prioridade
-                  </h3>
-                  <div className="h-[250px] min-w-0">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={data.by_priority}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                        <XAxis dataKey="name" fontSize={12} axisLine={false} tickLine={false} />
-                        <YAxis fontSize={12} axisLine={false} tickLine={false} />
-                        <Tooltip />
-                        <Bar dataKey="value" fill="#f97316" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
+            {/* Reopen Rate & Stability */}
+            <Card className="p-6">
+              <h3 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
+                <div className="w-1 h-4 bg-purple-500 rounded-full"></div>
+                Volume de Backlog
+              </h3>
+              <div className="space-y-6">
+                <div>
+                   <div className="flex justify-between mb-1">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase">Taxa de Reabertura</span>
+                      <span className="text-sm font-bold text-slate-700">{data.totals.reopen_rate}%</span>
+                   </div>
+                   <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-purple-500" style={{ width: `${data.totals.reopen_rate}%` }}></div>
+                   </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 pt-2">
+                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                    <div className="text-[9px] font-black text-blue-600 uppercase mb-1">Abertos</div>
+                    <div className="text-xl font-black text-blue-700">{data.totals.open_tickets}</div>
                   </div>
-                </Card>
-
-                {/* Categories */}
-                <Card className="p-6">
-                  <h3 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
-                    <div className="w-1 h-4 bg-emerald-500 rounded-full"></div>
-                    Atendimentos por Categoria
-                  </h3>
-                  <div className="h-[250px] min-w-0">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={data.by_category}
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={80}
-                          dataKey="value"
-                          label={({name, percent}) => `${(percent * 100).toFixed(0)}%`}
-                        >
-                          {data.by_category.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
+                  <div className="p-3 bg-red-50 rounded-lg border border-red-100">
+                    <div className="text-[9px] font-black text-red-600 uppercase mb-1">Urgentes</div>
+                    <div className="text-xl font-black text-red-700">{data.totals.urgent_tickets}</div>
                   </div>
-                </Card>
-
-                {/* Services */}
-                <Card className="p-6">
-                  <h3 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
-                    <div className="w-1 h-4 bg-purple-500 rounded-full"></div>
-                    Atendimentos por Serviço
-                  </h3>
-                  <div className="h-[250px] min-w-0">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={data.by_service}
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={80}
-                          dataKey="value"
-                          label={({name, percent}) => `${(percent * 100).toFixed(0)}%`}
-                        >
-                          {data.by_service.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[(index + 4) % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </Card>
+                </div>
               </div>
+            </Card>
+          </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Resolution Over Time */}
-                <Card className="p-6">
-                  <h3 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
-                    <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
-                    Evolução Diária (Criados x Resolvidos)
-                  </h3>
-                  <div className="h-[300px] min-w-0">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={data.by_day}>
-                        <defs>
-                          <linearGradient id="colorCreated" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
-                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                        <XAxis 
-                          dataKey="date" 
-                          fontSize={10} 
-                          axisLine={false} 
-                          tickLine={false} 
-                          tickFormatter={(val) => val.split('-').slice(1).reverse().join('/')}
-                        />
-                        <YAxis fontSize={12} axisLine={false} tickLine={false} />
-                        <Tooltip />
-                        <Area type="monotone" dataKey="created" stroke="#3b82f6" fillOpacity={1} fill="url(#colorCreated)" />
-                        <Area type="monotone" dataKey="resolved" stroke="#10b981" fillOpacity={0} />
-                      </AreaChart>
-                    </ResponsiveContainer>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {/* Time Graph */}
+            <Card className="p-6">
+              <h3 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
+                <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
+                Fluxo de Atendimento Diário
+              </h3>
+              <div className="h-[300px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={data.by_day}>
+                    <defs>
+                      <linearGradient id="colorCreated" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorResolved" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                    <XAxis 
+                      dataKey="date" 
+                      fontSize={10} 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tickFormatter={(val) => val.split('-').slice(1).reverse().join('/')}
+                    />
+                    <YAxis fontSize={10} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                    <Legend />
+                    <Area name="Criados" type="monotone" dataKey="created" stroke="#3b82f6" fillOpacity={1} fill="url(#colorCreated)" strokeWidth={2} />
+                    <Area name="Resolvidos" type="monotone" dataKey="resolved" stroke="#10b981" fillOpacity={1} fill="url(#colorResolved)" strokeWidth={2} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+
+            {/* CSAT Distribution */}
+            <Card className="p-6">
+              <h3 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
+                <div className="w-1 h-4 bg-amber-500 rounded-full"></div>
+                Satisfação do Cliente (CSAT)
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="h-[250px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={data.csat.score_distribution}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {data.csat.score_distribution.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={SCORE_COLORS[index % SCORE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex flex-col justify-center space-y-4">
+                  <div className="text-center md:text-left">
+                     <div className="text-3xl font-black text-slate-900">{data.csat.average}</div>
+                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Média Geral</div>
+                     <div className="flex justify-center md:justify-start gap-1">
+                        {[1, 2, 3, 4, 5].map(star => (
+                          <div 
+                            key={star} 
+                            className={`w-4 h-4 rounded-full ${star <= Math.round(data.csat.average) ? 'bg-amber-400' : 'bg-slate-200'}`}
+                          />
+                        ))}
+                     </div>
                   </div>
-                </Card>
-
-                {/* Responsibility Ranking */}
-                <Card className="p-6">
-                  <h3 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
-                    <div className="w-1 h-4 bg-slate-900 rounded-full"></div>
-                    Ranking de Responsabilidade
-                  </h3>
-                  <div className="space-y-4">
-                    {data.by_responsible.length > 0 ? (
-                      [...data.by_responsible].sort((a, b) => b.value - a.value).map((item, idx) => (
-                        <div key={idx} className="flex items-center justify-between group">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600 group-hover:bg-blue-600 group-hover:text-white transition-all">
-                              {idx + 1}
-                            </div>
-                            <span className="text-sm font-semibold text-slate-700">{item.name}</span>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden hidden sm:block">
-                              <div 
-                                className="h-full bg-blue-600 rounded-full" 
-                                style={{ width: `${(item.value / Math.max(1, data.totals.total_tickets)) * 100}%` }}
-                              ></div>
-                            </div>
-                            <Badge variant="blue" className="font-mono">{item.value}</Badge>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="py-12 text-center">
-                        <p className="text-slate-400 text-sm font-medium">Nenhum responsável vinculado aos atendimentos.</p>
+                  <div className="space-y-2">
+                    {data.csat.score_distribution.slice(0, 3).map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between">
+                         <span className="text-[10px] font-bold text-slate-500 uppercase">{item.name}</span>
+                         <span className="text-xs font-black text-slate-700">{item.value}</span>
                       </div>
-                    )}
+                    ))}
                   </div>
-                </Card>
+                </div>
               </div>
-            </>
-          )}
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+             <Card className="p-6 lg:col-span-2">
+                <h3 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
+                  <div className="w-1 h-4 bg-emerald-600 rounded-full"></div>
+                  Performance por Atendente
+                </h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="border-b border-slate-100 font-mono">
+                        <th className="pb-3 text-[10px] font-bold text-slate-400 uppercase">Atendente</th>
+                        <th className="pb-3 text-[10px] font-bold text-slate-400 uppercase text-center">Volume</th>
+                        <th className="pb-3 text-[10px] font-bold text-slate-400 uppercase text-center">T.M.R.</th>
+                        <th className="pb-3 text-[10px] font-bold text-slate-400 uppercase text-right">Participação</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {data.by_responsible.length > 0 ? (
+                        data.by_responsible.slice(0, 10).map((item, idx) => (
+                          <tr key={idx} className="group hover:bg-slate-50/50 transition-colors">
+                            <td className="py-3 text-xs font-bold text-slate-800">{item.name}</td>
+                            <td className="py-3 text-sm font-black text-slate-700 text-center">{item.value}</td>
+                            <td className="py-3 text-xs font-bold text-emerald-600 text-center">{item.avg_res}h</td>
+                            <td className="py-3 text-right">
+                               <div className="inline-flex items-center gap-2">
+                                  <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden hidden sm:block">
+                                     <div className="h-full bg-blue-600" style={{ width: `${(item.value / Math.max(1, data.totals.total_tickets)) * 100}%` }}></div>
+                                  </div>
+                                  <span className="text-[10px] font-bold text-slate-500">
+                                    {(item.value / Math.max(1, data.totals.total_tickets) * 100).toFixed(0)}%
+                                  </span>
+                               </div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr><td colSpan={4} className="py-8 text-center text-xs text-slate-400 font-medium">Nenhum dado por atendente.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+             </Card>
+
+             <div className="space-y-6">
+                <Card className="p-6">
+                   <h3 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
+                      <div className="w-1 h-4 bg-orange-500 rounded-full"></div>
+                      Top Categorias
+                   </h3>
+                   <div className="space-y-4">
+                      {data.rankings.top_categories.map((cat, idx) => (
+                        <div key={idx} className="flex items-center justify-between">
+                           <div className="flex gap-3 items-center">
+                              <span className="text-[10px] font-black text-slate-400">{idx+1}º</span>
+                              <span className="text-xs font-bold text-slate-700">{cat.name}</span>
+                           </div>
+                           <Badge variant="orange" className="font-mono text-[10px]">{cat.value}</Badge>
+                        </div>
+                      ))}
+                   </div>
+                </Card>
+
+                <Card className="p-6">
+                   <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
+                      <div className="w-1 h-4 bg-indigo-500 rounded-full"></div>
+                      Volume por Origem
+                   </h3>
+                   <div className="h-[180px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                         <PieChart>
+                            <Pie 
+                               data={data.by_origin} 
+                               dataKey="value" 
+                               innerRadius={40} 
+                               outerRadius={60}
+                               paddingAngle={5}
+                            >
+                               {data.by_origin.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                            </Pie>
+                            <Tooltip />
+                            <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
+                         </PieChart>
+                      </ResponsiveContainer>
+                   </div>
+                </Card>
+             </div>
+          </div>
+
+          <div className="pt-8 border-t border-slate-200">
+             <div className="flex items-center justify-between mb-6">
+                <div>
+                   <h3 className="text-lg font-bold text-slate-900">Listagem Detalhada</h3>
+                   <p className="text-xs text-slate-500 font-medium font-mono">Auditoria de registros no período</p>
+                </div>
+                <Button onClick={handleGenerateReport} disabled={generating} className="shadow-lg shadow-blue-100">
+                   {generating ? <RefreshCw className="mr-2 animate-spin" size={16} /> : <FileText className="mr-2" size={16} />}
+                   {detailedReport ? 'Recarregar Listagem' : 'Gerar Listagem Detalhada'}
+                </Button>
+             </div>
+
+             {detailedReport && (
+                <div className="animate-in slide-in-from-top duration-500">
+                   <Card className="overflow-hidden bg-white border-slate-200">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                          <thead className="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                              <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500">ID</th>
+                              <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500">Título / Categoria</th>
+                              {!!currentUser.desenvolvedor && <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500">Empresa</th>}
+                              <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500">Status</th>
+                              <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500">Responsável</th>
+                              <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500">Criação</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {detailedReport.tickets.length > 0 ? (
+                              detailedReport.tickets.map((t) => (
+                                <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
+                                  <td className="px-4 py-3 text-xs font-black text-blue-600">#{t.id}</td>
+                                  <td className="px-4 py-3">
+                                    <div className="text-xs font-bold text-slate-800">{t.titulo}</div>
+                                    <div className="text-[9px] text-slate-400 font-bold uppercase">{t.categoria}</div>
+                                  </td>
+                                  {!!currentUser.desenvolvedor && <td className="px-4 py-3 text-[10px] font-bold text-slate-600">{t.empresa_nome}</td>}
+                                  <td className="px-4 py-3">
+                                    <Badge variant={t.status === 'resolvido' ? 'emerald' : t.status === 'aberto' ? 'blue' : 'slate'} className="text-[9px] py-0">
+                                      {t.status.replace('_', ' ')}
+                                    </Badge>
+                                  </td>
+                                  <td className="px-4 py-3 text-[10px] font-bold text-slate-700">
+                                    {t.responsavel_nome || 'Não atribuído'}
+                                  </td>
+                                  <td className="px-4 py-3 text-[10px] font-medium text-slate-400">
+                                    {new Date(t.created_at).toLocaleDateString()}
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan={6} className="px-4 py-12 text-center text-sm text-slate-400 font-medium">
+                                  Nenhum atendimento encontrado para os filtros selecionados.
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                   </Card>
+                </div>
+             )}
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-function KPICard({ title, value, icon, color }: { title: string, value: string | number, icon: React.ReactNode, color: string }) {
+function IndicatorCard({ title, value, icon, color, trend }: { title: string, value: string | number, icon: React.ReactNode, color: string, trend?: string }) {
   const colorMap: Record<string, string> = {
     blue: "text-blue-600 bg-blue-50 border-blue-100",
-    amber: "text-amber-600 bg-amber-50 border-amber-100",
-    indigo: "text-indigo-600 bg-indigo-50 border-indigo-100",
-    red: "text-red-600 bg-red-50 border-red-100",
     emerald: "text-emerald-600 bg-emerald-50 border-emerald-100",
+    indigo: "text-indigo-600 bg-indigo-50 border-indigo-100",
+    amber: "text-amber-600 bg-amber-50 border-amber-100",
+    red: "text-red-600 bg-red-50 border-red-100",
   };
 
   return (
-    <Card className="p-6 relative overflow-hidden group hover:border-blue-400 transition-all border-slate-200">
+    <Card className="p-6 relative overflow-hidden group hover:shadow-lg transition-all border-slate-200">
       <div className={`w-10 h-10 rounded-xl mb-4 flex items-center justify-center ${colorMap[color]}`}>
         {React.cloneElement(icon as React.ReactElement<any>, { size: 20 })}
       </div>
       <div className="space-y-1">
-        <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{title}</p>
-        <p className="text-2xl font-bold text-slate-900 tracking-tight">{value}</p>
+        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{title}</p>
+        <p className="text-3xl font-black text-slate-900 tracking-tight">{value}</p>
+        {trend && <p className="text-[10px] font-bold text-slate-500 flex items-center gap-1 mt-2">{trend}</p>}
       </div>
-      <div className="absolute top-4 right-4 text-slate-200 group-hover:text-blue-50 transition-colors">
-        <TrendingUp size={48} />
+      <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none group-hover:scale-110 transition-transform">
+        {React.cloneElement(icon as React.ReactElement<any>, { size: 64 })}
       </div>
     </Card>
   );
 }
+

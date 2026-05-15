@@ -51,6 +51,30 @@ Um sistema moderno e seguro para gerenciamento de chamados e atendimento ao clie
 | `DEV_PASSWORD` | Senha da conta de desenvolvedor inicial |
 | `CORS_ORIGINS` | Lista de URLs permitidas separadas por vírgula |
 
+## 🚀 Escalabilidade e Modos de Execução (Sprint 10)
+
+O Gestifique está preparado para escala horizontal, permitindo separar a carga de requisições web do processamento de background (workers).
+
+### Modos de Execução
+
+1.  **Monolítico (Padrão)**: Roda tudo em um único processo.
+    - `npm run dev` ou `npm run start`
+    - Variáveis (implícitas): `ENABLE_WEB_SERVER=true`, `ENABLE_EMAIL_LISTENER=true`, `ENABLE_TICKET_JOBS=true`
+
+2.  **Web Only**: Focado apenas em responder requisições de usuários e WebSocket.
+    - Útil ao escalar instâncias de API atrás de um Load Balancer.
+    - Variáveis: `ENABLE_WEB_SERVER=true`, `ENABLE_EMAIL_LISTENER=false`, `ENABLE_TICKET_JOBS=false`
+
+3.  **Worker Only**: Focado apenas em processamento de background (Email Listener e Automações).
+    - `npm run dev:worker` ou `npm run start:worker`
+    - Variáveis: `ENABLE_WEB_SERVER=false`, `ENABLE_EMAIL_LISTENER=true`, `ENABLE_TICKET_JOBS=true`
+
+### Abstração de Storage
+
+O sistema utiliza o `StorageService` para gerenciar uploads de forma abstrata.
+- **Local**: Atualmente salva em `uploads/tickets` (padrão).
+- **Externo**: Estrutura preparada para integração com S3 ou Google Cloud Storage alterando `STORAGE_TYPE` no futuro.
+
 ## 🛡️ Segurança e Regras de Negócio
 
 - **JWT**: Sessões seguras com cookies httpOnly. Usuários inativados são bloqueados instantaneamente.

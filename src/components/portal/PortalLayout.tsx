@@ -21,11 +21,21 @@ interface PortalLayoutProps {
 export const PortalLayout = ({ currentUser, onLogout }: PortalLayoutProps) => {
   const [activeTab, setActiveTab] = useState<PortalTab>('home');
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
+  const [selectedArticleId, setSelectedArticleId] = useState<number | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const navigateTo = (tab: PortalTab, ticketId: number | null = null) => {
+  const navigateTo = (tab: PortalTab, id: number | null = null) => {
     setActiveTab(tab);
-    setSelectedTicketId(ticketId);
+    if (tab === 'tickets') {
+      setSelectedTicketId(id);
+      setSelectedArticleId(null);
+    } else if (tab === 'knowledge') {
+      setSelectedArticleId(id);
+      setSelectedTicketId(null);
+    } else {
+      setSelectedTicketId(null);
+      setSelectedArticleId(null);
+    }
     setIsMobileMenuOpen(false);
   };
 
@@ -162,7 +172,7 @@ export const PortalLayout = ({ currentUser, onLogout }: PortalLayoutProps) => {
               <PortalNewTicketPage onNavigate={navigateTo} currentUser={currentUser} />
             )}
             {activeTab === 'knowledge' && (
-              <PortalKnowledgePage onNavigate={navigateTo} />
+              <PortalKnowledgePage onNavigate={navigateTo} initialArticleId={selectedArticleId} />
             )}
           </motion.div>
         </AnimatePresence>

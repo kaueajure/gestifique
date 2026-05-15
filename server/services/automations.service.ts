@@ -21,19 +21,61 @@ function getTicketField(ticket: any, campo: string) {
     case 'categoria': return ticket.categoria;
     case 'servico': return ticket.servico;
     case 'origem': return ticket.origem;
-    case 'responsavel':
-    case 'responsavel_id': return ticket.responsavel_id;
-    case 'sem_responsavel': return ticket.responsavel_id ? 'false' : 'true';
-    default: return undefined;
+    case 'responsavel_id': 
+    case 'responsavel': return ticket.responsavel_id;
+    case 'usuario_id': return ticket.usuario_id;
+    case 'empresa_id': return ticket.empresa_id;
+    case 'created_at': return ticket.created_at;
+    case 'updated_at': return ticket.updated_at;
+    case 'prazo_sla': return ticket.prazo_sla;
+    case 'prazo_primeira_resposta': return ticket.prazo_primeira_resposta;
+    case 'primeira_resposta_em': return ticket.primeira_resposta_em;
+    case 'sla_primeira_resposta_status': return ticket.sla_primeira_resposta_status;
+    case 'sla_resolucao_status': return ticket.sla_resolucao_status;
+    default: return ticket[campo];
   }
 }
 
-function evaluateCondition(ticket: any, cond: any) {
+async function evaluateCondition(ticket: any, cond: any) {
   const fieldValue = getTicketField(ticket, cond.campo);
   const expected = cond.valor;
 
-  if (cond.campo === 'sem_responsavel') {
-    return !ticket.responsavel_id;
+  // Special cases for time and definitions
+  if (cond.campo === 'responsavel_definido') {
+    const isDefined = !!ticket.responsavel_id;
+    return cond.valor === 'true' ? isDefined : !isDefined;
+  }
+
+  if (cond.campo === 'horas_desde_criacao') {
+    const hours = (Date.now() - new Date(ticket.created_at).getTime()) / (1000 * 60 * 60);
+    return hours > parseFloat(expected);
+  }
+
+  if (cond.campo === 'horas_desde_atualizacao') {
+    const hours = (Date.now() - new Date(ticket.updated_at).getTime()) / (1000 * 60 * 60);
+    return hours > parseFloat(expected);
+  }
+
+  if (cond.campo === 'sla_resolucao_vencido') {
+    if (!ticket.prazo_sla) return false;
+    return new Date() > new Date(ticket.prazo_sla) && ticket.sla_resolucao_status !== 'cumprido';
+  }
+
+  if (cond.campo === 'sla_primeira_resposta_vencido') {
+    if (!ticket.prazo_primeira_resposta) return false;
+    return new Date() > new Date(ticket.prazo_primeira_resposta) && !ticket.primeira_resposta_em;
+  }
+
+  if (cond.campo === 'tag') {
+    // We need to fetch tags if not present
+    let tags = ticket.tags;
+    if (!tags) {
+       const [rows]: any = await pool.query('SELECT tag FROM ticket_tags WHERE ticket_id = ?', [ticket.id]);
+       tags = rows.map((r: any) => r.tag);
+       ticket.tags = tags;
+    }
+    const hasTag = tags.includes(expected);
+    return cond.operador === 'contem' ? hasTag : !hasTag;
   }
 
   switch (cond.operador) {
@@ -43,14 +85,21 @@ function evaluateCondition(ticket: any, cond: any) {
       return String(fieldValue ?? '') !== String(expected ?? '');
     case 'contem':
       return String(fieldValue ?? '').toLowerCase().includes(String(expected ?? '').toLowerCase());
+    case 'maior_que':
+      return parseFloat(fieldValue) > parseFloat(expected);
+    case 'menor_que':
+      return parseFloat(fieldValue) < parseFloat(expected);
     default:
       return String(fieldValue ?? '') === String(expected ?? '');
   }
 }
 
 export async function runAutomations(evento: string, ticket: any, contexto: any) {
-  // Prevent recursive automation loops
   if (contexto?.isInternalAutomation) return;
+
+  // Use a simple tracking to prevent loops in same run
+  const automationRunId = contexto?.automationRunId || Math.random().toString(36).substring(7);
+  if (!ticket._automationsProcessed) ticket._automationsProcessed = new Set();
 
   try {
     const [regras]: any = await pool.query(
@@ -59,6 +108,10 @@ export async function runAutomations(evento: string, ticket: any, contexto: any)
     );
 
     for (const regra of regras) {
+      // Prevent executing the same rule more than once in the same transaction chain
+      const ruleKey = `${regra.id}_${evento}`;
+      if (ticket._automationsProcessed.has(ruleKey)) continue;
+
       const condicoes = parseJsonArray(regra.condicoes_json);
       const acoes = parseJsonArray(regra.acoes_json);
 
@@ -66,43 +119,86 @@ export async function runAutomations(evento: string, ticket: any, contexto: any)
 
       let passed = true;
       for (const cond of condicoes) {
-        if (!evaluateCondition(ticket, cond)) {
+        if (!await evaluateCondition(ticket, cond)) {
           passed = false;
           break;
         }
       }
 
       if (passed) {
-        let acted = false;
+        ticket._automationsProcessed.add(ruleKey);
+        let executedAcoes: string[] = [];
+
         for (const acao of acoes) {
-          if (acao.tipo === 'alterar_status' && acao.valor) {
-            await pool.query('UPDATE tickets SET status = ? WHERE id = ?', [acao.valor, ticket.id]);
-            ticket.status = acao.valor;
-            acted = true;
-          }
-          if (acao.tipo === 'alterar_prioridade' && acao.valor) {
-            await pool.query('UPDATE tickets SET prioridade = ? WHERE id = ?', [acao.valor, ticket.id]);
-            ticket.prioridade = acao.valor;
-            acted = true;
-          }
-          if (acao.tipo === 'atribuir_responsavel' && acao.valor) {
-            await pool.query('UPDATE tickets SET responsavel_id = ? WHERE id = ?', [acao.valor, ticket.id]);
-            ticket.responsavel_id = acao.valor;
-            acted = true;
-          }
-          if (acao.tipo === 'adicionar_tag' && acao.valor) {
-            await pool.query('INSERT IGNORE INTO ticket_tags (ticket_id, tag) VALUES (?, ?)', [ticket.id, acao.valor]);
-            acted = true;
+          try {
+            if (acao.tipo === 'alterar_status' && acao.valor) {
+              await pool.query('UPDATE tickets SET status = ?, updated_at = NOW() WHERE id = ?', [acao.valor, ticket.id]);
+              ticket.status = acao.valor;
+              executedAcoes.push(`Status alterado para: ${acao.valor}`);
+            }
+            else if (acao.tipo === 'alterar_prioridade' && acao.valor) {
+              await pool.query('UPDATE tickets SET prioridade = ?, updated_at = NOW() WHERE id = ?', [acao.valor, ticket.id]);
+              ticket.prioridade = acao.valor;
+              executedAcoes.push(`Prioridade alterada para: ${acao.valor}`);
+            }
+            else if (acao.tipo === 'atribuir_responsavel' && acao.valor) {
+              await pool.query('UPDATE tickets SET responsavel_id = ?, updated_at = NOW() WHERE id = ?', [acao.valor, ticket.id]);
+              ticket.responsavel_id = acao.valor;
+              executedAcoes.push(`Responsável atribuído (ID: ${acao.valor})`);
+            }
+            else if (acao.tipo === 'remover_responsavel') {
+              await pool.query('UPDATE tickets SET responsavel_id = NULL, updated_at = NOW() WHERE id = ?', [ticket.id]);
+              ticket.responsavel_id = null;
+              executedAcoes.push(`Responsável removido`);
+            }
+            else if (acao.tipo === 'adicionar_tag' && acao.valor) {
+              await pool.query('INSERT IGNORE INTO ticket_tags (ticket_id, tag) VALUES (?, ?)', [ticket.id, acao.valor]);
+              executedAcoes.push(`Tag adicionada: ${acao.valor}`);
+            }
+            else if (acao.tipo === 'adicionar_comentario' && acao.valor) {
+              await pool.query(
+                'INSERT INTO ticket_mensagens (ticket_id, usuario_id, mensagem, interno) VALUES (?, NULL, ?, 1)',
+                [ticket.id, acao.valor]
+              );
+              executedAcoes.push(`Comentário interno adicionado`);
+            }
+            else if (acao.tipo === 'notificar_responsavel' && ticket.responsavel_id) {
+               const { default: notificationsService } = await import('./notifications.service.js');
+               await notificationsService.create({
+                 usuario_id: ticket.responsavel_id,
+                 empresa_id: ticket.empresa_id,
+                 tipo: 'SYSTEM_ALERT',
+                 titulo: 'Alerta de Automação',
+                 mensagem: `Automação "${regra.nome}" executada para o chamado #${ticket.id}`,
+                 link: `ticket:${ticket.id}`
+               });
+               executedAcoes.push(`Notificação enviada ao responsável`);
+            }
+            else if (acao.tipo === 'fechar_com_motivo' && acao.valor) {
+               await pool.query(
+                 'UPDATE tickets SET status = "fechado", resolucao_motivo = ?, finalizado_em = NOW(), updated_at = NOW() WHERE id = ?',
+                 [acao.valor, ticket.id]
+               );
+               ticket.status = 'fechado';
+               executedAcoes.push(`Chamado fechado com motivo: ${acao.valor}`);
+            }
+          } catch (acaoErr) {
+            console.error(`Erro na ação ${acao.tipo} da regra ${regra.id}:`, acaoErr);
           }
         }
 
-        if (acted) {
+        if (executedAcoes.length > 0) {
           await recordTicketEvent({
             ticket_id: ticket.id,
             empresa_id: ticket.empresa_id,
             usuario_id: contexto?.usuario_id || null,
             tipo: 'automacao_executada',
-            descricao: `Automação executada: ${regra.nome}`
+            descricao: `Regra: ${regra.nome}`,
+            metadata: {
+              automacao_id: regra.id,
+              evento: evento,
+              acoes: executedAcoes
+            }
           });
         }
       }
@@ -111,3 +207,4 @@ export async function runAutomations(evento: string, ticket: any, contexto: any)
     console.error('Falha ao executar automações:', err);
   }
 }
+

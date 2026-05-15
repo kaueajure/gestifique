@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TicketKanbanColumn, TicketKanbanResponse, User, Ticket } from '../../types';
 import { Badge } from '../ui/Badge';
-import { User as UserIcon, AlertCircle, Building, Clock, ShieldAlert, Download, Layers, Play, UserPlus, MoreVertical, Copy } from 'lucide-react';
+import { User as UserIcon, AlertCircle, Building, Clock, ShieldAlert, Download, Layers, Play, UserPlus, MoreVertical, Copy, Mail } from 'lucide-react';
 import { cn, formatRelativeTime, getSlaInfo } from '../../lib/utils';
 import { api } from '../../lib/api';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
@@ -245,21 +245,21 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
           {localData.columns.map(column => (
             <div 
               key={column.id}
-              className="w-[260px] sm:w-[270px] xl:w-[280px] shrink-0 flex flex-col max-h-full snap-start"
+              className="w-[280px] sm:w-[300px] xl:w-[320px] shrink-0 flex flex-col max-h-full snap-start"
             >
-              <div className="flex items-center justify-between px-2 mb-2 shrink-0">
-                <div className="flex items-center gap-1.5">
+              <div className="flex items-center justify-between px-3 mb-4 shrink-0">
+                <div className="flex items-center gap-2">
                   <div className={cn(
-                    "w-1.5 h-1.5 rounded-full",
-                    column.id === 'aberto' && "bg-blue-500",
-                    column.id === 'em_andamento' && "bg-indigo-500",
-                    column.id === 'aguardando_cliente' && "bg-amber-500",
-                    column.id === 'resolvido' && "bg-emerald-500",
-                    column.id === 'fechado' && "bg-slate-500"
+                    "w-2.5 h-2.5 rounded-lg border-2",
+                    column.id === 'aberto' && "bg-blue-500 border-blue-200 shadow-[0_0_8px_rgba(59,130,246,0.5)]",
+                    column.id === 'em_andamento' && "bg-indigo-500 border-indigo-200 shadow-[0_0_8px_rgba(99,102,241,0.5)]",
+                    column.id === 'aguardando_cliente' && "bg-amber-500 border-amber-200 shadow-[0_0_8px_rgba(245,158,11,0.5)]",
+                    column.id === 'resolvido' && "bg-emerald-500 border-emerald-200 shadow-[0_0_8px_rgba(16,185,129,0.5)]",
+                    column.id === 'fechado' && "bg-slate-500 border-slate-200"
                   )} />
-                  <h3 className="font-black text-[10px] uppercase tracking-[0.1em] text-slate-500">{column.title}</h3>
+                  <h3 className="font-black text-[11px] uppercase tracking-widest text-slate-700">{column.title}</h3>
                 </div>
-                <span className="text-[9px] font-black bg-white border border-slate-200 text-slate-400 px-1.5 rounded shadow-sm">
+                <span className="text-[10px] font-black bg-white border border-slate-200 text-slate-500 px-2 py-0.5 rounded-lg shadow-sm">
                   {column.count}
                 </span>
               </div>
@@ -270,8 +270,8 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                     ref={provided.innerRef}
                     {...provided.droppableProps}
                     className={cn(
-                      "flex-1 flex flex-col gap-2 p-1 rounded-xl transition-all duration-200 min-h-[150px] overflow-y-auto custom-scrollbar overflow-x-hidden",
-                      snapshot.isDraggingOver ? "bg-blue-50/30 ring-1 ring-blue-100 ring-inset" : "bg-transparent"
+                      "flex-1 flex flex-col gap-3 p-2 rounded-2xl transition-all duration-300 min-h-[150px] overflow-y-auto no-scrollbar overflow-x-hidden",
+                      snapshot.isDraggingOver ? "bg-blue-50/40 ring-2 ring-blue-100/50 ring-inset" : "bg-slate-100/30"
                     )}
                   >
                     {column.tickets.map((ticket, index) => {
@@ -294,127 +294,111 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                             {...provided.dragHandleProps}
                             onClick={() => onSelectTicket(ticket.id)}
                             className={cn(
-                              "bg-white rounded-lg shadow-sm border border-slate-200 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-blue-200 group relative",
-                              snapshot.isDragging && "shadow-xl border-blue-400 ring-2 ring-blue-50/50 z-50 scale-[1.02]",
+                              "bg-white rounded-xl shadow-sm border border-slate-200/80 cursor-pointer transition-all duration-300 hover:shadow-xl hover:border-blue-300 hover:-translate-y-0.5 group relative overflow-hidden",
+                              snapshot.isDragging && "shadow-2xl border-blue-500 ring-4 ring-blue-500/10 z-50 scale-[1.05]",
                               updatingId === ticket.id && "opacity-50 pointer-events-none"
                             )}
                           >
-                            {/* Left critical marker */}
-                            {(sla.status === 'vencido' || isAbertoESemResp || ticket.precisa_resposta) && (
-                              <div className={cn(
-                                "absolute left-0 top-2 bottom-2 w-0.5 rounded-r-full",
-                                sla.status === 'vencido' ? "bg-red-500" : (ticket.precisa_resposta ? "bg-blue-500" : "bg-amber-400")
-                              )} />
-                            )}
+                            {/* Priority Border Top */}
+                            <div className={cn(
+                              "h-1 w-full shrink-0",
+                              ticket.prioridade === 'urgente' ? "bg-red-500" : 
+                              ticket.prioridade === 'alta' ? "bg-orange-500" :
+                              ticket.prioridade === 'media' ? "bg-amber-400" : "bg-slate-100"
+                            )} />
 
-                            <div className="p-2">
+                            <div className="p-3.5 pt-2.5">
                               {/* Quick Actions (Hover Only) */}
-                              <div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-white/90 backdrop-blur-sm p-0.5 rounded-md shadow-sm border border-slate-100">
+                              <div className="absolute top-2.5 right-2 opacity-0 group-hover:opacity-100 transition-all flex items-center gap-1 bg-white/95 backdrop-blur-md p-1 rounded-xl shadow-lg border border-slate-100 translate-y-1 group-hover:translate-y-0">
                                 {canManage && isAbertoESemResp && (
-                                  <button onClick={(e) => handleAssumirTicket(e, ticket.id)} title="Assumir Ticket" className="p-1 hover:bg-blue-50 text-blue-600 rounded transition-colors">
+                                  <button onClick={(e) => handleAssumirTicket(e, ticket.id)} title="Assumir Ticket" className="w-7 h-7 flex items-center justify-center hover:bg-blue-600 hover:text-white text-blue-600 rounded-lg transition-all">
                                     <UserPlus size={12} />
                                   </button>
                                 )}
                                 {canManage && ticket.status === 'aberto' && ticket.responsavel_id === currentUser.id && (
-                                  <button onClick={(e) => handleMudarStatus(e, ticket.id, 'em_andamento')} title="Iniciar Atendimento" className="p-1 hover:bg-indigo-50 text-indigo-600 rounded transition-colors">
+                                  <button onClick={(e) => handleMudarStatus(e, ticket.id, 'em_andamento')} title="Iniciar Atendimento" className="w-7 h-7 flex items-center justify-center hover:bg-indigo-600 hover:text-white text-indigo-600 rounded-lg transition-all">
                                     <Play size={12} />
                                   </button>
                                 )}
-                                <button onClick={(e) => handleCopyId(e, ticket.id)} title="Copiar ID" className="p-1 hover:bg-slate-50 text-slate-400 rounded transition-colors">
+                                <button onClick={(e) => handleCopyId(e, ticket.id)} title="Copiar ID" className="w-7 h-7 flex items-center justify-center hover:bg-slate-100 text-slate-400 rounded-lg transition-all">
                                   <Copy size={12} />
                                 </button>
                               </div>
 
-                              <div className="flex flex-col gap-1.5">
-                                {estadoInfo && (
-                                  <div className={cn(
-                                    "px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border self-start mb-0.5 flex items-center gap-1",
-                                    estadoInfo.color
-                                  )}>
-                                    <div className={cn("w-1 h-1 rounded-full", estadoInfo.dot)} />
-                                    {estadoInfo.label}
-                                  </div>
-                                )}
+                              <div className="flex flex-col gap-2.5">
                                 <div className="flex items-center justify-between gap-2">
                                   <div className="flex items-center gap-1.5 min-w-0">
                                     {ticket.nao_lido && (
-                                      <div className="w-1.5 h-1.5 rounded-full bg-blue-600 ring-4 ring-blue-50 animate-pulse shrink-0" title="Mensagem não lida" />
+                                      <div className="w-2 h-2 rounded-full bg-blue-600 ring-4 ring-blue-50 animate-pulse shrink-0" />
                                     )}
-                                    <span className="text-[9px] font-black text-blue-600 tracking-tighter shrink-0 bg-blue-50/50 px-1 rounded border border-blue-100/30">
+                                    <span className="text-[10px] font-black text-blue-600 tracking-widest shrink-0 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 uppercase">
                                       #{ticket.id}
                                     </span>
-                                    {isAbertoESemResp && (
-                                      <span className="text-[8px] font-black text-amber-600 uppercase tracking-tighter px-1 bg-amber-50 rounded border border-amber-100/50">Novo Chamado</span>
-                                    )}
-                                    {ticket.estado_atendimento === 'cliente_respondeu' && (
-                                      <span className="text-[8px] font-black text-emerald-600 uppercase tracking-tighter px-1 bg-emerald-50 rounded border border-emerald-100/50">Nova Resposta</span>
-                                    )}
                                     {ticket.origem === 'email' && (
-                                      <span className="text-slate-400" title="Origem: E-mail">
-                                        <Download size={10} className="rotate-180" />
-                                      </span>
+                                      <div className="text-slate-300 group-hover:text-amber-500 transition-colors" title="Origem: E-mail">
+                                        <Mail size={12} />
+                                      </div>
                                     )}
-                                  </div>
-                                  <div className={cn(
-                                    "px-1.5 py-px rounded-[4px] text-[8px] font-black uppercase tracking-tight border",
-                                    priority.color
-                                  )}>
-                                    {priority.label}
-                                  </div>
-                                </div>
-
-                                <h4 className="font-bold text-xs leading-tight text-slate-700 mt-1 line-clamp-2">
-                                  {ticket.titulo}
-                                </h4>
-
-                                <div className="flex items-center justify-between gap-2 mt-1">
-                                  <div className="flex items-center gap-1.5 min-w-0">
-                                    <div className="w-4 h-4 rounded bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
-                                      <UserIcon size={9} className="text-slate-400" />
-                                    </div>
-                                    <span className="text-[10px] font-medium text-slate-500 truncate">
-                                      {ticket.cliente_nome?.split(' ')[0] || 'Cliente'}
-                                    </span>
                                   </div>
                                   
                                   <div className={cn(
-                                    "px-1.5 py-0.5 rounded-[4px] border text-[8px] font-black uppercase tracking-tighter flex items-center gap-1",
+                                    "px-1.5 py-0.5 rounded-lg border text-[9px] font-black uppercase tracking-widest shadow-sm",
                                     sla.color
                                   )}>
-                                    <Clock size={8} />
+                                    <Clock size={10} className="inline mr-1" />
                                     {sla.compactText || sla.label}
                                   </div>
                                 </div>
 
-                                <div className="mt-2 pt-2 border-t border-slate-50 flex items-center justify-between">
-                                  <div className="flex items-center gap-1.5 min-w-0">
-                                    {ticket.responsavel_id ? (
-                                      <div className="flex items-center gap-1.5 overflow-hidden">
-                                        <div className="w-4 h-4 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center text-[8px] font-black text-blue-700 uppercase shrink-0">
-                                          {ticket.responsavel_nome?.[0]}
-                                        </div>
-                                        <span className="text-[10px] font-bold text-slate-600 truncate max-w-[80px]">
-                                          {ticket.responsavel_nome?.split(' ')[0]}
-                                        </span>
-                                      </div>
-                                    ) : (
-                                      <div className="flex items-center gap-1 text-amber-500">
-                                        <ShieldAlert size={10} />
-                                        <span className="text-[9px] font-black uppercase tracking-tighter">S/ RESP.</span>
-                                      </div>
-                                    )}
+                                <h4 className="font-black text-[13px] leading-tight text-slate-800 line-clamp-2 uppercase tracking-tight group-hover:text-blue-700 transition-colors">
+                                  {ticket.titulo}
+                                </h4>
+
+                                {estadoInfo && (
+                                  <div className={cn(
+                                    "px-2 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest border self-start flex items-center gap-1.5 shadow-sm",
+                                    estadoInfo.color
+                                  )}>
+                                    <div className={cn("w-1.5 h-1.5 rounded-full", estadoInfo.dot)} />
+                                    {estadoInfo.label}
                                   </div>
-                                  <div className="flex items-center gap-1">
-                                    {ticket.tags && ticket.tags.length > 0 && (
-                                      <div className="flex gap-0.5 mr-1">
-                                        {ticket.tags.slice(0, 1).map(tag => (
-                                          <span key={tag} className="text-[8px] font-bold text-slate-400 bg-slate-50 border border-slate-100 px-1 rounded-sm uppercase tracking-tighter">
-                                            {tag}
+                                )}
+
+                                <div className="mt-1 space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-5 h-5 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
+                                      <UserIcon size={10} className="text-slate-400" />
+                                    </div>
+                                    <div className="flex flex-col min-w-0">
+                                       <span className="text-[10px] font-black text-slate-600 truncate uppercase tracking-tight">
+                                         {ticket.cliente_nome || 'Cliente'}
+                                       </span>
+                                       <span className="text-[8px] font-bold text-slate-400 truncate uppercase tracking-widest opacity-70">
+                                         {ticket.empresa_nome}
+                                       </span>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex items-center justify-between pt-3 border-t border-slate-50">
+                                    <div className="flex items-center gap-2">
+                                      {ticket.responsavel_id ? (
+                                        <div className="flex items-center gap-2">
+                                          <div className="w-5 h-5 rounded-lg bg-blue-100 border border-blue-200 flex items-center justify-center text-[10px] font-black text-blue-700 uppercase shrink-0 shadow-sm">
+                                            {ticket.responsavel_nome?.[0]}
+                                          </div>
+                                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-tight">
+                                            {ticket.responsavel_nome?.split(' ')[0]}
                                           </span>
-                                        ))}
-                                      </div>
-                                    )}
-                                    <span className="text-[9px] font-medium text-slate-400 whitespace-nowrap">
+                                        </div>
+                                      ) : (
+                                        <div className="flex items-center gap-1.5 p-1.5 bg-amber-50 rounded-lg border border-amber-100 text-amber-600 shadow-sm shadow-amber-50/50">
+                                          <ShieldAlert size={12} />
+                                          <span className="text-[9px] font-black uppercase tracking-widest">Pendente</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                    
+                                    <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">
                                       {formatRelativeTime(ticket.updated_at).replace('há ', '')}
                                     </span>
                                   </div>
@@ -427,9 +411,11 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                     )})}
                     {provided.placeholder}
                     {column.tickets.length === 0 && !snapshot.isDraggingOver && (
-                      <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-xl p-4 opacity-30 mt-1">
-                        <Layers size={16} className="text-slate-300 mb-1" />
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.1em] text-center">Vazio</p>
+                      <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-3xl p-8 opacity-20 transition-opacity hover:opacity-40">
+                        <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center mb-2">
+                           <Layers size={20} className="text-slate-400" />
+                        </div>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Coluna Limpa</p>
                       </div>
                     )}
                   </div>

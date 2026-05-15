@@ -5,10 +5,11 @@ import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
-import { BookOpen, Plus, Search, Edit2, Trash2, ShieldCheck, Globe, List, AlertCircle, X, Check, Save } from 'lucide-react';
+import { BookOpen, Plus, Search, Edit2, Trash2, ShieldCheck, Globe, List, AlertCircle, X, Check, Save, Filter, Tag, LayoutGrid, LayoutList } from 'lucide-react';
 import { User } from '../../types';
 import MDEditor from '@uiw/react-md-editor';
 import { motion, AnimatePresence } from 'motion/react';
+import { cn } from '../../lib/utils';
 
 interface KnowledgeManagerProps {
   currentUser: User;
@@ -26,10 +27,13 @@ interface Article {
 
 export const KnowledgePage = ({ currentUser }: KnowledgeManagerProps) => {
   const [articles, setArticles] = useState<Article[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [companies, setCompanies] = useState<{id: number, nome: string}[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -68,12 +72,23 @@ export const KnowledgePage = ({ currentUser }: KnowledgeManagerProps) => {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const qs = currentUser.desenvolvedor && selectedCompanyId ? `?empresa_id=${selectedCompanyId}` : '';
+      const data = await api.get<string[]>(`/knowledge/categories${qs}`);
+      setCategories(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     loadCompanies();
   }, []);
 
   useEffect(() => {
     fetchArticles();
+    fetchCategories();
   }, [selectedCompanyId]);
 
   const openNew = () => {
@@ -101,6 +116,7 @@ export const KnowledgePage = ({ currentUser }: KnowledgeManagerProps) => {
     try {
       await api.delete(`/knowledge/${id}`);
       setArticles(prev => prev.filter(a => a.id !== id));
+      fetchCategories();
     } catch (err) {
       alert('Erro ao excluir artigo');
     }
@@ -126,215 +142,306 @@ export const KnowledgePage = ({ currentUser }: KnowledgeManagerProps) => {
       }
       setIsModalOpen(false);
       fetchArticles();
+      fetchCategories();
     } catch (err: any) {
       setError(err.message || 'Erro ao salvar artigo.');
     }
   };
 
-  const filtered = articles.filter(a => 
-    a.titulo.toLowerCase().includes(search.toLowerCase()) || 
-    (a.categoria || '').toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = articles.filter(a => {
+    const matchesSearch = a.titulo.toLowerCase().includes(search.toLowerCase()) || 
+                         (a.categoria || '').toLowerCase().includes(search.toLowerCase());
+    const matchesCategory = selectedCategory ? a.categoria === selectedCategory : true;
+    return matchesSearch && matchesCategory;
+  });
 
   return (
-    <Card className="p-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <div>
-          <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-            <BookOpen size={20} className="text-blue-600" />
-            Base de Conhecimento
-          </h3>
-          <p className="text-sm text-slate-500 font-medium mt-1">Gerencie tutoriais e soluções para a equipe e clientes.</p>
-        </div>
-        <Button onClick={openNew} className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white">
-          <Plus size={16} className="mr-2" /> Novo Artigo
-        </Button>
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <input 
-            type="text"
-            placeholder="Buscar por título ou categoria..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-4 focus:ring-blue-100 outline-none"
-          />
-        </div>
-        {currentUser.desenvolvedor && (
-          <div className="w-full sm:w-64">
-            <Select
-              value={selectedCompanyId}
-              onChange={setSelectedCompanyId}
-              placeholder="Selecione uma empresa"
-              options={[
-                { value: '', label: 'Gestifique Central' },
-                ...companies.map(c => ({ value: String(c.id), label: c.nome }))
-              ]}
-              buttonClassName="h-10"
-            />
+    <div className="space-y-6">
+      {/* Header Centralizado */}
+      <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div>
+            <h1 className="text-2xl font-black text-slate-900 flex items-center gap-3 lowercase italic">
+              <div className="w-10 h-10 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center">
+                <BookOpen size={24} />
+              </div>
+              Base de Conhecimento
+            </h1>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mt-2">Documentação técnica para equipe e autoatendimento para clientes</p>
           </div>
-        )}
+          <Button onClick={openNew} className="shrink-0 h-12 px-8 bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] uppercase tracking-widest rounded-xl shadow-lg shadow-blue-100 transition-all hover:-translate-y-0.5 active:translate-y-0">
+            <Plus size={16} className="mr-2" /> Novo Artigo
+          </Button>
+        </div>
       </div>
 
-      {loading ? (
-        <div className="p-8 flex justify-center"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-10 bg-slate-50 rounded-xl border border-slate-200 border-dashed">
-          <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <p className="text-slate-500 font-medium">Nenhum artigo encontrado.</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {filtered.map(article => (
-            <div key={article.id} className="p-4 bg-white border border-slate-200 rounded-lg shadow-sm hover:shadow-md transition-shadow flex items-start justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <h4 className="font-semibold text-slate-800">{article.titulo}</h4>
-                  {article.publico ? (
-                    <Badge variant="blue" className="text-[10px]"><Globe size={10} className="mr-1"/> Público</Badge>
-                  ) : (
-                    <Badge variant="slate" className="text-[10px] bg-slate-100 text-slate-600"><ShieldCheck size={10} className="mr-1"/> Interno</Badge>
-                  )}
-                  {!article.ativo && <Badge variant="red" className="text-[10px]">Inativo</Badge>}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Filtros e Busca */}
+        <div className="lg:col-span-3 space-y-6">
+           <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Busca</label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <input 
+                    type="text"
+                    placeholder="Título ou termo..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+                  />
                 </div>
-                {article.categoria && (
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest bg-slate-100 px-1.5 py-0.5 rounded">
-                    {article.categoria}
-                  </span>
-                )}
               </div>
-              <div className="flex items-center gap-1">
-                <Button variant="outline" onClick={() => openEdit(article)} className="h-8 px-2">
-                  <Edit2 size={14} />
-                </Button>
-                <Button variant="outline" onClick={() => handleDelete(article.id)} className="h-8 px-2 text-red-600 hover:bg-red-50 hover:border-red-200 border-slate-200">
-                  <Trash2 size={14} />
-                </Button>
+
+              {currentUser.desenvolvedor && (
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Empresa</label>
+                  <Select
+                    value={selectedCompanyId}
+                    onChange={setSelectedCompanyId}
+                    placeholder="Selecione..."
+                    options={[
+                      { value: '', label: 'Gestifique Central' },
+                      ...companies.map(c => ({ value: String(c.id), label: c.nome }))
+                    ]}
+                    buttonClassName="h-10 bg-slate-50 border-slate-100 rounded-xl text-[10px] font-black uppercase tracking-widest"
+                  />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Categoria</label>
+                <Select
+                  value={selectedCategory}
+                  onChange={setSelectedCategory}
+                  placeholder="Todas as categorias"
+                  options={[
+                    { value: '', label: 'Todas as categorias' },
+                    ...categories.map(c => ({ value: c, label: c }))
+                  ]}
+                  buttonClassName="h-10 bg-slate-50 border-slate-100 rounded-xl text-[10px] font-black uppercase tracking-widest"
+                />
               </div>
-            </div>
-          ))}
+
+              <div className="pt-4 border-t border-slate-50 flex items-center justify-between">
+                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Visualização</span>
+                 <div className="bg-slate-50 p-1 rounded-lg flex gap-1">
+                    <button 
+                      onClick={() => setViewMode('list')}
+                      className={cn("p-1.5 rounded transition-all", viewMode === 'list' ? "bg-white shadow-sm text-blue-600" : "text-slate-400 hover:text-slate-600")}
+                    >
+                      <LayoutList size={16} />
+                    </button>
+                    <button 
+                      onClick={() => setViewMode('grid')}
+                      className={cn("p-1.5 rounded transition-all", viewMode === 'grid' ? "bg-white shadow-sm text-blue-600" : "text-slate-400 hover:text-slate-600")}
+                    >
+                      <LayoutGrid size={16} />
+                    </button>
+                 </div>
+              </div>
+           </div>
         </div>
-      )}
+
+        {/* Listagem */}
+        <div className="lg:col-span-9">
+          {loading ? (
+            <div className="bg-white p-12 rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center">
+               <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4" />
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] ml-1">Carregando Acervo...</p>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="bg-white p-20 rounded-[2.5rem] border-2 border-dashed border-slate-200 text-center">
+              <BookOpen className="w-16 h-16 text-slate-200 mx-auto mb-6" />
+              <h3 className="text-xl font-black text-slate-900 mb-2 lowercase">nenhum artigo por aqui</h3>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ajuste os filtros ou crie um novo artigo agora mesmo</p>
+              <Button onClick={openNew} variant="outline" className="mt-8 h-10 px-6 border-slate-200 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-slate-50 transition-all">
+                 <Plus size={14} className="mr-2" /> começar agora
+              </Button>
+            </div>
+          ) : (
+            <div className={cn(
+              "grid gap-4",
+              viewMode === 'grid' ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"
+            )}>
+              {filtered.map(article => (
+                <div key={article.id} className="group bg-white border border-slate-200 rounded-[2rem] p-6 shadow-sm hover:shadow-xl hover:shadow-blue-50 transition-all flex flex-col justify-between gap-4">
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                       <div className="flex items-center gap-2">
+                          {article.publico ? (
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-[0.2em] rounded-full border border-emerald-100">
+                               <Globe size={10} strokeWidth={3} /> Público
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-500 text-[9px] font-black uppercase tracking-[0.2em] rounded-full border border-slate-200">
+                               <ShieldCheck size={10} strokeWidth={3} /> Interno
+                            </div>
+                          )}
+                          {!article.ativo && (
+                            <div className="px-2.5 py-1 bg-red-50 text-red-600 text-[9px] font-black uppercase tracking-[0.2em] rounded-full border border-red-100">Inativo</div>
+                          )}
+                       </div>
+                       <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                          <button 
+                            onClick={() => openEdit(article)}
+                            className="w-8 h-8 rounded-lg bg-slate-50 text-slate-600 hover:bg-blue-50 hover:text-blue-600 flex items-center justify-center transition-colors"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(article.id)}
+                            className="w-8 h-8 rounded-lg bg-slate-50 text-slate-600 hover:bg-red-50 hover:text-red-600 flex items-center justify-center transition-colors"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                       </div>
+                    </div>
+                    
+                    <h4 className="font-black text-slate-900 leading-tight mb-2 group-hover:text-blue-600 transition-colors uppercase text-[11px] tracking-widest">{article.titulo}</h4>
+                    
+                    {article.categoria && (
+                      <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                         <Tag size={10} /> {article.categoria}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Editor Modal */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 sm:p-12">
             <motion.div 
               initial={{ opacity: 0 }} 
               animate={{ opacity: 1 }} 
               exit={{ opacity: 0 }} 
-              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
               onClick={() => setIsModalOpen(false)}
             />
             
             <motion.div 
-              initial={{ scale: 0.95, opacity: 0, y: 10 }} 
+              initial={{ scale: 0.95, opacity: 0, y: 20 }} 
               animate={{ scale: 1, opacity: 1, y: 0 }} 
-              exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col relative z-10"
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="bg-white rounded-[3rem] shadow-2xl w-full max-w-5xl max-h-full overflow-hidden flex flex-col relative z-10 border border-white/20"
             >
-              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">
-                  <BookOpen size={18} className="text-blue-600"/>
-                  {editingArticle ? 'Editar Artigo' : 'Novo Artigo'}
-                </h3>
-                <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-200/50 rounded-full text-slate-500 transition-colors">
-                  <X size={18} />
+              <div className="px-10 py-8 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                  <h3 className="font-black text-slate-900 text-2xl lowercase italic flex items-center gap-3">
+                    <BookOpen size={24} className="text-blue-600"/>
+                    {editingArticle ? 'Editar Artigo' : 'Novo Artigo'}
+                  </h3>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">Configure o conteúdo e visibilidade da documentação</p>
+                </div>
+                <button onClick={() => setIsModalOpen(false)} className="w-10 h-10 bg-slate-50 hover:bg-slate-100 rounded-full flex items-center justify-center text-slate-500 transition-colors">
+                  <X size={20} />
                 </button>
               </div>
 
-              <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
-                <form id="knowledge-form" onSubmit={handleSave} className="space-y-4">
+              <div className="p-10 overflow-y-auto flex-1 custom-scrollbar bg-slate-50/30">
+                <form id="knowledge-form" onSubmit={handleSave} className="space-y-8">
                   {error && (
-                    <div className="p-3 bg-red-50 text-red-600 text-sm font-semibold rounded-lg flex items-center gap-2 border border-red-100">
-                      <AlertCircle size={16} /> {error}
+                    <div className="p-4 bg-red-50 text-red-600 text-[11px] font-black uppercase tracking-widest rounded-2xl flex items-center gap-3 border border-red-100">
+                      <AlertCircle size={18} /> {error}
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-700">Título do Artigo</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Título do Artigo</label>
                       <input 
                         type="text" 
                         required
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:bg-white focus:ring-4 focus:ring-blue-100 outline-none"
+                        placeholder="Ex: Como configurar seu e-mail..."
+                        className="w-full h-12 bg-white border border-slate-200 rounded-xl px-4 text-xs font-bold focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none"
                         value={formData.titulo}
                         onChange={e => setFormData(f => ({ ...f, titulo: e.target.value }))}
                       />
                     </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-700">Categoria (opcional)</label>
+                    <div className="space-y-3 relative">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Categoria</label>
                       <input 
                         type="text" 
-                        placeholder="Ex: Instalação, Faturamento..."
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:bg-white focus:ring-4 focus:ring-blue-100 outline-none"
+                        placeholder="Selecione ou digite uma nova..."
+                        className="w-full h-12 bg-white border border-slate-200 rounded-xl px-4 text-xs font-bold focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none"
                         value={formData.categoria}
                         onChange={e => setFormData(f => ({ ...f, categoria: e.target.value }))}
+                        list="category-suggestions"
                       />
+                      <datalist id="category-suggestions">
+                        {categories.map(c => <option key={c} value={c} />)}
+                      </datalist>
                     </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Conteúdo Markdown</label>
-                    <div data-color-mode="light">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Conteúdo (Markdown)</label>
+                    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden" data-color-mode="light">
                       <MDEditor
                         value={formData.conteudo}
                         onChange={(val) => setFormData(f => ({ ...f, conteudo: val || '' }))}
-                        height={350}
+                        height={400}
                         preview="edit"
+                        className="border-none shadow-none"
+                        textareaProps={{
+                          placeholder: 'Utilize markdown para formatar seu texto...'
+                        }}
                       />
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-6 pt-2">
-                    <label className="flex items-center gap-2 cursor-pointer group">
-                      <div className="relative flex items-center justify-center w-5 h-5">
+                  <div className="flex flex-wrap items-center gap-10 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                    <label className="flex items-center gap-4 cursor-pointer group">
+                      <div className="relative flex items-center justify-center w-6 h-6">
                         <input 
                           type="checkbox" 
-                          className="peer appearance-none w-5 h-5 border-2 border-slate-300 rounded-md checked:bg-blue-600 checked:border-blue-600 transition-colors"
+                          className="peer appearance-none w-6 h-6 border-2 border-slate-200 rounded-lg checked:bg-blue-600 checked:border-blue-600 transition-all hover:border-blue-300"
                           checked={formData.publico}
                           onChange={e => setFormData(f => ({ ...f, publico: e.target.checked }))}
                         />
-                        <Check size={14} className="absolute text-white opacity-0 peer-checked:opacity-100 pointer-events-none" strokeWidth={3} />
+                        <Check size={14} className="absolute text-white opacity-0 peer-checked:opacity-100 pointer-events-none" strokeWidth={4} />
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-sm font-semibold text-slate-700 group-hover:text-slate-900 leading-none">Artigo Público</span>
-                        <span className="text-[10px] font-medium text-slate-500 mt-0.5">Visível para clientes</span>
+                        <span className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none">Artigo Público</span>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">Clientes poderão acessar</span>
                       </div>
                     </label>
 
-                    <label className="flex items-center gap-2 cursor-pointer group">
-                      <div className="relative flex items-center justify-center w-5 h-5">
+                    <label className="flex items-center gap-4 cursor-pointer group">
+                      <div className="relative flex items-center justify-center w-6 h-6">
                         <input 
                           type="checkbox" 
-                          className="peer appearance-none w-5 h-5 border-2 border-slate-300 rounded-md checked:bg-emerald-600 checked:border-emerald-600 transition-colors"
+                          className="peer appearance-none w-6 h-6 border-2 border-slate-200 rounded-lg checked:bg-emerald-600 checked:border-emerald-600 transition-all hover:border-emerald-300"
                           checked={formData.ativo}
                           onChange={e => setFormData(f => ({ ...f, ativo: e.target.checked }))}
                         />
-                        <Check size={14} className="absolute text-white opacity-0 peer-checked:opacity-100 pointer-events-none" strokeWidth={3} />
+                        <Check size={14} className="absolute text-white opacity-0 peer-checked:opacity-100 pointer-events-none" strokeWidth={4} />
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-sm font-semibold text-slate-700 group-hover:text-slate-900 leading-none">Ativo</span>
-                        <span className="text-[10px] font-medium text-slate-500 mt-0.5">Disponível no sistema</span>
+                        <span className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none">Página Ativa</span>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">Disponível para visualização</span>
                       </div>
                     </label>
                   </div>
                 </form>
               </div>
 
-              <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-3 bg-slate-50/50">
-                <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-                <Button type="submit" form="knowledge-form" className="bg-blue-600 hover:bg-blue-700 text-white min-w-[120px]">
-                  <Save size={16} className="mr-2" /> Salvar
+              <div className="px-10 py-8 border-t border-slate-100 flex items-center justify-end gap-3 bg-white">
+                <Button variant="ghost" className="h-12 px-8 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600" onClick={() => setIsModalOpen(false)}>Descartar</Button>
+                <Button type="submit" form="knowledge-form" className="h-12 px-12 bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] uppercase tracking-widest rounded-xl shadow-xl shadow-blue-100 transition-all">
+                  <Save size={16} className="mr-2" /> {editingArticle ? 'Atualizar Artigo' : 'Publicar Agora'}
                 </Button>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
-    </Card>
+    </div>
   );
 };

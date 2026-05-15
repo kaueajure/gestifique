@@ -1,6 +1,6 @@
 import pool from '../db/connection.js';
-import { promises as fs } from 'fs';
 import notificationsService from './notifications.service.js';
+import storageService from './storage.service.js';
 
 export interface AttachmentData {
   id: number;
@@ -99,13 +99,13 @@ class AttachmentsService {
 
         // 3. Se for interno, notificar admins/devs da empresa (que não sejam o autor)
         if (interno) {
-           const [admins]: any = await pool.query(
-             'SELECT id FROM usuarios WHERE empresa_id = ? AND administrador = 1',
-             [ticket.empresa_id]
-           );
-           admins.forEach((a: any) => {
-             if (a.id !== usuario_id) recipients.add(a.id);
-           });
+            const [admins]: any = await pool.query(
+              'SELECT id FROM usuarios WHERE empresa_id = ? AND administrador = 1',
+              [ticket.empresa_id]
+            );
+            admins.forEach((a: any) => {
+              if (a.id !== usuario_id) recipients.add(a.id);
+            });
         }
 
         const recipientIds = Array.from(recipients);
@@ -134,13 +134,11 @@ class AttachmentsService {
     // Remove from DB
     await pool.query('DELETE FROM ticket_anexos WHERE id = ?', [id]);
 
-    // Remove file from disk
+    // Remove file from storage
     try {
-      await fs.unlink(attachment.caminho);
-    } catch (err: any) {
-      if (err.code !== 'ENOENT') {
-        console.error(`Error deleting file: ${attachment.caminho}`, err);
-      }
+      await storageService.delete(attachment.caminho);
+    } catch (err) {
+      console.error(`[AttachmentsService] Falha ao deletar arquivo: ${attachment.caminho}`, err);
     }
 
     return true;
@@ -161,7 +159,7 @@ class AttachmentsService {
   }
 
   async deleteMultiple(files: Express.Multer.File[]): Promise<void> {
-    await Promise.all(files.map(file => fs.unlink(file.path).catch(() => {})));
+    await Promise.all(files.map(file => storageService.delete(file.path).catch(() => {})));
   }
 }
 

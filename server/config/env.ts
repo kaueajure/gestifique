@@ -40,5 +40,17 @@ export const env = {
     PORT: parseInt(process.env.IMAP_PORT || '993'),
     USER: process.env.IMAP_USER as string,
     PASS: process.env.IMAP_PASS as string,
+  },
+  // Scaling & Features
+  ENABLE_WEB_SERVER: process.env.ENABLE_WEB_SERVER !== 'false',
+  ENABLE_EMAIL_LISTENER: process.env.ENABLE_EMAIL_LISTENER !== 'false',
+  ENABLE_TICKET_JOBS: process.env.ENABLE_TICKET_JOBS !== 'false',
+  STORAGE_TYPE: (process.env.STORAGE_TYPE || 'local') as 'local' | 's3' | 'gcs',
+  STORAGE_CONFIG: {
+    LOCAL_PATH: process.env.UPLOAD_DIR || 'uploads/tickets',
+    // Reserved for future use
+    BUCKET_NAME: process.env.STORAGE_BUCKET_NAME,
+    REGION: process.env.STORAGE_REGION,
+    ENDPOINT: process.env.STORAGE_ENDPOINT,
   }
 };

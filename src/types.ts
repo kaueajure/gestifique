@@ -109,7 +109,13 @@ export interface Ticket {
   categoria: string;
   servico?: string;
   origem?: string;
+  email_channel_id?: number | null;
+  message_id?: string | null;
   prazo_sla?: string | null;
+  prazo_primeira_resposta?: string | null;
+  primeira_resposta_em?: string | null;
+  sla_primeira_resposta_status?: 'cumprido' | 'violado' | 'aguardando' | null;
+  sla_resolucao_status?: 'cumprido' | 'violado' | 'dentro_do_prazo' | null;
   precisa_revisao_responsavel?: boolean;
   estado_atendimento?: 'cliente_respondeu' | 'aguardando_cliente' | 'atendente_respondeu' | 'sem_resposta' | 'finalizado';
   nao_lido?: boolean;
@@ -144,6 +150,7 @@ export interface TicketAdvancedFilters {
   responsavel_id?: number;
   tag?: string;
   origem?: string;
+  email_channel_id?: number;
   created_from?: string;
   created_to?: string;
   updated_from?: string;
@@ -192,11 +199,12 @@ export interface TicketMacro {
 export interface Message {
   id: number;
   ticket_id: number;
-  usuario_id: number;
+  usuario_id: number | null;
   usuario_nome: string;
   mensagem: string;
   interno: boolean;
   anexo: string | null;
+  message_id?: string | null;
   created_at: string;
   attachments?: TicketAttachment[];
 }

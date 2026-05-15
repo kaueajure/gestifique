@@ -13,7 +13,11 @@ import {
   Tag,
   Settings,
   ArrowUpCircle,
-  FileText
+  FileText,
+  Clock,
+  ShieldCheck,
+  RotateCcw,
+  Zap
 } from 'lucide-react';
 import { cn, formatRelativeTime } from '../../../lib/utils';
 
@@ -22,105 +26,111 @@ interface TicketTimelineProps {
   loading?: boolean;
 }
 
-const getIcon = (iconName?: string) => {
-  switch (iconName) {
-    case 'plus-circle': return PlusCircle;
-    case 'message-circle': return MessageCircle;
-    case 'lock': return Lock;
-    case 'refresh-cw': return RefreshCw;
-    case 'user-check': return UserCheck;
-    case 'paperclip': return Paperclip;
-    case 'check-circle': return CheckCircle;
-    case 'tag': return Tag;
-    case 'settings': return Settings;
-    case 'arrow-up-circle': return ArrowUpCircle;
-    case 'file-text': return FileText;
+const getIcon = (type: string) => {
+  switch (type) {
+    case 'creation': return History;
+    case 'response': return MessageCircle;
+    case 'internal_note': return Lock;
+    case 'completion': return CheckCircle;
+    case 'reopen': return RotateCcw;
+    case 'system': return ShieldCheck;
+    case 'tag_change': return Tag;
+    case 'custom_field': return FileText;
     default: return Activity;
   }
 };
 
 const getEventColor = (type: string) => {
   switch (type) {
-    case 'creation': return 'text-blue-500 bg-blue-50 border-blue-100';
-    case 'response': return 'text-slate-500 bg-slate-50 border-slate-100';
-    case 'internal_note': return 'text-amber-500 bg-amber-50 border-amber-100';
-    case 'completion': return 'text-emerald-500 bg-emerald-50 border-emerald-100';
-    case 'reopen': return 'text-blue-600 bg-blue-50 border-blue-200';
-    case 'system': return 'text-indigo-500 bg-indigo-50 border-indigo-100';
-    case 'tag_change': return 'text-rose-500 bg-rose-50 border-rose-100';
-    case 'custom_field': return 'text-cyan-500 bg-cyan-50 border-cyan-100';
-    default: return 'text-slate-400 bg-slate-50 border-slate-100';
+    case 'creation': return 'bg-emerald-50 text-emerald-600 border-emerald-100';
+    case 'response': return 'bg-blue-50 text-blue-600 border-blue-100/50';
+    case 'internal_note': return 'bg-amber-50 text-amber-600 border-amber-100/50';
+    case 'completion': return 'bg-slate-900 text-white border-slate-900';
+    case 'reopen': return 'bg-orange-50 text-orange-600 border-orange-100';
+    case 'system': return 'bg-slate-50 text-slate-500 border-slate-100';
+    case 'tag_change': return 'bg-rose-50 text-rose-600 border-rose-100';
+    case 'custom_field': return 'bg-indigo-50 text-indigo-600 border-indigo-100';
+    default: return 'bg-slate-50 text-slate-400 border-slate-100';
   }
 };
 
 export const TicketTimeline = ({ timeline, loading }: TicketTimelineProps) => {
   if (loading) {
     return (
-      <div className="py-20 flex flex-col items-center justify-center space-y-3">
-        <RefreshCw size={24} className="text-blue-500 animate-spin" />
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Carregando linha do tempo...</p>
+      <div className="py-20 flex flex-col items-center justify-center space-y-4">
+        <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center">
+           <RefreshCw size={24} className="text-blue-500 animate-spin" />
+        </div>
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Carregando histórico...</p>
       </div>
     );
   }
 
-  if (timeline.length === 0) {
+  if (!timeline || timeline.length === 0) {
     return (
       <div className="py-20 text-center flex flex-col items-center">
-        <div className="w-12 h-12 bg-slate-50 text-slate-200 rounded-xl flex items-center justify-center mb-3 border border-slate-100">
-          <History size={24} />
+        <div className="w-16 h-16 bg-slate-50 text-slate-200 rounded-[2rem] flex items-center justify-center mb-6 border border-slate-100 shadow-sm">
+          <History size={32} />
         </div>
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Nenhuma atividade registrada.</p>
+        <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-1">Timeline Vazia</h4>
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Nenhuma atividade registrada neste ticket.</p>
       </div>
     );
   }
 
   return (
-    <div className="p-6 relative">
-      {/* Vertical Line */}
-      <div className="absolute left-[33px] top-6 bottom-6 w-px bg-slate-100" />
+    <div className="relative pl-6">
+      {/* Vertical Track */}
+      <div className="absolute left-[11px] top-4 bottom-4 w-px bg-slate-100" />
       
-      <div className="space-y-8 relative">
+      <div className="space-y-10 relative">
         {timeline.map((item, index) => {
-          const Icon = getIcon(item.icon);
+          const Icon = getIcon(item.type);
           const colorClasses = getEventColor(item.type);
+          const date = new Date(item.date);
           
           return (
-            <div key={index} className="flex gap-4 group">
+            <div key={index} className="relative group animate-in fade-in slide-in-from-left-4 duration-500">
+              {/* Event Marker */}
               <div className={cn(
-                "w-9 h-9 rounded-full border flex items-center justify-center shrink-0 z-10 transition-transform group-hover:scale-110",
+                "absolute -left-[27px] top-1.5 w-6 h-6 rounded-lg border-2 border-white shadow-sm flex items-center justify-center z-10 transition-transform group-hover:scale-110",
                 colorClasses
               )}>
-                <Icon size={16} />
+                <Icon size={12} />
               </div>
               
-              <div className="flex-1 pt-1.5">
-                <div className="flex items-center justify-between gap-2 mb-1">
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-900">{item.author}</span>
-                    <span className="text-[10px] font-medium text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded uppercase tracking-tighter">
-                      {item.type === 'internal_note' ? 'Nota Interna' : 
-                       item.type === 'system' ? 'Sistema' : 
-                       item.type === 'response' ? 'Resposta' : 
-                       item.type === 'creation' ? 'Abertura' : 
-                       item.type === 'reopen' ? 'Reabertura' :
-                       item.type === 'tag_change' ? 'Tags' :
-                       item.type === 'custom_field' ? 'Campo Personalizado' : 'Finalização'}
+                    <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">
+                       {item.type === 'internal_note' ? 'Nota Interna' : 
+                        item.type === 'system' ? 'Sistema' : 
+                        item.type === 'response' ? 'Resposta' : 
+                        item.type === 'creation' ? 'Abertura' : 
+                        item.type === 'reopen' ? 'Reabertura' :
+                        item.type === 'tag_change' ? 'Tags' :
+                        item.type === 'custom_field' ? 'Campo Extra' : 'Conclusão'}
+                    </span>
+                    <span className="w-1 h-1 rounded-full bg-slate-200" />
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">
+                       {item.author}
                     </span>
                   </div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight" title={new Date(item.date).toLocaleString()}>
-                    {formatRelativeTime(item.date)}
-                  </span>
+                  <time className="text-[9px] font-bold text-slate-400/80 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-100 shrink-0">
+                    {date.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                  </time>
                 </div>
                 
                 <div className={cn(
-                  "text-sm font-medium leading-relaxed",
-                  item.type === 'internal_note' ? "text-amber-800" : "text-slate-600"
+                  "text-[12px] font-medium leading-relaxed pr-6",
+                  item.type === 'internal_note' ? "text-amber-700 italic" : "text-slate-600"
                 )}>
                   {item.description}
                 </div>
                 
                 {item.action && (
-                   <div className="mt-1 text-[10px] font-bold text-blue-500 uppercase tracking-widest">
+                   <div className="mt-1 flex items-center gap-1.5 text-[9px] font-black text-blue-600 uppercase tracking-widest bg-blue-50/50 px-2 py-0.5 rounded-lg border border-blue-100/30 w-fit">
+                     <Zap size={10} />
                      {item.action}
                    </div>
                 )}

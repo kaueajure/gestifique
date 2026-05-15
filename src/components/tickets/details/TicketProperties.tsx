@@ -1,16 +1,24 @@
 import React, { useState } from 'react';
-import { User, Ticket, TicketAttachment } from '../../../types';
+import { User, Ticket, TicketAttachment, TicketStatus } from '../../../types';
 import { Badge } from '../../ui/Badge';
 import { Button } from '../../ui/Button';
 import { Select } from '../../ui/Select';
-import { cn, formatRelativeTime, getSlaInfo } from '../../../lib/utils';
+import { cn, formatRelativeTime, getSlaInfo, getFirstResponseSlaInfo } from '../../../lib/utils';
 import { 
   User as UserIcon, 
   Building2, 
   Calendar, 
   Trash2, 
   Clock, 
-  Globe
+  Globe,
+  Zap,
+  Layers,
+  ShieldCheck,
+  Tag as TagIcon,
+  Briefcase,
+  Paperclip,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { AttachmentList } from '../../ui/AttachmentList';
@@ -19,34 +27,30 @@ import { TicketCustomFields } from './TicketCustomFields';
 import { useTicketOptions } from '../../../hooks/useTicketOptions';
 import { hasPermission } from '../../../lib/permissions';
 
-const EditableField = ({ label, children, readOnly, displayValue }: { label: string, children: React.ReactNode, readOnly?: boolean, displayValue?: string }) => (
-  <div className="space-y-1">
-    <label className="text-[10px] font-medium text-slate-500">{label}</label>
-    {readOnly ? (
-      <div className="h-7 flex items-center px-2 rounded-md bg-slate-50 border border-slate-100 text-[11px] font-semibold text-slate-800 truncate">
-        {displayValue}
-      </div>
-    ) : (
-      <div className="w-full">
-        {children}
-      </div>
-    )}
-  </div>
-);
-
-const InfoBox = ({ label, value, highlight }: { label: string, value: React.ReactNode, highlight?: boolean }) => (
-  <div className="min-w-0 bg-slate-50 border border-slate-100 rounded-md py-1.5 px-2">
-    <div className="text-[9px] font-medium text-slate-400 uppercase tracking-wide mb-0.5">{label}</div>
-    <div className={cn("text-[11px] font-semibold truncate leading-tight", highlight ? "text-red-600" : "text-slate-800")}>
-      {value}
+const PropertyRow = ({ label, icon: Icon, children, className }: { label: string, icon?: any, children: React.ReactNode, className?: string }) => (
+  <div className={cn("flex flex-col gap-1.5 py-3 first:pt-0", className)}>
+    <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
+       {Icon && <Icon size={12} className="text-slate-300" />}
+       {label}
+    </div>
+    <div className="w-full">
+      {children}
     </div>
   </div>
 );
 
-const Section = ({ title, children }: { title: string, children: React.ReactNode }) => (
-  <div className="border-t border-slate-100 pt-3 first:border-t-0 first:pt-0">
-    <h3 className="text-[11px] font-semibold text-slate-800 mb-2">{title}</h3>
-    {children}
+const Section = ({ title, icon: Icon, children, badge }: { title: string, icon?: any, children: React.ReactNode, badge?: React.ReactNode }) => (
+  <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm transition-all hover:shadow-md">
+    <div className="px-4 py-3 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
+      <h3 className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+        {Icon && <Icon size={14} className="text-blue-500" />}
+        {title}
+      </h3>
+      {badge}
+    </div>
+    <div className="p-4 space-y-0 divide-y divide-slate-100/50">
+      {children}
+    </div>
   </div>
 );
 
@@ -82,13 +86,16 @@ export const TicketProperties = ({
     });
   };
 
-  const clienteNome = ticket.cliente_nome || 'Cliente não identificado';
-  const empresaNome = ticket.empresa_nome || 'Não vinculada';
-  const origemLabel = ticket.origem || 'Não inf.';
+  const statusColors: Record<TicketStatus, string> = {
+    aberto: "bg-blue-600",
+    em_andamento: "bg-indigo-600",
+    aguardando_cliente: "bg-amber-600",
+    resolvido: "bg-emerald-600",
+    fechado: "bg-slate-600",
+  };
 
   const canManage = hasPermission(currentUser, 'tickets.editar');
 
-  // Fallbacks if empty
   const defaultCategories = [
     { value: 'suporte_tecnico', label: 'Suporte Técnico' },
     { value: 'financeiro', label: 'Financeiro' },
@@ -112,11 +119,11 @@ export const TicketProperties = ({
     ? activeServices.map(s => ({ value: s.valor, label: s.nome }))
     : defaultServices;
 
-  const categoryLabel = categoryOptions.find(c => c.value === ticket.categoria)?.label || ticket.categoria || 'Não inf.';
-  const serviceLabel = serviceOptions.find(s => s.value === ticket.servico)?.label || ticket.servico || 'Não inf.';
+  const slaInfo = getSlaInfo(ticket.prazo_sla, ticket.status);
+  const firstResponseSla = getFirstResponseSlaInfo(ticket);
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col gap-6">
       <ConfirmDialog 
         isOpen={isArchiveConfirmOpen}
         onClose={() => setIsArchiveConfirmOpen(false)}
@@ -131,299 +138,220 @@ export const TicketProperties = ({
         variant="danger"
       />
 
-      <div className="px-3 py-2.5 border-b border-slate-100 bg-slate-50/50 shrink-0">
-         <h2 className="text-xs font-bold text-slate-900">Painel do ticket</h2>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3 text-sm">
+      {/* Seção 1: Atendimento Central */}
+      <Section title="Propriedades" icon={ShieldCheck}>
+        <PropertyRow label="Status" icon={Clock}>
+           <Select 
+             value={ticket.status || 'aberto'}
+             onChange={(value) => onUpdate({ status: value as any })}
+             options={[
+               { value: 'aberto', label: 'Aberto' },
+               { value: 'em_andamento', label: 'Em andamento' },
+               { value: 'aguardando_cliente', label: 'Aguard. cliente' },
+               { value: 'resolvido', label: 'Resolvido' },
+               { value: 'fechado', label: 'Fechado' }
+             ]}
+             buttonClassName="w-full h-10 text-xs font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-xl"
+             disabled={!canManage}
+           />
+        </PropertyRow>
         
-        {/* Cliente */}
-        <Section title="Cliente">
-          <div className="space-y-0.5">
-            <div className="text-[11px] font-semibold text-slate-900 truncate">{clienteNome}</div>
-            <div className="text-[11px] text-slate-500 truncate">{ticket.cliente_email || 'n/a'}</div>
-            {empresaNome !== 'Não vinculada' && (
-              <div className="text-[11px] text-slate-500 truncate flex items-center gap-1 mt-0.5">
-                <Building2 size={11} className="text-slate-400" /> {empresaNome}
-              </div>
-            )}
+        <PropertyRow label="Responsável" icon={UserIcon}>
+           <Select 
+             value={ticket.responsavel_id ? String(ticket.responsavel_id) : ''}
+             onChange={(value) => onUpdate({ responsavel_id: value ? Number(value) : null })}
+             options={[
+               { value: '', label: 'Nenhum Atribuído' },
+               ...agents.map(a => ({ value: String(a.id), label: a.nome }))
+             ]}
+             buttonClassName="w-full h-10 text-xs font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-xl"
+             disabled={!canManage}
+           />
+        </PropertyRow>
+
+        <PropertyRow label="Prioridade" icon={Zap}>
+           <Select 
+             value={ticket.prioridade || 'media'}
+             onChange={(value) => onUpdate({ prioridade: value as any })}
+             options={[
+               { value: 'baixa', label: 'Baixa' },
+               { value: 'media', label: 'Média' },
+               { value: 'alta', label: 'Alta' },
+               { value: 'urgente', label: 'Urgente' }
+             ]}
+             buttonClassName="w-full h-10 text-xs font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-xl"
+             disabled={!canManage}
+           />
+        </PropertyRow>
+      </Section>
+
+      {/* Seção 2: SLA & Prazos */}
+      <Section 
+        title="Controle de SLA" 
+        icon={Clock}
+        badge={
+          <div className={cn(
+            "text-[9px] font-black px-2 py-0.5 rounded-full border",
+            slaInfo.status === 'vencido' ? "bg-rose-50 text-rose-600 border-rose-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"
+          )}>
+            {slaInfo.label}
           </div>
-        </Section>
-
-        {/* Resumo Rápido */}
-        <Section title="Resumo rápido">
-          <div className="grid grid-cols-2 gap-2">
-            <InfoBox label="ID" value={`#${ticket.id}`} />
-            <InfoBox label="Anexos" value={attachments.length} />
-            <InfoBox label="Criado" value={formatDate(ticket.created_at)} />
-            <InfoBox 
-              label="SLA" 
-              value={ticket.prazo_sla ? `[${getSlaInfo(ticket.prazo_sla, ticket.status).label}]` : 'Sem SLA'} 
-              highlight={ticket.prazo_sla ? getSlaInfo(ticket.prazo_sla, ticket.status).label.includes('Vencid') : false} 
-            />
+        }
+      >
+        <div className="space-y-4 py-2">
+          {/* Primeira Resposta */}
+          <div className="flex items-center justify-between gap-4 p-3 rounded-xl bg-slate-50 border border-slate-100">
+             <div className="flex flex-col">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Resposta Inicial</span>
+                <span className="text-[11px] font-bold text-slate-700">
+                  {ticket.prazo_primeira_resposta ? formatDate(ticket.prazo_primeira_resposta) : 'Não definido'}
+                </span>
+             </div>
+             <Badge 
+               variant={firstResponseSla.status === 'finalizado' ? 'emerald' : firstResponseSla.status === 'vencido' ? 'red' : 'amber'}
+               className="text-[8px] font-black px-1.5 py-0 rounded-lg"
+             >
+               {firstResponseSla.label}
+             </Badge>
           </div>
-        </Section>
 
-        {/* Atendimento */}
-        <Section title="Atendimento">
-          <div className="grid grid-cols-2 gap-2 text-[11px]">
-            <EditableField 
-              label="Status" 
-              readOnly={!canManage} 
-               displayValue={ticket.status?.replace('_', ' ')}
-            >
-               <Select 
-                 value={ticket.status || 'aberto'}
-                 onChange={(value) => onUpdate({ status: value as any })}
-                 options={[
-                   { value: 'aberto', label: 'Aberto' },
-                   { value: 'em_andamento', label: 'Em andamento' },
-                   { value: 'aguardando_cliente', label: 'Aguard. cliente' },
-                   { value: 'resolvido', label: 'Resolvido' },
-                   { value: 'fechado', label: 'Fechado' }
-                 ]}
-                 size="sm"
-                 buttonClassName="w-full h-7 text-[11px] min-h-0"
-               />
-            </EditableField>
-            
-            <EditableField 
-              label="Prioridade" 
-              readOnly={!canManage} 
-              displayValue={ticket.prioridade}
-            >
-               <Select 
-                 value={ticket.prioridade || 'media'}
-                 onChange={(value) => onUpdate({ prioridade: value as any })}
-                 options={[
-                   { value: 'baixa', label: 'Baixa' },
-                   { value: 'media', label: 'Média' },
-                   { value: 'alta', label: 'Alta' },
-                   { value: 'urgente', label: 'Urgente' }
-                 ]}
-                 size="sm"
-                 buttonClassName="w-full h-7 text-[11px] min-h-0"
-               />
-            </EditableField>
-
-            <EditableField 
-              label="Responsável" 
-               readOnly={!canManage} 
-               displayValue={agents.find(a => a.id === ticket.responsavel_id)?.nome || 'Nenhum'}
-            >
-               <Select 
-                 value={ticket.responsavel_id ? String(ticket.responsavel_id) : ''}
-                 onChange={(value) => onUpdate({ responsavel_id: value ? Number(value) : null })}
-                 options={[
-                   { value: '', label: 'Nenhum' },
-                   ...agents.map(a => ({ value: String(a.id), label: a.nome }))
-                 ]}
-                 size="sm"
-                 buttonClassName="w-full h-7 text-[11px] min-h-0"
-               />
-            </EditableField>
-
-            <EditableField 
-              label="Origem" 
-              readOnly={!canManage} 
-              displayValue={origemLabel}
-            >
-               <Select 
-                 value={ticket.origem || 'portal'}
-                 onChange={(value) => onUpdate({ origem: value })}
-                 options={[
-                   { value: 'portal', label: 'Portal' },
-                   { value: 'email', label: 'E-mail' },
-                   { value: 'whatsapp', label: 'WhatsApp' },
-                   { value: 'chat', label: 'Chat' },
-                   { value: 'manual', label: 'Manual' },
-                   { value: 'outros', label: 'Outros' }
-                 ]}
-                 size="sm"
-                 buttonClassName="w-full h-7 text-[11px] min-h-0"
-               />
-            </EditableField>
-
-            <div className="col-span-2">
-              <EditableField 
-                 label="Categoria" 
-                 readOnly={!canManage} 
-                 displayValue={categoryLabel}
-              >
-                 <Select 
-                   value={ticket.categoria || categoryOptions[0]?.value || ''}
-                   onChange={(value) => onUpdate({ categoria: value })}
-                   options={categoryOptions}
-                   size="sm"
-                   buttonClassName="w-full h-7 text-[11px] min-h-0"
-                 />
-              </EditableField>
-            </div>
-
-            <div className="col-span-2">
-              <EditableField 
-                 label="Serviço" 
-                 readOnly={!canManage} 
-                 displayValue={serviceLabel}
-              >
-                 <Select 
-                   value={ticket.servico || serviceOptions[0]?.value || ''}
-                   onChange={(value) => onUpdate({ servico: value })}
-                   options={serviceOptions}
-                   size="sm"
-                   buttonClassName="w-full h-7 text-[11px] min-h-0"
-                 />
-              </EditableField>
-            </div>
+          {/* Resolução Final */}
+          <div className="flex items-center justify-between gap-4 p-3 rounded-xl bg-slate-50 border border-slate-100">
+             <div className="flex flex-col">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">ConcLusão Final</span>
+                <span className="text-[11px] font-bold text-slate-700">
+                  {ticket.prazo_sla ? formatDate(ticket.prazo_sla) : 'Não definido'}
+                </span>
+             </div>
+             <Badge 
+               variant={slaInfo.status === 'vencido' ? 'red' : slaInfo.status === 'finalizado' ? 'emerald' : 'amber'}
+               className="text-[8px] font-black px-1.5 py-0 rounded-lg"
+             >
+               {slaInfo.label}
+             </Badge>
           </div>
-        </Section>
 
-        {/* Tags */}
-        <Section title="Tags">
-          {ticket.tags && ticket.tags.length > 0 ? (
-            <TicketTags 
+          {ticket.primeira_resposta_em && (
+             <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest px-2">
+                <CheckCircle2 size={12} className="text-emerald-500" />
+                Interação às {new Date(ticket.primeira_resposta_em).toLocaleTimeString()}
+             </div>
+          )}
+        </div>
+      </Section>
+
+      {/* Seção 3: Cliente & Origem */}
+      <Section title="Informações do Cliente" icon={Globe}>
+        <PropertyRow label="Solicitante">
+           <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+              <div className="text-xs font-black text-slate-900 uppercase tracking-tight mb-0.5">{ticket.cliente_nome || 'Desconhecido'}</div>
+              <div className="text-[10px] font-bold text-slate-400 truncate uppercase tracking-widest">{ticket.cliente_email || 'n/a'}</div>
+              {ticket.empresa_nome && (
+                <div className="flex items-center gap-1.5 mt-2 text-[10px] font-black text-blue-600 uppercase tracking-widest bg-blue-50/50 px-2 py-1 rounded-lg border border-blue-100/50 w-fit">
+                  <Building2 size={12} /> {ticket.empresa_nome}
+                </div>
+              )}
+           </div>
+        </PropertyRow>
+        
+        <PropertyRow label="Canal de Origem">
+           <Select 
+             value={ticket.origem || 'portal'}
+             onChange={(value) => onUpdate({ origem: value })}
+             options={[
+               { value: 'portal', label: 'Portal' },
+               { value: 'email', label: 'E-mail' },
+               { value: 'whatsapp', label: 'WhatsApp' },
+               { value: 'chat', label: 'Chat' },
+               { value: 'manual', label: 'Manual' }
+             ]}
+             buttonClassName="w-full h-10 text-xs font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-xl"
+             disabled={!canManage}
+           />
+        </PropertyRow>
+      </Section>
+
+      {/* Seção 4: Classificação */}
+      <Section title="Classificação" icon={Layers}>
+        <PropertyRow label="Categoria">
+           <Select 
+             value={ticket.categoria || ''}
+             onChange={(value) => onUpdate({ categoria: value })}
+             options={categoryOptions}
+             buttonClassName="w-full h-10 text-xs font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-xl"
+             disabled={!canManage}
+           />
+        </PropertyRow>
+        <PropertyRow label="Serviço / Produto">
+           <Select 
+             value={ticket.servico || ''}
+             onChange={(value) => onUpdate({ servico: value })}
+             options={serviceOptions}
+             buttonClassName="w-full h-10 text-xs font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-xl"
+             disabled={!canManage}
+           />
+        </PropertyRow>
+
+        <PropertyRow label="Tags / Etiquetas" icon={TagIcon}>
+           <TicketTags 
               tags={ticket.tags || []}
               onAdd={(tag) => onUpdateTags?.([...(ticket.tags || []), tag])}
               onRemove={(tag) => onUpdateTags?.((ticket.tags || []).filter(t => t !== tag))}
               readOnly={!canManage}
             />
-          ) : (
-            <div className="flex gap-2 items-center flex-wrap">
-              <span className="text-slate-400 text-[11px] italic">Nenhuma tag</span>
-              {canManage && (
-                <TicketTags 
-                  tags={[]}
-                  onAdd={(tag) => onUpdateTags?.([tag])}
-                  onRemove={() => {}}
-                  readOnly={false}
-                />
-              )}
-            </div>
-          )}
-        </Section>
+        </PropertyRow>
+      </Section>
 
-        {/* Extras */}
-        <Section title="Extras">
-           <div className="flex flex-col gap-2.5">
-             <div>
-               <div className="text-[10px] text-slate-400 mb-0.5">Campos adicionais</div>
-               {ticket.custom_fields && ticket.custom_fields.length > 0 ? (
-                 <TicketCustomFields 
-                    fields={ticket.custom_fields || []}
-                    onUpdate={onUpdateCustomFields || (() => {})}
-                    readOnly={!canManage}
-                 />
-               ) : (
-                 <div className="text-slate-700 text-[11px] font-medium">Nenhum</div>
-               )}
+      {/* Seção 5: Extras & Anexos */}
+      <Section title="Atributos Extras" icon={Briefcase}>
+        <PropertyRow label="Dados Adicionais">
+           <TicketCustomFields 
+             fields={ticket.custom_fields || []}
+             onUpdate={onUpdateCustomFields || (() => {})}
+             readOnly={!canManage}
+           />
+        </PropertyRow>
+        <PropertyRow label="Documentos em Anexo" icon={Paperclip}>
+           {attachments.length > 0 ? (
+             <AttachmentList attachments={attachments} compact />
+           ) : (
+             <div className="flex flex-col items-center justify-center p-6 bg-slate-50/50 border border-slate-100 border-dashed rounded-xl text-slate-300">
+                <Paperclip size={24} className="mb-2 opacity-50" />
+                <span className="text-[10px] font-black uppercase tracking-widest">Nenhum anexo</span>
              </div>
+           )}
+        </PropertyRow>
+      </Section>
 
-             <div>
-               <div className="text-[10px] text-slate-400 mb-0.5">Anexos</div>
-               {attachments.length > 0 ? (
-                 <AttachmentList attachments={attachments} compact />
-               ) : (
-                 <div className="text-slate-700 text-[11px] font-medium">Nenhum</div>
-               )}
-             </div>
+      {/* Seção 6: Resolução info se finalizado */}
+      {(ticket.status === 'resolvido' || ticket.status === 'fechado') && (
+        <Section title="Conclusão" icon={CheckCircle2}>
+           <div className="space-y-4 py-2">
+              <div className="flex flex-col gap-1 px-1">
+                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Motivo</span>
+                 <span className="text-xs font-black text-slate-900 uppercase tracking-tight">{ticket.resolucao_motivo?.replace('_', ' ') || 'Não inf.'}</span>
+              </div>
+              <div className="flex flex-col gap-1 px-1">
+                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Observação Final</span>
+                 <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-xs font-medium text-emerald-900 leading-relaxed italic">
+                    "{ticket.resolucao_observacao || 'Nenhuma observação registrada.'}"
+                 </div>
+              </div>
            </div>
         </Section>
+      )}
 
-        {/* Resolução */}
-        {(ticket.status === 'resolvido' || ticket.status === 'fechado') && ticket.finalizado_em && (
-          <Section title="Resolução">
-            <div className="flex flex-col gap-1.5 text-[11px]">
-               <div className="flex items-center justify-between">
-                 <span className="text-slate-500">Motivo</span>
-                 <span className="font-medium text-slate-900 capitalize">{ticket.resolucao_motivo?.replace('_', ' ') || 'Não inf.'}</span>
-               </div>
-               <div className="flex items-center justify-between">
-                 <span className="text-slate-500">Finalizado em</span>
-                 <span className="font-medium text-slate-900">{formatDate(ticket.finalizado_em)}</span>
-               </div>
-               {ticket.resolucao_observacao && (
-                 <div className="flex flex-col gap-0.5 mt-0.5">
-                    <span className="text-slate-500">Observação</span>
-                    <span className="text-slate-900 border-l-2 border-slate-200 pl-2 leading-relaxed break-words line-clamp-3">{ticket.resolucao_observacao}</span>
-                 </div>
-               )}
-            </div>
-          </Section>
-        )}
-
-        {/* Satisfação (CSAT) */}
-        {ticket.satisfacao && ticket.satisfacao.status !== 'nao_enviada' && (
-          <Section title="Avaliação do Cliente (CSAT)">
-            {ticket.satisfacao.status === 'aguardando_resposta' && (
-               <div className="flex flex-col gap-2 text-[11px] bg-yellow-50 p-3 rounded-lg border border-yellow-100">
-                 <div className="flex items-center gap-1.5 text-yellow-800 font-medium">
-                   <Clock size={14} /> Aguardando resposta
-                 </div>
-                 <div className="flex flex-col gap-1 mt-1">
-                   <span className="text-[10px] text-yellow-700">Link da pesquisa:</span>
-                   <div className="flex items-center gap-1 bg-white p-1 rounded border border-yellow-200">
-                     <input type="text" readOnly value={`${window.location.origin}/csat/${ticket.satisfacao.token}`} className="text-[10px] flex-1 bg-transparent border-0 focus:ring-0 text-slate-600 truncate px-1" />
-                     <button onClick={() => navigator.clipboard.writeText(`${window.location.origin}/csat/${ticket.satisfacao.token}`)} className="text-blue-600 hover:text-blue-800 p-1 bg-blue-50 rounded" title="Copiar link" type="button">Copiar</button>
-                   </div>
-                 </div>
-               </div>
-            )}
-            {ticket.satisfacao.status === 'respondida' && (
-              <div className="flex flex-col gap-1.5 text-[11px]">
-                <div className="flex items-center gap-1 mb-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <svg 
-                      key={star} 
-                      className={cn("w-4 h-4", star <= (ticket.satisfacao?.nota || 0) ? "text-yellow-400 fill-yellow-400" : "text-slate-200 fill-slate-200")} 
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                    </svg>
-                  ))}
-                  <span className="ml-1 text-[10px] font-bold text-slate-500">{ticket.satisfacao?.nota} / 5</span>
-                </div>
-                {ticket.satisfacao?.comentario && (
-                  <div className="bg-slate-50 p-2 rounded-lg border border-slate-100 text-slate-700 italic">
-                    "{ticket.satisfacao.comentario}"
-                  </div>
-                )}
-                <div className="text-[9px] text-slate-400 mt-0.5">
-                  Respondido em: {ticket.satisfacao?.respondido_em ? formatDate(ticket.satisfacao.respondido_em) : '-'}
-                </div>
-              </div>
-            )}
-          </Section>
-        )}
-
-        {/* Reabertura */}
-        {ticket.reaberto_em && (
-          <Section title="Reabertura">
-            <div className="flex flex-col gap-1.5 text-[11px]">
-               <div className="flex items-center justify-between">
-                 <span className="text-slate-500">Reaberto em</span>
-                 <span className="font-medium text-slate-900">{formatDate(ticket.reaberto_em)}</span>
-               </div>
-               {ticket.reaberto_por && (
-                  <div className="flex items-center justify-between">
-                     <span className="text-slate-500">Por</span>
-                     <span className="font-medium text-slate-900">{agents.find(a => a.id === ticket.reaberto_por)?.nome || 'Não inf.'}</span>
-                  </div>
-               )}
-            </div>
-          </Section>
-        )}
-      </div>
-
+      {/* Seção 7: Arquivar */}
       {canManage && ticket.status !== 'fechado' && (
-        <div className="px-3 py-2 border-t border-slate-100 bg-slate-50/60 shrink-0">
-          <Button 
-            variant="ghost"
-            onClick={() => setIsArchiveConfirmOpen(true)}
-            className="w-full text-[11px] font-semibold text-slate-500 hover:text-red-700 hover:bg-red-50 border border-slate-200 hover:border-red-200 transition-colors h-7 px-0"
-          >
-            <Trash2 size={13} className="mr-1.5" /> 
-            Arquivar
-          </Button>
+        <div className="pt-2">
+           <Button 
+             variant="outline"
+             onClick={() => setIsArchiveConfirmOpen(true)}
+             className="w-full h-12 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:text-white hover:bg-rose-600 border border-rose-100 hover:border-rose-600 rounded-2xl transition-all shadow-sm flex items-center justify-center gap-2"
+           >
+             <Trash2 size={16} /> 
+             Encerrar Definitivamente
+           </Button>
         </div>
       )}
     </div>

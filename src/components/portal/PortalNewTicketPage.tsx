@@ -149,7 +149,7 @@ export const PortalNewTicketPage = ({ onNavigate, currentUser }: PortalNewTicket
               {suggestions.map(article => (
                 <button
                   key={article.id}
-                  onClick={() => onNavigate('knowledge')}
+                  onClick={() => onNavigate('knowledge', article.id)}
                   className="w-full text-left bg-white border border-blue-100 hover:border-blue-300 hover:shadow-md p-4 rounded-xl transition-all group flex items-start gap-3"
                 >
                   <BookOpen size={16} className="text-blue-400 mt-0.5 shrink-0" />

@@ -10,6 +10,7 @@ export interface ReportFilters {
   prioridade?: string;
   categoria?: string;
   servico?: string;
+  origem?: string;
 }
 
 export interface SummaryData {
@@ -21,13 +22,28 @@ export interface SummaryData {
     closed_tickets: number;
     urgent_tickets: number;
     average_resolution_hours: number;
+    average_first_response_hours: number;
+    sla_compliance_first_response: number;
+    sla_compliance_resolution: number;
+    resolution_rate: number;
+    reopen_rate: number;
+  };
+  csat: {
+    average: number;
+    total_reviews: number;
+    score_distribution: { name: string; value: number }[];
   };
   by_status: { name: string; value: number }[];
   by_priority: { name: string; value: number }[];
   by_category: { name: string; value: number }[];
   by_service: { name: string; value: number }[];
-  by_responsible: { name: string; value: number }[];
+  by_responsible: { name: string; value: number; avg_res?: number; total?: number }[];
+  by_origin: { name: string; value: number }[];
   by_day: { date: string; created: number; resolved: number }[];
+  rankings: {
+    top_agents: { name: string; value: number }[];
+    top_categories: { name: string; value: number }[];
+  };
 }
 
 class ReportsService {
@@ -67,6 +83,10 @@ class ReportsService {
       clauses.push(`${prefix}servico = ?`);
       params.push(filters.servico);
     }
+    if (filters.origem) {
+      clauses.push(`${prefix}origem = ?`);
+      params.push(filters.origem);
+    }
 
     return { clauses, params };
   }
@@ -83,6 +103,12 @@ class ReportsService {
       closed: number;
       urgent: number;
       avg_res_hours: number | null;
+      avg_pr_hours: number | null;
+      pr_cumprido: number;
+      pr_total: number;
+      res_cumprido: number;
+      res_total: number;
+      reabertos: number;
     };
 
     // 1. Totals
@@ -96,57 +122,89 @@ class ReportsService {
         SUM(CASE WHEN prioridade = 'urgente' THEN 1 ELSE 0 END) as urgent,
         AVG(CASE WHEN status IN ('resolvido', 'fechado') AND finalizado_em IS NOT NULL 
             THEN TIMESTAMPDIFF(HOUR, created_at, finalizado_em) 
-            ELSE NULL END) as avg_res_hours
+            ELSE NULL END) as avg_res_hours,
+        AVG(CASE WHEN primeira_resposta_em IS NOT NULL 
+            THEN TIMESTAMPDIFF(HOUR, created_at, primeira_resposta_em) 
+            ELSE NULL END) as avg_pr_hours,
+        SUM(CASE WHEN sla_primeira_resposta_status = 'cumprido' THEN 1 ELSE 0 END) as pr_cumprido,
+        SUM(CASE WHEN sla_primeira_resposta_status IN ('cumprido', 'violado') THEN 1 ELSE 0 END) as pr_total,
+        SUM(CASE WHEN sla_resolucao_status = 'cumprido' THEN 1 ELSE 0 END) as res_cumprido,
+        SUM(CASE WHEN sla_resolucao_status IN ('cumprido', 'violado') THEN 1 ELSE 0 END) as res_total,
+        SUM(CASE WHEN reaberto_em IS NOT NULL THEN 1 ELSE 0 END) as reaberto
       FROM tickets
       ${whereString}
     `, params);
 
-    const totals = totalsRows[0] || { total: 0, open: 0, in_progress: 0, resolved: 0, closed: 0, urgent: 0, avg_res_hours: 0 };
+    const totals = totalsRows[0] || { 
+      total: 0, open: 0, in_progress: 0, resolved: 0, closed: 0, urgent: 0, avg_res_hours: 0, avg_pr_hours: 0,
+      pr_cumprido: 0, pr_total: 0, res_cumprido: 0, res_total: 0, reaberto: 0
+    };
+
+    // 1.1 CSAT Metrics
+    const { clauses: csatClauses, params: csatParams } = this.buildWhere(filters, 't');
+    const csatWhereString = csatClauses.length > 0 ? `WHERE ${csatClauses.join(' AND ')}` : '';
+    const [csatRows]: any = await pool.query(`
+      SELECT 
+        AVG(s.nota) as avg_score,
+        COUNT(s.id) as total_reviews,
+        SUM(CASE WHEN s.nota = 5 THEN 1 ELSE 0 END) as score_5,
+        SUM(CASE WHEN s.nota = 4 THEN 1 ELSE 0 END) as score_4,
+        SUM(CASE WHEN s.nota = 3 THEN 1 ELSE 0 END) as score_3,
+        SUM(CASE WHEN s.nota = 2 THEN 1 ELSE 0 END) as score_2,
+        SUM(CASE WHEN s.nota = 1 THEN 1 ELSE 0 END) as score_1
+      FROM ticket_satisfacao s
+      JOIN tickets t ON s.ticket_id = t.id
+      ${csatWhereString} AND s.respondido_em IS NOT NULL
+    `, csatParams);
+
+    const csatData = csatRows[0] || { avg_score: 0, total_reviews: 0 };
+    const score_distribution = [
+      { name: '5 Estrelas', value: Number(csatRows[0]?.score_5 || 0) },
+      { name: '4 Estrelas', value: Number(csatRows[0]?.score_4 || 0) },
+      { name: '3 Estrelas', value: Number(csatRows[0]?.score_3 || 0) },
+      { name: '2 Estrelas', value: Number(csatRows[0]?.score_2 || 0) },
+      { name: '1 Estrela', value: Number(csatRows[0]?.score_1 || 0) },
+    ];
 
     interface GroupedRow extends RowDataPacket { name: string | null; value: number };
 
-    // 2. By Status
+    // 2. Distributions
     const [statusRows] = await pool.query<GroupedRow[]>(`
-      SELECT status as name, COUNT(*) as value
-      FROM tickets
-      ${whereString}
-      GROUP BY status
+      SELECT status as name, COUNT(*) as value FROM tickets ${whereString} GROUP BY status
     `, params);
 
-    // 3. By Priority
     const [priorityRows] = await pool.query<GroupedRow[]>(`
-      SELECT prioridade as name, COUNT(*) as value
-      FROM tickets
-      ${whereString}
-      GROUP BY prioridade
+      SELECT prioridade as name, COUNT(*) as value FROM tickets ${whereString} GROUP BY prioridade
     `, params);
 
-    // 4. By Category
     const [categoryRows] = await pool.query<GroupedRow[]>(`
-      SELECT categoria as name, COUNT(*) as value
-      FROM tickets
-      ${whereString}
-      GROUP BY categoria
+      SELECT categoria as name, COUNT(*) as value FROM tickets ${whereString} GROUP BY categoria
     `, params);
 
-    // 4.5 By Service
     const [serviceRows] = await pool.query<GroupedRow[]>(`
-      SELECT servico as name, COUNT(*) as value
-      FROM tickets
-      ${whereString}
-      GROUP BY servico
+      SELECT servico as name, COUNT(*) as value FROM tickets ${whereString} GROUP BY servico
+    `, params);
+    
+    const [originRows] = await pool.query<GroupedRow[]>(`
+      SELECT origem as name, COUNT(*) as value FROM tickets ${whereString} GROUP BY origem
     `, params);
 
-    // 5. By Responsible
+    // 5. By Responsible (Detailed)
     const { clauses: resClauses, params: resParams } = this.buildWhere(filters, 't');
     const resWhereString = resClauses.length > 0 ? `WHERE ${resClauses.join(' AND ')}` : '';
 
-    const [responsibleRows] = await pool.query<GroupedRow[]>(`
-      SELECT u.nome as name, COUNT(t.id) as value
+    const [responsibleRows]: any = await pool.query(`
+      SELECT 
+        u.nome as name, 
+        COUNT(t.id) as total,
+        AVG(CASE WHEN t.status IN ('resolvido', 'fechado') AND t.finalizado_em IS NOT NULL 
+            THEN TIMESTAMPDIFF(HOUR, t.created_at, t.finalizado_em) 
+            ELSE NULL END) as avg_res
       FROM tickets t
       LEFT JOIN usuarios u ON t.responsavel_id = u.id
       ${resWhereString}
       GROUP BY u.nome
+      ORDER BY total DESC
     `, resParams);
 
     // 6. By Day
@@ -174,6 +232,7 @@ class ReportsService {
     if (filters.prioridade) { resClausesList.push('prioridade = ?'); resParamsList.push(filters.prioridade); }
     if (filters.categoria) { resClausesList.push('categoria = ?'); resParamsList.push(filters.categoria); }
     if (filters.servico) { resClausesList.push('servico = ?'); resParamsList.push(filters.servico); }
+    if (filters.origem) { resClausesList.push('origem = ?'); resParamsList.push(filters.origem); }
 
     interface ResDayRow extends RowDataPacket { date: Date | string; resolved: number };
     const [resDayRows] = await pool.query<ResDayRow[]>(`
@@ -187,14 +246,11 @@ class ReportsService {
       ORDER BY date ASC
     `, resParamsList);
 
-    // Merge day data
     const dayMap = new Map<string, { date: string; created: number; resolved: number }>();
-    
     dayRows.forEach((r) => {
       const d = r.date instanceof Date ? r.date.toISOString().split('T')[0] : String(r.date);
       dayMap.set(d, { date: d, created: Number(r.created), resolved: 0 });
     });
-
     resDayRows.forEach((r) => {
       const d = r.date instanceof Date ? r.date.toISOString().split('T')[0] : String(r.date);
       if (dayMap.has(d)) {
@@ -214,29 +270,29 @@ class ReportsService {
         resolved_tickets: Number(totals.resolved || 0),
         closed_tickets: Number(totals.closed || 0),
         urgent_tickets: Number(totals.urgent || 0),
-        average_resolution_hours: Math.round(Number(totals.avg_res_hours || 0) * 10) / 10
+        average_resolution_hours: Math.round(Number(totals.avg_res_hours || 0) * 10) / 10,
+        average_first_response_hours: Math.round(Number(totals.avg_pr_hours || 0) * 10) / 10,
+        sla_compliance_first_response: totals.pr_total > 0 ? Math.round((totals.pr_cumprido / totals.pr_total) * 100) : 100,
+        sla_compliance_resolution: totals.res_total > 0 ? Math.round((totals.res_cumprido / totals.res_total) * 100) : 100,
+        resolution_rate: totals.total > 0 ? Math.round(((Number(totals.resolved) + Number(totals.closed)) / totals.total) * 100) : 0,
+        reopen_rate: totals.total > 0 ? Math.round((Number(totals.reaberto) / totals.total) * 100) : 0
       },
-      by_status: statusRows.map((r) => ({ 
-        name: this.translateStatus(r.name || 'Indefinido'), 
-        value: Number(r.value) 
-      })),
-      by_priority: priorityRows.map((r) => ({ 
-        name: this.translatePriority(r.name || 'baixa'), 
-        value: Number(r.value) 
-      })),
-      by_category: categoryRows.map((r) => ({ 
-        name: r.name || 'Sem Categoria', 
-        value: Number(r.value) 
-      })),
-      by_service: serviceRows.map((r) => ({
-        name: r.name || 'Sem Servico',
-        value: Number(r.value)
-      })),
-      by_responsible: responsibleRows.map((r) => ({ 
-        name: r.name || 'Sem Responsável', 
-        value: Number(r.value) 
-      })),
-      by_day
+      csat: {
+        average: Math.round(Number(csatData.avg_score || 0) * 10) / 10,
+        total_reviews: Number(csatData.total_reviews || 0),
+        score_distribution
+      },
+      by_status: statusRows.map((r) => ({ name: this.translateStatus(r.name || 'Indefinido'), value: Number(r.value) })),
+      by_priority: priorityRows.map((r) => ({ name: this.translatePriority(r.name || 'baixa'), value: Number(r.value) })),
+      by_category: categoryRows.map((r) => ({ name: r.name || 'Sem Categoria', value: Number(r.value) })),
+      by_service: serviceRows.map((r) => ({ name: r.name || 'Sem Servico', value: Number(r.value) })),
+      by_origin: originRows.map((r) => ({ name: r.name || 'Chat / Interno', value: Number(r.value) })),
+      by_responsible: responsibleRows.map((r: any) => ({ name: r.name || 'Sem Responsável', value: Number(r.total), avg_res: Math.round(r.avg_res * 10) / 10 })),
+      by_day,
+      rankings: {
+        top_agents: responsibleRows.slice(0, 5).map((r: any) => ({ name: r.name || 'N/A', value: Number(r.total) })),
+        top_categories: categoryRows.sort((a, b) => b.value - a.value).slice(0, 5).map(r => ({ name: r.name || 'N/A', value: Number(r.value) }))
+      }
     };
   }
 
@@ -265,7 +321,6 @@ class ReportsService {
     const { clauses, params } = this.buildWhere(filters, 't');
     const whereString = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
 
-    // 1. Get Metrics
     const [stats]: any = await pool.query(`
       SELECT 
         COUNT(*) as total,
@@ -280,7 +335,6 @@ class ReportsService {
       taxaResolucao: stats[0].total > 0 ? Math.round((stats[0].resolvidos / stats[0].total) * 100) : 0
     };
 
-    // 2. Get Detailed List
     const [tickets]: any = await pool.query(`
       SELECT 
         t.id, t.titulo, t.status, t.prioridade, t.categoria, t.created_at,
@@ -304,12 +358,18 @@ class ReportsService {
     
     if (type === 'tickets') {
       query = `
-        SELECT t.id, t.titulo, t.status, t.prioridade, t.categoria, t.servico,
-               u.nome as responsavel, t.solicitante_nome as cliente,
+        SELECT t.id, t.titulo, t.status, t.prioridade, t.categoria, t.servico, t.origem,
+               r.nome as responsavel, t.solicitante_nome as cliente, e.nome as empresa,
                DATE_FORMAT(t.created_at, '%Y-%m-%d %H:%i:%s') as criado_em,
-               DATE_FORMAT(t.updated_at, '%Y-%m-%d %H:%i:%s') as atualizado_em
+               DATE_FORMAT(t.primeira_resposta_em, '%Y-%m-%d %H:%i:%s') as primeira_resposta_em,
+               DATE_FORMAT(t.finalizado_em, '%Y-%m-%d %H:%i:%s') as finalizado_em,
+               DATE_FORMAT(t.prazo_sla, '%Y-%m-%d %H:%i:%s') as prazo_sla,
+               t.sla_resolucao_status,
+               s.nota as csat_nota
         FROM tickets t
-        LEFT JOIN usuarios u ON t.responsavel_id = u.id
+        LEFT JOIN usuarios r ON t.responsavel_id = r.id
+        LEFT JOIN empresas e ON t.empresa_id = e.id
+        LEFT JOIN ticket_satisfacao s ON s.ticket_id = t.id
         ${whereString}
         ORDER BY t.created_at DESC
       `;
@@ -318,7 +378,8 @@ class ReportsService {
         SELECT u.nome as atendente,
                COUNT(t.id) as total_tickets,
                SUM(CASE WHEN t.status = 'aberto' THEN 1 ELSE 0 END) as abertos,
-               SUM(CASE WHEN t.status IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) as resolvidos
+               SUM(CASE WHEN t.status IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) as resolvidos,
+               AVG(CASE WHEN t.status IN ('resolvido', 'fechado') THEN TIMESTAMPDIFF(HOUR, t.created_at, t.finalizado_em) ELSE NULL END) as avg_resolution_hours
         FROM tickets t
         LEFT JOIN usuarios u ON t.responsavel_id = u.id
         ${whereString}
@@ -334,15 +395,12 @@ class ReportsService {
         ORDER BY s.respondido_em DESC
       `;
     } else {
-      // default simple ticket select if type not matched
       query = `SELECT t.id, t.titulo, t.status, t.prioridade FROM tickets t ${whereString}`;
     }
 
     const [rows]: any = await pool.query(query, params);
-
     if (rows.length === 0) return 'Nenhum registro encontrado\n';
 
-    // Build CSV
     const headers = Object.keys(rows[0]);
     let csv = headers.join(';') + '\n';
 
@@ -351,7 +409,6 @@ class ReportsService {
         let val = row[header];
         if (val === null || val === undefined) val = '';
         if (typeof val === 'string') {
-          // escape quotes and text
           val = val.replace(/"/g, '""');
           if (val.includes(';') || val.includes('\n')) val = `"${val}"`;
         }
@@ -381,7 +438,6 @@ class ReportsService {
       }
     }
 
-    // 1. Counts
     const [countsRows]: any = await pool.query(`
       SELECT 
         COUNT(*) as total,
@@ -398,7 +454,6 @@ class ReportsService {
 
     const counts = countsRows[0] || {};
     
-    // 2. By Status Chart
     const [byStatus]: any = await pool.query(`
       SELECT status, COUNT(*) as qtd
       FROM tickets
@@ -406,7 +461,6 @@ class ReportsService {
       GROUP BY status
     `, params);
 
-    // 3. By Priority Chart
     const [byPriority]: any = await pool.query(`
       SELECT prioridade, COUNT(*) as qtd
       FROM tickets
@@ -415,7 +469,6 @@ class ReportsService {
       ORDER BY qtd DESC
     `, params);
 
-    // 4. Recent Tickets
     const [recentTickets]: any = await pool.query(`
       SELECT t.id, t.titulo, t.status, t.prioridade, t.created_at, u.nome as cliente_nome
       FROM tickets t
@@ -425,7 +478,6 @@ class ReportsService {
       LIMIT 5
     `, params);
 
-    // 5. Recent Activities (logs_sistema) - Consistent logic with logs.service
     let logWhere = 'WHERE 1=1';
     let logParams = [];
     if (!isDev) {

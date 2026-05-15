@@ -1,79 +1,89 @@
 import pool from '../db/connection.js';
+import { runAutomations } from '../services/automations.service.js';
 
 export const runTicketAutomations = async () => {
   try {
-    const conn = await pool.getConnection();
+    const [regras]: any = await pool.query(
+      "SELECT * FROM ticket_automacoes WHERE ativo = 1 AND evento IN ('tempo_sem_interacao', 'aguardando_cliente_por_tempo', 'sla_primeira_resposta_vencido', 'sla_resolucao_vencido')"
+    );
 
-    try {
-      // Find open tickets with SLAs that just missed the deadline
-      const [overdueTickets]: any = await conn.query(`
-        SELECT id, empresa_id, usuario_id, titulo, sla_status
-        FROM tickets
-        WHERE status IN ('aberto', 'em_andamento')
-        AND (sla_status != 'violado' OR sla_status IS NULL)
-        AND prazo_sla IS NOT NULL
-        AND prazo_sla < NOW()
-      `);
+    if (regras.length === 0) return;
 
-      for (const ticket of overdueTickets) {
-        await conn.beginTransaction();
+    for (const regra of regras) {
+       let query = "";
+       let params: any[] = [];
 
-        // Update SLA status
-        await conn.query(`
-          UPDATE tickets 
-          SET sla_status = 'violado', updated_at = NOW() 
-          WHERE id = ?
-        `, [ticket.id]);
+       if (regra.evento === 'sla_resolucao_vencido') {
+         query = `
+           SELECT * FROM tickets 
+           WHERE status NOT IN ('resolvido', 'fechado')
+           AND (sla_resolucao_status != 'violado' OR sla_resolucao_status IS NULL)
+           AND prazo_sla < NOW()
+           AND empresa_id = ?
+         `;
+         params = [regra.empresa_id];
+       } 
+       else if (regra.evento === 'sla_primeira_resposta_vencido') {
+         query = `
+           SELECT * FROM tickets 
+           WHERE status IN ('aberto', 'em_andamento')
+           AND primeira_resposta_em IS NULL
+           AND (sla_primeira_resposta_status = 'aguardando' OR sla_primeira_resposta_status IS NULL)
+           AND prazo_primeira_resposta < NOW()
+           AND empresa_id = ?
+         `;
+         params = [regra.empresa_id];
+       }
+       else if (regra.evento === 'aguardando_cliente_por_tempo') {
+         // This typically requires at least one condition of "hours_since_update" in the Rule
+         // But for simplicity in the job, we'll just fetch tickets in that status
+         query = `
+           SELECT * FROM tickets 
+           WHERE status = 'aguardando_cliente'
+           AND empresa_id = ?
+         `;
+         params = [regra.empresa_id];
+       }
+       else if (regra.evento === 'tempo_sem_interacao') {
+         query = `
+           SELECT * FROM tickets 
+           WHERE status NOT IN ('resolvido', 'fechado')
+           AND empresa_id = ?
+         `;
+         params = [regra.empresa_id];
+       }
 
-        // Add internal message
-        await conn.query(`
-          INSERT INTO ticket_mensagens (ticket_id, usuario_id, mensagem, tipo, interno)
-          VALUES (?, NULL, 'SLA de atendimento violado automaticamente pelo sistema.', 'status_change', 1)
-        `, [ticket.id]);
-
-        // Add log
-        await conn.query(`
-          INSERT INTO logs_sistema (empresa_id, usuario_id, acao, descricao)
-          VALUES (?, NULL, 'ticket_alerta', ?)
-        `, [ticket.empresa_id, `SLA Vencido para Chamado #${ticket.id}`]);
-
-        await conn.commit();
-      }
-
-      // Check configured rules if any
-      const [automations]: any = await conn.query(`
-        SELECT * FROM ticket_automacoes WHERE ativo = 1 AND evento = 'tempo_sem_interacao'
-      `);
-
-      // Basic simple example: Close ticket after 7 days waiting for client
-      const [abandonedTickets]: any = await conn.query(`
-        SELECT id, empresa_id, titulo
-        FROM tickets
-        WHERE status = 'aguardando_cliente'
-        AND updated_at < DATE_SUB(NOW(), INTERVAL 7 DAY)
-      `);
-
-      for (const ticket of abandonedTickets) {
-        await conn.beginTransaction();
-
-        await conn.query(`
-          UPDATE tickets
-          SET status = 'fechado', updated_at = NOW(), finalizado_em = NOW(), resolucao_motivo = 'Sem resposta do cliente por 7 dias'
-          WHERE id = ?
-        `, [ticket.id]);
-
-        await conn.query(`
-          INSERT INTO ticket_mensagens (ticket_id, usuario_id, mensagem, tipo, interno)
-          VALUES (?, NULL, 'Chamado fechado automaticamente por falta de interação do cliente.', 'status_change', 0)
-        `, [ticket.id]);
-
-        await conn.commit();
-      }
-
-    } finally {
-      conn.release();
+       if (query) {
+         const [tickets]: any = await pool.query(query, params);
+         for (const ticket of tickets) {
+            // runAutomations internally evaluates conditions (like hours_since_update)
+            await runAutomations(regra.evento, ticket, { isInternalAutomation: false, usuario_id: null });
+         }
+       }
     }
+
+    // Keep existing SLA status update logic if no automations are defined, 
+    // or just let automations handle it if they exist.
+    // To be safe, let's keep a baseline SLA violation update for tickets without specific rules.
+    await pool.query(`
+      UPDATE tickets 
+      SET sla_resolucao_status = 'violado', updated_at = NOW() 
+      WHERE status NOT IN ('resolvido', 'fechado') 
+      AND (sla_resolucao_status != 'violado' OR sla_resolucao_status IS NULL)
+      AND prazo_sla < NOW()
+    `);
+
+    await pool.query(`
+      UPDATE tickets 
+      SET sla_primeira_resposta_status = 'violado', updated_at = NOW() 
+      WHERE status IN ('aberto', 'em_andamento')
+      AND primeira_resposta_em IS NULL
+      AND (sla_primeira_resposta_status = 'aguardando' OR sla_primeira_resposta_status IS NULL)
+      AND prazo_primeira_resposta < NOW()
+    `);
+
   } catch (err) {
     console.error('[Automations] Erro ao rodar rotina de automacao:', err);
   }
 };
+

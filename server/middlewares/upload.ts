@@ -1,6 +1,7 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 
 const uploadDir = path.join(process.cwd(), 'uploads', 'tickets');
 
@@ -14,10 +15,11 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    // Generate unique name
+    // Generate secure unique name using crypto
     const ext = path.extname(file.originalname).toLowerCase();
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, `ticket-${uniqueSuffix}${ext}`);
+    const randomName = crypto.randomBytes(16).toString('hex');
+    const timestamp = Date.now();
+    cb(null, `tk-${timestamp}-${randomName}${ext}`);
   }
 });
 
@@ -36,10 +38,15 @@ const fileFilter = (req: any, file: any, cb: any) => {
     'text/plain'
   ];
 
+  // Prevent suspicious file names (e.g. .exe.jpg or path traversal)
+  if (file.originalname.includes('..') || file.originalname.includes('/') || file.originalname.includes('\\')) {
+    return cb(new Error('Nome de arquivo inválido e suspeito.'), false);
+  }
+
   const ext = path.extname(file.originalname).toLowerCase();
   
   if (!allowedExtensions.includes(ext)) {
-    return cb(new Error('Extensão de arquivo não permitida.'), false);
+    return cb(new Error(`Extensão ${ext} não permitida.`), false);
   }
 
   const isImageFile = ['.jpg', '.jpeg', '.png', '.webp'].includes(ext);
