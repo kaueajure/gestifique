@@ -24,17 +24,23 @@ router.get('/db', async (req, res) => {
 
     res.json({
       success: true,
-      status: 'CONNECTED',
-      latencyMs,
-      database: env.DB.NAME,
-      checkedAt: new Date().toISOString()
+      data: {
+        success: true,
+        status: 'CONNECTED',
+        latencyMs,
+        database: env.DB.NAME,
+        checkedAt: new Date().toISOString()
+      }
     });
   } catch (err: any) {
     res.json({
-      success: false,
-      status: 'ERROR',
-      message: err.message || 'Falha ao conectar no banco',
-      checkedAt: new Date().toISOString()
+      success: true,
+      data: {
+        success: false,
+        status: 'ERROR',
+        message: err.message || 'Falha ao conectar no banco',
+        checkedAt: new Date().toISOString()
+      }
     });
   }
 });
@@ -43,21 +49,24 @@ router.get('/db', async (req, res) => {
 router.get('/system', (req, res) => {
   res.json({
     success: true,
-    status: 'OPERATIONAL',
-    environment: env.NODE_ENV,
-    uptimeSeconds: process.uptime(),
-    nodeVersion: process.version,
-    memory: {
-      rssMb: Math.round(process.memoryUsage().rss / 1024 / 1024),
-      heapTotalMb: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
-      heapUsedMb: Math.round(process.memoryUsage().heapUsed / 1024 / 1024)
-    },
-    roles: {
-      web: env.ENABLE_WEB_SERVER,
-      emailListener: env.ENABLE_EMAIL_LISTENER,
-      ticketJobs: env.ENABLE_TICKET_JOBS
-    },
-    checkedAt: new Date().toISOString()
+    data: {
+      success: true,
+      status: 'OPERATIONAL',
+      environment: env.NODE_ENV,
+      uptimeSeconds: process.uptime(),
+      nodeVersion: process.version,
+      memory: {
+        rssMb: Math.round(process.memoryUsage().rss / 1024 / 1024),
+        heapTotalMb: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
+        heapUsedMb: Math.round(process.memoryUsage().heapUsed / 1024 / 1024)
+      },
+      roles: {
+        web: env.ENABLE_WEB_SERVER,
+        emailListener: env.ENABLE_EMAIL_LISTENER,
+        ticketJobs: env.ENABLE_TICKET_JOBS
+      },
+      checkedAt: new Date().toISOString()
+    }
   });
 });
 
@@ -80,18 +89,21 @@ router.get('/security', (req, res) => {
 
   res.json({
     success: true,
-    status: warnings.length > 0 ? 'WARNING' : 'ACTIVE',
-    auth: true,
-    helmet: true,
-    rateLimit: true,
-    trustProxy: env.TRUST_PROXY,
-    corsOriginsCount: env.CORS_ORIGINS ? env.CORS_ORIGINS.length : 0,
-    cookieSecurity: {
-      httpOnly: true,
-      secureInProduction: true,
-      sameSite: env.IS_PROD ? 'strict' : 'lax'
-    },
-    warnings
+    data: {
+      success: true,
+      status: warnings.length > 0 ? 'WARNING' : 'ACTIVE',
+      auth: true,
+      helmet: true,
+      rateLimit: true,
+      trustProxy: env.TRUST_PROXY,
+      corsOriginsCount: env.CORS_ORIGINS ? env.CORS_ORIGINS.length : 0,
+      cookieSecurity: {
+        httpOnly: true,
+        secureInProduction: true,
+        sameSite: env.IS_PROD ? 'strict' : 'lax'
+      },
+      warnings
+    }
   });
 });
 
@@ -170,9 +182,11 @@ router.get('/overview', async (req, res) => {
 
   res.json({
     success: true,
-    database: dbResult,
-    system: systemResult,
-    security: securityResult
+    data: {
+      database: dbResult,
+      system: systemResult,
+      security: securityResult
+    }
   });
 });
 
