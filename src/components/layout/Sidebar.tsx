@@ -1,5 +1,4 @@
 import React from "react";
-import { motion } from "motion/react";
 import {
   LayoutDashboard,
   Ticket,
@@ -11,7 +10,6 @@ import {
   Settings,
   LogOut,
   X,
-  Plus,
   BookOpen,
 } from "lucide-react";
 import { User } from "../../types";

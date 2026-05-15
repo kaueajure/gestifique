@@ -157,11 +157,11 @@ export const TicketConversation = ({
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-slate-50/20">
-        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-4 md:p-8 space-y-2 custom-scrollbar">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-2 custom-scrollbar">
           {/* Timeline Start Indication */}
-          <div className="flex flex-col items-center justify-center mb-10 mt-4">
-             <div className="w-10 h-10 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center justify-center text-slate-400 mb-3">
-                <Calendar size={18} />
+          <div className="flex flex-col items-center justify-center mb-6 mt-2">
+             <div className="w-8 h-8 rounded-xl bg-white border border-slate-100 shadow-sm flex items-center justify-center text-slate-400 mb-2">
+                <Calendar size={14} />
              </div>
              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
                 Atendimento Iniciado em {new Date(ticket.created_at).toLocaleDateString()}
@@ -207,13 +207,13 @@ export const TicketConversation = ({
         </div>
         
         {/* Campo de Resposta Wrapping Area */}
-        <div className="shrink-0 p-4 md:p-8 bg-white border-t border-slate-200/60 shadow-[0_-12px_40px_rgba(0,0,0,0.03)] z-10">
+        <div className="shrink-0 p-4 bg-white border-t border-slate-200 shadow-sm z-10">
            {ticket.status === 'fechado' ? (
-              <div className="flex flex-col items-center justify-center py-6 bg-slate-50 border border-slate-200 border-dashed rounded-[2rem]">
-                 <div className="w-12 h-12 rounded-2xl bg-slate-200/50 flex items-center justify-center text-slate-400 mb-3">
-                    <Lock size={20} />
+              <div className="flex flex-col items-center justify-center py-4 bg-slate-50 border border-slate-200 border-dashed rounded-2xl">
+                 <div className="w-10 h-10 rounded-xl bg-slate-200/50 flex items-center justify-center text-slate-400 mb-2">
+                    <Lock size={16} />
                  </div>
-                 <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-1">Este atendimento está fechado</p>
+                 <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-1">Atendimento fechado</p>
                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
                    Reabra o atendimento para enviar novas mensagens.
                  </p>

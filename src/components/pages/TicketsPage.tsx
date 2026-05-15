@@ -27,6 +27,10 @@ import { TicketKanban } from '../tickets/TicketKanban';
 import { CreateTicketModal } from '../tickets/CreateTicketModal';
 import { TeamSidebar } from '../tickets/TeamSidebar';
 import { PageHeader } from '../ui/PageHeader';
+import { SectionHeader } from '../ui/SectionHeader';
+import { LoadingState } from '../ui/LoadingState';
+import { ErrorState } from '../ui/ErrorState';
+import { EmptyState } from '../ui/EmptyState';
 import { TicketAdvancedFilters as IAdvancedFilters, TicketView } from '../../types';
 import { TicketFilterDrawer } from '../tickets/TicketFilterDrawer';
 import { TicketSavedViews } from '../tickets/TicketSavedViews';
@@ -528,55 +532,51 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
         </AnimatePresence>
       </div>
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-6 border-b border-slate-100 mb-6">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="p-1.5 bg-blue-600 rounded-lg shadow-blue-200 shadow-lg">
-              <Layers className="text-white" size={18} />
-            </div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Central de Atendimentos</h1>
+      <PageHeader 
+        title="Central de Atendimentos" 
+        description="Gerencie e acompanhe todos os chamados da sua operação."
+        action={
+          <div className="flex items-center gap-3">
+            {!!currentUser.desenvolvedor && (
+              <div className="relative w-44">
+                <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10" size={14} />
+                <Select 
+                  size="sm"
+                  value={devCompanyId}
+                  onChange={setDevCompanyId}
+                  placeholder="Empresa..."
+                  buttonClassName="pl-8 bg-slate-50 border-slate-200"
+                  options={[
+                    { value: '', label: 'Selecione a empresa' },
+                    ...companies.map(emp => ({
+                      value: String(emp.id),
+                      label: emp.nome
+                    }))
+                  ]}
+                />
+              </div>
+            )}
+            <Button 
+              size="sm"
+              onClick={() => setIsModalOpen(true)}
+            >
+              <Plus size={14} className="mr-1.5" /> 
+              Abrir Chamado
+            </Button>
           </div>
-          <p className="text-xs text-slate-500 font-medium px-1">Gerencie e acompanhe todos os chamados da sua operação.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {!!currentUser.desenvolvedor && (
-            <div className="relative w-44">
-              <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10" size={12} />
-              <Select 
-                value={devCompanyId}
-                onChange={setDevCompanyId}
-                placeholder="Empresa..."
-                buttonClassName="pl-9 h-10 text-xs font-black uppercase tracking-widest bg-slate-50 border-slate-200"
-                options={[
-                  { value: '', label: 'Selecione a empresa' },
-                  ...companies.map(emp => ({
-                    value: String(emp.id),
-                    label: emp.nome
-                  }))
-                ]}
-              />
-            </div>
-          )}
-          <Button 
-            className="h-10 px-6 shadow-xl shadow-blue-500/20 bg-blue-600 hover:bg-blue-700 border-b-4 border-blue-800 transition-all active:translate-y-0.5 active:border-b-0" 
-            onClick={() => setIsModalOpen(true)}
-          >
-            <Plus size={18} className="mr-2" /> 
-            <span className="text-sm font-black uppercase tracking-widest">Abrir Chamado</span>
-          </Button>
-        </div>
-      </div>
+        }
+      />
 
       <div className="flex flex-col lg:flex-row gap-3 items-start">
         <div className="flex-1 w-full space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-3 rounded-2xl border border-slate-200/80 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
             <div className="flex-1 w-full max-w-3xl flex items-center gap-2">
               <div className="relative flex-1 group">
-                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} />
+                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={14} />
                  <input 
                    type="text" 
-                   placeholder="Buscar por ID, cliente ou assunto..." 
-                   className="w-full h-10 bg-slate-50 border border-slate-200 rounded-xl pl-11 pr-4 text-sm font-medium outline-none focus:ring-4 focus:ring-blue-500/10 transition-all focus:bg-white focus:border-blue-400"
+                   placeholder="Buscar ticket..." 
+                   className="w-full h-8 bg-slate-50 border border-slate-200 rounded-md pl-9 pr-3 text-[13px] outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white focus:border-blue-500 transition-all placeholder:text-slate-400"
                    value={searchTerm}
                    onChange={(e) => setSearchTerm(e.target.value)}
                  />
@@ -592,16 +592,17 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
 
               <Button 
                 variant="outline" 
+                size="sm"
                 onClick={() => setShowAdvanced(true)}
                 className={cn(
-                  "h-10 px-4 text-xs font-black uppercase tracking-widest border-slate-200 shadow-sm transition-all rounded-xl",
-                  hasAnyFilters ? "bg-blue-50 text-blue-700 border-blue-300 ring-2 ring-blue-100" : "bg-white text-slate-600 hover:bg-slate-50"
+                  "h-8 px-3 transition-all",
+                  hasAnyFilters ? "bg-blue-50 text-blue-700 border-blue-200" : ""
                 )}
               >
-                <Filter size={16} className={cn("mr-2", hasAnyFilters ? "text-blue-600" : "text-slate-400")} />
+                <Filter size={14} className={cn("mr-1.5", hasAnyFilters ? "text-blue-600" : "text-slate-400")} />
                 Filtros
                 {hasAnyFilters && (
-                  <span className="ml-2 flex items-center justify-center w-5 h-5 rounded-lg bg-blue-600 text-white text-[10px] font-black">
+                  <span className="ml-1.5 flex items-center justify-center min-w-[16px] h-4 px-1 rounded bg-blue-600 text-white text-[10px] font-bold">
                     {getActiveFilterChips().length}
                   </span>
                 )}
@@ -609,32 +610,33 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
             </div>
             
             <div className="flex items-center gap-2">
-              <div className="flex items-center p-1 bg-slate-100/50 rounded-xl border border-slate-200/50">
+              <div className="flex items-center p-0.5 bg-slate-100 rounded-md border border-slate-200/50">
                 <button 
                   onClick={() => setViewMode('list')}
                   className={cn(
-                    "px-3 py-1.5 rounded-lg transition-all flex items-center gap-2",
-                    viewMode === 'list' ? "bg-white text-blue-700 shadow-md border border-slate-200" : "text-slate-400 hover:text-slate-600"
+                    "px-2.5 py-1 rounded transition-all flex items-center gap-1.5",
+                    viewMode === 'list' ? "bg-white text-blue-600 shadow-sm border border-slate-200/60" : "text-slate-500 hover:text-slate-700"
                   )}
                 >
-                  <ListIcon size={16} />
-                  <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Lista</span>
+                  <ListIcon size={14} />
+                  <span className="text-[11px] font-medium hidden sm:inline">Lista</span>
                 </button>
                 <button 
                   onClick={() => setViewMode('kanban')}
                   className={cn(
-                    "px-3 py-1.5 rounded-lg transition-all flex items-center gap-2",
-                    viewMode === 'kanban' ? "bg-white text-blue-700 shadow-md border border-slate-200" : "text-slate-400 hover:text-slate-600"
+                    "px-2.5 py-1 rounded transition-all flex items-center gap-1.5",
+                    viewMode === 'kanban' ? "bg-white text-blue-600 shadow-sm border border-slate-200/60" : "text-slate-500 hover:text-slate-700"
                   )}
                 >
-                  <Kanban size={16} />
-                  <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Kanban</span>
+                  <Kanban size={14} />
+                  <span className="text-[11px] font-medium hidden sm:inline">Kanban</span>
                 </button>
               </div>
 
-              <div className="w-px h-6 bg-slate-200 mx-1 hidden sm:block" />
+              <div className="w-px h-5 bg-slate-200 mx-0.5 hidden sm:block" />
 
               <Select
+                size="sm"
                 value=""
                 onChange={(val) => {
                   if (val === 'equipe') setShowTeamSidebar(!showTeamSidebar);
@@ -647,18 +649,17 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                    { value: 'exportar', label: 'Exportar CSV' },
                    { value: 'atualizar', label: 'Atualizar' }
                 ]}
-                buttonClassName="h-10 px-4 bg-white border-slate-200 text-slate-600 hover:bg-slate-50 text-[10px] uppercase font-black tracking-widest shadow-sm rounded-xl"
-                className="w-40 hidden md:block"
+                className="w-32 hidden md:block"
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-3 overflow-x-auto pb-4 no-scrollbar -mx-1 px-1">
-            <div className="flex items-center gap-1.5 pr-2 border-r border-slate-200">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Filas</span>
+          <div className="flex items-center gap-3 overflow-x-auto pb-2 no-scrollbar -mx-1 px-1 mt-1">
+            <div className="flex items-center gap-1.5 pr-2 border-r border-slate-200 my-1">
+              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Filas</span>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               {QUEUES.map((q) => {
                 const isActive = selectedQueue === q.id;
                 const count = queueCounts?.[q.id] || 0;
@@ -668,18 +669,18 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                     key={q.id}
                     onClick={() => setSelectedQueue(q.id)}
                     className={cn(
-                      "relative flex items-center gap-2.5 px-4 py-2 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all whitespace-nowrap border-b-2",
+                      "relative flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-md transition-all whitespace-nowrap",
                       isActive 
-                        ? "bg-white text-blue-700 border-blue-600 shadow-sm ring-1 ring-slate-200" 
-                        : "bg-transparent text-slate-500 border-transparent hover:text-slate-900 hover:bg-slate-50"
+                        ? "bg-slate-100 text-slate-900" 
+                        : "bg-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                     )}
                   >
-                    <q.icon size={14} className={cn(isActive ? "text-blue-600" : "text-slate-400")} />
+                    <q.icon size={14} className={cn(isActive ? "text-slate-800" : "text-slate-400")} />
                     <span>{q.label}</span>
                     {(count > 0 || q.id === 'todos') && (
                       <span className={cn(
-                        "flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-lg text-[10px] font-black tracking-tight",
-                        isActive ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-500"
+                        "flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-sm text-[10px] font-semibold",
+                        isActive ? "bg-white text-slate-700 shadow-sm" : "bg-slate-100 text-slate-500"
                       )}>
                         {count > 99 ? '99+' : count}
                       </span>
@@ -689,27 +690,27 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
               })}
             </div>
             
-            <div className="w-px h-6 bg-slate-200 mx-2" />
+            <div className="w-px h-5 bg-slate-200 mx-1" />
 
             <div className="relative shrink-0">
               <button
                 onClick={() => setShowMoreQueues(prev => !prev)}
                 className={cn(
-                  "relative flex items-center gap-2.5 px-4 py-2 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all whitespace-nowrap border-b-2 shadow-sm",
+                  "relative flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-md transition-all whitespace-nowrap",
                   MORE_QUEUES.some(q => q.id === selectedQueue)
-                    ? "bg-white text-blue-700 border-blue-600 ring-1 ring-slate-200"
-                    : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
+                    ? "bg-slate-100 text-slate-900"
+                    : "bg-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                 )}
               >
                 <span>
-                  {MORE_QUEUES.find(q => q.id === selectedQueue)?.label || 'Outras Filas'}
+                  {MORE_QUEUES.find(q => q.id === selectedQueue)?.label || 'Mais Filas'}
                 </span>
                 {MORE_QUEUES.some(q => q.id === selectedQueue) && (queueCounts?.[selectedQueue] || 0) > 0 && (
-                  <span className="flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-lg text-[10px] font-black tracking-tight bg-blue-600 text-white">
+                  <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-sm text-[10px] font-semibold bg-white text-slate-700 shadow-sm">
                     {(queueCounts?.[selectedQueue] || 0) > 99 ? '99+' : (queueCounts?.[selectedQueue] || 0)}
                   </span>
                 )}
-                <ChevronDown size={14} className={cn("transition-transform", showMoreQueues && "rotate-180")} />
+                <ChevronDown size={14} className={cn("transition-transform text-slate-400", showMoreQueues && "rotate-180")} />
               </button>
               
               {showMoreQueues && (
@@ -774,10 +775,10 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                className="flex flex-wrap items-center gap-2 py-3 px-4 bg-slate-50 rounded-2xl border border-slate-200"
+                className="flex flex-wrap items-center gap-2 py-2 px-3 bg-slate-50 rounded-lg border border-slate-200"
               >
-                <div className="flex items-center gap-2 mr-2">
-                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Filtros Ativos</span>
+                <div className="flex items-center gap-2 mr-1">
+                   <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Filtros</span>
                 </div>
                 {getActiveFilterChips().map((chip) => (
                   <FilterChip 
@@ -789,7 +790,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                 ))}
                 <button 
                   onClick={clearFilters}
-                  className="text-[10px] font-black uppercase tracking-widest text-rose-500 hover:text-rose-700 px-3 py-1.5 rounded-xl hover:bg-rose-50 transition-all border border-transparent hover:border-rose-100 ml-auto"
+                  className="text-[11px] font-semibold text-rose-600 hover:text-rose-700 px-2 py-1 rounded hover:bg-rose-50 transition-all border border-transparent ml-auto"
                 >
                   Limpar todos
                 </button>
@@ -805,39 +806,15 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
             viewMode === 'kanban' ? "h-[calc(100vh-200px)] min-h-[400px]" : ""
           )}>
             {!!currentUser.desenvolvedor && !devCompanyId ? (
-              <div className="h-full flex flex-col items-center justify-center space-y-4 bg-white rounded-3xl border border-slate-200/60 shadow-sm py-20">
-                 <div className="w-16 h-16 bg-slate-50 rounded-3xl border border-slate-100 flex items-center justify-center">
-                    <Building className="w-8 h-8 text-slate-300" />
-                 </div>
-                 <div className="text-center space-y-1">
-                    <h3 className="text-sm font-black text-slate-700 uppercase tracking-tight">Seleção de Ambiente Necessária</h3>
-                    <p className="text-xs text-slate-400 font-medium">Você está no modo desenvolvedor. Escolha uma empresa para visualizar os atendimentos.</p>
-                 </div>
-              </div>
+              <EmptyState 
+                title="Seleção de Ambiente Necessária" 
+                description="Você está no modo desenvolvedor. Escolha uma empresa para visualizar os atendimentos." 
+                icon={<Building size={24} />} 
+              />
             ) : loading && (!kanbanResponse && !ticketsResponse) ? (
-              <div className="h-full flex flex-col items-center justify-center space-y-6 bg-white rounded-3xl border border-slate-200/60 shadow-sm py-20">
-                 <div className="relative">
-                    <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                       <Layers size={16} className="text-blue-400 opacity-50" />
-                    </div>
-                 </div>
-                 <div className="text-center space-y-1">
-                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sincronizando Atendimentos</h3>
-                    <p className="text-[11px] text-slate-500 font-medium animate-pulse">Organizando sua central de tickets...</p>
-                 </div>
-              </div>
+              <LoadingState message="Organizando sua central de tickets..." />
             ) : error ? (
-              <div className="p-12 bg-rose-50 border border-rose-100 rounded-3xl text-center space-y-4">
-                 <div className="w-12 h-12 bg-white rounded-2xl shadow-sm border border-rose-100 flex items-center justify-center mx-auto text-rose-600">
-                    <AlertCircle size={24} />
-                 </div>
-                 <div className="space-y-1">
-                    <h3 className="text-sm font-black text-rose-700 uppercase tracking-tight">Falha na Sincronização</h3>
-                    <p className="text-xs text-rose-600 font-medium max-w-xs mx-auto">{error}</p>
-                 </div>
-                 <Button variant="outline" onClick={fetchData} className="text-[10px] font-black uppercase tracking-widest border-rose-200 text-rose-600 bg-white">Tentar Novamente</Button>
-              </div>
+              <ErrorState title="Falha na Sincronização" message={error} onRetry={fetchData} />
             ) : viewMode === 'kanban' && kanbanResponse ? (
               <TicketKanban kanbanData={kanbanResponse} onSelectTicket={onSelectTicket} currentUser={currentUser} onStatusChange={() => fetchData()} />
             ) : viewMode === 'list' && ticketsResponse ? (

@@ -1,7 +1,5 @@
 import React from "react";
 import { Search, Menu } from "lucide-react";
-import { User } from "../../types";
-import { NotificationsDropdown } from "../ui/NotificationsDropdown";
 
 interface TopbarProps {
   title: string;

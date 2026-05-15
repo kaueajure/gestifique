@@ -9,10 +9,14 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { PageHeader } from '../ui/PageHeader';
+import { SectionHeader } from '../ui/SectionHeader';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { Select } from '../ui/Select';
+import { LoadingState } from '../ui/LoadingState';
+import { ErrorState } from '../ui/ErrorState';
+import { EmptyState } from '../ui/EmptyState';
 import { api } from '../../lib/api';
 import { User } from '../../types';
 import { useTicketOptions } from '../../hooks/useTicketOptions';
@@ -192,12 +196,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
   };
 
   if (loading && !data && !filters.start_date) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
-        <RefreshCw className="w-10 h-10 text-blue-600 animate-spin" />
-        <p className="text-slate-500 font-medium">Processando métricas gerenciais...</p>
-      </div>
-    );
+    return <LoadingState message="Processando métricas gerenciais..." />;
   }
 
   const hasData = data && data.totals.total_tickets > 0;
@@ -234,32 +233,32 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
       />
 
       {/* Filters Container */}
-      <Card className="p-6 bg-slate-50/50 border-slate-200 print:hidden">
-        <div className="flex items-center gap-2 mb-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+      <Card className="p-4 bg-slate-50/50 border-slate-200 print:hidden shadow-sm">
+        <div className="flex items-center gap-2 mb-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
           <Filter size={14} /> Refinar Análise
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700">Período</label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Período</label>
             <div className="flex gap-2">
               <input 
                 type="date"
-                className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:ring-4 focus:ring-blue-100 outline-none"
+                className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-medium focus:ring-2 focus:ring-blue-100 outline-none transition-all h-9"
                 value={filters.start_date}
                 onChange={(e) => setFilters(f => ({ ...f, start_date: e.target.value }))}
               />
               <input 
                 type="date"
-                className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:ring-4 focus:ring-blue-100 outline-none"
+                className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-medium focus:ring-2 focus:ring-blue-100 outline-none transition-all h-9"
                 value={filters.end_date}
                 onChange={(e) => setFilters(f => ({ ...f, end_date: e.target.value }))}
               />
             </div>
           </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700">Prioridade</label>
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Prioridade</label>
             <Select 
-              className="h-8 py-0"
+              buttonClassName="w-full h-9 text-[10px] font-black uppercase tracking-widest bg-white border-slate-200 rounded-lg shrink-0 overflow-hidden"
               value={filters.prioridade}
               onChange={(value) => setFilters(f => ({ ...f, prioridade: value }))}
               options={[
@@ -271,10 +270,10 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
               ]}
             />
           </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700">Status</label>
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Status</label>
             <Select 
-              className="h-8 py-0"
+              buttonClassName="w-full h-9 text-[10px] font-black uppercase tracking-widest bg-white border-slate-200 rounded-lg shrink-0 overflow-hidden"
               value={filters.status}
               onChange={(value) => setFilters(f => ({ ...f, status: value }))}
               options={[
@@ -287,10 +286,10 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
               ]}
             />
           </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700">Origem</label>
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Origem</label>
             <Select 
-              className="h-8 py-0"
+              buttonClassName="w-full h-9 text-[10px] font-black uppercase tracking-widest bg-white border-slate-200 rounded-lg shrink-0 overflow-hidden"
               value={filters.origem}
               onChange={(value) => setFilters(f => ({ ...f, origem: value }))}
               options={[
@@ -303,10 +302,10 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
             />
           </div>
           {!!currentUser.desenvolvedor && (
-             <div className="space-y-1.5">
-               <label className="text-xs font-semibold text-slate-700">Empresa</label>
+             <div className="space-y-1">
+               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Empresa</label>
                <Select 
-                 className="h-8 py-0"
+                 buttonClassName="w-full h-9 text-[10px] font-black uppercase tracking-widest bg-white border-slate-200 rounded-lg shrink-0 overflow-hidden text-left truncate"
                  value={filters.empresa_id}
                  onChange={(value) => setFilters(f => ({ ...f, empresa_id: value }))}
                  options={[
@@ -320,10 +319,11 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
       </Card>
 
       {error && (
-        <Card className="p-4 bg-red-50 border-red-100 text-red-600 flex items-center gap-3">
-          <AlertCircle size={20} />
-          <p className="font-semibold text-xs">{error}</p>
-        </Card>
+        <ErrorState 
+           title="Erro ao carregar relatórios" 
+           message={error} 
+           onRetry={fetchData} 
+        />
       )}
 
       {data && (
@@ -361,8 +361,13 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <SectionHeader 
+               title="Métricas de Compromisso (SLA)" 
+               description="Performace operacional" 
+               className="col-span-1 lg:col-span-3 mb-0 mt-2" 
+            />
             {/* SLA Compliance Section */}
-            <Card className="p-6 col-span-1 lg:col-span-2">
+            <Card className="p-4 lg:p-5 col-span-1 lg:col-span-2 shadow-sm">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                   <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
@@ -413,7 +418,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
             </Card>
 
             {/* Reopen Rate & Stability */}
-            <Card className="p-6">
+            <Card className="p-4 lg:p-5 shadow-sm">
               <h3 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
                 <div className="w-1 h-4 bg-purple-500 rounded-full"></div>
                 Volume de Backlog
@@ -443,8 +448,13 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <SectionHeader 
+               title="Insights Temporais" 
+               description="Distribuição e análise temporal" 
+               className="col-span-1 xl:col-span-2 mb-0 mt-4" 
+            />
             {/* Time Graph */}
-            <Card className="p-6">
+            <Card className="p-4 lg:p-5 shadow-sm">
               <h3 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
                 <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
                 Fluxo de Atendimento Diário
@@ -481,7 +491,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
             </Card>
 
             {/* CSAT Distribution */}
-            <Card className="p-6">
+            <Card className="p-4 lg:p-5 shadow-sm">
               <h3 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
                 <div className="w-1 h-4 bg-amber-500 rounded-full"></div>
                 Satisfação do Cliente (CSAT)
@@ -534,7 +544,12 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-             <Card className="p-6 lg:col-span-2">
+             <SectionHeader 
+               title="Distribuição e Topografia" 
+               description="Análise por classificação e atendente" 
+               className="col-span-1 md:col-span-2 lg:col-span-3 mb-0 mt-4" 
+             />
+             <Card className="p-4 lg:p-5 lg:col-span-2 shadow-sm">
                 <h3 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
                   <div className="w-1 h-4 bg-emerald-600 rounded-full"></div>
                   Performance por Atendente
@@ -577,7 +592,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
              </Card>
 
              <div className="space-y-6">
-                <Card className="p-6">
+                <Card className="p-4 lg:p-5 shadow-sm">
                    <h3 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
                       <div className="w-1 h-4 bg-orange-500 rounded-full"></div>
                       Top Categorias
@@ -621,13 +636,14 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
              </div>
           </div>
 
-          <div className="pt-8 border-t border-slate-200">
-             <div className="flex items-center justify-between mb-6">
-                <div>
-                   <h3 className="text-lg font-bold text-slate-900">Listagem Detalhada</h3>
-                   <p className="text-xs text-slate-500 font-medium font-mono">Auditoria de registros no período</p>
-                </div>
-                <Button onClick={handleGenerateReport} disabled={generating} className="shadow-lg shadow-blue-100">
+          <div className="pt-4">
+             <div className="flex items-center justify-between mb-4">
+                <SectionHeader 
+                   title="Listagem Detalhada" 
+                   description="Auditoria de registros" 
+                   className="mb-0" 
+                />
+                <Button onClick={handleGenerateReport} disabled={generating} size="sm" className="shadow-lg shadow-blue-100">
                    {generating ? <RefreshCw className="mr-2 animate-spin" size={16} /> : <FileText className="mr-2" size={16} />}
                    {detailedReport ? 'Recarregar Listagem' : 'Gerar Listagem Detalhada'}
                 </Button>
@@ -673,9 +689,13 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                               ))
                             ) : (
                               <tr>
-                                <td colSpan={6} className="px-4 py-12 text-center text-sm text-slate-400 font-medium">
-                                  Nenhum atendimento encontrado para os filtros selecionados.
-                                </td>
+                              <td colSpan={6} className="px-4 py-8">
+                                <EmptyState 
+                                  icon={<FileText size={20} />} 
+                                  title="Nenhum atendimento" 
+                                  description="Nenhum registro encontrado para a extração." 
+                                />
+                              </td>
                               </tr>
                             )}
                           </tbody>
@@ -701,17 +721,14 @@ function IndicatorCard({ title, value, icon, color, trend }: { title: string, va
   };
 
   return (
-    <Card className="p-6 relative overflow-hidden group hover:shadow-lg transition-all border-slate-200">
-      <div className={`w-10 h-10 rounded-xl mb-4 flex items-center justify-center ${colorMap[color]}`}>
-        {React.cloneElement(icon as React.ReactElement<any>, { size: 20 })}
+    <Card className="p-4 relative overflow-hidden group hover:shadow-md transition-all border-slate-200">
+      <div className={`w-8 h-8 rounded-lg mb-3 flex items-center justify-center ${colorMap[color]}`}>
+        {React.cloneElement(icon as React.ReactElement<any>, { size: 16 })}
       </div>
       <div className="space-y-1">
-        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{title}</p>
-        <p className="text-3xl font-black text-slate-900 tracking-tight">{value}</p>
-        {trend && <p className="text-[10px] font-bold text-slate-500 flex items-center gap-1 mt-2">{trend}</p>}
-      </div>
-      <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none group-hover:scale-110 transition-transform">
-        {React.cloneElement(icon as React.ReactElement<any>, { size: 64 })}
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{title}</p>
+        <p className="text-2xl font-black text-slate-800 tracking-tight leading-none">{value}</p>
+        {trend && <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter pt-1">{trend}</p>}
       </div>
     </Card>
   );

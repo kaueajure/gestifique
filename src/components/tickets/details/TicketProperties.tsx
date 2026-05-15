@@ -41,14 +41,14 @@ const PropertyRow = ({ label, icon: Icon, children, className }: { label: string
 
 const Section = ({ title, icon: Icon, children, badge }: { title: string, icon?: any, children: React.ReactNode, badge?: React.ReactNode }) => (
   <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm transition-all hover:shadow-md">
-    <div className="px-4 py-3 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
-      <h3 className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-        {Icon && <Icon size={14} className="text-blue-500" />}
+    <div className="px-3 py-2 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
+      <h3 className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-1.5">
+        {Icon && <Icon size={12} className="text-slate-400" />}
         {title}
       </h3>
       {badge}
     </div>
-    <div className="p-4 space-y-0 divide-y divide-slate-100/50">
+    <div className="p-3 space-y-0 divide-y divide-slate-100/50">
       {children}
     </div>
   </div>
@@ -123,7 +123,7 @@ export const TicketProperties = ({
   const firstResponseSla = getFirstResponseSlaInfo(ticket);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <ConfirmDialog 
         isOpen={isArchiveConfirmOpen}
         onClose={() => setIsArchiveConfirmOpen(false)}
@@ -151,7 +151,7 @@ export const TicketProperties = ({
                { value: 'resolvido', label: 'Resolvido' },
                { value: 'fechado', label: 'Fechado' }
              ]}
-             buttonClassName="w-full h-10 text-xs font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-xl"
+             buttonClassName="w-full h-9 text-[10px] font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-lg"
              disabled={!canManage}
            />
         </PropertyRow>
@@ -164,7 +164,7 @@ export const TicketProperties = ({
                { value: '', label: 'Nenhum Atribuído' },
                ...agents.map(a => ({ value: String(a.id), label: a.nome }))
              ]}
-             buttonClassName="w-full h-10 text-xs font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-xl"
+             buttonClassName="w-full h-9 text-[10px] font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-lg"
              disabled={!canManage}
            />
         </PropertyRow>
@@ -179,7 +179,7 @@ export const TicketProperties = ({
                { value: 'alta', label: 'Alta' },
                { value: 'urgente', label: 'Urgente' }
              ]}
-             buttonClassName="w-full h-10 text-xs font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-xl"
+             buttonClassName="w-full h-9 text-[10px] font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-lg"
              disabled={!canManage}
            />
         </PropertyRow>
@@ -198,9 +198,9 @@ export const TicketProperties = ({
           </div>
         }
       >
-        <div className="space-y-4 py-2">
+        <div className="space-y-2 py-2">
           {/* Primeira Resposta */}
-          <div className="flex items-center justify-between gap-4 p-3 rounded-xl bg-slate-50 border border-slate-100">
+          <div className="flex items-center justify-between gap-4 p-2 rounded-lg bg-slate-50 border border-slate-100">
              <div className="flex flex-col">
                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Resposta Inicial</span>
                 <span className="text-[11px] font-bold text-slate-700">
@@ -216,7 +216,7 @@ export const TicketProperties = ({
           </div>
 
           {/* Resolução Final */}
-          <div className="flex items-center justify-between gap-4 p-3 rounded-xl bg-slate-50 border border-slate-100">
+          <div className="flex items-center justify-between gap-4 p-2 rounded-lg bg-slate-50 border border-slate-100">
              <div className="flex flex-col">
                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">ConcLusão Final</span>
                 <span className="text-[11px] font-bold text-slate-700">
@@ -265,7 +265,7 @@ export const TicketProperties = ({
                { value: 'chat', label: 'Chat' },
                { value: 'manual', label: 'Manual' }
              ]}
-             buttonClassName="w-full h-10 text-xs font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-xl"
+             buttonClassName="w-full h-9 text-[10px] font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-lg"
              disabled={!canManage}
            />
         </PropertyRow>
@@ -278,7 +278,7 @@ export const TicketProperties = ({
              value={ticket.categoria || ''}
              onChange={(value) => onUpdate({ categoria: value })}
              options={categoryOptions}
-             buttonClassName="w-full h-10 text-xs font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-xl"
+             buttonClassName="w-full h-9 text-[10px] font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-lg"
              disabled={!canManage}
            />
         </PropertyRow>
@@ -287,7 +287,7 @@ export const TicketProperties = ({
              value={ticket.servico || ''}
              onChange={(value) => onUpdate({ servico: value })}
              options={serviceOptions}
-             buttonClassName="w-full h-10 text-xs font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-xl"
+             buttonClassName="w-full h-9 text-[10px] font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-lg"
              disabled={!canManage}
            />
         </PropertyRow>
@@ -346,8 +346,9 @@ export const TicketProperties = ({
         <div className="pt-2">
            <Button 
              variant="outline"
+             size="sm"
              onClick={() => setIsArchiveConfirmOpen(true)}
-             className="w-full h-12 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:text-white hover:bg-rose-600 border border-rose-100 hover:border-rose-600 rounded-2xl transition-all shadow-sm flex items-center justify-center gap-2"
+             className="w-full h-10 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:text-white hover:bg-rose-600 border border-rose-100 hover:border-rose-600 rounded-lg transition-all shadow-sm flex items-center justify-center gap-2"
            >
              <Trash2 size={16} /> 
              Encerrar Definitivamente

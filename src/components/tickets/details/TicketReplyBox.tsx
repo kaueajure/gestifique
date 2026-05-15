@@ -70,11 +70,11 @@ export const TicketReplyBox = ({
         {/* Composer Tabs */}
         <div className="flex items-center justify-between px-4 bg-slate-50/50 border-b border-slate-100">
           <div className="flex -mb-[1px]">
-             <button
+              <button
                 type="button"
                 onClick={() => setIsInternal(false)}
                 className={cn(
-                  "px-6 py-3 text-[10px] font-black uppercase tracking-widest transition-all border-b-2 flex items-center gap-2",
+                  "px-4 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all border-b-2 flex items-center gap-1.5",
                   !isInternal 
                     ? "text-blue-600 border-blue-600 bg-white" 
                     : "text-slate-400 border-transparent hover:text-slate-600"
@@ -88,7 +88,7 @@ export const TicketReplyBox = ({
                   type="button"
                   onClick={() => setIsInternal(true)}
                   className={cn(
-                    "px-6 py-3 text-[10px] font-black uppercase tracking-widest transition-all border-b-2 flex items-center gap-2",
+                    "px-4 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all border-b-2 flex items-center gap-1.5",
                     isInternal 
                       ? "text-amber-600 border-amber-600 bg-white" 
                       : "text-slate-400 border-transparent hover:text-slate-600"
@@ -132,11 +132,11 @@ export const TicketReplyBox = ({
 
         {/* Text Area Content */}
         <div className={cn(
-          "relative min-h-[120px] transition-colors",
+          "relative transition-colors",
           isInternal ? "bg-amber-50/20" : "bg-white"
         )}>
           {isInternal && (
-             <div className="absolute top-3 right-4 z-10 flex items-center gap-2 text-[8px] font-black uppercase tracking-widest text-amber-600 bg-amber-100/50 px-2 py-1 rounded-lg border border-amber-200/50 pointer-events-none">
+             <div className="absolute top-2 right-3 z-10 flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest text-amber-600 bg-amber-100/50 px-2 py-0.5 rounded border border-amber-200/50 pointer-events-none">
                 <EyeOff size={10} /> Visível apenas para agentes
              </div>
           )}
@@ -146,7 +146,7 @@ export const TicketReplyBox = ({
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder={isInternal ? "Escreva uma observação interna ou detalhe técnico..." : "Digite sua mensagem para o cliente..."}
             className={cn(
-              "w-full h-full min-h-[120px] p-4 text-sm font-medium focus:ring-0 focus:outline-none transition-all resize-none border-0",
+              "w-full p-4 text-sm font-medium focus:ring-0 focus:outline-none transition-all resize-none border-0 min-h-[80px]",
               isInternal 
                 ? "text-amber-900 placeholder:text-amber-300" 
                 : "text-slate-700 placeholder:text-slate-300"
@@ -202,18 +202,19 @@ export const TicketReplyBox = ({
              <Button 
                 onClick={handleSubmit}
                 disabled={isMessageEmpty || loadingSend}
+                size="sm"
                 className={cn(
-                  "h-10 px-6 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-lg active:scale-95",
+                  "px-4 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all shadow-sm",
                   isInternal 
-                    ? "bg-amber-600 hover:bg-amber-700 text-white shadow-amber-200 border-b-4 border-amber-800" 
-                    : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200 border-b-4 border-blue-800",
+                    ? "bg-amber-600 hover:bg-amber-700 text-white" 
+                    : "bg-blue-600 hover:bg-blue-700 text-white",
                   isMessageEmpty && "opacity-50 grayscale"
                 )}
               >
                 {loadingSend ? (
-                  <Loader2 size={14} className="animate-spin mr-2" />
+                  <Loader2 size={12} className="animate-spin mr-1.5" />
                 ) : (
-                  <Send size={14} className="mr-2" />
+                  <Send size={12} className="mr-1.5" />
                 )}
                 {isInternal ? "Postar Nota" : "Enviar Resposta"}
               </Button>

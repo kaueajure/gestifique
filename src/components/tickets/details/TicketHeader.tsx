@@ -58,8 +58,8 @@ export const TicketHeader = ({
   };
 
   return (
-    <div className="bg-white border-b border-slate-200 p-4 md:p-6 sticky top-0 z-40">
-      <div className="max-w-[1600px] mx-auto space-y-4">
+    <div className="bg-white border-b border-slate-200 p-4 sticky top-0 z-40">
+      <div className="max-w-[1600px] mx-auto space-y-3">
         {/* Top Row: Navigation + Actions */}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">
@@ -88,21 +88,23 @@ export const TicketHeader = ({
             {showResolveButton && (
               <Button 
                 onClick={onResolve}
-                className="h-10 px-6 bg-emerald-600 hover:bg-emerald-700 text-white border-b-4 border-emerald-800 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all active:translate-y-0.5 active:border-b-0 shadow-lg shadow-emerald-200"
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white border-b border-emerald-800 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all active:translate-y-px shadow-sm"
               >
-                <CheckCircle2 size={16} className="mr-2" />
+                <CheckCircle2 size={14} className="mr-1.5" />
                 Finalizar
               </Button>
             )}
 
             {showReopenButton && (
               <Button 
-                variant="outline" 
+                variant="outline"
+                size="sm"
                 onClick={() => onUpdate({ status: 'aberto' })}
-                className="h-10 px-6 text-[11px] font-black uppercase tracking-widest rounded-xl border-blue-200 text-blue-600 hover:bg-blue-50 shadow-sm"
+                className="text-[10px] font-black uppercase tracking-widest rounded-lg border-blue-200 text-blue-600 hover:bg-blue-50 shadow-sm"
               >
-                <RefreshCw size={16} className="mr-2" />
-                Reabrir Chamado
+                <RefreshCw size={14} className="mr-1.5" />
+                Reabrir
               </Button>
             )}
           </div>
