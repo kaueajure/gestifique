@@ -28,9 +28,9 @@ import { useTicketOptions } from '../../../hooks/useTicketOptions';
 import { hasPermission } from '../../../lib/permissions';
 
 const PropertyRow = ({ label, icon: Icon, children, className }: { label: string, icon?: any, children: React.ReactNode, className?: string }) => (
-  <div className={cn("flex flex-col gap-1.5 py-3 first:pt-0", className)}>
-    <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
-       {Icon && <Icon size={12} className="text-slate-300" />}
+  <div className={cn("flex flex-col gap-1.5 py-2.5 first:pt-0", className)}>
+    <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500 uppercase tracking-wider leading-none">
+       {Icon && <Icon size={12} />}
        {label}
     </div>
     <div className="w-full">
@@ -40,15 +40,15 @@ const PropertyRow = ({ label, icon: Icon, children, className }: { label: string
 );
 
 const Section = ({ title, icon: Icon, children, badge }: { title: string, icon?: any, children: React.ReactNode, badge?: React.ReactNode }) => (
-  <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm transition-all hover:shadow-md">
-    <div className="px-3 py-2 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
-      <h3 className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-1.5">
-        {Icon && <Icon size={12} className="text-slate-400" />}
+  <div className="bg-white border text-sm border-slate-200 rounded-xl overflow-hidden shadow-sm">
+    <div className="px-3 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+      <h3 className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+        {Icon && <Icon size={14} className="text-slate-500" />}
         {title}
       </h3>
       {badge}
     </div>
-    <div className="p-3 space-y-0 divide-y divide-slate-100/50">
+    <div className="p-3 space-y-0 divide-y divide-slate-100">
       {children}
     </div>
   </div>
@@ -151,7 +151,7 @@ export const TicketProperties = ({
                { value: 'resolvido', label: 'Resolvido' },
                { value: 'fechado', label: 'Fechado' }
              ]}
-             buttonClassName="w-full h-9 text-[10px] font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-lg"
+             buttonClassName="w-full h-8 text-xs font-semibold bg-slate-50 border-slate-200 rounded-md"
              disabled={!canManage}
            />
         </PropertyRow>
@@ -164,7 +164,7 @@ export const TicketProperties = ({
                { value: '', label: 'Nenhum Atribuído' },
                ...agents.map(a => ({ value: String(a.id), label: a.nome }))
              ]}
-             buttonClassName="w-full h-9 text-[10px] font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-lg"
+             buttonClassName="w-full h-8 text-xs font-semibold bg-slate-50 border-slate-200 rounded-md"
              disabled={!canManage}
            />
         </PropertyRow>
@@ -179,7 +179,7 @@ export const TicketProperties = ({
                { value: 'alta', label: 'Alta' },
                { value: 'urgente', label: 'Urgente' }
              ]}
-             buttonClassName="w-full h-9 text-[10px] font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-lg"
+             buttonClassName="w-full h-8 text-xs font-semibold bg-slate-50 border-slate-200 rounded-md"
              disabled={!canManage}
            />
         </PropertyRow>
@@ -191,50 +191,50 @@ export const TicketProperties = ({
         icon={Clock}
         badge={
           <div className={cn(
-            "text-[9px] font-black px-2 py-0.5 rounded-full border",
+            "text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider",
             slaInfo.status === 'vencido' ? "bg-rose-50 text-rose-600 border-rose-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"
           )}>
             {slaInfo.label}
           </div>
         }
       >
-        <div className="space-y-2 py-2">
+        <div className="space-y-1.5 py-1">
           {/* Primeira Resposta */}
-          <div className="flex items-center justify-between gap-4 p-2 rounded-lg bg-slate-50 border border-slate-100">
+          <div className="flex items-center justify-between gap-2 p-2 rounded-md bg-slate-50 border border-slate-100">
              <div className="flex flex-col">
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Resposta Inicial</span>
-                <span className="text-[11px] font-bold text-slate-700">
+                <span className="text-[10px] font-medium text-slate-500 mb-0.5">Resposta Inicial</span>
+                <span className="text-xs font-semibold text-slate-700">
                   {ticket.prazo_primeira_resposta ? formatDate(ticket.prazo_primeira_resposta) : 'Não definido'}
                 </span>
              </div>
              <Badge 
                variant={firstResponseSla.status === 'finalizado' ? 'emerald' : firstResponseSla.status === 'vencido' ? 'red' : 'amber'}
-               className="text-[8px] font-black px-1.5 py-0 rounded-lg"
+               className="text-[9px] px-1.5 py-0 rounded"
              >
                {firstResponseSla.label}
              </Badge>
           </div>
 
           {/* Resolução Final */}
-          <div className="flex items-center justify-between gap-4 p-2 rounded-lg bg-slate-50 border border-slate-100">
+          <div className="flex items-center justify-between gap-2 p-2 rounded-md bg-slate-50 border border-slate-100">
              <div className="flex flex-col">
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">ConcLusão Final</span>
-                <span className="text-[11px] font-bold text-slate-700">
+                <span className="text-[10px] font-medium text-slate-500 mb-0.5">Resolução SLA</span>
+                <span className="text-xs font-semibold text-slate-700">
                   {ticket.prazo_sla ? formatDate(ticket.prazo_sla) : 'Não definido'}
                 </span>
              </div>
              <Badge 
                variant={slaInfo.status === 'vencido' ? 'red' : slaInfo.status === 'finalizado' ? 'emerald' : 'amber'}
-               className="text-[8px] font-black px-1.5 py-0 rounded-lg"
+               className="text-[9px] px-1.5 py-0 rounded"
              >
                {slaInfo.label}
              </Badge>
           </div>
 
           {ticket.primeira_resposta_em && (
-             <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest px-2">
+             <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-medium px-1 mt-1">
                 <CheckCircle2 size={12} className="text-emerald-500" />
-                Interação às {new Date(ticket.primeira_resposta_em).toLocaleTimeString()}
+                <span>Interação às {new Date(ticket.primeira_resposta_em).toLocaleTimeString()}</span>
              </div>
           )}
         </div>
@@ -243,12 +243,12 @@ export const TicketProperties = ({
       {/* Seção 3: Cliente & Origem */}
       <Section title="Informações do Cliente" icon={Globe}>
         <PropertyRow label="Solicitante">
-           <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-              <div className="text-xs font-black text-slate-900 uppercase tracking-tight mb-0.5">{ticket.cliente_nome || 'Desconhecido'}</div>
-              <div className="text-[10px] font-bold text-slate-400 truncate uppercase tracking-widest">{ticket.cliente_email || 'n/a'}</div>
+           <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+              <div className="text-sm font-semibold text-slate-900 mb-0.5">{ticket.cliente_nome || 'Desconhecido'}</div>
+              <div className="text-[11px] text-slate-500 truncate">{ticket.cliente_email || 'n/a'}</div>
               {ticket.empresa_nome && (
-                <div className="flex items-center gap-1.5 mt-2 text-[10px] font-black text-blue-600 uppercase tracking-widest bg-blue-50/50 px-2 py-1 rounded-lg border border-blue-100/50 w-fit">
-                  <Building2 size={12} /> {ticket.empresa_nome}
+                <div className="flex items-center gap-1 mt-2 text-[10px] font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 w-fit">
+                  <Building2 size={10} /> {ticket.empresa_nome}
                 </div>
               )}
            </div>
@@ -265,7 +265,7 @@ export const TicketProperties = ({
                { value: 'chat', label: 'Chat' },
                { value: 'manual', label: 'Manual' }
              ]}
-             buttonClassName="w-full h-9 text-[10px] font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-lg"
+             buttonClassName="w-full h-8 text-xs font-semibold bg-slate-50 border-slate-200 rounded-md"
              disabled={!canManage}
            />
         </PropertyRow>
@@ -278,7 +278,7 @@ export const TicketProperties = ({
              value={ticket.categoria || ''}
              onChange={(value) => onUpdate({ categoria: value })}
              options={categoryOptions}
-             buttonClassName="w-full h-9 text-[10px] font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-lg"
+             buttonClassName="w-full h-8 text-xs font-semibold bg-slate-50 border-slate-200 rounded-md"
              disabled={!canManage}
            />
         </PropertyRow>
@@ -287,7 +287,7 @@ export const TicketProperties = ({
              value={ticket.servico || ''}
              onChange={(value) => onUpdate({ servico: value })}
              options={serviceOptions}
-             buttonClassName="w-full h-9 text-[10px] font-black uppercase tracking-widest bg-slate-50 border-slate-200 rounded-lg"
+             buttonClassName="w-full h-8 text-xs font-semibold bg-slate-50 border-slate-200 rounded-md"
              disabled={!canManage}
            />
         </PropertyRow>
@@ -315,9 +315,9 @@ export const TicketProperties = ({
            {attachments.length > 0 ? (
              <AttachmentList attachments={attachments} compact />
            ) : (
-             <div className="flex flex-col items-center justify-center p-6 bg-slate-50/50 border border-slate-100 border-dashed rounded-xl text-slate-300">
-                <Paperclip size={24} className="mb-2 opacity-50" />
-                <span className="text-[10px] font-black uppercase tracking-widest">Nenhum anexo</span>
+             <div className="flex flex-col items-center justify-center p-4 bg-slate-50/50 border border-slate-200 border-dashed rounded-lg text-slate-400">
+                <Paperclip size={16} className="mb-1 opacity-50" />
+                <span className="text-[10px] font-medium">Nenhum anexo</span>
              </div>
            )}
         </PropertyRow>
@@ -326,14 +326,14 @@ export const TicketProperties = ({
       {/* Seção 6: Resolução info se finalizado */}
       {(ticket.status === 'resolvido' || ticket.status === 'fechado') && (
         <Section title="Conclusão" icon={CheckCircle2}>
-           <div className="space-y-4 py-2">
-              <div className="flex flex-col gap-1 px-1">
-                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Motivo</span>
-                 <span className="text-xs font-black text-slate-900 uppercase tracking-tight">{ticket.resolucao_motivo?.replace('_', ' ') || 'Não inf.'}</span>
+           <div className="space-y-3 py-1">
+              <div className="flex flex-col px-1">
+                 <span className="text-[10px] font-semibold text-slate-500 mb-0.5">Motivo</span>
+                 <span className="text-xs font-semibold text-slate-900">{ticket.resolucao_motivo?.replace('_', ' ') || 'Não inf.'}</span>
               </div>
-              <div className="flex flex-col gap-1 px-1">
-                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Observação Final</span>
-                 <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-xs font-medium text-emerald-900 leading-relaxed italic">
+              <div className="flex flex-col px-1">
+                 <span className="text-[10px] font-semibold text-slate-500 mb-0.5">Observação</span>
+                 <div className="p-2.5 bg-emerald-50 border border-emerald-100 rounded-lg text-xs text-emerald-900">
                     "{ticket.resolucao_observacao || 'Nenhuma observação registrada.'}"
                  </div>
               </div>
@@ -348,9 +348,9 @@ export const TicketProperties = ({
              variant="outline"
              size="sm"
              onClick={() => setIsArchiveConfirmOpen(true)}
-             className="w-full h-10 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:text-white hover:bg-rose-600 border border-rose-100 hover:border-rose-600 rounded-lg transition-all shadow-sm flex items-center justify-center gap-2"
+             className="w-full h-8 text-xs font-semibold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 rounded-md transition-all shadow-sm"
            >
-             <Trash2 size={16} /> 
+             <Trash2 size={14} className="mr-1.5" /> 
              Encerrar Definitivamente
            </Button>
         </div>

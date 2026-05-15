@@ -83,7 +83,7 @@ export const TicketTimeline = ({ timeline, loading }: TicketTimelineProps) => {
       {/* Vertical Track */}
       <div className="absolute left-[11px] top-4 bottom-4 w-px bg-slate-100" />
       
-      <div className="space-y-10 relative">
+      <div className="space-y-6 relative">
         {timeline.map((item, index) => {
           const Icon = getIcon(item.type);
           const colorClasses = getEventColor(item.type);
@@ -99,10 +99,10 @@ export const TicketTimeline = ({ timeline, loading }: TicketTimelineProps) => {
                 <Icon size={12} />
               </div>
               
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-1">
                 <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-semibold text-slate-900 tracking-tight">
                        {item.type === 'internal_note' ? 'Nota Interna' : 
                         item.type === 'system' ? 'Sistema' : 
                         item.type === 'response' ? 'Resposta' : 
@@ -111,25 +111,25 @@ export const TicketTimeline = ({ timeline, loading }: TicketTimelineProps) => {
                         item.type === 'tag_change' ? 'Tags' :
                         item.type === 'custom_field' ? 'Campo Extra' : 'Conclusão'}
                     </span>
-                    <span className="w-1 h-1 rounded-full bg-slate-200" />
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">
+                    <span className="w-1 h-1 rounded-full bg-slate-300" />
+                    <span className="text-[10px] font-medium text-slate-500">
                        {item.author}
                     </span>
                   </div>
-                  <time className="text-[9px] font-bold text-slate-400/80 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-100 shrink-0">
+                  <time className="text-[10px] font-medium text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded-sm border border-slate-100 shrink-0">
                     {date.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                   </time>
                 </div>
                 
                 <div className={cn(
-                  "text-[12px] font-medium leading-relaxed pr-6",
+                  "text-xs font-medium leading-relaxed pr-4",
                   item.type === 'internal_note' ? "text-amber-700 italic" : "text-slate-600"
                 )}>
                   {item.description}
                 </div>
                 
                 {item.action && (
-                   <div className="mt-1 flex items-center gap-1.5 text-[9px] font-black text-blue-600 uppercase tracking-widest bg-blue-50/50 px-2 py-0.5 rounded-lg border border-blue-100/30 w-fit">
+                   <div className="mt-1 flex items-center gap-1 text-[10px] font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 w-fit">
                      <Zap size={10} />
                      {item.action}
                    </div>

@@ -56,39 +56,32 @@ export const TicketSummaryCards = ({ summary }: SummaryProps) => {
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
       {cards.map((card) => (
         <Card 
           key={card.label} 
           className={cn(
-            "p-3 border-slate-200 transition-all hover:shadow-md group",
+            "p-2 border-slate-200 transition-all flex items-center gap-2",
             `hover:border-${card.color}-200`
           )}
         >
-          <div className="flex items-start justify-between">
-            <div className={cn(
-              "p-2 rounded-xl border mb-2",
-              card.color === 'blue' && "bg-blue-50 border-blue-100 text-blue-600",
-              card.color === 'indigo' && "bg-indigo-50 border-indigo-100 text-indigo-600",
-              card.color === 'amber' && "bg-amber-50 border-amber-100 text-amber-600",
-              card.color === 'rose' && "bg-rose-50 border-rose-100 text-rose-600",
-              card.color === 'emerald' && "bg-emerald-50 border-emerald-100 text-emerald-600",
-            )}>
-              <card.icon size={18} />
-            </div>
-            <div className="text-right">
-              <span className="text-2xl font-black text-slate-800 tracking-tight leading-none">
-                {card.value}
-              </span>
-            </div>
+          <div className={cn(
+            "p-1.5 rounded-md border shrink-0",
+            card.color === 'blue' && "bg-blue-50 border-blue-100 text-blue-600",
+            card.color === 'indigo' && "bg-indigo-50 border-indigo-100 text-indigo-600",
+            card.color === 'amber' && "bg-amber-50 border-amber-100 text-amber-600",
+            card.color === 'rose' && "bg-rose-50 border-rose-100 text-rose-600",
+            card.color === 'emerald' && "bg-emerald-50 border-emerald-100 text-emerald-600",
+          )}>
+            <card.icon size={14} />
           </div>
-          <div className="space-y-0.5">
-            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+          <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
+            <h4 className="text-[11px] font-semibold text-slate-600 truncate" title={card.description}>
               {card.label}
             </h4>
-            <p className="text-[10px] text-slate-400 font-medium truncate">
-              {card.description}
-            </p>
+            <span className="text-sm font-bold text-slate-800">
+              {card.value}
+            </span>
           </div>
         </Card>
       ))}

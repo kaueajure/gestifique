@@ -380,28 +380,32 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
           <motion.div 
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden border border-slate-200"
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200"
           >
-             <div className="p-8 border-b border-slate-100 flex flex-col gap-1">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-4">
-                   <CheckCircle2 size={24} />
+             <div className="p-6 border-b border-slate-100 flex flex-col gap-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                     <CheckCircle2 size={16} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-slate-900 tracking-tight">
+                       Concluir Atendimento
+                    </h3>
+                    <p className="text-xs text-slate-500 font-medium">
+                       Informe como este chamado foi resolvido
+                    </p>
+                  </div>
                 </div>
-                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">
-                   Concluir Atendimento
-                </h3>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-                   Informe como este chamado foi resolvido
-                </p>
              </div>
 
-             <div className="p-8 space-y-6">
-                <div className="space-y-2">
-                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Motivo da Resolução</label>
+             <div className="p-6 space-y-4">
+                <div className="space-y-1.5">
+                   <label className="text-[11px] font-semibold text-slate-600">Motivo da Resolução</label>
                    <Select 
                      value={resolutionData.resolucao_motivo}
                      onChange={(value) => setResolutionData(prev => ({ ...prev, resolucao_motivo: value }))}
                      placeholder="Selecione o motivo..."
-                     buttonClassName="h-12 bg-slate-50 border-slate-200 rounded-xl"
+                     buttonClassName="h-9 bg-slate-50 border-slate-200 rounded-lg text-xs"
                      options={[
                        { value: "duvida_sanada", label: "Dúvida sanada" },
                        { value: "problema_corrigido", label: "Problema corrigido" },
@@ -414,29 +418,31 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                    />
                 </div>
 
-                <div className="space-y-2">
-                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Observação Final</label>
+                <div className="space-y-1.5">
+                   <label className="text-[11px] font-semibold text-slate-600">Observação Final</label>
                    <textarea 
                      value={resolutionData.resolucao_observacao}
                      onChange={(e) => setResolutionData(prev => ({ ...prev, resolucao_observacao: e.target.value }))}
                      placeholder="Detalhes sobre a solução..."
-                     className="w-full h-32 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 transition-all resize-none font-medium"
+                     className="w-full h-24 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 outline-none focus:ring-1 focus:ring-blue-400 transition-all resize-none"
                    />
                 </div>
              </div>
 
-             <div className="p-6 bg-slate-50/50 flex flex-col md:flex-row gap-3 rounded-b-xl border-t border-slate-100">
+             <div className="p-4 bg-slate-50/50 flex flex-col md:flex-row justify-end gap-2 rounded-b-xl border-t border-slate-100">
                 <Button 
                    variant="ghost" 
-                   className="flex-1 h-12 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600" 
+                   size="sm"
+                   className="text-slate-500 hover:text-slate-700" 
                    onClick={() => setIsResolveModalOpen(false)}
                 >
                    Desistir
                 </Button>
                 <Button 
+                   size="sm"
                    onClick={handleConfirmResolution} 
                    disabled={!resolutionData.resolucao_motivo}
-                   className="flex-[2] bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] uppercase tracking-widest h-12 rounded-xl shadow-lg shadow-emerald-200"
+                   className="bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm"
                 >
                    Finalizar Agora
                 </Button>

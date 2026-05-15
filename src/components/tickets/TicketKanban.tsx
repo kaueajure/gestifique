@@ -245,21 +245,21 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
           {localData.columns.map(column => (
             <div 
               key={column.id}
-              className="w-[280px] sm:w-[300px] xl:w-[320px] shrink-0 flex flex-col max-h-full snap-start"
+              className="w-[240px] sm:w-[260px] xl:w-[280px] shrink-0 flex flex-col max-h-full snap-start"
             >
-              <div className="flex items-center justify-between px-3 mb-4 shrink-0">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between px-2 mb-2 shrink-0">
+                <div className="flex items-center gap-1.5">
                   <div className={cn(
-                    "w-2.5 h-2.5 rounded-lg border-2",
-                    column.id === 'aberto' && "bg-blue-500 border-blue-200 shadow-[0_0_8px_rgba(59,130,246,0.5)]",
-                    column.id === 'em_andamento' && "bg-indigo-500 border-indigo-200 shadow-[0_0_8px_rgba(99,102,241,0.5)]",
-                    column.id === 'aguardando_cliente' && "bg-amber-500 border-amber-200 shadow-[0_0_8px_rgba(245,158,11,0.5)]",
-                    column.id === 'resolvido' && "bg-emerald-500 border-emerald-200 shadow-[0_0_8px_rgba(16,185,129,0.5)]",
-                    column.id === 'fechado' && "bg-slate-500 border-slate-200"
+                    "w-2 h-2 rounded-full",
+                    column.id === 'aberto' && "bg-blue-500",
+                    column.id === 'em_andamento' && "bg-indigo-500",
+                    column.id === 'aguardando_cliente' && "bg-amber-500",
+                    column.id === 'resolvido' && "bg-emerald-500",
+                    column.id === 'fechado' && "bg-slate-500"
                   )} />
-                  <h3 className="font-black text-[11px] uppercase tracking-widest text-slate-700">{column.title}</h3>
+                  <h3 className="font-bold text-[10px] uppercase tracking-widest text-slate-600">{column.title}</h3>
                 </div>
-                <span className="text-[10px] font-black bg-white border border-slate-200 text-slate-500 px-2 py-0.5 rounded-lg shadow-sm">
+                <span className="text-[10px] font-bold bg-white border border-slate-200 text-slate-500 px-1.5 py-0.5 rounded-md shadow-sm">
                   {column.count}
                 </span>
               </div>
@@ -294,8 +294,8 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                             {...provided.dragHandleProps}
                             onClick={() => onSelectTicket(ticket.id)}
                             className={cn(
-                              "bg-white rounded-xl shadow-sm border border-slate-200/80 cursor-pointer transition-all duration-300 hover:shadow-xl hover:border-blue-300 hover:-translate-y-0.5 group relative overflow-hidden",
-                              snapshot.isDragging && "shadow-2xl border-blue-500 ring-4 ring-blue-500/10 z-50 scale-[1.05]",
+                              "bg-white rounded-lg shadow-sm border border-slate-200 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-blue-300 group relative overflow-hidden",
+                              snapshot.isDragging && "shadow-lg border-blue-500 ring-2 ring-blue-500/10 z-50",
                               updatingId === ticket.id && "opacity-50 pointer-events-none"
                             )}
                           >
@@ -307,9 +307,9 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                               ticket.prioridade === 'media' ? "bg-amber-400" : "bg-slate-100"
                             )} />
 
-                            <div className="p-3.5 pt-2.5">
+                            <div className="p-2.5 pt-2">
                               {/* Quick Actions (Hover Only) */}
-                              <div className="absolute top-2.5 right-2 opacity-0 group-hover:opacity-100 transition-all flex items-center gap-1 bg-white/95 backdrop-blur-md p-1 rounded-xl shadow-lg border border-slate-100 translate-y-1 group-hover:translate-y-0">
+                              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all flex items-center gap-1 bg-white/95 backdrop-blur-md p-1 rounded-lg shadow-sm border border-slate-100">
                                 {canManage && isAbertoESemResp && (
                                   <button onClick={(e) => handleAssumirTicket(e, ticket.id)} title="Assumir Ticket" className="w-7 h-7 flex items-center justify-center hover:bg-blue-600 hover:text-white text-blue-600 rounded-lg transition-all">
                                     <UserPlus size={12} />
@@ -325,13 +325,13 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                                 </button>
                               </div>
 
-                              <div className="flex flex-col gap-2.5">
+                              <div className="flex flex-col gap-2">
                                 <div className="flex items-center justify-between gap-2">
                                   <div className="flex items-center gap-1.5 min-w-0">
                                     {ticket.nao_lido && (
-                                      <div className="w-2 h-2 rounded-full bg-blue-600 ring-4 ring-blue-50 animate-pulse shrink-0" />
+                                      <div className="w-1.5 h-1.5 rounded-full bg-blue-600 shrink-0" />
                                     )}
-                                    <span className="text-[10px] font-black text-blue-600 tracking-widest shrink-0 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 uppercase">
+                                    <span className="text-[10px] font-bold text-blue-600 tracking-widest shrink-0 bg-blue-50 px-1.5 rounded border border-blue-100">
                                       #{ticket.id}
                                     </span>
                                     {ticket.origem === 'email' && (
@@ -342,7 +342,7 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                                   </div>
                                   
                                   <div className={cn(
-                                    "px-1.5 py-0.5 rounded-lg border text-[9px] font-black uppercase tracking-widest shadow-sm",
+                                    "px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase tracking-widest",
                                     sla.color
                                   )}>
                                     <Clock size={10} className="inline mr-1" />
@@ -350,13 +350,13 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                                   </div>
                                 </div>
 
-                                <h4 className="font-black text-[13px] leading-tight text-slate-800 line-clamp-2 uppercase tracking-tight group-hover:text-blue-700 transition-colors">
+                                <h4 className="font-semibold text-[13px] leading-tight text-slate-800 line-clamp-2 group-hover:text-blue-700 transition-colors">
                                   {ticket.titulo}
                                 </h4>
 
                                 {estadoInfo && (
                                   <div className={cn(
-                                    "px-2 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest border self-start flex items-center gap-1.5 shadow-sm",
+                                    "px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest border self-start flex items-center gap-1.5",
                                     estadoInfo.color
                                   )}>
                                     <div className={cn("w-1.5 h-1.5 rounded-full", estadoInfo.dot)} />
@@ -364,41 +364,41 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                                   </div>
                                 )}
 
-                                <div className="mt-1 space-y-2">
+                                <div className="mt-1 space-y-1.5">
                                   <div className="flex items-center gap-2">
-                                    <div className="w-5 h-5 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
-                                      <UserIcon size={10} className="text-slate-400" />
+                                    <div className="w-5 h-5 rounded flex items-center justify-center shrink-0 bg-slate-100">
+                                      <UserIcon size={10} className="text-slate-500" />
                                     </div>
                                     <div className="flex flex-col min-w-0">
-                                       <span className="text-[10px] font-black text-slate-600 truncate uppercase tracking-tight">
+                                       <span className="text-[10px] font-semibold text-slate-700 truncate">
                                          {ticket.cliente_nome || 'Cliente'}
                                        </span>
-                                       <span className="text-[8px] font-bold text-slate-400 truncate uppercase tracking-widest opacity-70">
+                                       <span className="text-[9px] text-slate-500 truncate">
                                          {ticket.empresa_nome}
                                        </span>
                                     </div>
                                   </div>
                                   
-                                  <div className="flex items-center justify-between pt-3 border-t border-slate-50">
+                                  <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                                     <div className="flex items-center gap-2">
                                       {ticket.responsavel_id ? (
-                                        <div className="flex items-center gap-2">
-                                          <div className="w-5 h-5 rounded-lg bg-blue-100 border border-blue-200 flex items-center justify-center text-[10px] font-black text-blue-700 uppercase shrink-0 shadow-sm">
+                                        <div className="flex items-center gap-1.5">
+                                          <div className="w-5 h-5 rounded bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-700 shrink-0">
                                             {ticket.responsavel_nome?.[0]}
                                           </div>
-                                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-tight">
+                                          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
                                             {ticket.responsavel_nome?.split(' ')[0]}
                                           </span>
                                         </div>
                                       ) : (
-                                        <div className="flex items-center gap-1.5 p-1.5 bg-amber-50 rounded-lg border border-amber-100 text-amber-600 shadow-sm shadow-amber-50/50">
-                                          <ShieldAlert size={12} />
-                                          <span className="text-[9px] font-black uppercase tracking-widest">Pendente</span>
+                                        <div className="flex items-center gap-1 text-amber-600">
+                                          <ShieldAlert size={10} />
+                                          <span className="text-[9px] font-bold uppercase tracking-widest">Pendente</span>
                                         </div>
                                       )}
                                     </div>
                                     
-                                    <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">
+                                    <span className="text-[9px] text-slate-400">
                                       {formatRelativeTime(ticket.updated_at).replace('há ', '')}
                                     </span>
                                   </div>
@@ -411,11 +411,8 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                     )})}
                     {provided.placeholder}
                     {column.tickets.length === 0 && !snapshot.isDraggingOver && (
-                      <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-3xl p-8 opacity-20 transition-opacity hover:opacity-40">
-                        <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center mb-2">
-                           <Layers size={20} className="text-slate-400" />
-                        </div>
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Coluna Limpa</p>
+                      <div className="flex-1 flex flex-col items-center justify-center border border-dashed border-slate-200 rounded-lg p-4 opacity-40">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Vazio</p>
                       </div>
                     )}
                   </div>

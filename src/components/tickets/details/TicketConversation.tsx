@@ -61,16 +61,16 @@ const MessageBubble = ({
       )}
 
       <div className={cn(
-        "flex gap-3 max-w-[90%] md:max-w-[75%]",
+        "flex gap-2 max-w-[90%] md:max-w-2xl",
         isCliente || isAbertura ? "flex-row" : "flex-row-reverse"
       )}>
         {/* Avatar */}
         <div className={cn(
-          "shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center text-xs font-black shadow-sm border transition-transform group-hover:scale-105",
+          "shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-bold shadow-sm border",
           isAbertura || isCliente 
-            ? "bg-white border-slate-200 text-slate-600" 
+            ? "bg-slate-50 border-slate-200 text-slate-600" 
             : isInternal 
-              ? "bg-amber-100 border-amber-200 text-amber-700" 
+              ? "bg-amber-50 border-amber-200 text-amber-700" 
               : "bg-blue-600 border-blue-700 text-white"
         )}>
           {(msg.usuario_nome || (isAbertura ? 'S' : 'A')).charAt(0).toUpperCase()}
@@ -78,39 +78,40 @@ const MessageBubble = ({
 
         {/* Content */}
         <div className={cn(
-          "flex flex-col gap-1.5",
+          "flex flex-col gap-1 min-w-0",
           isCliente || isAbertura ? "items-start" : "items-end"
         )}>
            {/* Meta */}
            <div className={cn(
-             "flex items-center gap-2 text-[10px] uppercase font-black tracking-widest",
+             "flex items-center gap-1.5 text-[10px] tracking-wider",
              isCliente || isAbertura ? "text-slate-400" : "flex-row-reverse text-blue-600"
            )}>
               <span className={cn(
+                "font-semibold uppercase",
                 isInternal ? "text-amber-700" : (isCliente || isAbertura ? "text-slate-700" : "text-blue-600")
               )}>
                 {msg.usuario_nome || (isAbertura ? 'Solicitante' : 'Atendente')}
               </span>
-              <span className="w-1 h-1 rounded-full bg-slate-300" />
-              <span className="font-bold flex items-center gap-1">
+              <span className="w-0.5 h-0.5 rounded-full bg-slate-300" />
+              <span className="flex items-center gap-1 text-slate-400 font-medium">
                  <Clock size={10} />
                  {date.toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
               </span>
               {isAbertura && (
-                <span className="text-[8px] bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded border border-emerald-100 ml-1">ABERTURA</span>
+                <span className="text-[9px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded ml-1 uppercase tracking-wider">Abertura</span>
               )}
            </div>
 
            {/* Bubble */}
            <div className={cn(
-             "p-4 rounded-3xl shadow-sm border text-sm leading-relaxed transition-all",
+             "px-3 py-2.5 outline outline-1 outline-transparent rounded-xl text-sm leading-relaxed transition-all shadow-sm max-w-full",
              isInternal 
-               ? "bg-amber-50/50 border-amber-200 text-slate-800 rounded-tl-none" 
+               ? "bg-amber-50 border border-amber-200 text-slate-800 rounded-tl-sm" 
                : isCliente || isAbertura
-                 ? "bg-white border-slate-200 text-slate-700 rounded-tl-none"
-                 : "bg-blue-600 border-blue-700 text-white rounded-tr-none shadow-blue-200"
+                 ? "bg-white border border-slate-200 text-slate-700 rounded-tl-sm"
+                 : "bg-blue-600 border border-blue-700 text-white rounded-tr-sm shadow-blue-200"
            )}>
-             <div className="whitespace-pre-wrap font-medium">
+             <div className="whitespace-pre-wrap font-medium break-words">
                {msg.mensagem || msg.descricao}
              </div>
 
@@ -182,12 +183,12 @@ export const TicketConversation = ({
           )}
 
           {messages.length === 0 && !ticket.descricao ? (
-            <div className="py-24 text-center flex flex-col items-center">
-                <div className="w-24 h-24 bg-white text-slate-200 rounded-[2rem] flex items-center justify-center mb-8 border border-slate-100 shadow-sm">
-                  <MessageSquare size={48} />
+            <div className="py-12 text-center flex flex-col items-center">
+                <div className="w-12 h-12 bg-white text-slate-300 rounded-2xl flex items-center justify-center mb-4 border border-slate-100 shadow-sm">
+                  <MessageSquare size={24} />
                 </div>
-                <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight mb-3">Aguardando interações</h4>
-                <p className="text-xs font-bold text-slate-400 max-w-xs uppercase tracking-widest leading-relaxed">
+                <h4 className="text-sm font-semibold text-slate-900 tracking-tight mb-1">Aguardando interações</h4>
+                <p className="text-xs font-medium text-slate-500 max-w-xs leading-relaxed">
                   Não há mensagens registradas para este atendimento ainda.
                 </p>
             </div>
@@ -207,14 +208,14 @@ export const TicketConversation = ({
         </div>
         
         {/* Campo de Resposta Wrapping Area */}
-        <div className="shrink-0 p-4 bg-white border-t border-slate-200 shadow-sm z-10">
+        <div className="shrink-0 p-3 bg-white border-t border-slate-200 z-10">
            {ticket.status === 'fechado' ? (
-              <div className="flex flex-col items-center justify-center py-4 bg-slate-50 border border-slate-200 border-dashed rounded-2xl">
-                 <div className="w-10 h-10 rounded-xl bg-slate-200/50 flex items-center justify-center text-slate-400 mb-2">
-                    <Lock size={16} />
+              <div className="flex flex-col items-center justify-center py-4 bg-slate-50 border border-slate-200 border-dashed rounded-xl">
+                 <div className="w-8 h-8 rounded-lg bg-slate-200/50 flex items-center justify-center text-slate-400 mb-2">
+                    <Lock size={14} />
                  </div>
-                 <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-1">Atendimento fechado</p>
-                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
+                 <p className="text-xs font-semibold text-slate-900 tracking-tight mb-0.5">Atendimento fechado</p>
+                 <p className="text-[10px] font-medium text-slate-500">
                    Reabra o atendimento para enviar novas mensagens.
                  </p>
               </div>

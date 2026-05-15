@@ -233,32 +233,32 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
       />
 
       {/* Filters Container */}
-      <Card className="p-4 bg-slate-50/50 border-slate-200 print:hidden shadow-sm">
-        <div className="flex items-center gap-2 mb-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+      <Card className="p-3 bg-slate-50/50 border-slate-200 print:hidden shadow-sm">
+        <div className="flex items-center gap-1.5 mb-2 text-xs font-semibold text-slate-600">
           <Filter size={14} /> Refinar Análise
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3">
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Período</label>
+            <label className="text-[10px] font-medium text-slate-500">Período</label>
             <div className="flex gap-2">
               <input 
                 type="date"
-                className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-medium focus:ring-2 focus:ring-blue-100 outline-none transition-all h-9"
+                className="flex-1 min-w-0 bg-white border border-slate-300 rounded-md px-2 py-1 text-xs focus:ring-2 focus:ring-blue-100 outline-none transition-all h-8"
                 value={filters.start_date}
                 onChange={(e) => setFilters(f => ({ ...f, start_date: e.target.value }))}
               />
               <input 
                 type="date"
-                className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-medium focus:ring-2 focus:ring-blue-100 outline-none transition-all h-9"
+                className="flex-1 min-w-0 bg-white border border-slate-300 rounded-md px-2 py-1 text-xs focus:ring-2 focus:ring-blue-100 outline-none transition-all h-8"
                 value={filters.end_date}
                 onChange={(e) => setFilters(f => ({ ...f, end_date: e.target.value }))}
               />
             </div>
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Prioridade</label>
+            <label className="text-[10px] font-medium text-slate-500">Prioridade</label>
             <Select 
-              buttonClassName="w-full h-9 text-[10px] font-black uppercase tracking-widest bg-white border-slate-200 rounded-lg shrink-0 overflow-hidden"
+              buttonClassName="w-full h-8 text-xs font-medium bg-white border-slate-300 rounded-md shrink-0 overflow-hidden"
               value={filters.prioridade}
               onChange={(value) => setFilters(f => ({ ...f, prioridade: value }))}
               options={[
@@ -271,9 +271,9 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
             />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Status</label>
+            <label className="text-[10px] font-medium text-slate-500">Status</label>
             <Select 
-              buttonClassName="w-full h-9 text-[10px] font-black uppercase tracking-widest bg-white border-slate-200 rounded-lg shrink-0 overflow-hidden"
+              buttonClassName="w-full h-8 text-xs font-medium bg-white border-slate-300 rounded-md shrink-0 overflow-hidden"
               value={filters.status}
               onChange={(value) => setFilters(f => ({ ...f, status: value }))}
               options={[
@@ -287,9 +287,9 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
             />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Origem</label>
+            <label className="text-[10px] font-medium text-slate-500">Origem</label>
             <Select 
-              buttonClassName="w-full h-9 text-[10px] font-black uppercase tracking-widest bg-white border-slate-200 rounded-lg shrink-0 overflow-hidden"
+              buttonClassName="w-full h-8 text-xs font-medium bg-white border-slate-300 rounded-md shrink-0 overflow-hidden"
               value={filters.origem}
               onChange={(value) => setFilters(f => ({ ...f, origem: value }))}
               options={[
@@ -303,9 +303,9 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
           </div>
           {!!currentUser.desenvolvedor && (
              <div className="space-y-1">
-               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Empresa</label>
+               <label className="text-[10px] font-medium text-slate-500">Empresa</label>
                <Select 
-                 buttonClassName="w-full h-9 text-[10px] font-black uppercase tracking-widest bg-white border-slate-200 rounded-lg shrink-0 overflow-hidden text-left truncate"
+                 buttonClassName="w-full h-8 text-xs font-medium bg-white border-slate-300 rounded-md shrink-0 overflow-hidden text-left truncate"
                  value={filters.empresa_id}
                  onChange={(value) => setFilters(f => ({ ...f, empresa_id: value }))}
                  options={[
@@ -366,51 +366,51 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                description="Performace operacional" 
                className="col-span-1 lg:col-span-3 mb-0 mt-2" 
             />
-            {/* SLA Compliance Section */}
-            <Card className="p-4 lg:p-5 col-span-1 lg:col-span-2 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              {/* SLA Compliance Section */}
+            <Card className="p-4 col-span-1 lg:col-span-2 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
                   <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
                   Compliance de SLA
                 </h3>
-                <Badge variant="blue" className="text-[10px] font-black uppercase">Meta: 95%</Badge>
+                <Badge variant="blue" className="text-[10px]">Meta: 95%</Badge>
               </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="space-y-3">
                   <div className="flex justify-between items-end">
-                    <span className="text-xs font-bold text-slate-500 uppercase">Primeira Resposta</span>
-                    <span className={`text-2xl font-black ${data.totals.sla_compliance_first_response >= 90 ? 'text-emerald-600' : 'text-orange-500'}`}>
+                    <span className="text-xs font-semibold text-slate-600">Primeira Resposta</span>
+                    <span className={`text-xl font-bold ${data.totals.sla_compliance_first_response >= 90 ? 'text-emerald-600' : 'text-orange-500'}`}>
                       {data.totals.sla_compliance_first_response}%
                     </span>
                   </div>
-                  <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                     <motion.div 
                       initial={{ width: 0 }}
                       animate={{ width: `${data.totals.sla_compliance_first_response}%` }}
                       className={`h-full ${data.totals.sla_compliance_first_response >= 90 ? 'bg-emerald-500' : 'bg-orange-500'}`}
                     />
                   </div>
-                  <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
+                  <p className="text-[10px] text-slate-500 leading-relaxed">
                     Percentual de chamados com primeira resposta pública dentro do prazo.
                   </p>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div className="flex justify-between items-end">
-                    <span className="text-xs font-bold text-slate-500 uppercase">Resolução Final</span>
-                    <span className={`text-2xl font-black ${data.totals.sla_compliance_resolution >= 90 ? 'text-emerald-600' : 'text-orange-500'}`}>
+                    <span className="text-xs font-semibold text-slate-600">Resolução Final</span>
+                    <span className={`text-xl font-bold ${data.totals.sla_compliance_resolution >= 90 ? 'text-emerald-600' : 'text-orange-500'}`}>
                       {data.totals.sla_compliance_resolution}%
                     </span>
                   </div>
-                  <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                     <motion.div 
                       initial={{ width: 0 }}
                       animate={{ width: `${data.totals.sla_compliance_resolution}%` }}
                       className={`h-full ${data.totals.sla_compliance_resolution >= 90 ? 'bg-emerald-500' : 'bg-orange-500'}`}
                     />
                   </div>
-                  <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
+                  <p className="text-[10px] text-slate-500 leading-relaxed">
                     Percentual de chamados resolvidos respeitando o prazo total da política.
                   </p>
                 </div>
@@ -418,29 +418,29 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
             </Card>
 
             {/* Reopen Rate & Stability */}
-            <Card className="p-4 lg:p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
+            <Card className="p-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
                 <div className="w-1 h-4 bg-purple-500 rounded-full"></div>
                 Volume de Backlog
               </h3>
-              <div className="space-y-6">
+              <div className="space-y-5">
                 <div>
-                   <div className="flex justify-between mb-1">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase">Taxa de Reabertura</span>
+                   <div className="flex justify-between mb-1.5">
+                      <span className="text-xs font-medium text-slate-600">Taxa de Reabertura</span>
                       <span className="text-sm font-bold text-slate-700">{data.totals.reopen_rate}%</span>
                    </div>
                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                       <div className="h-full bg-purple-500" style={{ width: `${data.totals.reopen_rate}%` }}></div>
                    </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4 pt-2">
-                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
-                    <div className="text-[9px] font-black text-blue-600 uppercase mb-1">Abertos</div>
-                    <div className="text-xl font-black text-blue-700">{data.totals.open_tickets}</div>
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div className="p-2.5 bg-blue-50 rounded-lg border border-blue-100">
+                    <div className="text-[10px] font-semibold text-blue-600 mb-0.5">Abertos</div>
+                    <div className="text-lg font-bold text-blue-700">{data.totals.open_tickets}</div>
                   </div>
-                  <div className="p-3 bg-red-50 rounded-lg border border-red-100">
-                    <div className="text-[9px] font-black text-red-600 uppercase mb-1">Urgentes</div>
-                    <div className="text-xl font-black text-red-700">{data.totals.urgent_tickets}</div>
+                  <div className="p-2.5 bg-red-50 rounded-lg border border-red-100">
+                    <div className="text-[10px] font-semibold text-red-600 mb-0.5">Urgentes</div>
+                    <div className="text-lg font-bold text-red-700">{data.totals.urgent_tickets}</div>
                   </div>
                 </div>
               </div>
@@ -549,8 +549,8 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                description="Análise por classificação e atendente" 
                className="col-span-1 md:col-span-2 lg:col-span-3 mb-0 mt-4" 
              />
-             <Card className="p-4 lg:p-5 lg:col-span-2 shadow-sm">
-                <h3 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
+             <Card className="p-4 lg:col-span-2 shadow-sm">
+                <h3 className="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
                   <div className="w-1 h-4 bg-emerald-600 rounded-full"></div>
                   Performance por Atendente
                 </h3>
@@ -558,25 +558,25 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                   <table className="w-full text-left">
                     <thead>
                       <tr className="border-b border-slate-100 font-mono">
-                        <th className="pb-3 text-[10px] font-bold text-slate-400 uppercase">Atendente</th>
-                        <th className="pb-3 text-[10px] font-bold text-slate-400 uppercase text-center">Volume</th>
-                        <th className="pb-3 text-[10px] font-bold text-slate-400 uppercase text-center">T.M.R.</th>
-                        <th className="pb-3 text-[10px] font-bold text-slate-400 uppercase text-right">Participação</th>
+                        <th className="pb-2 text-[10px] font-semibold text-slate-500 uppercase">Atendente</th>
+                        <th className="pb-2 text-[10px] font-semibold text-slate-500 uppercase text-center">Volume</th>
+                        <th className="pb-2 text-[10px] font-semibold text-slate-500 uppercase text-center">T.M.R.</th>
+                        <th className="pb-2 text-[10px] font-semibold text-slate-500 uppercase text-right">Participação</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
                       {data.by_responsible.length > 0 ? (
                         data.by_responsible.slice(0, 10).map((item, idx) => (
                           <tr key={idx} className="group hover:bg-slate-50/50 transition-colors">
-                            <td className="py-3 text-xs font-bold text-slate-800">{item.name}</td>
-                            <td className="py-3 text-sm font-black text-slate-700 text-center">{item.value}</td>
-                            <td className="py-3 text-xs font-bold text-emerald-600 text-center">{item.avg_res}h</td>
-                            <td className="py-3 text-right">
+                            <td className="py-2.5 text-xs font-semibold text-slate-700">{item.name}</td>
+                            <td className="py-2.5 text-sm font-bold text-slate-700 text-center">{item.value}</td>
+                            <td className="py-2.5 text-xs font-semibold text-emerald-600 text-center">{item.avg_res}h</td>
+                            <td className="py-2.5 text-right">
                                <div className="inline-flex items-center gap-2">
                                   <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden hidden sm:block">
                                      <div className="h-full bg-blue-600" style={{ width: `${(item.value / Math.max(1, data.totals.total_tickets)) * 100}%` }}></div>
                                   </div>
-                                  <span className="text-[10px] font-bold text-slate-500">
+                                  <span className="text-[10px] font-semibold text-slate-500">
                                     {(item.value / Math.max(1, data.totals.total_tickets) * 100).toFixed(0)}%
                                   </span>
                                </div>
@@ -592,19 +592,19 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
              </Card>
 
              <div className="space-y-6">
-                <Card className="p-4 lg:p-5 shadow-sm">
-                   <h3 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
+                <Card className="p-4 shadow-sm">
+                   <h3 className="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
                       <div className="w-1 h-4 bg-orange-500 rounded-full"></div>
                       Top Categorias
                    </h3>
-                   <div className="space-y-4">
+                   <div className="space-y-3">
                       {data.rankings.top_categories.map((cat, idx) => (
                         <div key={idx} className="flex items-center justify-between">
                            <div className="flex gap-3 items-center">
-                              <span className="text-[10px] font-black text-slate-400">{idx+1}º</span>
-                              <span className="text-xs font-bold text-slate-700">{cat.name}</span>
+                              <span className="text-[10px] font-semibold text-slate-400">{idx+1}º</span>
+                              <span className="text-xs font-medium text-slate-700">{cat.name}</span>
                            </div>
-                           <Badge variant="orange" className="font-mono text-[10px]">{cat.value}</Badge>
+                           <Badge variant="orange" className="font-mono text-[10px] px-1.5">{cat.value}</Badge>
                         </div>
                       ))}
                    </div>
@@ -656,33 +656,33 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                         <table className="w-full text-left">
                           <thead className="bg-slate-50 border-b border-slate-200">
                             <tr>
-                              <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500">ID</th>
-                              <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500">Título / Categoria</th>
-                              {!!currentUser.desenvolvedor && <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500">Empresa</th>}
-                              <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500">Status</th>
-                              <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500">Responsável</th>
-                              <th className="px-4 py-3 text-[10px] uppercase font-bold text-slate-500">Criação</th>
+                              <th className="px-4 py-2.5 text-[10px] uppercase font-semibold text-slate-500">ID</th>
+                              <th className="px-4 py-2.5 text-[10px] uppercase font-semibold text-slate-500">Título / Categoria</th>
+                              {!!currentUser.desenvolvedor && <th className="px-4 py-2.5 text-[10px] uppercase font-semibold text-slate-500">Empresa</th>}
+                              <th className="px-4 py-2.5 text-[10px] uppercase font-semibold text-slate-500">Status</th>
+                              <th className="px-4 py-2.5 text-[10px] uppercase font-semibold text-slate-500">Responsável</th>
+                              <th className="px-4 py-2.5 text-[10px] uppercase font-semibold text-slate-500">Criação</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100">
                             {detailedReport.tickets.length > 0 ? (
                               detailedReport.tickets.map((t) => (
                                 <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
-                                  <td className="px-4 py-3 text-xs font-black text-blue-600">#{t.id}</td>
-                                  <td className="px-4 py-3">
-                                    <div className="text-xs font-bold text-slate-800">{t.titulo}</div>
-                                    <div className="text-[9px] text-slate-400 font-bold uppercase">{t.categoria}</div>
+                                  <td className="px-4 py-2.5 text-xs font-semibold text-blue-600">#{t.id}</td>
+                                  <td className="px-4 py-2.5">
+                                    <div className="text-xs font-semibold text-slate-700">{t.titulo}</div>
+                                    <div className="text-[10px] text-slate-500">{t.categoria}</div>
                                   </td>
-                                  {!!currentUser.desenvolvedor && <td className="px-4 py-3 text-[10px] font-bold text-slate-600">{t.empresa_nome}</td>}
-                                  <td className="px-4 py-3">
-                                    <Badge variant={t.status === 'resolvido' ? 'emerald' : t.status === 'aberto' ? 'blue' : 'slate'} className="text-[9px] py-0">
+                                  {!!currentUser.desenvolvedor && <td className="px-4 py-2.5 text-[11px] text-slate-600">{t.empresa_nome}</td>}
+                                  <td className="px-4 py-2.5">
+                                    <Badge variant={t.status === 'resolvido' ? 'emerald' : t.status === 'aberto' ? 'blue' : 'slate'} className="text-[10px] py-0 px-1.5">
                                       {t.status.replace('_', ' ')}
                                     </Badge>
                                   </td>
-                                  <td className="px-4 py-3 text-[10px] font-bold text-slate-700">
+                                  <td className="px-4 py-2.5 text-[11px] text-slate-600">
                                     {t.responsavel_nome || 'Não atribuído'}
                                   </td>
-                                  <td className="px-4 py-3 text-[10px] font-medium text-slate-400">
+                                  <td className="px-4 py-2.5 text-[11px] text-slate-500">
                                     {new Date(t.created_at).toLocaleDateString()}
                                   </td>
                                 </tr>
@@ -726,9 +726,9 @@ function IndicatorCard({ title, value, icon, color, trend }: { title: string, va
         {React.cloneElement(icon as React.ReactElement<any>, { size: 16 })}
       </div>
       <div className="space-y-1">
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{title}</p>
-        <p className="text-2xl font-black text-slate-800 tracking-tight leading-none">{value}</p>
-        {trend && <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter pt-1">{trend}</p>}
+        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{title}</p>
+        <p className="text-2xl font-bold text-slate-800 tracking-tight leading-none">{value}</p>
+        {trend && <p className="text-xs font-medium text-slate-500 pt-1">{trend}</p>}
       </div>
     </Card>
   );

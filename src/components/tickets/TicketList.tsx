@@ -154,7 +154,7 @@ export const TicketList = ({
 
   const SortHeader = ({ label, k, className }: { label: string, k: SortKey, className?: string }) => (
     <th 
-      className={cn("px-3 py-2.5 text-[9px] font-black uppercase tracking-widest text-slate-400 cursor-pointer hover:text-slate-600 transition-colors group/th", className)}
+      className={cn("px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 cursor-pointer hover:text-slate-700 transition-colors group/th", className)}
       onClick={() => handleSort(k)}
     >
       <div className="flex items-center gap-1">
@@ -222,23 +222,23 @@ export const TicketList = ({
           <thead>
             <tr className="bg-slate-50/80 border-b border-slate-100">
               {canSelectBulk && (
-                <th className="w-12 px-4 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">
+                <th className="w-10 px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 text-center">
                   <input 
                     type="checkbox" 
-                    className="w-4 h-4 rounded-md border-slate-300 text-blue-600 focus:ring-blue-500/20 cursor-pointer shadow-sm"
+                    className="w-3.5 h-3.5 rounded-sm border-slate-300 text-blue-600 focus:ring-blue-500/20 cursor-pointer shadow-sm"
                     onChange={toggleSelectAll}
                     checked={isAllSelected}
                   />
                 </th>
               )}
-              <SortHeader label="Atendimento" k="titulo" className="w-[340px]" />
-              <th className="w-[160px] px-4 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400">Contexto / Situação</th>
-              <th className="px-4 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400 hidden md:table-cell">Cliente / Empresa</th>
-              <SortHeader label="Status" k="status" className="w-[140px]" />
-              <SortHeader label="Prioridade" k="prioridade" className="w-[120px] text-center justify-center" />
-              <th className="w-[110px] px-4 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400 hidden xl:table-cell text-center">SLA Restante</th>
-              <th className="w-[160px] px-4 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400">Responsável</th>
-              <th className="w-[60px] px-4 py-4"></th>
+              <SortHeader label="Atendimento" k="titulo" className="w-[300px]" />
+              <th className="w-[140px] px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Situação</th>
+              <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 hidden md:table-cell">Cliente</th>
+              <SortHeader label="Status" k="status" className="w-[120px]" />
+              <SortHeader label="Prioridade" k="prioridade" className="w-[100px] text-center" />
+              <th className="w-[100px] px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 hidden xl:table-cell text-center">SLA</th>
+              <th className="w-[140px] px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Responsável</th>
+              <th className="w-[50px] px-3 py-3"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -263,95 +263,95 @@ export const TicketList = ({
                     ticket.nao_lido && "font-bold"
                   )}
                 >
-                {canSelectBulk && (
-                  <td className="px-4 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
+                  {canSelectBulk && (
+                  <td className="px-3 py-2 text-center" onClick={(e) => e.stopPropagation()}>
                     <input 
                       type="checkbox" 
-                      className="w-4 h-4 rounded-md border-slate-300 text-blue-600 focus:ring-blue-500/20 cursor-pointer shadow-sm"
+                      className="w-3.5 h-3.5 rounded-sm border-slate-300 text-blue-600 focus:ring-blue-500/20 cursor-pointer shadow-sm"
                       checked={isSelected}
                       onChange={() => toggleSelectTicket(ticket.id)}
                     />
                   </td>
                 )}
-                <td className="px-4 py-3.5">
-                  <div className="flex flex-col gap-1.5 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap min-w-0">
+                <td className="px-3 py-2">
+                  <div className="flex flex-col gap-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                       {ticket.nao_lido && (
-                        <div className="w-2 h-2 rounded-full bg-blue-600 ring-4 ring-blue-50 animate-pulse shrink-0" title="Mensagem não lida" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-600 shrink-0" title="Mensagem não lida" />
                       )}
-                      <span className="text-[10px] font-black text-blue-600 tracking-widest shrink-0 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 uppercase">#{ticket.id}</span>
+                      <span className="text-[10px] font-bold text-blue-600 tracking-wider shrink-0 bg-blue-50 px-1 rounded border border-blue-100">#{ticket.id}</span>
                       
                       {ticket.origem === 'email' && (
-                        <div className="flex items-center gap-1 text-[8px] font-black text-blue-500 bg-blue-50/50 px-2 py-0.5 rounded border border-blue-100 uppercase tracking-widest" title="Origem: E-mail">
-                          <Mail size={10} /> E-mail
+                        <div className="flex items-center gap-1 text-[9px] font-semibold text-blue-500 bg-blue-50/50 px-1 rounded border border-blue-100 tracking-wider" title="Origem: E-mail">
+                          <Mail size={10} />
                         </div>
                       )}
                       
-                      <span className="text-[12px] font-black text-slate-800 truncate group-hover:text-blue-700 transition-colors uppercase tracking-tight">{ticket.titulo}</span>
+                      <span className="text-xs font-semibold text-slate-800 truncate group-hover:text-blue-700 transition-colors tracking-tight">{ticket.titulo}</span>
                     </div>
                     
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1.5">
-                        <Clock size={10} className="text-slate-300" /> Atualizado {formatRelativeTime(ticket.updated_at)}
+                    <div className="flex items-center gap-2 flex-wrap min-w-0">
+                      <span className="text-[10px] text-slate-500 flex items-center gap-1">
+                        <Clock size={10} /> {formatRelativeTime(ticket.updated_at)}
                       </span>
                       
                       {isAbertoESemResp && (
-                        <span className="text-[9px] font-black text-white bg-amber-500 px-2 py-0.5 rounded-lg border border-amber-500 uppercase tracking-widest shadow-sm shadow-amber-200">Novo</span>
+                        <span className="text-[9px] font-semibold text-white bg-amber-500 px-1.5 rounded-md border border-amber-500 tracking-wider shadow-sm shadow-amber-200">Novo</span>
                       )}
                       
                       {ticket.estado_atendimento === 'cliente_respondeu' && (
-                        <span className="text-[9px] font-black text-white bg-emerald-500 px-2 py-0.5 rounded-lg border border-emerald-500 uppercase tracking-widest animate-pulse shadow-sm shadow-emerald-200">Resposta</span>
+                        <span className="text-[9px] font-semibold text-white bg-emerald-500 px-1.5 rounded-md border border-emerald-500 tracking-wider shadow-sm shadow-emerald-200">Resposta</span>
                       )}
 
                       {ticket.tags && ticket.tags.length > 0 && (
                         <div className="flex gap-1">
                           {ticket.tags.slice(0, 2).map(tag => (
-                            <span key={tag} className="text-[9px] font-black text-slate-400 bg-slate-100 border border-slate-200 rounded-md px-1.5 py-0.5 uppercase tracking-tighter">{tag}</span>
+                             <span key={tag} className="text-[9px] font-medium text-slate-500 bg-slate-100 border border-slate-200 rounded px-1">{tag}</span>
                           ))}
                         </div>
                       )}
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-3.5">
+                <td className="px-3 py-2">
                   {estadoInfo ? (
                     <div className={cn(
-                      "inline-flex items-center gap-2 px-3 py-1 rounded-xl cursor-help border transition-all shadow-sm",
+                      "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border transition-all text-[9px] font-bold uppercase tracking-wider",
                       estadoInfo.color
                     )}>
-                      <div className={cn("w-1.5 h-1.5 rounded-full", estadoInfo.dot)} />
-                      <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">{estadoInfo.label}</span>
+                      <div className={cn("w-1 h-1 rounded-full", estadoInfo.dot)} />
+                      <span className="whitespace-nowrap">{estadoInfo.label}</span>
                     </div>
                   ) : (
-                    <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Sem interação</span>
+                    <span className="text-[10px] text-slate-400 font-medium">Nenhuma</span>
                   )}
                 </td>
-                <td className="px-4 py-3.5 hidden md:table-cell">
-                  <div className="flex flex-col gap-0.5 min-w-0">
-                    <span className="text-[11px] font-black text-slate-700 truncate uppercase tracking-tight">{ticket.cliente_nome || 'N/A'}</span>
-                    <span className="text-[10px] font-bold text-slate-400 truncate opacity-70 uppercase tracking-widest">{ticket.empresa_nome}</span>
+                <td className="px-3 py-2 hidden md:table-cell">
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[11px] font-semibold text-slate-700 truncate">{ticket.cliente_nome || 'N/A'}</span>
+                    <span className="text-[9px] text-slate-500 truncate">{ticket.empresa_nome}</span>
                   </div>
                 </td>
-                <td className="px-4 py-3.5">
+                <td className="px-3 py-2">
                    <div className={cn(
-                     "inline-flex px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border shadow-sm",
+                     "inline-flex px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border",
                      statusColors[ticket.status]
                    )}>
                      {ticket.status.replace('_', ' ')}
                    </div>
                 </td>
-                <td className="px-4 py-3.5 text-center">
+                <td className="px-3 py-2 text-center">
                    <div className={cn(
-                     "inline-flex px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border shadow-sm",
+                     "inline-flex px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border",
                      priority.color
                    )}>
                      {priority.label}
                    </div>
                 </td>
-                <td className="px-4 py-3.5 hidden xl:table-cell">
-                   <div className="flex flex-col gap-1.5 items-center">
+                <td className="px-3 py-2 hidden xl:table-cell">
+                   <div className="flex flex-col gap-1 items-center">
                      <div className={cn(
-                       "inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[10px] font-black uppercase tracking-widest shadow-sm",
+                       "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[9px] font-bold uppercase tracking-wider",
                        sla.color
                      )} title={`Resolução: ${sla.label}`}>
                        <Clock size={10} />
@@ -359,7 +359,7 @@ export const TicketList = ({
                      </div>
                      {!ticket.primeira_resposta_em && ticket.prazo_primeira_resposta && (
                        <div className={cn(
-                         "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[8px] font-black uppercase tracking-widest opacity-80",
+                         "inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[8px] font-bold tracking-wider",
                          getFirstResponseSlaInfo(ticket).color
                        )} title={`Primeira Resposta: ${getFirstResponseSlaInfo(ticket).label}`}>
                          PR: {getFirstResponseSlaInfo(ticket).compactText}
@@ -367,49 +367,49 @@ export const TicketList = ({
                      )}
                    </div>
                 </td>
-                <td className="px-4 py-3.5">
-                  <div className="flex items-center gap-3">
+                <td className="px-3 py-2">
+                  <div className="flex items-center gap-2">
                     {ticket.responsavel_id ? (
                       <>
-                        <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-xs font-black text-blue-700 uppercase shadow-sm">
+                        <div className="w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-100 shrink-0">
                           {ticket.responsavel_nome?.[0]}
                         </div>
                         <div className="flex flex-col min-w-0">
-                           <span className="text-[11px] font-black text-slate-700 truncate uppercase tracking-tight">
+                           <span className="text-[10px] font-semibold text-slate-700 truncate">
                              {ticket.responsavel_nome?.split(' ')[0]}
                            </span>
                            {needsAgentAction && ticket.responsavel_id === currentUser.id && (
-                             <span className="text-[8px] font-black text-blue-600 uppercase tracking-widest animate-pulse">Sua Vez</span>
+                             <span className="text-[8px] font-bold text-blue-600 uppercase tracking-widest animate-pulse">Sua vez</span>
                            )}
                         </div>
                       </>
                     ) : (
-                      <div className="flex items-center gap-2 p-2 bg-amber-50 rounded-xl border border-amber-100 text-amber-600 shadow-sm shadow-amber-100/50">
-                        <ShieldAlert size={14} />
-                        <span className="text-[9px] font-black uppercase tracking-widest">Pendente</span>
+                      <div className="flex items-center gap-1 text-amber-600">
+                        <ShieldAlert size={12} />
+                        <span className="text-[9px] font-bold uppercase tracking-widest">Pendente</span>
                       </div>
                     )}
                   </div>
                 </td>
-                <td className="px-4 py-3.5 text-right">
+                <td className="px-3 py-2 text-right">
                   <div className="flex items-center justify-end">
-                    <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1.5 transition-all">
+                    <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-all">
                       {canManage && isAbertoESemResp && (
-                        <button onClick={(e) => handleAssumirTicket(e, ticket.id)} title="Assumir" className="w-8 h-8 flex items-center justify-center hover:bg-blue-600 hover:text-white text-blue-600 border border-blue-100 hover:border-blue-700 rounded-xl transition-all shadow-sm">
-                          <UserPlus size={14} />
+                        <button onClick={(e) => handleAssumirTicket(e, ticket.id)} title="Assumir" className="w-7 h-7 flex items-center justify-center hover:bg-blue-600 hover:text-white text-blue-600 border border-transparent hover:border-blue-700 rounded transition-all">
+                          <UserPlus size={12} />
                         </button>
                       )}
                       {canManage && ticket.status === 'aberto' && ticket.responsavel_id === currentUser.id && (
-                        <button onClick={(e) => handleMudarStatus(e, ticket.id, 'em_andamento')} title="Iniciar" className="w-8 h-8 flex items-center justify-center hover:bg-indigo-600 hover:text-white text-indigo-600 border border-indigo-100 hover:border-indigo-700 rounded-xl transition-all shadow-sm">
-                          <Play size={14} />
+                        <button onClick={(e) => handleMudarStatus(e, ticket.id, 'em_andamento')} title="Iniciar" className="w-7 h-7 flex items-center justify-center hover:bg-indigo-600 hover:text-white text-indigo-600 border border-transparent hover:border-indigo-700 rounded transition-all">
+                          <Play size={12} />
                         </button>
                       )}
-                      <button onClick={(e) => handleCopyId(e, ticket.id)} title="Copiar ID" className="w-8 h-8 flex items-center justify-center hover:bg-slate-200 text-slate-400 border border-slate-100 rounded-xl transition-all shadow-sm">
-                        <Copy size={14} />
+                      <button onClick={(e) => handleCopyId(e, ticket.id)} title="Copiar ID" className="w-7 h-7 flex items-center justify-center hover:bg-slate-200 text-slate-400 border border-transparent rounded transition-all">
+                        <Copy size={12} />
                       </button>
                     </div>
-                    <div className="p-2 text-slate-300 group-hover:text-blue-600 transition-colors group-hover:translate-x-1 duration-200">
-                       <ChevronRight size={18} />
+                    <div className="p-1 text-slate-300 group-hover:text-blue-600 transition-colors group-hover:translate-x-1 duration-200">
+                       <ChevronRight size={14} />
                     </div>
                   </div>
                 </td>

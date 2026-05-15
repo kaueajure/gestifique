@@ -532,40 +532,39 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
         </AnimatePresence>
       </div>
 
-      <PageHeader 
-        title="Central de Atendimentos" 
-        description="Gerencie e acompanhe todos os chamados da sua operação."
-        action={
-          <div className="flex items-center gap-3">
-            {!!currentUser.desenvolvedor && (
-              <div className="relative w-44">
-                <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10" size={14} />
-                <Select 
-                  size="sm"
-                  value={devCompanyId}
-                  onChange={setDevCompanyId}
-                  placeholder="Empresa..."
-                  buttonClassName="pl-8 bg-slate-50 border-slate-200"
-                  options={[
-                    { value: '', label: 'Selecione a empresa' },
-                    ...companies.map(emp => ({
-                      value: String(emp.id),
-                      label: emp.nome
-                    }))
-                  ]}
-                />
-              </div>
-            )}
-            <Button 
-              size="sm"
-              onClick={() => setIsModalOpen(true)}
-            >
-              <Plus size={14} className="mr-1.5" /> 
-              Abrir Chamado
-            </Button>
-          </div>
-        }
-      />
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
+        <div>
+          <h1 className="text-lg font-semibold text-slate-900 tracking-tight">Central de Atendimentos</h1>
+        </div>
+        <div className="flex items-center gap-3">
+          {!!currentUser.desenvolvedor && (
+            <div className="relative w-44">
+              <Building className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 z-10" size={14} />
+              <Select 
+                size="sm"
+                value={devCompanyId}
+                onChange={setDevCompanyId}
+                placeholder="Empresa..."
+                buttonClassName="pl-8 bg-slate-50 border-slate-200"
+                options={[
+                  { value: '', label: 'Selecione a empresa' },
+                  ...companies.map(emp => ({
+                    value: String(emp.id),
+                    label: emp.nome
+                  }))
+                ]}
+              />
+            </div>
+          )}
+          <Button 
+            size="sm"
+            onClick={() => setIsModalOpen(true)}
+          >
+            <Plus size={14} className="mr-1.5" /> 
+            Abrir Chamado
+          </Button>
+        </div>
+      </div>
 
       <div className="flex flex-col lg:flex-row gap-3 items-start">
         <div className="flex-1 w-full space-y-4">
@@ -803,7 +802,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
 
           <div className={cn(
             "relative z-0 transition-all duration-300",
-            viewMode === 'kanban' ? "h-[calc(100vh-200px)] min-h-[400px]" : ""
+            viewMode === 'kanban' ? "h-[calc(100vh-170px)] min-h-[400px]" : ""
           )}>
             {!!currentUser.desenvolvedor && !devCompanyId ? (
               <EmptyState 
