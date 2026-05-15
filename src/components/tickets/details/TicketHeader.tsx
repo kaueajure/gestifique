@@ -3,15 +3,11 @@ import { Badge } from '../../ui/Badge';
 import { Button } from '../../ui/Button';
 import { 
   ArrowLeft, 
-  Mail, 
-  Globe, 
-  Clock, 
-  User as UserIcon, 
-  ShieldAlert,
-  AlertCircle,
   CheckCircle2,
-  Lock,
-  RefreshCw
+  RefreshCw,
+  Clock,
+  Mail,
+  ShieldAlert
 } from 'lucide-react';
 import { Ticket, TicketStatus, User } from '../../../types';
 import { cn, getSlaInfo } from '../../../lib/utils';
@@ -49,149 +45,108 @@ export const TicketHeader = ({
   
   const slaInfo = getSlaInfo(prazo_sla, status);
 
-  const statusColors: Record<string, string> = {
-    aberto: "bg-blue-50 text-blue-700 border-blue-200",
-    em_andamento: "bg-indigo-50 text-indigo-700 border-indigo-200",
-    aguardando_cliente: "bg-amber-50 text-amber-700 border-amber-200",
-    resolvido: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    fechado: "bg-slate-100 text-slate-600 border-slate-200",
+  const getPriorityInfo = (prio: string) => {
+    switch (prio) {
+      case 'urgente': return { color: 'text-red-700 bg-red-100' };
+      case 'alta': return { color: 'text-orange-700 bg-orange-100' };
+      case 'media': return { color: 'text-amber-700 bg-amber-100' };
+      case 'baixa': return { color: 'text-blue-700 bg-blue-100' };
+      default: return { color: 'text-slate-700 bg-slate-100' };
+    }
   };
+  const priorityColor = getPriorityInfo(prioridade);
 
   return (
-    <div className="bg-white border-b border-slate-200 p-3 sticky top-0 z-40">
-      <div className="max-w-[1600px] mx-auto space-y-2">
-        {/* Top Row: Navigation + Actions */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={onBack}
-              className="h-8 w-8 p-0 rounded-lg bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-900 transition-all shrink-0"
-            >
-              <ArrowLeft size={16} />
-            </Button>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 mb-0.5">
-                <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-1.5 rounded border border-blue-100 uppercase tracking-wider">
-                  #{id}
-                </span>
-                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Atendimento</span>
-              </div>
-              <h2 className="text-base font-semibold text-slate-900 truncate tracking-tight">
+    <div className="bg-white border-b border-slate-200 px-4 py-2.5 sticky top-0 z-40">
+      <div className="max-w-[1600px] mx-auto flex items-start sm:items-center justify-between gap-3">
+        
+        {/* Left Side: Back button + Title & Metadata */}
+        <div className="flex items-start gap-2.5 min-w-0 flex-1">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={onBack}
+            className="h-7 w-7 mt-0.5 sm:mt-0 p-0 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors shrink-0"
+          >
+            <ArrowLeft size={16} />
+          </Button>
+          
+          <div className="flex flex-col min-w-0 w-full gap-1">
+            <div className="flex items-center gap-2 relative">
+              <span className="text-[11px] font-medium text-slate-500 shrink-0">#{id}</span>
+              <h2 className="text-sm font-semibold text-slate-800 truncate leading-tight">
                 {titulo || 'Sem título'}
               </h2>
             </div>
-          </div>
+            
+            <div className="flex flex-wrap items-center gap-1.5">
+              {/* Status */}
+              <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border border-slate-200 bg-slate-50 text-slate-700">
+                <div className={cn("w-1.5 h-1.5 rounded-full", ticketStatusColors[status as TicketStatus])} />
+                {status.replace('_', ' ')}
+              </div>
 
-          <div className="flex items-center gap-2 ml-auto">
-            {showResolveButton && (
-              <Button 
-                onClick={onResolve}
-                size="sm"
-                className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium shadow-sm h-8"
-              >
-                <CheckCircle2 size={14} className="mr-1.5" />
-                Finalizar
-              </Button>
-            )}
+              {/* Priority */}
+              <div className={cn("inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium", priorityColor.color)}>
+                <ShieldAlert size={10} />
+                {prioridade.charAt(0).toUpperCase() + prioridade.slice(1)}
+              </div>
 
-            {showReopenButton && (
-              <Button 
-                variant="outline"
-                size="sm"
-                onClick={() => onUpdate({ status: 'aberto' })}
-                className="text-xs font-medium border-blue-200 text-blue-600 hover:bg-blue-50 shadow-sm h-8"
-              >
-                <RefreshCw size={14} className="mr-1.5" />
-                Reabrir
-              </Button>
-            )}
+              {/* Assignee */}
+              {responsavel_nome && (
+                <div className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border border-slate-200 bg-slate-50 text-slate-600">
+                  <span className="opacity-70 mr-1">R:</span>
+                  {responsavel_nome.split(' ')[0]}
+                </div>
+              )}
+
+              {/* Client */}
+              {cliente_nome && (
+                <div className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border border-slate-200 bg-slate-50 text-slate-600">
+                  <span className="opacity-70 mr-1">C:</span>
+                  <span className="truncate max-w-[100px] block">{cliente_nome.split(' ')[0]}</span>
+                </div>
+              )}
+
+              {/* SLA */}
+              <div className={cn("inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium", slaInfo.color)}>
+                <Clock size={10} />
+                {slaInfo.compactText || slaInfo.label}
+              </div>
+
+              {/* Origin */}
+              {origem === 'email' && (
+                <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-slate-500" title="Origem: E-Mail">
+                  <Mail size={10} />
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Bottom Row: Metadata Badges */}
-        <div className="flex flex-wrap items-center gap-y-2 gap-x-4 pt-1">
-          {/* Status */}
-          <div className="flex items-center gap-2 bg-slate-50 px-2 py-1.5 rounded-md border border-slate-200">
-             <div className={cn(
-               "w-5 h-5 rounded-md flex items-center justify-center shadow-sm",
-               ticketStatusColors[status as TicketStatus] || "bg-slate-100 text-slate-600"
-             )}>
-                <div className="w-1.5 h-1.5 rounded-full bg-current" />
-             </div>
-             <div className="flex flex-col">
-                <span className="text-[9px] font-medium text-slate-400 uppercase tracking-wider leading-none mb-0.5">Status</span>
-                <span className="text-[10px] font-semibold text-slate-700 uppercase">{status.replace('_', ' ')}</span>
-             </div>
-          </div>
+        {/* Right Side: Actions */}
+        <div className="flex items-center shrink-0">
+          {showResolveButton && (
+            <Button 
+              onClick={onResolve}
+              size="sm"
+              className="bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-medium shadow-sm h-7 px-2.5 rounded-md"
+            >
+              <CheckCircle2 size={12} className="mr-1.5" />
+              Finalizar
+            </Button>
+          )}
 
-          {/* Prioridade */}
-          <div className="flex items-center gap-2">
-             <div className={cn(
-               "w-6 h-6 rounded-md flex items-center justify-center border shadow-sm",
-               prioridade === 'urgente' ? "bg-rose-50 border-rose-100 text-rose-600" :
-               prioridade === 'alta' ? "bg-amber-50 border-amber-100 text-amber-600" :
-               "bg-slate-50 border-slate-100 text-slate-600"
-             )}>
-                <ShieldAlert size={12} />
-             </div>
-             <div className="flex flex-col">
-                <span className="text-[9px] font-medium text-slate-400 uppercase tracking-wider leading-none mb-0.5">Prioridade</span>
-                <span className="text-[10px] font-semibold text-slate-700 uppercase">{prioridade}</span>
-             </div>
-          </div>
-
-          {/* Responsável */}
-          <div className="flex items-center gap-2">
-             <div className="w-6 h-6 rounded-md bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shadow-sm">
-                <UserIcon size={12} />
-             </div>
-             <div className="flex flex-col">
-                <span className="text-[9px] font-medium text-slate-400 uppercase tracking-wider leading-none mb-0.5">Responsável</span>
-                <span className="text-[10px] font-semibold text-slate-700 truncate">{responsavel_nome || 'Pendente'}</span>
-             </div>
-          </div>
-
-          {/* Cliente */}
-          <div className="flex items-center gap-2">
-             <div className="w-6 h-6 rounded-md bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 shadow-sm">
-                <Globe size={12} />
-             </div>
-             <div className="flex flex-col">
-                <span className="text-[9px] font-medium text-slate-400 uppercase tracking-wider leading-none mb-0.5">Solicitante</span>
-                <span className="text-[10px] font-semibold text-slate-700 truncate max-w-[150px]">{cliente_nome || 'Externo'}</span>
-             </div>
-          </div>
-
-          {/* SLA */}
-          <div className="flex items-center gap-2">
-             <div className={cn(
-               "w-6 h-6 rounded-md flex items-center justify-center border shadow-sm",
-               slaInfo.color
-             )}>
-                <Clock size={12} />
-             </div>
-             <div className="flex flex-col">
-                <span className="text-[9px] font-medium text-slate-400 uppercase tracking-wider leading-none mb-0.5">Prazo SLA</span>
-                <span className={cn(
-                  "text-[10px] font-semibold",
-                  slaInfo.status === 'vencido' ? "text-rose-600" : "text-slate-700"
-                )}>{slaInfo.compactText || slaInfo.label}</span>
-             </div>
-          </div>
-
-          {/* Origem */}
-          {origem && (
-            <div className="flex items-center gap-2">
-               <div className="w-6 h-6 rounded-md bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 shadow-sm">
-                  {origem === 'email' ? <Mail size={12} /> : <Globe size={12} />}
-               </div>
-               <div className="flex flex-col">
-                  <span className="text-[9px] font-medium text-slate-400 uppercase tracking-wider leading-none mb-0.5">Canal</span>
-                  <span className="text-[10px] font-semibold text-slate-700 uppercase">{origem}</span>
-               </div>
-            </div>
+          {showReopenButton && (
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={() => onUpdate({ status: 'aberto' })}
+              className="text-[11px] font-medium border-blue-200 text-blue-600 hover:bg-blue-50 shadow-sm h-7 px-2.5 rounded-md"
+            >
+              <RefreshCw size={12} className="mr-1.5" />
+              Reabrir
+            </Button>
           )}
         </div>
       </div>
@@ -200,9 +155,9 @@ export const TicketHeader = ({
 };
 
 const ticketStatusColors: Record<TicketStatus, string> = {
-  aberto: "bg-blue-100 border-blue-200 text-blue-600",
-  em_andamento: "bg-indigo-100 border-indigo-200 text-indigo-600",
-  aguardando_cliente: "bg-amber-100 border-amber-200 text-amber-600",
-  resolvido: "bg-emerald-100 border-emerald-200 text-emerald-600",
-  fechado: "bg-slate-200 border-slate-300 text-slate-600",
+  aberto: "bg-blue-500",
+  em_andamento: "bg-indigo-500",
+  aguardando_cliente: "bg-amber-500",
+  resolvido: "bg-emerald-500",
+  fechado: "bg-slate-400",
 };

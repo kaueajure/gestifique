@@ -312,13 +312,13 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
         </div>
 
         {/* Right Sidebar: Tabs for Props & Timeline */}
-        <div className="w-[320px] lg:w-[360px] shrink-0 overflow-y-auto flex flex-col bg-slate-50/50 border-l border-slate-200 custom-scrollbar">
-          <div className="flex bg-white border-b border-slate-200 shrink-0">
+        <div className="w-full md:w-[280px] lg:w-[300px] shrink-0 overflow-y-auto flex flex-col bg-slate-50/30 border-l border-slate-200 custom-scrollbar">
+          <div className="flex bg-white border-b border-slate-100 shrink-0">
              <button 
                onClick={() => setActiveTab('messages')}
                className={cn(
-                 "flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all border-b-2",
-                 activeTab === 'messages' ? "border-blue-600 text-blue-600" : "border-transparent text-slate-400 hover:text-slate-600"
+                 "flex-1 py-2.5 text-[10px] font-semibold uppercase tracking-wider transition-all border-b-2",
+                 activeTab === 'messages' ? "border-blue-500 text-blue-600" : "border-transparent text-slate-500 hover:text-slate-700"
                )}
              >
                Propriedades
@@ -326,15 +326,15 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
              <button 
                onClick={() => setActiveTab('timeline')}
                className={cn(
-                 "flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all border-b-2",
-                 activeTab === 'timeline' ? "border-blue-600 text-blue-600" : "border-transparent text-slate-400 hover:text-slate-600"
+                 "flex-1 py-2.5 text-[10px] font-semibold uppercase tracking-wider transition-all border-b-2",
+                 activeTab === 'timeline' ? "border-blue-500 text-blue-600" : "border-transparent text-slate-500 hover:text-slate-700"
                )}
              >
                Histórico
              </button>
           </div>
 
-          <div className="p-4 lg:p-5 pb-8">
+          <div className="p-3 pb-8">
              <AnimatePresence mode="wait">
                {activeTab === 'messages' ? (
                  <motion.div

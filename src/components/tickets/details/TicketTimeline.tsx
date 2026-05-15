@@ -79,11 +79,11 @@ export const TicketTimeline = ({ timeline, loading }: TicketTimelineProps) => {
   }
 
   return (
-    <div className="relative pl-6">
+    <div className="relative pl-5">
       {/* Vertical Track */}
-      <div className="absolute left-[11px] top-4 bottom-4 w-px bg-slate-100" />
+      <div className="absolute left-[9px] top-4 bottom-4 w-px bg-slate-100" />
       
-      <div className="space-y-6 relative">
+      <div className="space-y-4 relative">
         {timeline.map((item, index) => {
           const Icon = getIcon(item.type);
           const colorClasses = getEventColor(item.type);
@@ -93,16 +93,16 @@ export const TicketTimeline = ({ timeline, loading }: TicketTimelineProps) => {
             <div key={index} className="relative group animate-in fade-in slide-in-from-left-4 duration-500">
               {/* Event Marker */}
               <div className={cn(
-                "absolute -left-[27px] top-1.5 w-6 h-6 rounded-lg border-2 border-white shadow-sm flex items-center justify-center z-10 transition-transform group-hover:scale-110",
+                "absolute -left-[24px] top-1 w-5 h-5 rounded-md border-2 border-white shadow-sm flex items-center justify-center z-10 transition-transform group-hover:scale-110",
                 colorClasses
               )}>
-                <Icon size={12} />
+                <Icon size={10} />
               </div>
               
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-0.5">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-semibold text-slate-900 tracking-tight">
+                    <span className="text-[11px] font-semibold text-slate-800 tracking-tight">
                        {item.type === 'internal_note' ? 'Nota Interna' : 
                         item.type === 'system' ? 'Sistema' : 
                         item.type === 'response' ? 'Resposta' : 

@@ -45,16 +45,16 @@ const MessageBubble = ({
   
   return (
     <div className={cn(
-      "flex flex-col gap-2 transition-all max-w-full group",
-      isInternal ? "my-6" : "my-4",
+      "flex flex-col gap-1 transition-all max-w-full group",
+      isInternal ? "my-3" : "my-2",
       isCliente || isAbertura ? "items-start" : "items-end"
     )}>
       {/* Internal Note Banner */}
       {isInternal && (
-         <div className="w-full flex items-center gap-4 mb-2">
+         <div className="w-full flex items-center gap-3 mb-1">
             <div className="h-px flex-1 bg-amber-100" />
-            <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
-               <Lock size={10} /> Nota Interna de Atendimento
+            <div className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-wider text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+               <Lock size={10} /> Nota Interna
             </div>
             <div className="h-px flex-1 bg-amber-100" />
          </div>
@@ -66,7 +66,7 @@ const MessageBubble = ({
       )}>
         {/* Avatar */}
         <div className={cn(
-          "shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-bold shadow-sm border",
+          "shrink-0 w-7 h-7 rounded flex items-center justify-center text-[10px] font-bold shadow-sm border",
           isAbertura || isCliente 
             ? "bg-slate-50 border-slate-200 text-slate-600" 
             : isInternal 
@@ -83,28 +83,27 @@ const MessageBubble = ({
         )}>
            {/* Meta */}
            <div className={cn(
-             "flex items-center gap-1.5 text-[10px] tracking-wider",
-             isCliente || isAbertura ? "text-slate-400" : "flex-row-reverse text-blue-600"
+             "flex items-center gap-1.5 text-[9px]",
+             isCliente || isAbertura ? "text-slate-500" : "flex-row-reverse text-blue-600"
            )}>
               <span className={cn(
-                "font-semibold uppercase",
+                "font-semibold",
                 isInternal ? "text-amber-700" : (isCliente || isAbertura ? "text-slate-700" : "text-blue-600")
               )}>
                 {msg.usuario_nome || (isAbertura ? 'Solicitante' : 'Atendente')}
               </span>
               <span className="w-0.5 h-0.5 rounded-full bg-slate-300" />
-              <span className="flex items-center gap-1 text-slate-400 font-medium">
-                 <Clock size={10} />
+              <span className="flex items-center gap-1 font-medium">
                  {date.toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
               </span>
               {isAbertura && (
-                <span className="text-[9px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded ml-1 uppercase tracking-wider">Abertura</span>
+                <span className="text-[8px] font-bold bg-slate-100 text-slate-500 px-1 py-0.5 rounded ml-1 uppercase tracking-wider">Abertura</span>
               )}
            </div>
 
            {/* Bubble */}
            <div className={cn(
-             "px-3 py-2.5 outline outline-1 outline-transparent rounded-xl text-sm leading-relaxed transition-all shadow-sm max-w-full",
+             "px-3 py-2 outline outline-1 outline-transparent rounded-lg text-[13px] leading-relaxed transition-all shadow-sm max-w-full",
              isInternal 
                ? "bg-amber-50 border border-amber-200 text-slate-800 rounded-tl-sm" 
                : isCliente || isAbertura
@@ -117,7 +116,7 @@ const MessageBubble = ({
 
              {msg.attachments && msg.attachments.length > 0 && (
                <div className={cn(
-                 "mt-4 pt-4 border-t",
+                 "mt-3 pt-3 border-t",
                  isCliente || isAbertura || isInternal ? "border-slate-100" : "border-blue-500/30"
                )}>
                   <AttachmentList 
@@ -131,8 +130,8 @@ const MessageBubble = ({
            </div>
 
            {/* Full Date on Hover/Focus */}
-           <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-              {date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
+           <div className="text-[8px] font-semibold text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
+              {date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
            </div>
         </div>
       </div>
@@ -158,14 +157,11 @@ export const TicketConversation = ({
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-slate-50/20">
-        <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-2 custom-scrollbar">
+        <div className="flex-1 min-h-0 overflow-y-auto p-3 md:p-4 space-y-1 custom-scrollbar">
           {/* Timeline Start Indication */}
-          <div className="flex flex-col items-center justify-center mb-6 mt-2">
-             <div className="w-8 h-8 rounded-xl bg-white border border-slate-100 shadow-sm flex items-center justify-center text-slate-400 mb-2">
-                <Calendar size={14} />
-             </div>
-             <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
-                Atendimento Iniciado em {new Date(ticket.created_at).toLocaleDateString()}
+          <div className="flex flex-col items-center justify-center mb-4 mt-2">
+             <p className="text-[10px] font-semibold text-slate-400 bg-white border border-slate-200 px-2.5 py-1 rounded-full shadow-sm">
+                Iniciado em {new Date(ticket.created_at).toLocaleDateString()}
              </p>
           </div>
 

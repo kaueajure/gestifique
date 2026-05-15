@@ -721,14 +721,14 @@ function IndicatorCard({ title, value, icon, color, trend }: { title: string, va
   };
 
   return (
-    <Card className="p-4 relative overflow-hidden group hover:shadow-md transition-all border-slate-200">
-      <div className={`w-8 h-8 rounded-lg mb-3 flex items-center justify-center ${colorMap[color]}`}>
-        {React.cloneElement(icon as React.ReactElement<any>, { size: 16 })}
+    <Card className="p-3 relative overflow-hidden group hover:shadow-md transition-all border-slate-200">
+      <div className={`w-7 h-7 rounded-md mb-2 flex items-center justify-center ${colorMap[color]}`}>
+        {React.cloneElement(icon as React.ReactElement<any>, { size: 14 })}
       </div>
-      <div className="space-y-1">
-        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{title}</p>
-        <p className="text-2xl font-bold text-slate-800 tracking-tight leading-none">{value}</p>
-        {trend && <p className="text-xs font-medium text-slate-500 pt-1">{trend}</p>}
+      <div className="space-y-0.5">
+        <p className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider">{title}</p>
+        <p className="text-xl font-bold text-slate-800 tracking-tight leading-none">{value}</p>
+        {trend && <p className="text-[10px] font-medium text-slate-500">{trend}</p>}
       </div>
     </Card>
   );

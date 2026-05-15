@@ -28,9 +28,9 @@ import { useTicketOptions } from '../../../hooks/useTicketOptions';
 import { hasPermission } from '../../../lib/permissions';
 
 const PropertyRow = ({ label, icon: Icon, children, className }: { label: string, icon?: any, children: React.ReactNode, className?: string }) => (
-  <div className={cn("flex flex-col gap-1.5 py-2.5 first:pt-0", className)}>
-    <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500 uppercase tracking-wider leading-none">
-       {Icon && <Icon size={12} />}
+  <div className={cn("flex flex-col gap-1 py-1.5 first:pt-0", className)}>
+    <div className="flex items-center gap-1 text-[9px] font-semibold text-slate-500 uppercase tracking-wider leading-none">
+       {Icon && <Icon size={10} />}
        {label}
     </div>
     <div className="w-full">
@@ -40,15 +40,15 @@ const PropertyRow = ({ label, icon: Icon, children, className }: { label: string
 );
 
 const Section = ({ title, icon: Icon, children, badge }: { title: string, icon?: any, children: React.ReactNode, badge?: React.ReactNode }) => (
-  <div className="bg-white border text-sm border-slate-200 rounded-xl overflow-hidden shadow-sm">
-    <div className="px-3 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-      <h3 className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-        {Icon && <Icon size={14} className="text-slate-500" />}
+  <div className="bg-white border text-sm border-slate-200 rounded-lg overflow-hidden shadow-sm">
+    <div className="px-2.5 py-1.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+      <h3 className="text-[11px] font-semibold text-slate-700 flex items-center gap-1.5">
+        {Icon && <Icon size={12} className="text-slate-500" />}
         {title}
       </h3>
       {badge}
     </div>
-    <div className="p-3 space-y-0 divide-y divide-slate-100">
+    <div className="p-2 space-y-0 divide-y divide-slate-100">
       {children}
     </div>
   </div>
@@ -151,7 +151,7 @@ export const TicketProperties = ({
                { value: 'resolvido', label: 'Resolvido' },
                { value: 'fechado', label: 'Fechado' }
              ]}
-             buttonClassName="w-full h-8 text-xs font-semibold bg-slate-50 border-slate-200 rounded-md"
+             buttonClassName="w-full h-7 text-[11px] font-semibold bg-white border-slate-200 rounded text-slate-700"
              disabled={!canManage}
            />
         </PropertyRow>
@@ -164,7 +164,7 @@ export const TicketProperties = ({
                { value: '', label: 'Nenhum Atribuído' },
                ...agents.map(a => ({ value: String(a.id), label: a.nome }))
              ]}
-             buttonClassName="w-full h-8 text-xs font-semibold bg-slate-50 border-slate-200 rounded-md"
+             buttonClassName="w-full h-7 text-[11px] font-semibold bg-white border-slate-200 rounded text-slate-700"
              disabled={!canManage}
            />
         </PropertyRow>
@@ -179,7 +179,7 @@ export const TicketProperties = ({
                { value: 'alta', label: 'Alta' },
                { value: 'urgente', label: 'Urgente' }
              ]}
-             buttonClassName="w-full h-8 text-xs font-semibold bg-slate-50 border-slate-200 rounded-md"
+             buttonClassName="w-full h-7 text-[11px] font-semibold bg-white border-slate-200 rounded text-slate-700"
              disabled={!canManage}
            />
         </PropertyRow>
@@ -265,7 +265,7 @@ export const TicketProperties = ({
                { value: 'chat', label: 'Chat' },
                { value: 'manual', label: 'Manual' }
              ]}
-             buttonClassName="w-full h-8 text-xs font-semibold bg-slate-50 border-slate-200 rounded-md"
+             buttonClassName="w-full h-7 text-[11px] font-semibold bg-white border-slate-200 rounded text-slate-700"
              disabled={!canManage}
            />
         </PropertyRow>
@@ -278,7 +278,7 @@ export const TicketProperties = ({
              value={ticket.categoria || ''}
              onChange={(value) => onUpdate({ categoria: value })}
              options={categoryOptions}
-             buttonClassName="w-full h-8 text-xs font-semibold bg-slate-50 border-slate-200 rounded-md"
+             buttonClassName="w-full h-7 text-[11px] font-semibold bg-white border-slate-200 rounded text-slate-700"
              disabled={!canManage}
            />
         </PropertyRow>
@@ -287,7 +287,7 @@ export const TicketProperties = ({
              value={ticket.servico || ''}
              onChange={(value) => onUpdate({ servico: value })}
              options={serviceOptions}
-             buttonClassName="w-full h-8 text-xs font-semibold bg-slate-50 border-slate-200 rounded-md"
+             buttonClassName="w-full h-7 text-[11px] font-semibold bg-white border-slate-200 rounded text-slate-700"
              disabled={!canManage}
            />
         </PropertyRow>

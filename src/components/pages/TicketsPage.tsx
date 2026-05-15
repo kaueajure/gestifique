@@ -532,50 +532,17 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
         </AnimatePresence>
       </div>
 
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
-        <div>
-          <h1 className="text-lg font-semibold text-slate-900 tracking-tight">Central de Atendimentos</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          {!!currentUser.desenvolvedor && (
-            <div className="relative w-44">
-              <Building className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 z-10" size={14} />
-              <Select 
-                size="sm"
-                value={devCompanyId}
-                onChange={setDevCompanyId}
-                placeholder="Empresa..."
-                buttonClassName="pl-8 bg-slate-50 border-slate-200"
-                options={[
-                  { value: '', label: 'Selecione a empresa' },
-                  ...companies.map(emp => ({
-                    value: String(emp.id),
-                    label: emp.nome
-                  }))
-                ]}
-              />
-            </div>
-          )}
-          <Button 
-            size="sm"
-            onClick={() => setIsModalOpen(true)}
-          >
-            <Plus size={14} className="mr-1.5" /> 
-            Abrir Chamado
-          </Button>
-        </div>
-      </div>
-
       <div className="flex flex-col lg:flex-row gap-3 items-start">
-        <div className="flex-1 w-full space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
+        <div className="flex-1 w-full space-y-3">
+          {/* Main Toolbar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
             <div className="flex-1 w-full max-w-3xl flex items-center gap-2">
               <div className="relative flex-1 group">
-                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={14} />
+                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={14} />
                  <input 
                    type="text" 
                    placeholder="Buscar ticket..." 
-                   className="w-full h-8 bg-slate-50 border border-slate-200 rounded-md pl-9 pr-3 text-[13px] outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white focus:border-blue-500 transition-all placeholder:text-slate-400"
+                   className="w-full h-8 bg-slate-50 border border-slate-200 rounded-md pl-8 pr-3 text-[13px] outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white focus:border-blue-500 transition-all placeholder:text-slate-400"
                    value={searchTerm}
                    onChange={(e) => setSearchTerm(e.target.value)}
                  />
@@ -594,7 +561,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                 size="sm"
                 onClick={() => setShowAdvanced(true)}
                 className={cn(
-                  "h-8 px-3 transition-all",
+                  "h-8 px-2.5 transition-all",
                   hasAnyFilters ? "bg-blue-50 text-blue-700 border-blue-200" : ""
                 )}
               >
@@ -608,12 +575,12 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
               </Button>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <div className="flex items-center p-0.5 bg-slate-100 rounded-md border border-slate-200/50">
                 <button 
                   onClick={() => setViewMode('list')}
                   className={cn(
-                    "px-2.5 py-1 rounded transition-all flex items-center gap-1.5",
+                    "px-2 py-1 rounded transition-all flex items-center gap-1",
                     viewMode === 'list' ? "bg-white text-blue-600 shadow-sm border border-slate-200/60" : "text-slate-500 hover:text-slate-700"
                   )}
                 >
@@ -623,7 +590,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                 <button 
                   onClick={() => setViewMode('kanban')}
                   className={cn(
-                    "px-2.5 py-1 rounded transition-all flex items-center gap-1.5",
+                    "px-2 py-1 rounded transition-all flex items-center gap-1",
                     viewMode === 'kanban' ? "bg-white text-blue-600 shadow-sm border border-slate-200/60" : "text-slate-500 hover:text-slate-700"
                   )}
                 >
@@ -633,6 +600,35 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
               </div>
 
               <div className="w-px h-5 bg-slate-200 mx-0.5 hidden sm:block" />
+
+              {!!currentUser.desenvolvedor && (
+                <div className="relative w-36">
+                  <Building className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 z-10" size={14} />
+                  <Select 
+                    size="sm"
+                    value={devCompanyId}
+                    onChange={setDevCompanyId}
+                    placeholder="Empresa..."
+                    buttonClassName="pl-8 bg-slate-50 border-slate-200 h-8 text-[11px]"
+                    options={[
+                      { value: '', label: 'Selecione a empresa' },
+                      ...companies.map(emp => ({
+                        value: String(emp.id),
+                        label: emp.nome
+                      }))
+                    ]}
+                  />
+                </div>
+              )}
+
+              <Button 
+                size="sm"
+                className="h-8 text-[11px] px-2.5"
+                onClick={() => setIsModalOpen(true)}
+              >
+                <Plus size={14} className="mr-1" /> 
+                Novo
+              </Button>
 
               <Select
                 size="sm"
@@ -648,7 +644,8 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                    { value: 'exportar', label: 'Exportar CSV' },
                    { value: 'atualizar', label: 'Atualizar' }
                 ]}
-                className="w-32 hidden md:block"
+                className="w-24 hidden md:block text-[11px]"
+                buttonClassName="h-8"
               />
             </div>
           </div>
