@@ -45,6 +45,7 @@ export interface UserFormData {
   empresa_id: number | null;
   administrador: boolean;
   desenvolvedor: boolean;
+  perfil?: 'desenvolvedor' | 'administrador' | 'gestor' | 'atendente' | 'cliente' | string | null;
 }
 
 export interface CompanyFormData {

@@ -59,6 +59,7 @@ async function initDB() {
         telefone VARCHAR(20),
         foto VARCHAR(255),
         cargo VARCHAR(100),
+        perfil VARCHAR(50) DEFAULT 'atendente',
         administrador TINYINT(1) DEFAULT 0,
         desenvolvedor TINYINT(1) DEFAULT 0,
         ativo TINYINT(1) DEFAULT 1,
@@ -442,7 +443,7 @@ async function initDB() {
     // Usuarios Migrations
     await ensureColumn('usuarios', 'reset_token', 'VARCHAR(255) NULL');
     await ensureColumn('usuarios', 'reset_token_expires', 'DATETIME NULL');
-    await ensureColumn('usuarios', 'perfil', 'VARCHAR(50) NULL');
+    await ensureColumn('usuarios', 'perfil', 'VARCHAR(50) DEFAULT "atendente"');
 
     // Tickets Migrations
     await ensureColumn('tickets', 'prazo_sla', 'DATETIME NULL');
@@ -481,8 +482,6 @@ async function initDB() {
     await ensureColumn('ticket_macros', 'tags_json', 'JSON NULL');
     await ensureColumn('ticket_macros', 'uso_count', 'INT DEFAULT 0');
 
-    await ensureColumn('usuarios', 'perfil', 'VARCHAR(50) DEFAULT "atendente"');
-    
     // Update users profile fallback
     try {
       console.log('[BOOT] 🔄 Atualizando perfis de usuários com fallback...');
