@@ -23,7 +23,7 @@ interface Article {
   created_at: string;
 }
 
-export const KnowledgeManager = ({ currentUser }: KnowledgeManagerProps) => {
+export const KnowledgePage = ({ currentUser }: KnowledgeManagerProps) => {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');

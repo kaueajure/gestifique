@@ -104,4 +104,20 @@ router.post('/:id/use', async (req: AuthRequest, res) => {
   }
 });
 
+// Aplicar macro (substituir tags, registrar uso e evento)
+router.post('/:id/apply', async (req: AuthRequest, res) => {
+  try {
+    if (!req.user) return sendError(res, 'Não autorizado', 401);
+    const { id } = req.params;
+    const { ticket_id } = req.body;
+    
+    if (!ticket_id) return sendError(res, 'ticket_id é obrigatório', 400);
+
+    const conteudoFinal = await macrosService.applyMacro(Number(id), req.user.empresa_id!, Number(ticket_id));
+    sendSuccess(res, { conteudo: conteudoFinal });
+  } catch (error: any) {
+    sendError(res, error.message);
+  }
+});
+
 export default router;

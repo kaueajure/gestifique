@@ -128,6 +128,11 @@ export interface Ticket {
   updated_at: string;
   tags?: string[];
   custom_fields?: TicketCustomField[];
+  satisfacao?: {
+    nota: number;
+    comentario?: string;
+    respondido_em: string;
+  };
 }
 
 export interface TicketAdvancedFilters {

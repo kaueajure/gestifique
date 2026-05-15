@@ -14,6 +14,7 @@ import { Badge } from '../ui/Badge';
 import { Select } from '../ui/Select';
 import { api } from '../../lib/api';
 import { User } from '../../types';
+import { useTicketOptions } from '../../hooks/useTicketOptions';
 
 interface SummaryData {
   totals: {
@@ -79,15 +80,21 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
     status: string;
     prioridade: string;
     responsavel_id: string;
+    categoria: string;
+    servico: string;
   }>({
     start_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     end_date: new Date().toISOString().split('T')[0],
     empresa_id: '',
     status: '',
     prioridade: '',
-    responsavel_id: ''
+    responsavel_id: '',
+    categoria: '',
+    servico: ''
   });
   const [companies, setCompanies] = useState<CompanyOption[]>([]);
+
+  const { categories, services } = useTicketOptions(Number(filters.empresa_id) || currentUser.empresa_id || 0);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -166,6 +173,8 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
       if (filters.responsavel_id) params.append('responsavel_id', filters.responsavel_id);
       if (filters.status) params.append('status', filters.status);
       if (filters.prioridade) params.append('prioridade', filters.prioridade);
+      if (filters.categoria) params.append('categoria', filters.categoria);
+      if (filters.servico) params.append('servico', filters.servico);
       params.append('type', type);
 
       const url = `/api/reports/export?${params.toString()}`;
@@ -225,7 +234,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
         <div className="flex items-center gap-2 mb-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
           <Filter size={14} /> Filtros de Relatório
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-700">Data Inicial</label>
             <input 
@@ -270,6 +279,28 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                 { value: 'aguardando_cliente', label: 'Aguardando Cliente' },
                 { value: 'resolvido', label: 'Resolvido' },
                 { value: 'fechado', label: 'Fechado' }
+              ]}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-700">Categoria</label>
+            <Select 
+              value={filters.categoria}
+              onChange={(value) => setFilters(f => ({ ...f, categoria: value }))}
+              options={[
+                { value: '', label: 'Todas' },
+                ...(categories?.map(c => ({ value: c.valor, label: c.nome })) || [])
+              ]}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-700">Serviço</label>
+            <Select 
+              value={filters.servico}
+              onChange={(value) => setFilters(f => ({ ...f, servico: value }))}
+              options={[
+                { value: '', label: 'Todos' },
+                ...(services?.map(s => ({ value: s.valor, label: s.nome })) || [])
               ]}
             />
           </div>

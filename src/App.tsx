@@ -11,9 +11,11 @@ import { LogsPage } from './components/pages/LogsPage';
 import { ProfilePage } from './components/pages/ProfilePage';
 import { SettingsPage } from './components/pages/SettingsPage';
 import { ReportsPage } from './components/pages/ReportsPage';
+import { KnowledgePage } from './components/pages/KnowledgePage';
 import { AccessDenied } from './components/ui/AccessDenied';
 import { LandingPage } from './components/public/LandingPage';
 import { SatisfactionPage } from './components/public/SatisfactionPage';
+import { hasPermission } from './lib/permissions';
 import { User } from './types';
 import { api } from './lib/api';
 import { Card } from './components/ui/Card';
@@ -33,7 +35,7 @@ import {
 } from 'lucide-react';
 
 type ViewState = 'landing' | 'login' | 'forgot-password' | 'reset-password' | 'dashboard';
-type ActiveTab = 'dashboard' | 'tickets' | 'users' | 'companies' | 'logs' | 'profile' | 'settings' | 'reports';
+type ActiveTab = 'dashboard' | 'tickets' | 'users' | 'companies' | 'logs' | 'profile' | 'settings' | 'reports' | 'knowledge';
 
 export default function App() {
   const [view, setView] = useState<ViewState>('landing');
@@ -384,6 +386,7 @@ export default function App() {
         case 'companies': return 'Empresas Ativas';
         case 'logs': return 'Logs do Sistema';
         case 'reports': return 'Relatórios Gerenciais';
+        case 'knowledge': return 'Base de Conhecimento';
         case 'profile': return 'Configurações de Perfil';
         case 'settings': return 'Preferências';
         default: return 'Gestifique';
@@ -463,6 +466,12 @@ export default function App() {
 
                   {activeTab === 'reports' && (!!(currentUser.administrador || currentUser.desenvolvedor) ? (
                     <ReportsPage currentUser={currentUser} />
+                  ) : (
+                    <AccessDenied />
+                  ))}
+
+                  {activeTab === 'knowledge' && (hasPermission(currentUser, 'base_conhecimento.visualizar') || !!currentUser.administrador ? (
+                    <KnowledgePage currentUser={currentUser} />
                   ) : (
                     <AccessDenied />
                   ))}

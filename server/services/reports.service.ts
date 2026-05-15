@@ -59,6 +59,14 @@ class ReportsService {
       clauses.push(`${prefix}prioridade = ?`);
       params.push(filters.prioridade);
     }
+    if (filters.categoria) {
+      clauses.push(`${prefix}categoria = ?`);
+      params.push(filters.categoria);
+    }
+    if (filters.servico) {
+      clauses.push(`${prefix}servico = ?`);
+      params.push(filters.servico);
+    }
 
     return { clauses, params };
   }

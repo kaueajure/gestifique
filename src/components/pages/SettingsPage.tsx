@@ -13,7 +13,6 @@ import { EmailChannelsManager } from '../companies/EmailChannelsManager';
 import { TicketOptionsManager } from '../settings/TicketOptionsManager';
 import { SlaPoliciesManager } from '../settings/SlaPoliciesManager';
 import { AutomationsManager } from '../settings/AutomationsManager';
-import { KnowledgeManager } from '../settings/KnowledgeManager';
 
 type AppTab = 'dashboard' | 'tickets' | 'users' | 'companies' | 'logs' | 'profile' | 'settings' | 'reports';
 
@@ -33,7 +32,7 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [activeSubTab, setActiveSubTab] = useState<'general' | 'company' | 'system' | 'tickets' | 'knowledge'>('general');
+  const [activeSubTab, setActiveSubTab] = useState<'general' | 'company' | 'system' | 'tickets'>('general');
   const [dbStatus, setDbStatus] = useState<string | null>(null);
 
   const checkDb = async () => {
@@ -143,18 +142,6 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
             )}
           >
             <Layout size={14} /> Atendimento
-          </button>
-        )}
-
-        {!!(currentUser.administrador || currentUser.desenvolvedor) && (
-          <button 
-            onClick={() => setActiveSubTab('knowledge')}
-            className={cn(
-              "h-9 px-4 rounded-lg text-xs font-semibold transition-all flex items-center gap-2",
-              activeSubTab === 'knowledge' ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:text-slate-950 hover:bg-slate-50"
-            )}
-          >
-            <BookOpen size={14} /> Base de Conhecimento
           </button>
         )}
 
@@ -493,10 +480,6 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
                  <SlaPoliciesManager currentCompanyId={currentUser.empresa_id!} />
                  <AutomationsManager currentCompanyId={currentUser.empresa_id!} />
               </div>
-            )}
-
-            {activeSubTab === 'knowledge' && (
-              <KnowledgeManager currentUser={currentUser} />
             )}
           </motion.div>
         </AnimatePresence>

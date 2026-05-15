@@ -1,4 +1,5 @@
 import pool from '../db/connection.js';
+import { recordTicketEvent } from './ticket-events.service.js';
 
 export async function distributeTicket(ticket: any) {
   try {
@@ -70,10 +71,12 @@ export async function distributeTicket(ticket: any) {
 
     if (assignedAgentId) {
        await pool.query('UPDATE tickets SET responsavel_id = ? WHERE id = ?', [assignedAgentId, ticket_id]);
-       await pool.query(
-         "INSERT INTO ticket_eventos (ticket_id, empresa_id, tipo, descricao) VALUES (?, ?, ?, ?)",
-         [ticket_id, empresa_id, 'distribuicao_automatica', `Atribuído para usuário ID ${assignedAgentId} via regra ${matchedRule.nome}`]
-       );
+       await recordTicketEvent({
+         ticket_id,
+         empresa_id,
+         tipo: 'distribuicao_automatica',
+         descricao: `Atribuído para usuário ID ${assignedAgentId} via regra ${matchedRule.nome}`
+       });
        return assignedAgentId;
     }
 

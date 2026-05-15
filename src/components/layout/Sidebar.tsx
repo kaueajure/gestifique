@@ -11,7 +11,8 @@ import {
   Settings,
   LogOut,
   X,
-  Plus
+  Plus,
+  BookOpen
 } from 'lucide-react';
 import { User } from '../../types';
 import { cn } from '../../lib/utils';
@@ -36,6 +37,7 @@ export const Sidebar = ({ currentUser, activeTab, setActiveTab, isOpen, onClose,
       items: [
         { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', access: true },
         { id: 'tickets', icon: Ticket, label: 'Atendimentos', access: true },
+        { id: 'knowledge', icon: BookOpen, label: 'Base de Conhecimento', access: hasPermission(currentUser, 'base_conhecimento.visualizar') },
       ]
     },
     {

@@ -351,6 +351,34 @@ export const TicketProperties = ({
           </Section>
         )}
 
+        {/* Satisfação (CSAT) */}
+        {ticket.satisfacao && (
+          <Section title="Avaliação do Cliente (CSAT)">
+            <div className="flex flex-col gap-1.5 text-[11px]">
+              <div className="flex items-center gap-1 mb-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <svg 
+                    key={star} 
+                    className={cn("w-4 h-4", star <= ticket.satisfacao!.nota ? "text-yellow-400 fill-yellow-400" : "text-slate-200 fill-slate-200")} 
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                  </svg>
+                ))}
+                <span className="ml-1 text-[10px] font-bold text-slate-500">{ticket.satisfacao.nota} / 5</span>
+              </div>
+              {ticket.satisfacao.comentario && (
+                <div className="bg-slate-50 p-2 rounded-lg border border-slate-100 text-slate-700 italic">
+                  "{ticket.satisfacao.comentario}"
+                </div>
+              )}
+              <div className="text-[9px] text-slate-400 mt-0.5">
+                Respondido em: {formatDate(ticket.satisfacao.respondido_em)}
+              </div>
+            </div>
+          </Section>
+        )}
+
         {/* Reabertura */}
         {ticket.reaberto_em && (
           <Section title="Reabertura">

@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Plus, Trash2, Edit2, X } from 'lucide-react';
 import { api } from '../../lib/api';
+import { useTicketOptions } from '../../hooks/useTicketOptions';
 
 export const SlaPoliciesManager = ({ currentCompanyId }: { currentCompanyId: number }) => {
   const [policies, setPolicies] = useState<any[]>([]);
@@ -16,6 +17,8 @@ export const SlaPoliciesManager = ({ currentCompanyId }: { currentCompanyId: num
   const [categoria, setCategoria] = useState('');
   const [servico, setServico] = useState('');
   const [tempoResolucao, setTempoResolucao] = useState('');
+
+  const { categories, services } = useTicketOptions(currentCompanyId);
 
   const loadData = () => {
     if (currentCompanyId) {
@@ -110,8 +113,8 @@ export const SlaPoliciesManager = ({ currentCompanyId }: { currentCompanyId: num
                  <div className="text-sm font-medium">{p.nome}</div>
                  <div className="text-[11px] text-slate-500">
                    Prioridade: {p.prioridade || 'Todas'} 
-                   {p.categoria ? ` • Categoria: ${p.categoria}` : ''}
-                   {p.servico ? ` • Serviço: ${p.servico}` : ''}
+                   {p.categoria ? ` • Categoria: ${categories?.find(c => c.valor === p.categoria)?.nome || p.categoria}` : ''}
+                   {p.servico ? ` • Serviço: ${services?.find(s => s.valor === p.servico)?.nome || p.servico}` : ''}
                    {' • Resol: '}{p.tempo_resolucao_minutos / 60}h
                  </div>
                </div>
@@ -143,7 +146,7 @@ export const SlaPoliciesManager = ({ currentCompanyId }: { currentCompanyId: num
                <div className="grid grid-cols-2 gap-3">
                  <div>
                    <label className="block tracking-tight text-[11px] font-medium text-slate-500 uppercase mb-1">Prioridade</label>
-                   <select value={prioridade} onChange={e => setPrioridade(e.target.value)} className="w-full h-9 px-3 text-sm border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                   <select value={prioridade} onChange={e => setPrioridade(e.target.value)} className="w-full h-9 px-3 text-sm flex items-center border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white">
                      <option value="">Todas</option>
                      <option value="baixa">Baixa</option>
                      <option value="media">Média</option>
@@ -159,11 +162,21 @@ export const SlaPoliciesManager = ({ currentCompanyId }: { currentCompanyId: num
                <div className="grid grid-cols-2 gap-3">
                  <div>
                    <label className="block tracking-tight text-[11px] font-medium text-slate-500 uppercase mb-1">Categoria (Opc)</label>
-                   <Input value={categoria} onChange={e => setCategoria(e.target.value)} placeholder="Ex: Suporte" />
+                   <select value={categoria} onChange={e => setCategoria(e.target.value)} className="w-full h-9 px-3 text-sm flex items-center border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white">
+                     <option value="">Todas</option>
+                     {categories?.map(c => (
+                       <option key={c.valor} value={c.valor}>{c.nome}</option>
+                     ))}
+                   </select>
                  </div>
                  <div>
                    <label className="block tracking-tight text-[11px] font-medium text-slate-500 uppercase mb-1">Serviço (Opc)</label>
-                   <Input value={servico} onChange={e => setServico(e.target.value)} placeholder="Ex: Dúvida" />
+                   <select value={servico} onChange={e => setServico(e.target.value)} className="w-full h-9 px-3 text-sm flex items-center border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white">
+                     <option value="">Todos</option>
+                     {services?.map(s => (
+                       <option key={s.valor} value={s.valor}>{s.nome}</option>
+                     ))}
+                   </select>
                  </div>
                </div>
             </div>
@@ -177,3 +190,4 @@ export const SlaPoliciesManager = ({ currentCompanyId }: { currentCompanyId: num
     </Card>
   );
 };
+

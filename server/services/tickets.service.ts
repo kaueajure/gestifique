@@ -1,6 +1,7 @@
-import  pool from  '../db/connection.js';
+import pool from '../db/connection.js';
 import notificationsService from './notifications.service.js';
 import { sendTicketNotification } from '../utils/mailer.js';
+import { recordTicketEvent } from './ticket-events.service.js';
 
 export function toPositiveInt(value: unknown): number | undefined {
   if (value === undefined || value === null || value === '') return undefined;
@@ -670,6 +671,16 @@ class TicketsService {
       console.warn('Erro ao rodar automações', err);
     }
 
+    try {
+      await recordTicketEvent({
+        ticket_id: ticketId,
+        empresa_id,
+        usuario_id,
+        tipo: 'ticket_criado',
+        descricao: 'Abertura do chamado'
+      });
+    } catch (e) {}
+
     // Notificações: Admins
     try {
       const [admins]: any = await pool.query(
@@ -752,6 +763,19 @@ class TicketsService {
     ticket.tags = await this.getTags(id);
     ticket.custom_fields = await this.getCustomFields(id);
     
+    // Buscar satisfação se houver
+    const [csatRows]: any = await pool.query(
+      'SELECT nota, comentario, respondido_em FROM ticket_satisfacao WHERE ticket_id = ? AND token_usado = 1',
+      [id]
+    );
+    if (csatRows[0]) {
+      ticket.satisfacao = {
+        nota: csatRows[0].nota,
+        comentario: csatRows[0].comentario,
+        respondido_em: csatRows[0].respondido_em
+      };
+    }
+    
     // Enriquecer com produtividade
     const enriched = await this.enrichTicketsWithProductivity([ticket], currentUserId);
     return enriched[0];
@@ -826,6 +850,16 @@ class TicketsService {
     }
     
     try {
+       await recordTicketEvent({
+         ticket_id: id,
+         empresa_id: oldTicket.empresa_id,
+         usuario_id: changedByUserId,
+         tipo: 'status_alterado',
+         descricao: `Status alterado de "${oldTicket.status}" para "${status}"`
+       });
+    } catch (e) {}
+
+    try {
        const { runAutomations } = await import('./automations.service.js');
        await runAutomations('status_alterado', { ...oldTicket, status }, {});
     } catch(err) {}
@@ -833,7 +867,7 @@ class TicketsService {
     return { oldStatus: oldTicket.status, newStatus: status, empresa_id: oldTicket.empresa_id };
   }
 
-  async update(id: number, data: any) {
+  async update(id: number, data: any, currentUser?: any) {
     const oldTicket = await this.getById(id);
     if (!oldTicket) return;
 
@@ -922,10 +956,40 @@ class TicketsService {
         await runAutomations('status_alterado', { ...oldTicket, ...data }, {});
       }
       if (data.prioridade && data.prioridade !== oldTicket.prioridade) {
+        try {
+          await recordTicketEvent({
+            ticket_id: id,
+            empresa_id: oldTicket.empresa_id,
+            usuario_id: currentUser ? currentUser.id : null,
+            tipo: 'prioridade_alterada',
+            descricao: `Prioridade alterada de "${oldTicket.prioridade}" para "${data.prioridade}"`
+          });
+        } catch(err) {}
+
         const { runAutomations } = await import('./automations.service.js');
         await runAutomations('prioridade_alterada', { ...oldTicket, ...data }, {});
       }
       if (data.responsavel_id !== undefined && data.responsavel_id !== oldTicket.responsavel_id) {
+        try {
+          let oldName = 'Nenhum';
+          let newName = 'Nenhum';
+          if (oldTicket.responsavel_id) {
+            const [o]: any = await pool.query('SELECT nome FROM usuarios WHERE id = ?', [oldTicket.responsavel_id]);
+            if (o[0]) oldName = o[0].nome;
+          }
+          if (data.responsavel_id) {
+            const [n]: any = await pool.query('SELECT nome FROM usuarios WHERE id = ?', [data.responsavel_id]);
+            if (n[0]) newName = n[0].nome;
+          }
+          await recordTicketEvent({
+            ticket_id: id,
+            empresa_id: oldTicket.empresa_id,
+            usuario_id: currentUser ? currentUser.id : null,
+            tipo: 'responsavel_alterado',
+            descricao: `Responsável alterado de "${oldName}" para "${newName}"`
+          });
+        } catch(err) {}
+
         const { runAutomations } = await import('./automations.service.js');
         await runAutomations('responsavel_alterado', { ...oldTicket, ...data }, {});
       }

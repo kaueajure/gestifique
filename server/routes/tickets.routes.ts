@@ -541,7 +541,7 @@ router.patch('/:id', async (req: AuthRequest, res) => {
        delete req.body.status;
     }
 
-    await ticketsService.update(id, req.body);
+    await ticketsService.update(id, req.body, currentUser);
     
     let descriptions = [];
     if (req.body.prioridade && req.body.prioridade !== oldPrio) descriptions.push(`prioridade para ${req.body.prioridade}`);

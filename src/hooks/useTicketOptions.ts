@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../lib/api';
 import { TicketOption } from '../types';
 
-export function useTicketOptions(companyId?: string) {
+export function useTicketOptions(companyId?: string | number) {
   const [categories, setCategories] = useState<TicketOption[]>([]);
   const [services, setServices] = useState<TicketOption[]>([]);
   const [loading, setLoading] = useState(true);

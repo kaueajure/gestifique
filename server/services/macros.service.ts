@@ -77,6 +77,54 @@ class MacrosService {
     await pool.query('UPDATE ticket_macros SET uso_count = COALESCE(uso_count, 0) + 1 WHERE id = ? AND empresa_id = ?', [id, empresaId]);
   }
 
+  async applyMacro(id: number, empresaId: number, ticketId: number) {
+    const macro = await this.getById(id, empresaId);
+    if (!macro) throw new Error('Macro não encontrada');
+
+    const [tickets]: any = await pool.query(`
+      SELECT t.*, u.nome as cliente_nome, u.email as cliente_email, 
+             r.nome as responsavel_nome, e.nome as empresa_nome
+      FROM tickets t
+      LEFT JOIN usuarios u ON t.usuario_id = u.id
+      LEFT JOIN usuarios r ON t.responsavel_id = r.id
+      LEFT JOIN empresas e ON t.empresa_id = e.id
+      WHERE t.id = ? AND t.empresa_id = ?
+    `, [ticketId, empresaId]);
+
+    const ticket = tickets[0];
+    if (!ticket) throw new Error('Ticket não encontrado');
+
+    let conteudo = macro.conteudo || '';
+    conteudo = conteudo.replace(/{{cliente_nome}}/g, ticket.cliente_nome || '');
+    conteudo = conteudo.replace(/{{cliente_email}}/g, ticket.cliente_email || '');
+    conteudo = conteudo.replace(/{{ticket_id}}/g, String(ticket.id));
+    conteudo = conteudo.replace(/{{ticket_titulo}}/g, ticket.titulo || '');
+    conteudo = conteudo.replace(/{{empresa_nome}}/g, ticket.empresa_nome || '');
+    conteudo = conteudo.replace(/{{responsavel_nome}}/g, ticket.responsavel_nome || '');
+    conteudo = conteudo.replace(/{{categoria}}/g, ticket.categoria || '');
+    conteudo = conteudo.replace(/{{servico}}/g, ticket.servico || '');
+    conteudo = conteudo.replace(/{{status}}/g, ticket.status || '');
+    conteudo = conteudo.replace(/{{prioridade}}/g, ticket.prioridade || '');
+
+    // Increment usage
+    await this.incrementUse(id, empresaId);
+
+    // Try to record event, but if it fails don't break the macro apply
+    try {
+      const { recordTicketEvent } = await import('./ticket-events.service.js');
+      await recordTicketEvent({
+        ticket_id: ticket.id,
+        empresa_id: empresaId,
+        tipo: 'macro_usada',
+        descricao: `Macro utilizada: ${macro.titulo}`
+      });
+    } catch (e) {
+      console.warn('Could not record macro use event', e);
+    }
+
+    return conteudo;
+  }
+
   async delete(id: number, empresaId: number, softDelete = true) {
     if (softDelete) {
       await pool.query(

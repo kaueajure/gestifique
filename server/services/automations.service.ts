@@ -1,4 +1,5 @@
 import pool from '../db/connection.js';
+import { recordTicketEvent } from './ticket-events.service.js';
 
 export async function runAutomations(evento: string, ticket: any, contexto: any) {
   try {
@@ -39,10 +40,13 @@ export async function runAutomations(evento: string, ticket: any, contexto: any)
           }
         }
 
-        await pool.query(
-          'INSERT INTO ticket_eventos (ticket_id, empresa_id, tipo, descricao) VALUES (?, ?, ?, ?)',
-          [ticket.id, ticket.empresa_id, 'automacao_executada', `Automação executada: ${regra.nome}`]
-        );
+        await recordTicketEvent({
+          ticket_id: ticket.id,
+          empresa_id: ticket.empresa_id,
+          usuario_id: contexto?.usuario_id || null,
+          tipo: 'automacao_executada',
+          descricao: `Automação executada: ${regra.nome}`
+        });
       }
     }
   } catch (err) {

@@ -31,24 +31,18 @@ export const TicketMacroList = ({ ticket, currentUser, onSelect, onClose }: Tick
     fetchMacros();
   }, []);
 
-  const replaceVariables = (content: string) => {
-    return content
-      .replace(/{{cliente_nome}}/g, ticket.cliente_nome || 'cliente')
-      .replace(/{{ticket_id}}/g, ticket.id.toString())
-      .replace(/{{titulo}}/g, ticket.titulo || '')
-      .replace(/{{responsavel_nome}}/g, ticket.responsavel_nome || 'nossa equipe')
-      .replace(/{{empresa_nome}}/g, ticket.empresa_nome || 'empresa');
-  };
-
   const handleSelect = async (macro: TicketMacro) => {
-    const processed = replaceVariables(macro.conteudo);
-    onSelect(processed);
     try {
       if (macro.id) {
-        await api.post(`/macros/${macro.id}/use`, {});
+        const response = await api.post<{ conteudo: string }>(`/macros/${macro.id}/apply`, { ticket_id: ticket.id });
+        onSelect(response.conteudo);
+      } else {
+         onSelect(macro.conteudo);
       }
     } catch (e) {
-      console.warn('Erro ao registrar uso de macro', e);
+      console.warn('Erro ao aplicar macro:', e);
+      // fallback
+      onSelect(macro.conteudo);
     }
   };
 
