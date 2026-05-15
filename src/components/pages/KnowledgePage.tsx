@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
-import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { Badge } from '../ui/Badge';
-import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
-import { BookOpen, Plus, Search, Edit2, Trash2, ShieldCheck, Globe, List, AlertCircle, X, Check, Save, Filter, Tag, LayoutGrid, LayoutList } from 'lucide-react';
+import { BookOpen, Plus, Search, Edit2, Trash2, ShieldCheck, Globe, AlertCircle, X, Check, Save, Tag, LayoutGrid, LayoutList } from 'lucide-react';
 import { User } from '../../types';
 import MDEditor from '@uiw/react-md-editor';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
+import { PageHeader } from '../ui/PageHeader';
 
 interface KnowledgeManagerProps {
   currentUser: User;
@@ -84,12 +82,12 @@ export const KnowledgePage = ({ currentUser }: KnowledgeManagerProps) => {
 
   useEffect(() => {
     loadCompanies();
-  }, []);
+  }, [currentUser.desenvolvedor]);
 
   useEffect(() => {
     fetchArticles();
     fetchCategories();
-  }, [selectedCompanyId]);
+  }, [selectedCompanyId, currentUser.desenvolvedor]);
 
   const openNew = () => {
     setEditingArticle(null);
@@ -156,220 +154,212 @@ export const KnowledgePage = ({ currentUser }: KnowledgeManagerProps) => {
   });
 
   return (
-    <div className="space-y-6">
-      {/* Header Centralizado */}
-      <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div>
-            <h1 className="text-2xl font-black text-slate-900 flex items-center gap-3 lowercase italic">
-              <div className="w-10 h-10 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center">
-                <BookOpen size={24} />
-              </div>
-              Base de Conhecimento
-            </h1>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mt-2">Documentação técnica para equipe e autoatendimento para clientes</p>
-          </div>
-          <Button onClick={openNew} className="shrink-0 h-12 px-8 bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] uppercase tracking-widest rounded-xl shadow-lg shadow-blue-100 transition-all hover:-translate-y-0.5 active:translate-y-0">
+    <div className="space-y-4 w-full max-w-none">
+      <PageHeader
+        title="Base de Conhecimento"
+        description="Documentação técnica para equipe e autoatendimento para clientes"
+        icon={<BookOpen size={20} className="text-slate-500" />}
+        action={
+          <Button onClick={openNew} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm">
             <Plus size={16} className="mr-2" /> Novo Artigo
           </Button>
+        }
+      />
+
+      {/* Toolbar compacta de filtros */}
+      <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm flex flex-col md:flex-row items-center gap-3">
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+          <input 
+            type="text"
+            placeholder="Buscar artigo..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-1.5 bg-slate-50 border border-slate-200 rounded-md text-xs font-medium focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          {currentUser.desenvolvedor && (
+            <Select
+              value={selectedCompanyId}
+              onChange={setSelectedCompanyId}
+              placeholder="Empresa: Central"
+              options={[
+                { value: '', label: 'Gestifique Central' },
+                ...companies.map(c => ({ value: String(c.id), label: c.nome }))
+              ]}
+              buttonClassName="h-8 bg-slate-50 border-slate-200 rounded-md text-xs font-medium min-w-[150px]"
+            />
+          )}
+
+          <Select
+            value={selectedCategory}
+            onChange={setSelectedCategory}
+            placeholder="Todas as categorias"
+            options={[
+              { value: '', label: 'Todas as categorias' },
+              ...categories.map(c => ({ value: c, label: c }))
+            ]}
+            buttonClassName="h-8 bg-slate-50 border-slate-200 rounded-md text-xs font-medium min-w-[160px]"
+          />
+
+          <div className="bg-slate-100 p-0.5 rounded flex gap-0.5 shrink-0 ml-auto md:ml-0">
+            <button 
+              onClick={() => setViewMode('list')}
+              className={cn("p-1.5 rounded-sm transition-all", viewMode === 'list' ? "bg-white shadow-sm text-blue-600" : "text-slate-400 hover:text-slate-600")}
+              title="Formato Lista"
+            >
+              <LayoutList size={14} />
+            </button>
+            <button 
+              onClick={() => setViewMode('grid')}
+              className={cn("p-1.5 rounded-sm transition-all", viewMode === 'grid' ? "bg-white shadow-sm text-blue-600" : "text-slate-400 hover:text-slate-600")}
+              title="Formato Grade"
+            >
+              <LayoutGrid size={14} />
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Filtros e Busca */}
-        <div className="lg:col-span-3 space-y-6">
-           <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Busca</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                  <input 
-                    type="text"
-                    placeholder="Título ou termo..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all outline-none"
-                  />
-                </div>
-              </div>
-
-              {currentUser.desenvolvedor && (
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Empresa</label>
-                  <Select
-                    value={selectedCompanyId}
-                    onChange={setSelectedCompanyId}
-                    placeholder="Selecione..."
-                    options={[
-                      { value: '', label: 'Gestifique Central' },
-                      ...companies.map(c => ({ value: String(c.id), label: c.nome }))
-                    ]}
-                    buttonClassName="h-10 bg-slate-50 border-slate-100 rounded-xl text-[10px] font-black uppercase tracking-widest"
-                  />
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Categoria</label>
-                <Select
-                  value={selectedCategory}
-                  onChange={setSelectedCategory}
-                  placeholder="Todas as categorias"
-                  options={[
-                    { value: '', label: 'Todas as categorias' },
-                    ...categories.map(c => ({ value: c, label: c }))
-                  ]}
-                  buttonClassName="h-10 bg-slate-50 border-slate-100 rounded-xl text-[10px] font-black uppercase tracking-widest"
-                />
-              </div>
-
-              <div className="pt-4 border-t border-slate-50 flex items-center justify-between">
-                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Visualização</span>
-                 <div className="bg-slate-50 p-1 rounded-lg flex gap-1">
-                    <button 
-                      onClick={() => setViewMode('list')}
-                      className={cn("p-1.5 rounded transition-all", viewMode === 'list' ? "bg-white shadow-sm text-blue-600" : "text-slate-400 hover:text-slate-600")}
-                    >
-                      <LayoutList size={16} />
-                    </button>
-                    <button 
-                      onClick={() => setViewMode('grid')}
-                      className={cn("p-1.5 rounded transition-all", viewMode === 'grid' ? "bg-white shadow-sm text-blue-600" : "text-slate-400 hover:text-slate-600")}
-                    >
-                      <LayoutGrid size={16} />
-                    </button>
-                 </div>
-              </div>
-           </div>
-        </div>
-
-        {/* Listagem */}
-        <div className="lg:col-span-9">
-          {loading ? (
-            <div className="bg-white p-12 rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center">
-               <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4" />
-               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] ml-1">Carregando Acervo...</p>
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="bg-white p-20 rounded-[2.5rem] border-2 border-dashed border-slate-200 text-center">
-              <BookOpen className="w-16 h-16 text-slate-200 mx-auto mb-6" />
-              <h3 className="text-xl font-black text-slate-900 mb-2 lowercase">nenhum artigo por aqui</h3>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ajuste os filtros ou crie um novo artigo agora mesmo</p>
-              <Button onClick={openNew} variant="outline" className="mt-8 h-10 px-6 border-slate-200 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-slate-50 transition-all">
-                 <Plus size={14} className="mr-2" /> começar agora
-              </Button>
-            </div>
-          ) : (
-            <div className={cn(
-              "grid gap-4",
-              viewMode === 'grid' ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"
-            )}>
-              {filtered.map(article => (
-                <div key={article.id} className="group bg-white border border-slate-200 rounded-[2rem] p-6 shadow-sm hover:shadow-xl hover:shadow-blue-50 transition-all flex flex-col justify-between gap-4">
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                       <div className="flex items-center gap-2">
-                          {article.publico ? (
-                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-[0.2em] rounded-full border border-emerald-100">
-                               <Globe size={10} strokeWidth={3} /> Público
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-500 text-[9px] font-black uppercase tracking-[0.2em] rounded-full border border-slate-200">
-                               <ShieldCheck size={10} strokeWidth={3} /> Interno
-                            </div>
-                          )}
-                          {!article.ativo && (
-                            <div className="px-2.5 py-1 bg-red-50 text-red-600 text-[9px] font-black uppercase tracking-[0.2em] rounded-full border border-red-100">Inativo</div>
-                          )}
+      {/* Listagem */}
+      <div>
+        {loading ? (
+          <div className="bg-white p-12 rounded-lg border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center">
+             <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mb-3" />
+             <p className="text-xs font-medium text-slate-500">Carregando Acervo...</p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="bg-white p-12 rounded-lg border border-dashed border-slate-200 text-center">
+            <BookOpen className="w-10 h-10 text-slate-300 mx-auto mb-4" />
+            <h3 className="text-sm font-semibold text-slate-800 mb-1">Nenhum artigo encontrado</h3>
+            <p className="text-xs text-slate-500 mb-6">Ajuste os filtros ou crie um novo artigo.</p>
+            <Button onClick={openNew} size="sm" variant="outline" className="border-slate-200 font-medium rounded-md hover:bg-slate-50 transition-all">
+               <Plus size={14} className="mr-1.5" /> Criar Artigo
+            </Button>
+          </div>
+        ) : (
+          <div className={cn(
+            "grid gap-3",
+            viewMode === 'grid' ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"
+          )}>
+            {filtered.map(article => (
+              <div key={article.id} className={cn(
+                "group bg-white border border-slate-200 rounded-lg p-3 shadow-sm hover:border-slate-300 transition-all flex justify-between gap-3",
+                viewMode === 'grid' ? "flex-col" : "flex-row items-center"
+              )}>
+                <div className={cn("min-w-0 flex-1", viewMode === 'grid' ? "" : "flex items-center gap-4")}>
+                  <div className={cn("flex flex-col min-w-0", viewMode === 'grid' ? "mb-3" : "")}>
+                     <h4 className="font-semibold text-slate-800 truncate text-[13px] group-hover:text-blue-600 transition-colors">
+                       {article.titulo}
+                     </h4>
+                     {article.categoria && (
+                       <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-0.5">
+                          <Tag size={10} /> <span className="truncate">{article.categoria}</span>
                        </div>
-                       <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                          <button 
-                            onClick={() => openEdit(article)}
-                            className="w-8 h-8 rounded-lg bg-slate-50 text-slate-600 hover:bg-blue-50 hover:text-blue-600 flex items-center justify-center transition-colors"
-                          >
-                            <Edit2 size={14} />
-                          </button>
-                          <button 
-                            onClick={() => handleDelete(article.id)}
-                            className="w-8 h-8 rounded-lg bg-slate-50 text-slate-600 hover:bg-red-50 hover:text-red-600 flex items-center justify-center transition-colors"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                       </div>
-                    </div>
-                    
-                    <h4 className="font-black text-slate-900 leading-tight mb-2 group-hover:text-blue-600 transition-colors uppercase text-[11px] tracking-widest">{article.titulo}</h4>
-                    
-                    {article.categoria && (
-                      <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                         <Tag size={10} /> {article.categoria}
-                      </div>
-                    )}
+                     )}
+                  </div>
+                  
+                  <div className={cn("flex items-center gap-2", viewMode === 'grid' ? "" : "ml-auto")}>
+                     {article.publico ? (
+                       <span className="flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-medium rounded border border-emerald-100 whitespace-nowrap">
+                          <Globe size={10} /> Público
+                       </span>
+                     ) : (
+                       <span className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-medium rounded border border-slate-200 whitespace-nowrap">
+                          <ShieldCheck size={10} /> Interno
+                       </span>
+                     )}
+                     {!article.ativo && (
+                       <span className="px-1.5 py-0.5 bg-red-50 text-red-600 text-[10px] font-medium rounded border border-red-100 whitespace-nowrap">
+                         Inativo
+                       </span>
+                     )}
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+
+                <div className={cn("flex items-center gap-1 shrink-0", viewMode === 'grid' ? "justify-end pt-2 border-t border-slate-100" : "")}>
+                   <button 
+                     onClick={() => openEdit(article)}
+                     className="w-7 h-7 rounded text-slate-400 hover:bg-blue-50 hover:text-blue-600 flex items-center justify-center transition-colors"
+                   >
+                     <Edit2 size={14} />
+                   </button>
+                   <button 
+                     onClick={() => handleDelete(article.id)}
+                     className="w-7 h-7 rounded text-slate-400 hover:bg-red-50 hover:text-red-600 flex items-center justify-center transition-colors"
+                   >
+                     <Trash2 size={14} />
+                   </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Editor Modal */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 sm:p-12">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div 
               initial={{ opacity: 0 }} 
               animate={{ opacity: 1 }} 
               exit={{ opacity: 0 }} 
-              className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
+              className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm"
               onClick={() => setIsModalOpen(false)}
             />
             
             <motion.div 
-              initial={{ scale: 0.95, opacity: 0, y: 20 }} 
+              initial={{ scale: 0.95, opacity: 0, y: 10 }} 
               animate={{ scale: 1, opacity: 1, y: 0 }} 
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="bg-white rounded-[3rem] shadow-2xl w-full max-w-5xl max-h-full overflow-hidden flex flex-col relative z-10 border border-white/20"
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              className="bg-white rounded-xl shadow-lg w-full max-w-4xl max-h-[90vh] flex flex-col relative z-10 overflow-hidden border border-slate-200"
             >
-              <div className="px-10 py-8 border-b border-slate-100 flex items-center justify-between">
-                <div>
-                  <h3 className="font-black text-slate-900 text-2xl lowercase italic flex items-center gap-3">
-                    <BookOpen size={24} className="text-blue-600"/>
-                    {editingArticle ? 'Editar Artigo' : 'Novo Artigo'}
-                  </h3>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">Configure o conteúdo e visibilidade da documentação</p>
+              <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
+                    <BookOpen size={16}/>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-800 text-sm">
+                      {editingArticle ? 'Editar Artigo' : 'Novo Artigo'}
+                    </h3>
+                    <p className="text-[11px] text-slate-500">Documentação da base de conhecimento</p>
+                  </div>
                 </div>
-                <button onClick={() => setIsModalOpen(false)} className="w-10 h-10 bg-slate-50 hover:bg-slate-100 rounded-full flex items-center justify-center text-slate-500 transition-colors">
-                  <X size={20} />
+                <button onClick={() => setIsModalOpen(false)} className="w-8 h-8 hover:bg-slate-200 rounded flex items-center justify-center text-slate-500 transition-colors">
+                  <X size={18} />
                 </button>
               </div>
 
-              <div className="p-10 overflow-y-auto flex-1 custom-scrollbar bg-slate-50/30">
-                <form id="knowledge-form" onSubmit={handleSave} className="space-y-8">
+              <div className="p-5 overflow-y-auto flex-1 custom-scrollbar">
+                <form id="knowledge-form" onSubmit={handleSave} className="space-y-5">
                   {error && (
-                    <div className="p-4 bg-red-50 text-red-600 text-[11px] font-black uppercase tracking-widest rounded-2xl flex items-center gap-3 border border-red-100">
-                      <AlertCircle size={18} /> {error}
+                    <div className="p-3 bg-red-50 text-red-600 text-xs font-medium rounded-md flex items-center gap-2 border border-red-100">
+                      <AlertCircle size={14} /> {error}
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-3">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Título do Artigo</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-semibold text-slate-600">Título do Artigo <span className="text-red-500">*</span></label>
                       <input 
                         type="text" 
                         required
                         placeholder="Ex: Como configurar seu e-mail..."
-                        className="w-full h-12 bg-white border border-slate-200 rounded-xl px-4 text-xs font-bold focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none"
+                        className="w-full h-9 bg-white border border-slate-200 rounded-md px-3 text-xs focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all outline-none"
                         value={formData.titulo}
                         onChange={e => setFormData(f => ({ ...f, titulo: e.target.value }))}
                       />
                     </div>
-                    <div className="space-y-3 relative">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Categoria</label>
+                    <div className="space-y-1.5 relative">
+                      <label className="text-[11px] font-semibold text-slate-600">Categoria</label>
                       <input 
                         type="text" 
                         placeholder="Selecione ou digite uma nova..."
-                        className="w-full h-12 bg-white border border-slate-200 rounded-xl px-4 text-xs font-bold focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none"
+                        className="w-full h-9 bg-white border border-slate-200 rounded-md px-3 text-xs focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all outline-none"
                         value={formData.categoria}
                         onChange={e => setFormData(f => ({ ...f, categoria: e.target.value }))}
                         list="category-suggestions"
@@ -380,13 +370,13 @@ export const KnowledgePage = ({ currentUser }: KnowledgeManagerProps) => {
                     </div>
                   </div>
 
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Conteúdo (Markdown)</label>
-                    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden" data-color-mode="light">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-semibold text-slate-600">Conteúdo (Markdown) <span className="text-red-500">*</span></label>
+                    <div className="bg-white rounded-md border border-slate-200 overflow-hidden" data-color-mode="light">
                       <MDEditor
                         value={formData.conteudo}
                         onChange={(val) => setFormData(f => ({ ...f, conteudo: val || '' }))}
-                        height={400}
+                        height={320}
                         preview="edit"
                         className="border-none shadow-none"
                         textareaProps={{
@@ -396,46 +386,46 @@ export const KnowledgePage = ({ currentUser }: KnowledgeManagerProps) => {
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-10 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-                    <label className="flex items-center gap-4 cursor-pointer group">
-                      <div className="relative flex items-center justify-center w-6 h-6">
+                  <div className="flex flex-wrap items-center gap-6 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                      <div className="relative flex items-center justify-center">
                         <input 
                           type="checkbox" 
-                          className="peer appearance-none w-6 h-6 border-2 border-slate-200 rounded-lg checked:bg-blue-600 checked:border-blue-600 transition-all hover:border-blue-300"
+                          className="peer appearance-none w-5 h-5 border border-slate-300 rounded checked:bg-blue-600 checked:border-blue-600 transition-all hover:border-blue-400 bg-white"
                           checked={formData.publico}
                           onChange={e => setFormData(f => ({ ...f, publico: e.target.checked }))}
                         />
-                        <Check size={14} className="absolute text-white opacity-0 peer-checked:opacity-100 pointer-events-none" strokeWidth={4} />
+                        <Check size={12} className="absolute text-white opacity-0 peer-checked:opacity-100 pointer-events-none" strokeWidth={3} />
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none">Artigo Público</span>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">Clientes poderão acessar</span>
+                        <span className="text-xs font-semibold text-slate-700 leading-none">Artigo Público</span>
+                        <span className="text-[10px] text-slate-500 mt-1">Visível para clientes no autoatendimento</span>
                       </div>
                     </label>
 
-                    <label className="flex items-center gap-4 cursor-pointer group">
-                      <div className="relative flex items-center justify-center w-6 h-6">
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                      <div className="relative flex items-center justify-center">
                         <input 
                           type="checkbox" 
-                          className="peer appearance-none w-6 h-6 border-2 border-slate-200 rounded-lg checked:bg-emerald-600 checked:border-emerald-600 transition-all hover:border-emerald-300"
+                          className="peer appearance-none w-5 h-5 border border-slate-300 rounded checked:bg-emerald-600 checked:border-emerald-600 transition-all hover:border-emerald-400 bg-white"
                           checked={formData.ativo}
                           onChange={e => setFormData(f => ({ ...f, ativo: e.target.checked }))}
                         />
-                        <Check size={14} className="absolute text-white opacity-0 peer-checked:opacity-100 pointer-events-none" strokeWidth={4} />
+                        <Check size={12} className="absolute text-white opacity-0 peer-checked:opacity-100 pointer-events-none" strokeWidth={3} />
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none">Página Ativa</span>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">Disponível para visualização</span>
+                        <span className="text-xs font-semibold text-slate-700 leading-none">Página Ativa</span>
+                        <span className="text-[10px] text-slate-500 mt-1">Disponível para leitura na base</span>
                       </div>
                     </label>
                   </div>
                 </form>
               </div>
 
-              <div className="px-10 py-8 border-t border-slate-100 flex items-center justify-end gap-3 bg-white">
-                <Button variant="ghost" className="h-12 px-8 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600" onClick={() => setIsModalOpen(false)}>Descartar</Button>
-                <Button type="submit" form="knowledge-form" className="h-12 px-12 bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] uppercase tracking-widest rounded-xl shadow-xl shadow-blue-100 transition-all">
-                  <Save size={16} className="mr-2" /> {editingArticle ? 'Atualizar Artigo' : 'Publicar Agora'}
+              <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-end gap-2 bg-slate-50/50">
+                <Button variant="ghost" size="sm" className="font-medium text-slate-500" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
+                <Button type="submit" form="knowledge-form" size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm">
+                  <Save size={14} className="mr-1.5" /> {editingArticle ? 'Atualizar' : 'Publicar'}
                 </Button>
               </div>
             </motion.div>
