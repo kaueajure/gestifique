@@ -46,11 +46,11 @@ interface TicketsPageProps {
 }
 
 const QUEUES: { id: TicketQueue; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
+  { id: 'todos', label: 'Todos', icon: Layers },
   { id: 'meus', label: 'Minha fila', icon: UserIcon },
   { id: 'sem_responsavel', label: 'Sem responsável', icon: UserMinus },
   { id: 'urgentes', label: 'Urgentes', icon: AlertCircle },
   { id: 'sla_vencido', label: 'SLA vencido', icon: Clock },
-  { id: 'todos', label: 'Todos', icon: Layers },
 ];
 
 const MORE_QUEUES: { id: TicketQueue; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
