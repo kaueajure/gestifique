@@ -75,7 +75,7 @@ router.post('/', isAdmin, async (req: AuthRequest, res) => {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
 
-    const { nome, email, password, administrador, desenvolvedor, empresa_id, cargo, telefone } = req.body;
+    const { nome, email, password, administrador, desenvolvedor, empresa_id, cargo, telefone, perfil } = req.body;
     
     if (!nome || !email || !password) return sendError(res, 'Nome, email e senha são obrigatórios', 400);
     if (!isValidEmail(email)) return sendError(res, 'Email inválido', 400);
@@ -87,15 +87,16 @@ router.post('/', isAdmin, async (req: AuthRequest, res) => {
       return sendError(res, 'Sua conta não possui uma empresa vinculada para realizar esta ação', 403);
     }
 
-    if (!currentUser.desenvolvedor && desenvolvedor) {
-      return sendError(res, 'Apenas desenvolvedores podem criar outros desenvolvedores', 403);
+    if (!currentUser.desenvolvedor && (desenvolvedor || perfil === 'desenvolvedor')) {
+      return sendError(res, 'Apenas desenvolvedores podem criar usuários com perfil de desenvolvedor', 403);
     }
 
     const buildData = {
       nome, email, password, cargo, telefone,
       empresa_id: targetEmpresaId,
       administrador: administrador === true,
-      desenvolvedor: currentUser.desenvolvedor ? (desenvolvedor === true) : false
+      desenvolvedor: currentUser.desenvolvedor ? (desenvolvedor === true) : false,
+      perfil: currentUser.desenvolvedor ? perfil : (perfil === 'desenvolvedor' ? 'atendente' : perfil)
     };
 
     const newUser = await usersService.create(buildData);
@@ -129,6 +130,9 @@ router.patch('/:id', isAdmin, async (req: AuthRequest, res) => {
             // Admin cannot change empresa_id, administrador (to dev level) or desenvolvedor
             delete req.body.empresa_id;
             delete req.body.desenvolvedor;
+            if (req.body.perfil === 'desenvolvedor') {
+                delete req.body.perfil;
+            }
         }
 
         // Validate email if present

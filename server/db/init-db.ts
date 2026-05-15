@@ -481,6 +481,24 @@ async function initDB() {
     await ensureColumn('ticket_macros', 'tags_json', 'JSON NULL');
     await ensureColumn('ticket_macros', 'uso_count', 'INT DEFAULT 0');
 
+    await ensureColumn('usuarios', 'perfil', 'VARCHAR(50) DEFAULT "atendente"');
+    
+    // Update users profile fallback
+    try {
+      console.log('[BOOT] 🔄 Atualizando perfis de usuários com fallback...');
+      await connection.query(`
+        UPDATE usuarios
+        SET perfil = CASE
+          WHEN desenvolvedor = 1 THEN 'desenvolvedor'
+          WHEN administrador = 1 THEN 'administrador'
+          WHEN perfil IS NULL OR perfil = '' THEN 'atendente'
+          ELSE perfil
+        END
+      `);
+    } catch(e) {
+      console.warn('[BOOT] ⚠️ Falha ao atualizar perfis de usuários:', e);
+    }
+
     // Status enum check/update
     await connection.query(`
       ALTER TABLE tickets MODIFY status ENUM('aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado') DEFAULT 'aberto'

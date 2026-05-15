@@ -4,6 +4,7 @@ import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { Input } from '../ui/Input';
+import { Select } from '../ui/Select';
 import { BookOpen, Plus, Search, Edit2, Trash2, ShieldCheck, Globe, List, AlertCircle, X, Check, Save } from 'lucide-react';
 import { User } from '../../types';
 import MDEditor from '@uiw/react-md-editor';
@@ -25,6 +26,8 @@ interface Article {
 
 export const KnowledgePage = ({ currentUser }: KnowledgeManagerProps) => {
   const [articles, setArticles] = useState<Article[]>([]);
+  const [companies, setCompanies] = useState<{id: number, nome: string}[]>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -40,10 +43,19 @@ export const KnowledgePage = ({ currentUser }: KnowledgeManagerProps) => {
     ativo: true,
   });
 
+  const loadCompanies = async () => {
+    if (!currentUser.desenvolvedor) return;
+    try {
+      const data = await api.get<any[]>('/companies?status=ativo');
+      setCompanies(data);
+    } catch {}
+  };
+
   const fetchArticles = async () => {
     setLoading(true);
     try {
-      const data = await api.get<any[]>('/knowledge');
+      const qs = currentUser.desenvolvedor && selectedCompanyId ? `?empresa_id=${selectedCompanyId}` : '';
+      const data = await api.get<any[]>(`/knowledge${qs}`);
       setArticles(data.map(d => ({
         ...d,
         publico: Boolean(Number(d.publico)),
@@ -57,8 +69,12 @@ export const KnowledgePage = ({ currentUser }: KnowledgeManagerProps) => {
   };
 
   useEffect(() => {
-    fetchArticles();
+    loadCompanies();
   }, []);
+
+  useEffect(() => {
+    fetchArticles();
+  }, [selectedCompanyId]);
 
   const openNew = () => {
     setEditingArticle(null);
@@ -96,13 +112,17 @@ export const KnowledgePage = ({ currentUser }: KnowledgeManagerProps) => {
       setError('Título e conteúdo são obrigatórios.');
       return;
     }
+    if (!editingArticle && currentUser.desenvolvedor && !selectedCompanyId) {
+       setError('Selecione uma empresa antes de criar o artigo.');
+       return;
+    }
     
     setError(null);
     try {
       if (editingArticle) {
-        await api.patch(`/knowledge/${editingArticle.id}`, formData);
+        await api.patch(`/knowledge/${editingArticle.id}`, { ...formData, empresa_id: selectedCompanyId || undefined });
       } else {
-        await api.post('/knowledge', formData);
+        await api.post('/knowledge', { ...formData, empresa_id: selectedCompanyId || undefined });
       }
       setIsModalOpen(false);
       fetchArticles();
@@ -131,15 +151,31 @@ export const KnowledgePage = ({ currentUser }: KnowledgeManagerProps) => {
         </Button>
       </div>
 
-      <div className="relative mb-6">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-        <input 
-          type="text"
-          placeholder="Buscar por título ou categoria..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-4 focus:ring-blue-100 outline-none"
-        />
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+          <input 
+            type="text"
+            placeholder="Buscar por título ou categoria..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-4 focus:ring-blue-100 outline-none"
+          />
+        </div>
+        {currentUser.desenvolvedor && (
+          <div className="w-full sm:w-64">
+            <Select
+              value={selectedCompanyId}
+              onChange={setSelectedCompanyId}
+              placeholder="Selecione uma empresa"
+              options={[
+                { value: '', label: 'Gestifique Central' },
+                ...companies.map(c => ({ value: String(c.id), label: c.nome }))
+              ]}
+              buttonClassName="h-10"
+            />
+          </div>
+        )}
       </div>
 
       {loading ? (

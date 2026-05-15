@@ -5,7 +5,7 @@ class UsersService {
   async list(filters: { empresaId?: number; search?: string; status?: string }) {
     let query = `
       SELECT u.id, u.nome, u.email, u.cargo, u.administrador, u.desenvolvedor, 
-             u.ativo, u.empresa_id, e.nome as empresa_nome 
+             u.ativo, u.empresa_id, u.perfil, e.nome as empresa_nome 
       FROM usuarios u
       LEFT JOIN empresas e ON u.empresa_id = e.id
       WHERE 1=1
@@ -55,12 +55,14 @@ class UsersService {
   }
 
   async create(data: any) {
-    const { nome, email, password, empresa_id, cargo, telefone, administrador, desenvolvedor } = data;
+    const { nome, email, password, empresa_id, cargo, telefone, administrador, desenvolvedor, perfil } = data;
     const hash = await bcrypt.hash(password, 10);
     
+    const perfilFinal = perfil || (desenvolvedor ? 'desenvolvedor' : administrador ? 'administrador' : 'atendente');
+
     const [result]: any = await pool.query(
-      'INSERT INTO usuarios (nome, email, senha_hash, empresa_id, cargo, telefone, administrador, desenvolvedor, ativo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)',
-      [nome, email, hash, empresa_id, cargo, telefone, administrador ? 1 : 0, desenvolvedor ? 1 : 0]
+      'INSERT INTO usuarios (nome, email, senha_hash, empresa_id, cargo, telefone, administrador, desenvolvedor, ativo, perfil) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)',
+      [nome, email, hash, empresa_id, cargo, telefone, administrador ? 1 : 0, desenvolvedor ? 1 : 0, perfilFinal]
     );
     
     return { id: result.insertId, nome, email };
@@ -71,7 +73,7 @@ class UsersService {
     const params: any[] = [];
 
     Object.keys(data).forEach(key => {
-      if (['nome', 'email', 'cargo', 'administrador', 'desenvolvedor', 'ativo', 'telefone', 'foto', 'empresa_id'].includes(key)) {
+      if (['nome', 'email', 'cargo', 'administrador', 'desenvolvedor', 'ativo', 'telefone', 'foto', 'empresa_id', 'perfil'].includes(key)) {
         fields.push(`${key} = ?`);
         params.push(data[key]);
       }

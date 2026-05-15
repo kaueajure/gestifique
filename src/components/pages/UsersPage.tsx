@@ -32,6 +32,7 @@ type UserPayload = {
   empresa_id: number | null;
   administrador: boolean;
   desenvolvedor: boolean;
+  perfil?: string;
 };
 
 interface UsersPageProps {
@@ -48,6 +49,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
   const [isStatusConfirmOpen, setIsStatusConfirmOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [empresaId, setEmpresaId] = useState<string>('');
+  const [perfil, setPerfil] = useState<string>('atendente');
   const [loadingSave, setLoadingSave] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -103,8 +105,9 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
         cargo: String(formData.get('cargo') || ''),
         telefone: String(formData.get('telefone') || ''),
         empresa_id: formData.get('empresa_id') ? Number(formData.get('empresa_id')) : null,
-        administrador: formData.get('administrador') === 'true',
-        desenvolvedor: formData.get('desenvolvedor') === 'true',
+        administrador: perfil === 'administrador' || perfil === 'desenvolvedor' || formData.get('administrador') === 'true',
+        desenvolvedor: perfil === 'desenvolvedor' || formData.get('desenvolvedor') === 'true',
+        perfil: perfil,
       };
 
       const password = formData.get('password') as string;
@@ -185,7 +188,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
       <PageHeader 
         title="Usuários"
         action={
-          <Button size="sm" onClick={() => { setSelectedUser(null); setSaveError(null); setIsModalOpen(true); }} className="font-semibold text-xs h-9">
+          <Button size="sm" onClick={() => { setSelectedUser(null); setPerfil('atendente'); setSaveError(null); setIsModalOpen(true); }} className="font-semibold text-xs h-9">
             <Plus size={14} className="mr-2" /> Novo Usuário
           </Button>
         }
@@ -291,8 +294,11 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
                             {user.ativo ? 'Ativo' : 'Inativo'}
                           </Badge>
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{user.cargo || 'Membro'}</span>
-                          {!!user.administrador && <Badge variant="blue" className="text-[8px] py-0 px-1 font-bold uppercase border-none opacity-80">Admin</Badge>}
-                          {!!user.desenvolvedor && <Badge variant="indigo" className="text-[8px] py-0 px-1 font-bold uppercase border-none opacity-80">Dev</Badge>}
+                          {user.perfil === 'desenvolvedor' && <Badge variant="indigo" className="text-[8px] py-0 px-1 font-bold uppercase border-none opacity-80">Dev</Badge>}
+                          {user.perfil === 'administrador' && <Badge variant="blue" className="text-[8px] py-0 px-1 font-bold uppercase border-none opacity-80">Admin</Badge>}
+                          {user.perfil === 'gestor' && <Badge variant="emerald" className="text-[8px] py-0 px-1 font-bold uppercase border-none opacity-80">Gestor</Badge>}
+                          {user.perfil === 'atendente' && <Badge variant="slate" className="text-[8px] py-0 px-1 font-bold uppercase border-none opacity-80">Atend.</Badge>}
+                          {user.perfil === 'cliente' && <Badge variant="slate" className="bg-transparent border border-slate-200 text-slate-500 text-[8px] py-0 px-1 font-bold uppercase opacity-80">Cliente</Badge>}
                         </div>
                       </td>
                       <td className="px-5 py-4 text-right">
@@ -307,7 +313,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
                                    <Key size={14} />
                                 </button>
                                 <button 
-                                  onClick={() => { setSelectedUser(user); setSaveError(null); setIsModalOpen(true); }}
+                                  onClick={() => { setSelectedUser(user); setPerfil(user.perfil || (user.desenvolvedor ? 'desenvolvedor' : user.administrador ? 'administrador' : 'atendente')); setSaveError(null); setIsModalOpen(true); }}
                                   className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-all"
                                   title="Editar"
                                 >
@@ -400,6 +406,23 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
               </div>
            </div>
 
+           <div className="space-y-1.5">
+              <label className="text-xs font-medium text-slate-500 px-1">Perfil de Acesso</label>
+              <Select
+                name="perfil"
+                value={perfil}
+                onChange={setPerfil}
+                options={[
+                  ...(currentUser.desenvolvedor ? [{ value: 'desenvolvedor', label: 'Desenvolvedor' }] : []),
+                  ...(currentUser.administrador || currentUser.desenvolvedor ? [{ value: 'administrador', label: 'Administrador' }] : []),
+                  { value: 'gestor', label: 'Gestor' },
+                  { value: 'atendente', label: 'Atendente' },
+                  { value: 'cliente', label: 'Cliente' },
+                ]}
+              />
+              <p className="text-[10px] text-slate-400 px-1">Define as permissões operacionais do usuário.</p>
+           </div>
+
            {!!currentUser.desenvolvedor ? (
               <div className="space-y-1.5">
                  <label className="text-xs font-medium text-slate-500 px-1">Empresa</label>
@@ -439,46 +462,6 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
                  />
               </div>
            )}
-
-           <div className="pt-4 border-t border-slate-50">
-              <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">Permissões de Acesso</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                 <label className={cn(
-                   "flex items-start gap-3 p-4 rounded-xl border transition-all cursor-pointer group",
-                   "bg-white hover:border-blue-200 hover:bg-blue-50/30 border-slate-100"
-                 )}>
-                    <input 
-                      type="checkbox" 
-                      name="administrador" 
-                      value="true" 
-                      defaultChecked={selectedUser?.administrador}
-                      className="mt-1 w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-100" 
-                    />
-                    <div className="min-w-0">
-                       <div className="text-xs font-bold text-slate-900 uppercase tracking-tight">Administrador</div>
-                       <div className="text-[10px] font-medium text-slate-400 mt-0.5 leading-tight">Pode gerenciar usuários da própria empresa e acompanhar registros permitidos.</div>
-                    </div>
-                 </label>
-                 {!!currentUser.desenvolvedor && (
-                   <label className={cn(
-                     "flex items-start gap-3 p-4 rounded-xl border transition-all cursor-pointer group",
-                     "bg-white hover:border-indigo-200 hover:bg-indigo-50/30 border-slate-100"
-                   )}>
-                      <input 
-                        type="checkbox" 
-                        name="desenvolvedor" 
-                        value="true" 
-                        defaultChecked={selectedUser?.desenvolvedor}
-                        className="mt-1 w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-100" 
-                      />
-                      <div className="min-w-0">
-                         <div className="text-xs font-bold text-slate-900 uppercase tracking-tight">Desenvolvedor</div>
-                         <div className="text-[10px] font-medium text-slate-400 mt-0.5 leading-tight">Acesso total ao sistema, logs técnicos e instâncias master.</div>
-                      </div>
-                   </label>
-                 )}
-              </div>
-           </div>
 
            <div className="pt-6 flex items-center justify-end gap-3 border-t border-slate-50">
               <Button variant="ghost" size="sm" type="button" onClick={() => setIsModalOpen(false)} className="font-bold text-[10px] uppercase tracking-widest text-slate-400">
