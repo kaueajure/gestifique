@@ -863,17 +863,6 @@ class TicketsService {
       console.error('Erro ao notificar atualização de status do ticket:', e);
     }
 
-    if (['resolvido', 'fechado'].includes(status) && !['resolvido', 'fechado'].includes(oldTicket.status)) {
-       try {
-         const { randomUUID } = await import('crypto');
-         const token = randomUUID();
-         await pool.query(
-           'INSERT IGNORE INTO ticket_satisfacao (ticket_id, empresa_id, token) VALUES (?, ?, ?)',
-           [id, oldTicket.empresa_id, token]
-         );
-       } catch (err) {}
-    }
-    
     try {
        await recordTicketEvent({
          ticket_id: id,

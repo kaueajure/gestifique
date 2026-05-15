@@ -4,6 +4,7 @@ export interface User {
   nome: string;
   email: string;
   cargo: string | null;
+  perfil?: 'desenvolvedor' | 'administrador' | 'gestor' | 'atendente' | 'cliente' | string | null;
   administrador: boolean;
   desenvolvedor: boolean;
   ativo: boolean;

@@ -41,7 +41,14 @@ router.get('/', async (req: AuthRequest, res) => {
 router.post('/', requirePermission('base_conhecimento.gerenciar'), async (req: AuthRequest, res) => {
   try {
     const { titulo, conteudo, categoria, publico, ativo } = req.body;
-    const empresaId = req.user!.empresa_id;
+    
+    const empresaId = req.user!.desenvolvedor && req.body.empresa_id
+      ? Number(req.body.empresa_id)
+      : req.user!.empresa_id;
+
+    if (!empresaId) {
+      return sendError(res, 'Empresa é obrigatória para criar artigo', 400);
+    }
     
     const [result]: any = await pool.query(
       'INSERT INTO knowledge_articles (empresa_id, titulo, conteudo, categoria, publico, ativo, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)',
