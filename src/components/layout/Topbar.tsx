@@ -1,7 +1,7 @@
-import React from 'react';
-import { Search, Menu } from 'lucide-react';
-import { User } from '../../types';
-import { NotificationsDropdown } from '../ui/NotificationsDropdown';
+import React from "react";
+import { Search, Menu } from "lucide-react";
+import { User } from "../../types";
+import { NotificationsDropdown } from "../ui/NotificationsDropdown";
 
 interface TopbarProps {
   title: string;
@@ -9,33 +9,39 @@ interface TopbarProps {
   showSearch?: boolean;
 }
 
-export const Topbar = ({ title, onMenuClick, showSearch = true }: TopbarProps) => {
+export const Topbar = ({
+  title,
+  onMenuClick,
+  showSearch = true,
+}: TopbarProps) => {
   return (
-    <header className="h-14 bg-white border-b border-slate-100 flex items-center justify-between px-6 sticky top-0 z-30 shrink-0">
+    <header className="h-12 bg-white border-b border-slate-100 flex items-center justify-between px-5 sticky top-0 z-30 shrink-0">
       <div className="flex items-center gap-4">
-        <button 
+        <button
           onClick={onMenuClick}
-          className="lg:hidden p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors"
+          className="lg:hidden p-1.5 text-slate-500 hover:bg-slate-50 rounded-md transition-colors"
         >
-          <Menu size={18} />
+          <Menu size={16} />
         </button>
+        <h1 className="text-[14px] font-semibold text-slate-800 tracking-tight hidden sm:block">
+          {title}
+        </h1>
       </div>
 
-      <div className="flex-1 max-w-lg mx-6 hidden md:block">
+      <div className="flex-1 max-w-xs ml-auto mr-0 hidden md:block">
         {showSearch && (
           <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={15} />
-            <input 
-              type="text" 
-              placeholder="Pesquisar chamados, usuários ou documentos..."
-              className="w-full h-9 bg-slate-50 border border-slate-100 rounded-lg pl-9 pr-3 text-xs font-medium text-slate-600 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-100 focus:border-blue-200 transition-all outline-none"
+            <Search
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"
+              size={14}
+            />
+            <input
+              type="text"
+              placeholder="Pesquisar..."
+              className="w-full h-8 bg-slate-50/50 border border-slate-200 rounded-md pl-8 pr-3 text-[13px] text-slate-700 placeholder:text-slate-400 focus:bg-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
             />
           </div>
         )}
-      </div>
-
-      <div className="flex items-center gap-4">
-        <div className="w-10 hidden md:block" />
       </div>
     </header>
   );
