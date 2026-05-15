@@ -112,6 +112,7 @@ async function initDB() {
         usuario_id INT NOT NULL,
         mensagem TEXT NOT NULL,
         interno TINYINT(1) DEFAULT 0,
+        tipo VARCHAR(50) DEFAULT 'texto',
         anexo VARCHAR(255),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         KEY idx_mensagens_ticket (ticket_id),

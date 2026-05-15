@@ -2,6 +2,7 @@ import { Router } from 'express';
 import pool from '../db/connection.js';
 import { authMiddleware } from '../middlewares/auth.js';
 import { sendError } from '../utils/response.js';
+import ticketsService from '../services/tickets.service.js';
 
 const router = Router();
 router.use(authMiddleware);
@@ -75,30 +76,22 @@ router.post('/tickets', async (req: any, res: any) => {
     return sendError(res, 'Título e descrição são obrigatórios', 400);
   }
 
-  const conn = await pool.getConnection();
   try {
-    await conn.beginTransaction();
+    const ticketId = await ticketsService.create({
+      empresa_id: req.user.empresa_id,
+      usuario_id: req.user.id,
+      titulo,
+      descricao,
+      categoria: categoria || 'geral',
+      servico: servico || null,
+      prioridade: 'media',
+      origem: 'portal'
+    });
 
-    const [result]: any = await conn.query(`
-      INSERT INTO tickets (empresa_id, titulo, descricao, status, prioridade, origem, usuario_id, categoria, servico)
-      VALUES (?, ?, ?, 'aberto', 'media', 'portal', ?, ?, ?)
-    `, [req.user.empresa_id, titulo, descricao, req.user.id, categoria || null, servico || null]);
-
-    const ticketId = result.insertId;
-
-    // Registrar log
-    await conn.query(`
-      INSERT INTO logs_sistema (empresa_id, usuario_id, acao, descricao)
-      VALUES (?, ?, 'ticket_criado', ?)
-    `, [req.user.empresa_id, req.user.id, `Chamado #${ticketId} aberto via portal`]);
-
-    await conn.commit();
     res.status(201).json({ message: 'Chamado criado com sucesso', ticketId });
   } catch (error) {
-    await conn.rollback();
+    console.error('[Portal] Erro ao criar ticket:', error);
     sendError(res, 'Erro ao criar chamado', 500);
-  } finally {
-    conn.release();
   }
 });
 
@@ -144,7 +137,7 @@ router.get('/knowledge', async (req: any, res: any) => {
   try {
     const [rows] = await pool.query(`
       SELECT id, titulo, conteudo, categoria
-      FROM artigos_conhecimento
+      FROM knowledge_articles
       WHERE ativo = 1 AND publico = 1 AND empresa_id = ?
       ORDER BY titulo ASC
     `, [req.user.empresa_id]);
@@ -162,7 +155,7 @@ router.get('/knowledge/search', async (req: any, res: any) => {
     const searchTerms = `%${q}%`;
     const [rows] = await pool.query(`
       SELECT id, titulo, categoria
-      FROM artigos_conhecimento
+      FROM knowledge_articles
       WHERE ativo = 1 AND publico = 1 AND empresa_id = ?
         AND (titulo LIKE ? OR conteudo LIKE ?)
       LIMIT 5

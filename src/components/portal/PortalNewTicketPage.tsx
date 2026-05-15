@@ -97,7 +97,7 @@ export const PortalNewTicketPage = ({ onNavigate, currentUser }: PortalNewTicket
                   onChange={setCategoria}
                   options={[
                     { value: '', label: 'Selecione...' },
-                    ...activeCategories.map(c => ({ value: c.nome, label: c.nome }))
+                    ...activeCategories.map(c => ({ value: c.valor, label: c.nome }))
                   ]}
                 />
               </div>
@@ -108,7 +108,7 @@ export const PortalNewTicketPage = ({ onNavigate, currentUser }: PortalNewTicket
                   onChange={setServico}
                   options={[
                     { value: '', label: 'Selecione...' },
-                    ...activeServices.map(s => ({ value: s.nome, label: s.nome }))
+                    ...activeServices.map(s => ({ value: s.valor, label: s.nome }))
                   ]}
                 />
               </div>

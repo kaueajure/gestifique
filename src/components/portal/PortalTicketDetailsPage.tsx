@@ -142,9 +142,11 @@ export const PortalTicketDetailsPage = ({ ticketId, onBack, currentUser }: Porta
                 className="w-full resize-none h-24 p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-100 focus:bg-white transition-all outline-none"
               />
               <div className="flex justify-end gap-2">
+                {/* 
                 <Button type="button" variant="secondary" className="font-semibold px-4 text-xs h-9">
                   <Paperclip size={16} className="mr-2" /> Anexar
-                </Button>
+                </Button> 
+                */}
                 <Button type="submit" disabled={sending || !replyMessage.trim()} className="font-semibold px-6 text-xs h-9">
                   {sending ? 'Enviando...' : <span className="flex items-center"><Send size={16} className="mr-2" /> Enviar</span>}
                 </Button>
