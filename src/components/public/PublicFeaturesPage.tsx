@@ -67,9 +67,9 @@ export const PublicFeaturesPage = ({ onNavigate }: PublicFeaturesPageProps) => {
   return (
     <div className="flex flex-col bg-slate-50 min-h-screen">
       {/* Header */}
-      <section className="pt-24 pb-16 px-6 bg-slate-900 border-b border-slate-800 text-white">
+      <section className="pt-20 pb-12 px-6 bg-slate-900 border-b border-slate-800 text-white">
         <div className="max-w-3xl mx-auto text-center space-y-6">
-          <h1 className="text-4xl lg:text-5xl font-bold tracking-tight">
+          <h1 className="text-3xl lg:text-4xl font-bold tracking-tight">
             Tudo que sua equipe precisa para atender melhor.
           </h1>
           <p className="text-lg font-medium text-slate-400 leading-relaxed">
@@ -79,27 +79,27 @@ export const PublicFeaturesPage = ({ onNavigate }: PublicFeaturesPageProps) => {
       </section>
 
       {/* Modules */}
-      <section className="py-20 px-6">
-        <div className="max-w-5xl mx-auto space-y-24">
+      <section className="py-16 px-6">
+        <div className="max-w-5xl mx-auto space-y-14">
           {modules.map((module, i) => (
             <div key={i} className="scroll-mt-24 space-y-8">
-               <div className="flex items-center gap-4 border-b border-slate-200 pb-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-xl text-blue-700 flex items-center justify-center">
-                    <module.icon size={24} />
+               <div className="flex items-center gap-4 border-b border-slate-200 pb-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-xl text-blue-700 flex items-center justify-center">
+                    <module.icon size={20} />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-slate-900">{module.title}</h2>
+                    <h2 className="text-xl font-bold text-slate-900">{module.title}</h2>
                     <p className="text-sm font-medium text-slate-500 mt-1">{module.desc}</p>
                   </div>
                </div>
 
-               <div className="grid md:grid-cols-2 gap-6 pt-4">
+               <div className="grid md:grid-cols-2 gap-4 pt-4">
                  {module.features.map((feat, j) => (
-                   <div key={j} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                      <h3 className="text-[15px] font-bold text-slate-900 mb-2 flex items-center gap-2">
+                   <div key={j} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                      <h3 className="text-[14px] font-bold text-slate-900 mb-2 flex items-center gap-2">
                         <CheckCircle2 size={16} className="text-emerald-500" /> {feat.title}
                       </h3>
-                      <p className="text-sm text-slate-600 font-medium leading-relaxed">{feat.desc}</p>
+                      <p className="text-[13px] text-slate-600 font-medium leading-relaxed">{feat.desc}</p>
                    </div>
                  ))}
                </div>
@@ -109,44 +109,44 @@ export const PublicFeaturesPage = ({ onNavigate }: PublicFeaturesPageProps) => {
       </section>
 
       {/* Como muda o dia a dia */}
-      <section className="py-20 px-6 bg-white border-y border-slate-200">
+      <section className="py-14 px-6 bg-white border-y border-slate-200">
          <div className="max-w-5xl mx-auto">
-            <h2 className="text-2xl font-bold text-center text-slate-900 tracking-tight mb-12">Como isso muda o dia a dia da operação?</h2>
+            <h2 className="text-2xl font-bold text-center text-slate-900 tracking-tight mb-10">Como isso muda o dia a dia da operação?</h2>
             <div className="grid md:grid-cols-3 gap-8">
-               <div className="text-center space-y-3 p-6">
-                  <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-4">
-                    <Users size={20} />
+               <div className="text-center space-y-3 p-4">
+                  <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-3">
+                    <Users size={18} />
                   </div>
-                  <h3 className="font-bold text-slate-900 text-lg">Para o Atendente</h3>
-                  <p className="text-sm text-slate-500 font-medium leading-relaxed">Ele sabe o que precisa ser feito primeiro. A cor do SLA dita a prioridade, e ele não perde tempo procurando histórico em e-mails.</p>
+                  <h3 className="font-bold text-slate-900 text-base">Para o Atendente</h3>
+                  <p className="text-[13px] text-slate-500 font-medium leading-relaxed">Ele sabe o que precisa ser feito primeiro. A cor do SLA dita a prioridade, e ele não perde tempo procurando histórico.</p>
                </div>
-               <div className="text-center space-y-3 p-6">
-                  <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-4">
-                    <Activity size={20} />
+               <div className="text-center space-y-3 p-4">
+                  <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3">
+                    <Activity size={18} />
                   </div>
-                  <h3 className="font-bold text-slate-900 text-lg">Para o Gestor</h3>
-                  <p className="text-sm text-slate-500 font-medium leading-relaxed">Fim do achismo. Ele sabe exatamente quantos chamados caíram na semana, onde estão os gargalos e quem é o melhor atendente.</p>
+                  <h3 className="font-bold text-slate-900 text-base">Para o Gestor</h3>
+                  <p className="text-[13px] text-slate-500 font-medium leading-relaxed">Fim do achismo. Ele sabe exatamente quantos chamados caíram na semana, onde estão os gargalos e quem é o mais focado.</p>
                </div>
-               <div className="text-center space-y-3 p-6">
-                  <div className="w-12 h-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mx-auto mb-4">
-                    <ShieldCheck size={20} />
+               <div className="text-center space-y-3 p-4">
+                  <div className="w-10 h-10 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mx-auto mb-3">
+                    <ShieldCheck size={18} />
                   </div>
-                  <h3 className="font-bold text-slate-900 text-lg">Para o Cliente</h3>
-                  <p className="text-sm text-slate-500 font-medium leading-relaxed">Transparência total. Ele acompanha o andamento em tempo real e se sente seguro de que nada foi esquecido.</p>
+                  <h3 className="font-bold text-slate-900 text-base">Para o Cliente</h3>
+                  <p className="text-[13px] text-slate-500 font-medium leading-relaxed">Transparência total. Ele acompanha o andamento em tempo real e se sente seguro de que nada foi esquecido.</p>
                </div>
             </div>
          </div>
       </section>
 
       {/* Final CTA */}
-      <section className="py-24 px-6 text-center bg-slate-50">
+      <section className="py-16 px-6 text-center bg-slate-50">
          <div className="max-w-2xl mx-auto space-y-6">
-           <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Parece com o que você procura?</h2>
-           <p className="text-sm text-slate-500 font-medium">Veja essas funcionalidades operando ao vivo em nossa demonstração.</p>
+           <h2 className="text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">Parece com o que você procura?</h2>
+           <p className="text-sm text-slate-500 font-medium">Veja essas funcionalidades operando em nosso sistema de demonstração.</p>
            <div className="pt-4">
              <button 
                onClick={() => onNavigate('/contato')}
-               className="h-12 px-8 bg-blue-600 text-white text-[14px] font-bold rounded-lg hover:bg-blue-700 transition-all shadow-md"
+               className="h-11 px-6 bg-blue-600 text-white text-[14px] font-bold rounded-lg hover:bg-blue-700 transition-all shadow-sm hover:shadow-md"
              >
                Solicitar demonstração guiada
              </button>

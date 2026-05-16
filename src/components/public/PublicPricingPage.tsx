@@ -25,7 +25,7 @@ export const PublicPricingPage = ({ onNavigate }: PublicPricingPageProps) => {
       target: 'Operações B2B que precisam de controle.',
       highlightText: 'Mais escolhido',
       features: [
-        'Atendentes ilimitados (a combinar)',
+        'Faixa de atendentes personalizada',
         'SLA Estrito (1ª resposta e resolução)',
         'Dashboard em Tempo Real',
         'Fluxo de Inatividade de chamados',
@@ -40,7 +40,7 @@ export const PublicPricingPage = ({ onNavigate }: PublicPricingPageProps) => {
       features: [
         'Gestão Multi-empresa (Multi-tenant)',
         'Auditoria e Logs refinados',
-        'Separação por Departamentos',
+        'Configuração por equipe',
         'Onboarding Dedicado (Implantação)',
         'SLA Customizado de Suporte'
       ],
@@ -51,9 +51,9 @@ export const PublicPricingPage = ({ onNavigate }: PublicPricingPageProps) => {
   return (
     <div className="flex flex-col bg-slate-50 min-h-screen">
       {/* Header */}
-      <section className="pt-24 pb-16 px-6 bg-slate-900 border-b border-slate-800 text-white text-center">
+      <section className="pt-20 pb-12 px-6 bg-slate-900 border-b border-slate-800 text-white text-center">
         <div className="max-w-3xl mx-auto space-y-6">
-          <h1 className="text-4xl lg:text-5xl font-bold tracking-tight">
+          <h1 className="text-3xl lg:text-4xl font-bold tracking-tight">
             Planos para diferentes fases da sua operação.
           </h1>
           <p className="text-lg font-medium text-slate-400 leading-relaxed max-w-xl mx-auto">
@@ -63,44 +63,44 @@ export const PublicPricingPage = ({ onNavigate }: PublicPricingPageProps) => {
       </section>
 
       {/* Pricing Grid */}
-      <section className="py-20 px-6 -mt-8">
+      <section className="py-16 px-6 -mt-6">
         <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-8 items-stretch">
+          <div className="grid md:grid-cols-3 gap-6 items-stretch">
              {plans.map((plan, i) => (
-                <div key={i} className={`relative p-8 rounded-2xl border flex flex-col ${plan.highlight ? 'bg-white border-blue-600 shadow-xl scale-100 lg:scale-105 z-10' : 'bg-white border-slate-200 shadow-sm mt-4'}`}>
+                <div key={i} className={`relative p-6 rounded-xl border flex flex-col ${plan.highlight ? 'bg-white border-blue-600 shadow-md z-10' : 'bg-white border-slate-200 shadow-sm mt-0 md:mt-2'}`}>
                   
                   {plan.highlight && (
-                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full">
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full">
                        {plan.highlightText}
                     </div>
                   )}
 
-                  <div className="space-y-2 mb-8">
+                  <div className="space-y-2 mb-6">
                     {!plan.highlight && <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{plan.highlightText}</div>}
-                    <h3 className="text-2xl font-bold text-slate-900">{plan.name}</h3>
-                    <p className="text-sm font-medium text-slate-500">{plan.target}</p>
+                    <h3 className="text-xl font-bold text-slate-900">{plan.name}</h3>
+                    <p className="text-[13px] font-medium text-slate-500">{plan.target}</p>
                   </div>
                   
-                  <div className="mb-8">
-                     <span className="text-3xl font-bold tracking-tight text-slate-900">Sob consulta</span>
+                  <div className="mb-6">
+                     <span className="text-2xl font-bold tracking-tight text-slate-900">Sob consulta</span>
                   </div>
 
-                  <ul className="space-y-4 mb-10 flex-1">
+                  <ul className="space-y-3 mb-8 flex-1">
                     {plan.features.map((feature, j) => (
                       <li key={j} className="flex items-start gap-3">
                          <div className={`mt-0.5 rounded-full p-0.5 ${plan.highlight ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-400'}`}>
                            <Check size={14} strokeWidth={3} />
                          </div>
-                         <span className="text-sm font-bold text-slate-700">{feature}</span>
+                         <span className="text-[13px] font-bold text-slate-700">{feature}</span>
                       </li>
                     ))}
                   </ul>
 
                   <button 
                     onClick={() => onNavigate('/contato')}
-                    className={`h-12 w-full rounded-lg text-[14px] font-bold transition-all ${
+                    className={`h-11 w-full rounded-lg text-[14px] font-bold transition-all ${
                       plan.highlight 
-                        ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md' 
+                        ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm' 
                         : 'bg-white text-slate-700 hover:bg-slate-50 border-2 border-slate-200'
                     }`}
                   >
@@ -113,7 +113,7 @@ export const PublicPricingPage = ({ onNavigate }: PublicPricingPageProps) => {
       </section>
 
       {/* O que influencia */}
-      <section className="py-20 px-6 bg-white border-y border-slate-200">
+      <section className="py-16 px-6 bg-white border-y border-slate-200">
          <div className="max-w-4xl mx-auto">
             <h2 className="text-2xl font-bold text-center text-slate-900 tracking-tight mb-10">O que influencia a proposta?</h2>
             
@@ -136,25 +136,25 @@ export const PublicPricingPage = ({ onNavigate }: PublicPricingPageProps) => {
       </section>
 
       {/* FAQ */}
-      <section className="py-24 px-6">
-         <div className="max-w-3xl mx-auto space-y-12">
+      <section className="py-16 px-6">
+         <div className="max-w-3xl mx-auto space-y-10">
             <div className="text-center space-y-4">
-              <h2 className="text-3xl font-bold tracking-tight text-slate-900">Perguntas sobre Planos</h2>
+              <h2 className="text-2xl lg:text-3xl font-bold tracking-tight text-slate-900">Perguntas sobre Planos</h2>
             </div>
             
             <div className="space-y-4">
                {[
-                 { q: 'Posso começar pequeno?', a: 'Com certeza. Muitos clientes iniciam no Plano Inicial para pequenas equipes organizarem as demandas e migram de plano conforme ganham maturidade de processo.' },
-                 { q: 'Existe custo de implantação (Setup)?', a: 'Depende da complexidade e do plano escolhido. Para operações complexas (Empresarial), indicamos um valor isolado de setup para garantir que nosso time configure, treine sua equipe e deixe tudo operando.' },
-                 { q: 'Posso usar para atendimento interno apenas?', a: 'Sim! Se você for usar para Help Desk de Ti, DP ou Financeiro sem convidar clientes externos, o volume de acesso e custo geralmente é otimizado. Avaliamos isso na demonstração.' },
-                 { q: 'O preço é estritamente por usuário?', a: 'Nós avaliamos o modelo inteiro. Em alguns casos focamos em ranges (até 10 usuários), em outros por volume de ticket. A flexibilidade do "Sob Consulta" garante que seja justo.' },
-                 { q: 'Posso solicitar demonstração antes de contratar?', a: 'Obrigatório! Nós não vendemos sem antes demonstrar a plataforma e ter certeza de que o Gestifique é o software ideal para as dores da sua empresa.' },
+                 { q: 'Posso começar pequeno?', a: 'Com certeza. Muitos clientes iniciam no Plano Inicial para organizar as demandas primárias e migram conforme ganham escala.' },
+                 { q: 'Existe custo de implantação (Setup)?', a: 'Depende da complexidade e do plano. Para operações mais estruturadas, recomendamos um setup dedicado para garantir treinamento e aderência.' },
+                 { q: 'Posso usar para atendimento interno apenas?', a: 'Sim! Se você for usar para Help Desk de TI ou DP, sem acesso de cliente externo, podemos adequar nossa proposta.' },
+                 { q: 'O preço é estritamente por usuário?', a: 'Avaliamos o escopo técnico todo: volume esperado, necessidades, integrações se houverem. Tudo sob consulta.' },
+                 { q: 'Posso solicitar demonstração antes de contratar?', a: 'Sim! É mandatório para que tenhamos plena certeza de que seremos a ferramenta correta para o momento de vocês.' },
                ].map((faq, idx) => (
-                 <div key={idx} className="p-6 bg-white border border-slate-200 rounded-xl shadow-sm">
-                   <h4 className="text-[15px] font-bold text-slate-900 flex items-center gap-2 mb-2">
-                     <HelpCircle size={18} className="text-slate-400" /> {faq.q}
+                 <div key={idx} className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
+                   <h4 className="text-[14px] font-bold text-slate-900 flex items-center gap-2 mb-2">
+                     <HelpCircle size={16} className="text-slate-400" /> {faq.q}
                    </h4>
-                   <p className="text-sm text-slate-600 font-medium leading-relaxed pl-6">{faq.a}</p>
+                   <p className="text-[13px] text-slate-600 font-medium leading-relaxed pl-6">{faq.a}</p>
                  </div>
                ))}
             </div>
@@ -162,10 +162,10 @@ export const PublicPricingPage = ({ onNavigate }: PublicPricingPageProps) => {
       </section>
 
       {/* Final CTA */}
-      <section className="py-20 px-6 text-center">
+      <section className="py-12 px-6 text-center mb-8">
          <button 
            onClick={() => onNavigate('/contato')}
-           className="h-12 px-8 bg-blue-600 text-white text-[14px] font-bold rounded-lg hover:bg-blue-700 transition-all shadow-md"
+           className="h-11 px-6 bg-blue-600 text-white text-[14px] font-bold rounded-lg hover:bg-blue-700 transition-all shadow-sm"
          >
            Falar com consultor agora
          </button>
