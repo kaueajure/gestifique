@@ -28,7 +28,7 @@ export const PublicPricingPage = ({ onNavigate }: PublicPricingPageProps) => {
         'Faixa de atendentes personalizada',
         'SLA Estrito (1ª resposta e resolução)',
         'Dashboard em Tempo Real',
-        'Fluxo de Inatividade de chamados',
+        'Configurações operacionais',
         'Base de Conhecimento'
       ],
       highlight: true
@@ -42,7 +42,7 @@ export const PublicPricingPage = ({ onNavigate }: PublicPricingPageProps) => {
         'Auditoria e Logs refinados',
         'Configuração por equipe',
         'Onboarding Dedicado (Implantação)',
-        'SLA Customizado de Suporte'
+        'Condições de suporte conforme proposta'
       ],
       highlight: false
     }

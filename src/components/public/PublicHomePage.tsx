@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Ticket, Clock, CheckCircle2, ShieldCheck, Zap, Users, LayoutDashboard, Database, ArrowRightCircle, Check, HelpCircle, BarChart3, Inbox, MessageSquare } from 'lucide-react';
+import { ArrowRight, Ticket, Clock, CheckCircle2, ShieldCheck, Zap, Users, LayoutDashboard, Database, Check, HelpCircle, BarChart3, Inbox } from 'lucide-react';
 
 interface PublicHomePageProps {
   onNavigate: (path: string) => void;
@@ -247,7 +247,7 @@ export const PublicHomePage = ({ onNavigate, onLogin }: PublicHomePageProps) => 
                  { q: 'O Gestifique atende operações de TI interna?', a: 'Sim. Você pode usar a plataforma tanto para clientes externos B2B quanto para chamados internos (manutenção, acessos, equipamentos).' },
                  { q: 'Existe um limite de empresas ou clientes a cadastrar?', a: 'Depende do plano escolhido, mas nossa arquitetura é feita para suportar desde poucas dezenas até múltiplas unidades e clientes.' },
                  { q: 'Posso configurar SLA para diferentes urgências?', a: 'Sim. A plataforma permite determinar os tempos exatos para resposta e resolução conforme a prioridade (Baixa, Média, Alta, Urgente).' },
-                 { q: 'As métricas estão disponíveis a qualquer momento?', a: 'Sim. O Dashboard é atualizado constamente com informações operacionais recentes para evitar extrações manuais.' },
+                 { q: 'As métricas estão disponíveis a qualquer momento?', a: 'Sim. O Dashboard é atualizado constantemente com informações operacionais recentes para evitar extrações manuais.' },
                  { q: 'O formulário de contato envia e-mail automático?', a: 'Ainda não. O formulário público atual é um registro local de intenção. A melhor via de contato comercial por enquanto é enviando e-mail para contato@gestifique.com.br.' },
                ].map((faq, idx) => (
                  <div key={idx} className="p-4 bg-slate-50 border border-slate-100 rounded-xl">

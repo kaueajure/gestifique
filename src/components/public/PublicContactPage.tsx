@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Clock, ShieldCheck, CheckCircle, ArrowRight, Building2, Users } from 'lucide-react';
+import { Mail, Clock, CheckCircle, ArrowRight } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
@@ -38,8 +38,7 @@ export const PublicContactPage = () => {
                  <div>
                    <h3 className="text-xl font-bold text-slate-900 mb-2">Intenção de contato registrada</h3>
                    <p className="text-sm font-medium text-slate-500 max-w-md mx-auto">
-                     Agradecemos o seu interesse no Gestifique. O formulário público no momento funciona como registro de interesse local. 
-                     Nossa equipe pode ser acionada diretamente através de <span className="font-bold">contato@gestifique.com.br</span>.
+                     Agradecemos o seu interesse. O formulário público ainda não possui envio automático. Sua intenção de contato foi registrada localmente. Por favor, envie um e-mail para <span className="font-bold">contato@gestifique.com.br</span>.
                    </p>
                  </div>
                  <Button onClick={() => setSent(false)} variant="outline" className="mt-4 h-10 px-6">
@@ -49,7 +48,7 @@ export const PublicContactPage = () => {
              ) : (
                <form onSubmit={handleSubmit} className="space-y-4">
                  <h2 className="text-lg font-bold text-slate-900 mb-1">Agende uma demonstração</h2>
-                 <p className="text-[13px] font-medium text-slate-500 mb-6 border-b border-slate-100 pb-4">Preencha os dados e entraremos em contato rapidamente.</p>
+                 <p className="text-[13px] font-medium text-slate-500 mb-6 border-b border-slate-100 pb-4">Preencha os dados para organizar sua solicitação. No momento, o contato comercial oficial deve ser feito por contato@gestifique.com.br.</p>
                  
                  <div className="grid sm:grid-cols-2 gap-4">
                    <Input label="Seu Nome Completo" required placeholder="Ex: João Silva" className="h-10" />
@@ -93,7 +92,7 @@ export const PublicContactPage = () => {
                  
                  <div className="pt-2">
                    <button type="submit" className="w-full h-11 bg-blue-600 text-white rounded-lg font-bold text-[14px] shadow-sm hover:shadow-md hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
-                     Solicitar Contato <ArrowRight size={18} />
+                     Registrar intenção de contato <ArrowRight size={18} />
                    </button>
                  </div>
                  <p className="text-xs font-medium text-slate-400 text-center mt-3">

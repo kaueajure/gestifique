@@ -1,5 +1,5 @@
 import React from 'react';
-import { Ticket, Clock, Users, ShieldCheck, History, MessagesSquare, LayoutDashboard, Database, RefreshCw, Layers, Bell, CheckCircle2, MessageSquare, Briefcase, Zap, PieChart, Activity, FolderOpen } from 'lucide-react';
+import { Ticket, Clock, Users, ShieldCheck, CheckCircle2, Zap, PieChart, Activity } from 'lucide-react';
 
 interface PublicFeaturesPageProps {
   onNavigate: (path: string) => void;
@@ -26,7 +26,7 @@ export const PublicFeaturesPage = ({ onNavigate }: PublicFeaturesPageProps) => {
         { title: "Painel do Atendente", desc: "Caixa de entrada centralizada: o que precisa ser feito hoje, sem distrações." },
         { title: "Comentários Internos", desc: "Discuta o ticket com a equipe técnica sem que o cliente veja a conversa de bastidor." },
         { title: "Respostas Prontas", desc: "Catálogo de respostas padrão (Macros) para incidentes comuns. Um clique, problema explicado." },
-        { title: "Histórico Completo", desc: "Auditoria inquebrável. Saiba quem mudou o status, quando respondeu e quem assumiu o ticket." }
+        { title: "Histórico Completo", desc: "Histórico completo de alterações. Saiba quem mudou o status, quando respondeu e quem assumiu o ticket." }
       ]
     },
     {
@@ -37,7 +37,7 @@ export const PublicFeaturesPage = ({ onNavigate }: PublicFeaturesPageProps) => {
         { title: "Prazo de Primeira Resposta", desc: "Garante que o cliente não fique no vácuo logo após abrir a solicitação." },
         { title: "Prazo de Resolução", desc: "Controle rígido do tempo aceitável para entregar a solução definitiva." },
         { title: "Alertas Visuais", desc: "Tickets prestes a estourar mudam de cor para chamar a atenção imediata da equipe." },
-        { title: "Pausa no Relógio", desc: "Se depender do cliente (ex: aguardando retorno), o relógio do SLA pausa automaticamente." }
+        { title: "Controle de Prazos", desc: "Se depender do cliente (ex: aguardando retorno), o relógio do SLA pausa automaticamente." }
       ]
     },
     {
@@ -47,8 +47,8 @@ export const PublicFeaturesPage = ({ onNavigate }: PublicFeaturesPageProps) => {
       features: [
         { title: "Portal do Cliente (B2B)", desc: "Seus clientes fazem login e veem exatamente o status das demandas, sem precisar mandar e-mail/WhatsApp." },
         { title: "Base de Conhecimento", desc: "Artigos práticos integrados ao portal para autoatendimento ('Como resetar senha', etc)." },
-        { title: "Pesquisa de Satisfação", desc: "Envio automático de CSAT quando o ticket é resolvido. Avalie o atendimento (1 a 5 estrelas)." },
-        { title: "Acesso Simplificado", desc: "O formulário já abre pré-preenchido logado na conta do cliente." }
+        { title: "Pesquisa de Satisfação", desc: "Pesquisa de satisfação após resolução. Avalie o atendimento (1 a 5 estrelas)." },
+        { title: "Acesso pelo Portal", desc: "O formulário já abre pré-preenchido logado na conta do cliente." }
       ]
     },
     {
@@ -56,7 +56,7 @@ export const PublicFeaturesPage = ({ onNavigate }: PublicFeaturesPageProps) => {
       desc: "Visibilidade em tempo real para os líderes.",
       icon: PieChart,
       features: [
-        { title: "Dashboard Real-time", desc: "Visão imediata do dia: tickets abertos, atrasados e taxa de resolução atual." },
+        { title: "Dashboard Operacional", desc: "Visão imediata do dia: tickets abertos, atrasados e taxa de resolução atual." },
         { title: "Indicadores de Desempenho", desc: "Saiba quais categorias geram mais demanda e onde a equipe gasta mais tempo." },
         { title: "Métricas Individuais", desc: "Analise a produtividade e a saúde do SLA filtrado por cada atendente." },
         { title: "Permissões de Acesso", desc: "Visão segmentada. O cliente só vê o que é dele, atendente o que opera e o gestor vê tudo." }
