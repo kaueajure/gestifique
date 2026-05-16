@@ -65,7 +65,7 @@ export const PortalTicketDetailsPage = ({ ticketId, onBack, currentUser }: Porta
     return badges[status] || <Badge variant="slate">{status}</Badge>;
   };
 
-  if (!ticket) return <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-slate-300" size={32}/></div>;
+  if (!ticket) return <div className="py-10 flex justify-center"><Loader2 className="animate-spin text-slate-300" size={24}/></div>;
 
   const isClosed = ticket.status === 'resolvido' || ticket.status === 'fechado';
 

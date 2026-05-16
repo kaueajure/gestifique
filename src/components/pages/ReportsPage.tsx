@@ -89,6 +89,7 @@ const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#6366f1', '#ec4899', '#8b5cf6'
 const SCORE_COLORS = ['#10b981', '#4ade80', '#fbbf24', '#f87171', '#ef4444'].reverse();
 
 export function ReportsPage({ currentUser }: ReportsPageProps) {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -199,15 +200,12 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
     return <LoadingState message="Processando métricas gerenciais..." />;
   }
 
-  const hasData = data && data.totals.total_tickets > 0;
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-
   return (
-    <div className="space-y-8 pb-12">
+    <div className="space-y-5 pb-6">
       {/* Header */}
       <PageHeader
         title="Relatórios Avançados"
-        className="mb-8"
+        className="mb-4"
         action={
           <div className="flex gap-2">
             <Button variant="secondary" onClick={() => window.print()} className="print:hidden">
@@ -218,7 +216,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                 <Download size={18} className="mr-2" /> Exportar
               </Button>
               {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 shadow-xl rounded-lg overflow-hidden py-1 z-50">
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 shadow-md rounded-lg overflow-hidden py-1 z-50">
                    <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-sm text-slate-700" onClick={() => handleExportCSV('tickets')}>Tickets Detalhados</button>
                    <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-sm text-slate-700" onClick={() => handleExportCSV('agents')}>Atendentes</button>
                    <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-sm text-slate-700" onClick={() => handleExportCSV('satisfaction')}>Satisfação (CSAT)</button>
@@ -360,7 +358,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
             />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <SectionHeader 
                title="Métricas de Compromisso (SLA)" 
                description="Performace operacional" 
@@ -376,7 +374,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                 <Badge variant="blue" className="text-[10px]">Meta: 95%</Badge>
               </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-3">
                   <div className="flex justify-between items-end">
                     <span className="text-xs font-semibold text-slate-600">Primeira Resposta</span>
@@ -447,7 +445,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
             <SectionHeader 
                title="Insights Temporais" 
                description="Distribuição e análise temporal" 
@@ -459,7 +457,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                 <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
                 Fluxo de Atendimento Diário
               </h3>
-              <div className="h-[300px] w-full">
+              <div className="h-[260px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={data.by_day}>
                     <defs>
@@ -496,8 +494,8 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                 <div className="w-1 h-4 bg-amber-500 rounded-full"></div>
                 Satisfação do Cliente (CSAT)
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="h-[250px] w-full">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="h-[220px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -543,7 +541,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
              <SectionHeader 
                title="Distribuição e Topografia" 
                description="Análise por classificação e atendente" 
@@ -610,7 +608,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                    </div>
                 </Card>
 
-                <Card className="p-6">
+                <Card className="p-4">
                    <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
                       <div className="w-1 h-4 bg-indigo-500 rounded-full"></div>
                       Volume por Origem

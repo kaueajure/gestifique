@@ -376,19 +376,19 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
 
       {/* Resolution Modal */}
       {isResolveModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
           <motion.div 
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200"
+            className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden border border-slate-200"
           >
-             <div className="p-6 border-b border-slate-100 flex flex-col gap-1">
-                <div className="flex items-center gap-3 mb-2">
+             <div className="p-4 border-b border-slate-100 flex flex-col gap-1">
+                <div className="flex items-center gap-3 mb-1">
                   <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
                      <CheckCircle2 size={16} />
                   </div>
                   <div>
-                    <h3 className="text-base font-semibold text-slate-900 tracking-tight">
+                    <h3 className="text-sm font-semibold text-slate-900 tracking-tight">
                        Concluir Atendimento
                     </h3>
                     <p className="text-xs text-slate-500 font-medium">
@@ -398,7 +398,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                 </div>
              </div>
 
-             <div className="p-6 space-y-4">
+             <div className="p-4 space-y-4">
                 <div className="space-y-1.5">
                    <label className="text-[11px] font-semibold text-slate-600">Motivo da Resolução</label>
                    <Select 
@@ -424,7 +424,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                      value={resolutionData.resolucao_observacao}
                      onChange={(e) => setResolutionData(prev => ({ ...prev, resolucao_observacao: e.target.value }))}
                      placeholder="Detalhes sobre a solução..."
-                     className="w-full h-24 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 outline-none focus:ring-1 focus:ring-blue-400 transition-all resize-none"
+                     className="w-full h-16 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 outline-none focus:ring-1 focus:ring-blue-400 transition-all resize-none"
                    />
                 </div>
              </div>

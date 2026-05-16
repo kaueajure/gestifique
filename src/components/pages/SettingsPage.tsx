@@ -419,7 +419,7 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
             {activeSubTab === 'system' && (
               <div className="space-y-4">
                  {loadingHealth ? (
-                   <div className="flex flex-col items-center justify-center p-12 space-y-4">
+                   <div className="flex flex-col items-center justify-center py-8 space-y-4">
                      <RefreshCw className="animate-spin text-slate-300" size={24} />
                      <p className="text-xs font-semibold text-slate-500">Coletando diagnósticos...</p>
                    </div>
@@ -557,7 +557,7 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
                           </div>
                           <h4 className="text-sm font-semibold text-slate-900">Painel de Manutenção</h4>
                         </div>
-                        <Badge variant="slate" className="font-semibold text-[9px] uppercase tracking-wider">Manutenção</Badge>
+                        <Badge variant="slate" className="font-semibold text-[10px] uppercase">Manutenção</Badge>
                       </div>
                       
                       <p className="text-[13px] text-slate-500 leading-relaxed max-w-3xl">Acesso restrito para diagnóstico e manutenção estrutural do ecossistema Gestifique. Ações aqui impactam múltiplos módulos.</p>
@@ -572,13 +572,12 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
                              key={action.id}
                              variant="outline"
                              onClick={() => onNavigate(action.id)}
-                             className="bg-white border hover:border-blue-300 border-slate-200 text-slate-700 h-12 justify-between"
+                             className="bg-white border hover:border-blue-300 border-slate-200 text-slate-700 h-10 justify-between"
                            >
                               <div className="flex flex-col items-start">
-                                 <span className="text-xs font-semibold leading-tight mb-0.5">{action.desc}</span>
-                                 <span className="text-[9px] font-medium text-slate-400 uppercase tracking-wider">Gerenciar</span>
+                                 <span className="text-xs font-semibold leading-tight">{action.desc}</span>
                               </div>
-                              <div className="p-1.5 rounded bg-slate-50 border border-slate-100">
+                              <div className="p-1 rounded bg-slate-50 border border-slate-100">
                                  {React.cloneElement(action.icon as React.ReactElement<any>, { size: 14 })}
                               </div>
                            </Button>
