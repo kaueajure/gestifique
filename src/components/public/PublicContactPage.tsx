@@ -13,19 +13,19 @@ export const PublicContactPage = () => {
   };
 
   return (
-    <div className="flex flex-col bg-slate-50 min-h-screen">
-      <section className="pt-20 pb-12 px-6 bg-slate-900 text-white text-center">
+    <div className="flex flex-col bg-white">
+      <section className="pt-20 pb-12 px-6 bg-white border-b border-slate-200 text-center">
         <div className="max-w-3xl mx-auto space-y-6">
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
             Vamos entender sua operação de atendimento?
           </h1>
-          <p className="text-base font-medium text-slate-400 leading-relaxed max-w-xl mx-auto">
+          <p className="text-base font-medium text-slate-500 leading-relaxed max-w-xl mx-auto">
             Conte um pouco sobre sua equipe e retornaremos com uma sugestão de implantação guiada.
           </p>
         </div>
       </section>
 
-      <section className="py-20 px-6 -mt-8">
+      <section className="py-20 px-6 -mt-8 bg-slate-50 flex-1">
         <div className="max-w-6xl mx-auto grid lg:grid-cols-[1fr_360px] gap-8">
           
           {/* Form */}

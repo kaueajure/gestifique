@@ -1,5 +1,5 @@
 import React from 'react';
-import { Ticket, Clock, Users, ShieldCheck, CheckCircle2, Zap, PieChart, Activity } from 'lucide-react';
+import { Ticket, Clock, Users, ShieldCheck, CheckCircle2, Zap, PieChart, Activity, ArrowRight } from 'lucide-react';
 
 interface PublicFeaturesPageProps {
   onNavigate: (path: string) => void;
@@ -65,21 +65,21 @@ export const PublicFeaturesPage = ({ onNavigate }: PublicFeaturesPageProps) => {
   ];
 
   return (
-    <div className="flex flex-col bg-slate-50 min-h-screen">
+    <div className="flex flex-col bg-white">
       {/* Header */}
-      <section className="pt-20 pb-12 px-6 bg-slate-900 border-b border-slate-800 text-white">
+      <section className="pt-20 pb-12 px-6 bg-white border-b border-slate-200">
         <div className="max-w-3xl mx-auto text-center space-y-6">
-          <h1 className="text-3xl lg:text-4xl font-bold tracking-tight">
+          <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-slate-900">
             Tudo que sua equipe precisa para atender melhor.
           </h1>
-          <p className="text-lg font-medium text-slate-400 leading-relaxed">
+          <p className="text-lg font-medium text-slate-500 leading-relaxed max-w-2xl mx-auto">
             Do primeiro contato até a resolução, o Gestifique organiza cada etapa do atendimento sem a poluição visual de sistemas antigos.
           </p>
         </div>
       </section>
 
       {/* Modules */}
-      <section className="py-16 px-6">
+      <section className="py-16 px-6 bg-slate-50 flex-1">
         <div className="max-w-5xl mx-auto space-y-14">
           {modules.map((module, i) => (
             <div key={i} className="scroll-mt-24 space-y-8">
@@ -139,16 +139,16 @@ export const PublicFeaturesPage = ({ onNavigate }: PublicFeaturesPageProps) => {
       </section>
 
       {/* Final CTA */}
-      <section className="py-16 px-6 text-center bg-slate-50">
+      <section className="py-16 px-6 bg-blue-600 text-white text-center">
          <div className="max-w-2xl mx-auto space-y-6">
-           <h2 className="text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">Parece com o que você procura?</h2>
-           <p className="text-sm text-slate-500 font-medium">Veja essas funcionalidades operando em nosso sistema de demonstração.</p>
-           <div className="pt-4">
+           <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">Parece com o que você procura?</h2>
+           <p className="text-blue-100 text-base lg:text-lg font-medium">Veja essas funcionalidades operando em nosso sistema de demonstração.</p>
+           <div className="pt-2 flex justify-center">
              <button 
                onClick={() => onNavigate('/contato')}
-               className="h-11 px-6 bg-blue-600 text-white text-[14px] font-bold rounded-lg hover:bg-blue-700 transition-all shadow-sm hover:shadow-md"
+               className="h-11 px-6 bg-white text-blue-600 text-[14px] font-bold rounded-lg hover:bg-slate-50 transition-all shadow-md flex items-center justify-center gap-2"
              >
-               Solicitar demonstração guiada
+               Solicitar demonstração guiada <ArrowRight size={18} />
              </button>
            </div>
          </div>

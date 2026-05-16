@@ -104,7 +104,7 @@ export const PublicHomePage = ({ onNavigate, onLogin }: PublicHomePageProps) => 
          <div className="max-w-6xl mx-auto space-y-10">
             <div className="text-center max-w-2xl mx-auto space-y-3">
               <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">Quando o atendimento cresce, planilhas e mensagens soltas viram problema.</h2>
-              <p className="text-base lg:text-lg text-slate-400">Processos informais não escalam. Veja onde a operação costuma quebrar:</p>
+              <p className="text-base lg:text-lg text-slate-300">Processos informais não escalam. Veja onde a operação costuma quebrar:</p>
             </div>
             
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -114,10 +114,10 @@ export const PublicHomePage = ({ onNavigate, onLogin }: PublicHomePageProps) => 
                  { icon: ShieldCheck, title: "Cliente no escuro", desc: "Seu cliente B2B precisa perguntar toda hora sobre o status da solicitação." },
                  { icon: BarChart3, title: "Gestor sem dados", desc: "Impossível saber volume de demanda, tempo médio de resposta ou quem produz mais." }
                ].map((pain, idx) => (
-                 <div key={idx} className="bg-slate-800 border border-slate-700 p-5 rounded-xl space-y-3">
+                 <div key={idx} className="bg-slate-800 border border-slate-700 p-5 rounded-xl space-y-3 shadow-sm">
                    <pain.icon className="text-red-400" size={20} />
                    <h3 className="text-base font-bold text-white">{pain.title}</h3>
-                   <p className="text-sm text-slate-400 leading-relaxed">{pain.desc}</p>
+                   <p className="text-sm text-slate-300 leading-relaxed">{pain.desc}</p>
                  </div>
                ))}
             </div>

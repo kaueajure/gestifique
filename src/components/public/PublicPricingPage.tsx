@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, HelpCircle } from 'lucide-react';
+import { Check, HelpCircle, ArrowRight } from 'lucide-react';
 
 interface PublicPricingPageProps {
   onNavigate: (path: string) => void;
@@ -49,21 +49,21 @@ export const PublicPricingPage = ({ onNavigate }: PublicPricingPageProps) => {
   ];
 
   return (
-    <div className="flex flex-col bg-slate-50 min-h-screen">
+    <div className="flex flex-col bg-white">
       {/* Header */}
-      <section className="pt-20 pb-12 px-6 bg-slate-900 border-b border-slate-800 text-white text-center">
+      <section className="pt-20 pb-12 px-6 bg-white border-b border-slate-200 text-center">
         <div className="max-w-3xl mx-auto space-y-6">
-          <h1 className="text-3xl lg:text-4xl font-bold tracking-tight">
+          <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-slate-900">
             Planos para diferentes fases da sua operação.
           </h1>
-          <p className="text-lg font-medium text-slate-400 leading-relaxed max-w-xl mx-auto">
+          <p className="text-lg font-medium text-slate-500 leading-relaxed max-w-xl mx-auto">
             O Gestifique pode ser adaptado ao tamanho da sua equipe, volume de tickets e necessidade de gestão de desempenho.
           </p>
         </div>
       </section>
 
       {/* Pricing Grid */}
-      <section className="py-16 px-6 -mt-6">
+      <section className="py-16 px-6 -mt-6 bg-slate-50 flex-1">
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-3 gap-6 items-stretch">
              {plans.map((plan, i) => (
@@ -162,13 +162,19 @@ export const PublicPricingPage = ({ onNavigate }: PublicPricingPageProps) => {
       </section>
 
       {/* Final CTA */}
-      <section className="py-12 px-6 text-center mb-8">
-         <button 
-           onClick={() => onNavigate('/contato')}
-           className="h-11 px-6 bg-blue-600 text-white text-[14px] font-bold rounded-lg hover:bg-blue-700 transition-all shadow-sm"
-         >
-           Falar com consultor agora
-         </button>
+      <section className="py-16 px-6 bg-blue-600 text-white text-center">
+         <div className="max-w-2xl mx-auto space-y-6">
+           <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">Vamos montar sua proposta?</h2>
+           <p className="text-blue-100 text-base lg:text-lg font-medium">Converse com nossa equipe para entendermos seu cenário e desenharmos o plano ideal.</p>
+           <div className="pt-2 flex justify-center">
+             <button 
+               onClick={() => onNavigate('/contato')}
+               className="h-11 px-6 bg-white text-blue-600 text-[14px] font-bold rounded-lg hover:bg-slate-50 transition-all shadow-md flex items-center justify-center gap-2"
+             >
+               Falar com consultor agora <ArrowRight size={18} />
+             </button>
+           </div>
+         </div>
       </section>
     </div>
   );
