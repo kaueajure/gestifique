@@ -6,11 +6,37 @@ import { Button } from '../ui/Button';
 
 export const PublicContactPage = () => {
   const [sent, setSent] = useState(false);
+  const [contactData, setContactData] = useState({
+    nome: '',
+    email: '',
+    empresa: '',
+    telefone: '',
+    tamanhoEquipe: '',
+    formatoAtual: '',
+    mensagem: ''
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSent(true);
   };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setContactData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const bodyText = `Nome: ${contactData.nome}
+E-mail: ${contactData.email}
+Empresa: ${contactData.empresa}
+Telefone/WhatsApp: ${contactData.telefone}
+Tamanho da equipe: ${contactData.tamanhoEquipe}
+Formato atual: ${contactData.formatoAtual}
+Mensagem: ${contactData.mensagem}`;
+
+  const encodedSubject = encodeURIComponent('Demonstração Gestifique');
+  const encodedBody = encodeURIComponent(bodyText);
+  const mailtoHref = `mailto:contato@gestifique.com.br?subject=${encodedSubject}&body=${encodedBody}`;
 
   return (
     <div className="flex flex-col bg-white">
@@ -42,7 +68,7 @@ export const PublicContactPage = () => {
                    </p>
                  </div>
                  <div className="flex flex-col gap-3 max-w-xs mx-auto w-full mt-4">
-                     <a href="mailto:contato@gestifique.com.br?subject=Demonstração%20Gestifique" className="h-11 flex items-center justify-center bg-blue-600 text-white rounded-lg font-bold text-[14px] shadow-sm hover:bg-blue-700 transition-all">
+                     <a href={mailtoHref} className="h-11 flex items-center justify-center bg-blue-600 text-white rounded-lg font-bold text-[14px] shadow-sm hover:bg-blue-700 transition-all">
                        Enviar e-mail para contato
                      </a>
                      <Button onClick={() => setSent(false)} variant="outline" className="h-11 w-full">
@@ -56,19 +82,19 @@ export const PublicContactPage = () => {
                  <p className="text-[13px] font-medium text-slate-500 mb-6 border-b border-slate-100 pb-4">Preencha os dados para organizar sua solicitação. No momento, o contato comercial oficial deve ser feito por contato@gestifique.com.br.</p>
                  
                  <div className="grid sm:grid-cols-2 gap-4">
-                   <Input label="Seu Nome Completo" required placeholder="Ex: João Silva" className="h-10" />
-                   <Input label="E-mail Corporativo" type="email" required placeholder="joao@suaempresa.com.br" className="h-10" />
+                   <Input name="nome" value={contactData.nome} onChange={handleChange} label="Seu Nome Completo" required placeholder="Ex: João Silva" className="h-10" />
+                   <Input name="email" value={contactData.email} onChange={handleChange} label="E-mail Corporativo" type="email" required placeholder="joao@suaempresa.com.br" className="h-10" />
                  </div>
                  
                  <div className="grid sm:grid-cols-2 gap-4">
-                   <Input label="Empresa" required placeholder="Nome da sua empresa" className="h-10" />
-                   <Input label="WhatsApp / Telefone" required placeholder="(11) 99999-9999" className="h-10" />
+                   <Input name="empresa" value={contactData.empresa} onChange={handleChange} label="Empresa" required placeholder="Nome da sua empresa" className="h-10" />
+                   <Input name="telefone" value={contactData.telefone} onChange={handleChange} label="WhatsApp / Telefone" required placeholder="(11) 99999-9999" className="h-10" />
                  </div>
 
                  <div className="grid sm:grid-cols-2 gap-4">
                    <div className="space-y-1">
                      <label className="text-xs font-semibold text-slate-700">Tamanho da equipe</label>
-                     <select className="w-full h-10 bg-white border border-slate-200 rounded-lg px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                     <select name="tamanhoEquipe" value={contactData.tamanhoEquipe} onChange={handleChange} className="w-full h-10 bg-white border border-slate-200 rounded-lg px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
                        <option value="">Selecione...</option>
                        <option value="1 a 5">1 a 5 atendentes</option>
                        <option value="6 a 15">6 a 15 atendentes</option>
@@ -77,7 +103,7 @@ export const PublicContactPage = () => {
                    </div>
                    <div className="space-y-1">
                      <label className="text-xs font-semibold text-slate-700">Principal Formato Atual</label>
-                     <select className="w-full h-10 bg-white border border-slate-200 rounded-lg px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                     <select name="formatoAtual" value={contactData.formatoAtual} onChange={handleChange} className="w-full h-10 bg-white border border-slate-200 rounded-lg px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
                        <option value="">Selecione o desafio...</option>
                        <option value="Email">Sendo atendido por E-mail</option>
                        <option value="WhatsApp">Sendo atendido por WhatsApp livre</option>
@@ -90,6 +116,9 @@ export const PublicContactPage = () => {
                  <div className="space-y-1 pt-2">
                    <label className="text-xs font-semibold text-slate-700">Mensagem Adicional (opcional)</label>
                    <textarea 
+                     name="mensagem"
+                     value={contactData.mensagem}
+                     onChange={handleChange}
                      className="w-full h-24 p-3 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-none"
                      placeholder="Gostaria de resolver o problema de X e Y na minha equipe..."
                    />
@@ -116,22 +145,22 @@ export const PublicContactPage = () => {
                      <div className="flex items-start gap-4">
                         <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm shrink-0">1</div>
                         <div>
-                           <div className="text-[14px] font-bold text-slate-900">Você organiza sua solicitação</div>
-                           <div className="text-[13px] text-slate-500 mt-1 leading-relaxed">Você preenche o formulário e envia para nosso time pelo e-mail comercial.</div>
+                           <div className="text-[14px] font-bold text-slate-900">Você preenche os dados</div>
+                           <div className="text-[13px] text-slate-500 mt-1 leading-relaxed">O sistema organiza as informações e prepara um e-mail para o contato comercial.</div>
                         </div>
                      </div>
                       <div className="flex items-start gap-4">
                          <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm shrink-0">2</div>
                          <div>
-                            <div className="text-[14px] font-bold text-slate-900">Mostramos o sistema</div>
-                            <div className="text-[13px] text-slate-500 mt-1 leading-relaxed">Você verá o Gestifique funcionando em uma demonstração focada no seu caso.</div>
+                            <div className="text-[14px] font-bold text-slate-900">Você envia o e-mail</div>
+                            <div className="text-[13px] text-slate-500 mt-1 leading-relaxed">Seu cliente de e-mail abrirá com os dados preenchidos para envio ao contato@gestifique.com.br.</div>
                          </div>
                       </div>
                       <div className="flex items-start gap-4">
                          <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm shrink-0">3</div>
                          <div>
-                            <div className="text-[14px] font-bold text-slate-900">Aprovamos e Implantamos</div>
-                            <div className="text-[13px] text-slate-500 mt-1 leading-relaxed">Sugerimos o melhor plano de acompanhamento para ativar sua operação B2B.</div>
+                            <div className="text-[14px] font-bold text-slate-900">Alinhamos a demonstração</div>
+                            <div className="text-[13px] text-slate-500 mt-1 leading-relaxed">A partir do contato comercial, alinhamos o melhor formato de demonstração e implantação.</div>
                          </div>
                       </div>
                    </div>

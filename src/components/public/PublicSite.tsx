@@ -38,14 +38,17 @@ export const PublicSite = ({ onLogin }: PublicSiteProps) => {
       case '/contato':
         return <PublicContactPage />;
       default:
-        // Redireciona rota inválida para home
-        window.history.replaceState({}, '', '/');
-        if (currentPath !== '/') {
-           setTimeout(() => setCurrentPath('/'), 0);
-        }
-        return <PublicHomePage onNavigate={navigate} />;
+        return null;
     }
   };
+
+  useEffect(() => {
+    const validPaths = ['/', '/funcionalidades', '/precos', '/contato'];
+    if (!validPaths.includes(currentPath)) {
+      window.history.replaceState({}, '', '/');
+      setCurrentPath('/');
+    }
+  }, [currentPath]);
 
   useEffect(() => {
     // Dynamic document title based on current path

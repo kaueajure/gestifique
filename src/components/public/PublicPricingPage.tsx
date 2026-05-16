@@ -27,7 +27,7 @@ export const PublicPricingPage = ({ onNavigate }: PublicPricingPageProps) => {
       features: [
         'Faixa de atendentes personalizada',
         'SLA Estrito (1ª resposta e resolução)',
-        'Dashboard em Tempo Real',
+        'Dashboard operacional',
         'Configurações operacionais',
         'Base de Conhecimento'
       ],

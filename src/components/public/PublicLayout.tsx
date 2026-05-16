@@ -74,6 +74,9 @@ export const PublicLayout = ({ children, onLogin, currentPath, onNavigate }: Pub
           <button 
             className="md:hidden text-slate-600 p-2 outline-none hover:bg-slate-50 rounded-lg"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label={isMenuOpen ? 'Fechar menu' : 'Abrir menu'}
+            aria-expanded={isMenuOpen}
+            aria-controls="public-mobile-menu"
           >
             {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
@@ -83,6 +86,7 @@ export const PublicLayout = ({ children, onLogin, currentPath, onNavigate }: Pub
         <AnimatePresence>
           {isMenuOpen && (
             <motion.div 
+              id="public-mobile-menu"
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
