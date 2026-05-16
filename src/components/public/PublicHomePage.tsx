@@ -1,7 +1,5 @@
 import React from 'react';
-import { motion } from 'motion/react';
-import { ArrowRight, Ticket, Clock, LayoutDashboard, Search, CheckCircle2, ShieldCheck, MessagesSquare } from 'lucide-react';
-import { AppLogo } from '../ui/Logo';
+import { ArrowRight, Ticket, Clock, CheckCircle2, ShieldCheck } from 'lucide-react';
 
 interface PublicHomePageProps {
   onNavigate: (path: string) => void;

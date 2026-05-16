@@ -55,14 +55,14 @@ type ActiveTab =
   | "knowledge";
 
 export default function App() {
-  const [view, setView] = useState<ViewState>(() => {
-    // Initial view resolution based on path
-    const path = window.location.pathname;
-    if (path === '/login') return 'login';
-    if (path === '/esqueci-senha') return 'forgot-password';
-    if (path === '/reset-password') return 'reset-password';
-    return 'landing'; // Let PublicSite handle /, /funcionalidades, /precos, /contato
-  });
+  const getViewFromPath = (pathname: string): ViewState => {
+    if (pathname === '/login') return 'login';
+    if (pathname === '/esqueci-senha') return 'forgot-password';
+    if (pathname === '/reset-password') return 'reset-password';
+    return 'landing';
+  };
+
+  const [view, setView] = useState<ViewState>(() => getViewFromPath(window.location.pathname));
   const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard");
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -80,6 +80,27 @@ export default function App() {
   }
 
   useEffect(() => {
+    const handlePopState = () => {
+      // Sync browser history with the app state for public routes
+      const path = window.location.pathname;
+      const parsedView = getViewFromPath(path);
+      
+      // If user is logged in, do not kick them to landing just because of popstate
+      // unless specifically intended. We'll handle basic public state syncing here.
+      setView((currentView) => {
+        // If they are on dashboard/portal, don't break their session on back button
+        // They would explicitly logout
+        if (currentView === 'dashboard' || currentView === 'portal') {
+          return currentView;
+        }
+        return parsedView;
+      });
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  useEffect(() => {
     // Check session on load
     const checkAuth = async () => {
       try {
@@ -91,7 +112,7 @@ export default function App() {
           setView("dashboard");
         }
       } catch (err) {
-        setView("landing");
+        setView(getViewFromPath(window.location.pathname));
       } finally {
         setIsBooting(false);
       }

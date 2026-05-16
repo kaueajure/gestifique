@@ -35,9 +35,9 @@ export const PublicContactPage = () => {
                  <div className="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mb-2">
                    <CheckCircle size={32} />
                  </div>
-                 <h3 className="text-xl font-bold text-slate-900">Solicitação Recebida!</h3>
+                 <h3 className="text-xl font-bold text-slate-900">Intenção de contato registrada!</h3>
                  <p className="text-sm font-medium text-slate-500 max-w-sm">
-                   Agradecemos o interesse. Em breve nossa equipe entrará em contato com você.
+                   Sua intenção de contato foi registrada nesta tela. Em breve conectaremos este formulário ao envio automático. Por enquanto, fale conosco em contato@gestifique.com.br.
                  </p>
                  <Button onClick={() => setSent(false)} variant="outline" className="mt-4">
                    Enviar nova mensagem
