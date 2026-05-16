@@ -15,24 +15,14 @@ import { KnowledgePage } from "./components/pages/KnowledgePage";
 import { AccessDenied } from "./components/ui/AccessDenied";
 import { PublicSite } from "./components/public/PublicSite";
 import { SatisfactionPage } from "./components/public/SatisfactionPage";
+import { LoginPage } from "./components/auth/LoginPage";
+import { ForgotPasswordPage } from "./components/auth/ForgotPasswordPage";
+import { ResetPasswordPage } from "./components/auth/ResetPasswordPage";
 import { hasPermission } from "./lib/permissions";
 import { User } from "./types";
 import { api } from "./lib/api";
-import { Card } from "./components/ui/Card";
-import { Input } from "./components/ui/Input";
-import { Button } from "./components/ui/Button";
-import { AppLogo } from "./components/ui/Logo";
 import { cn } from "./lib/utils";
-import {
-  ArrowRight,
-  Shield,
-  Zap,
-  Loader2,
-  Lock,
-  Mail,
-  Settings,
-  AlertCircle,
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 import { PortalLayout } from "./components/portal/PortalLayout";
 
@@ -69,6 +59,7 @@ export default function App() {
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [authSuccess, setAuthSuccess] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(false);
   const [isBooting, setIsBooting] = useState(true);
   const [resetEmail, setResetEmail] = useState("");
 
@@ -162,6 +153,7 @@ export default function App() {
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setAuthError(null);
+    setAuthLoading(true);
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email");
     const password = formData.get("password");
@@ -178,8 +170,10 @@ export default function App() {
       }
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "Erro ao autenticar.";
+        err instanceof Error ? err.message : "Não foi possível autenticar. Verifique seus dados e tente novamente.";
       setAuthError(message);
+    } finally {
+      setAuthLoading(false);
     }
   };
 
@@ -196,6 +190,7 @@ export default function App() {
     e.preventDefault();
     setAuthError(null);
     setAuthSuccess(null);
+    setAuthLoading(true);
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email") as string;
 
@@ -212,22 +207,21 @@ export default function App() {
       }, 2000);
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "Erro ao solicitar recuperação.";
+        err instanceof Error ? err.message : "Não foi possível enviar o código agora. Tente novamente em alguns instantes.";
       setAuthError(message);
+    } finally {
+      setAuthLoading(false);
     }
   };
 
-  const handleResetPassword = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleResetPassword = async (email: string, token: string, newPassword: string) => {
     setAuthError(null);
     setAuthSuccess(null);
-    const formData = new FormData(e.currentTarget);
-    const token = formData.get("token");
-    const newPassword = formData.get("newPassword");
+    setAuthLoading(true);
 
     try {
       const data = await api.post<{ message: string }>("/auth/reset-password", {
-        email: resetEmail,
+        email,
         token,
         newPassword,
       });
@@ -239,8 +233,10 @@ export default function App() {
       }, 2000);
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "Erro ao redefinir a senha.";
+        err instanceof Error ? err.message : "Código ou senha inválidos. Confira as informações e tente novamente.";
       setAuthError(message);
+    } finally {
+      setAuthLoading(false);
     }
   };
 
@@ -263,239 +259,64 @@ export default function App() {
 
   if (view === "login") {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-[360px]"
-        >
-          <div className="text-center mb-6">
-            <AppLogo size={48} className="mb-3 mx-auto" />
-            <h2 className="text-xl font-semibold text-slate-900 tracking-tight">
-              Bem-vindo
-            </h2>
-            <p className="text-sm text-slate-500">
-              Acesse o portal do cliente Gestifique
-            </p>
-          </div>
-
-          <Card className="p-6">
-            <form onSubmit={handleLogin} className="space-y-4">
-              {authError && (
-                <div className="p-2.5 bg-red-50 border border-red-100 rounded-md flex items-center gap-2 text-red-600 text-xs font-medium animate-in fade-in slide-in-from-top-1">
-                  <AlertCircle size={14} /> {authError}
-                </div>
-              )}
-
-              <Input
-                label="E-mail Corporativo"
-                name="email"
-                type="email"
-                required
-                className="h-9 text-sm"
-                placeholder="exemplo@empresa.com"
-              />
-
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-medium text-slate-700">
-                    Senha
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setView("forgot-password");
-                      setAuthError(null);
-                      setAuthSuccess(null);
-                      window.history.pushState({}, '', '/esqueci-senha');
-                    }}
-                    className="text-xs font-medium text-blue-600 hover:text-blue-700"
-                  >
-                    Esqueceu a senha?
-                  </button>
-                </div>
-                <input
-                  name="password"
-                  type="password"
-                  required
-                  className="w-full h-9 bg-slate-50 border border-slate-200 rounded-md px-3 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all outline-none"
-                  placeholder="••••••••"
-                />
-              </div>
-
-              <Button type="submit" size="sm" className="w-full h-9 text-sm">
-                Entrar <ArrowRight size={14} className="ml-1.5" />
-              </Button>
-            </form>
-          </Card>
-
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => {
-                setView("landing");
-                window.history.pushState({}, '', '/');
-              }}
-              className="text-xs font-medium text-slate-500 hover:text-slate-900 flex items-center justify-center gap-1.5 mx-auto transition-colors"
-            >
-              <ArrowRight size={14} className="rotate-180" /> Voltar ao início
-            </button>
-          </div>
-        </motion.div>
-      </div>
+      <LoginPage
+        onSubmit={handleLogin}
+        authError={authError}
+        loading={authLoading}
+        onForgotPassword={() => {
+          setView("forgot-password");
+          setAuthError(null);
+          setAuthSuccess(null);
+          window.history.pushState({}, '', '/esqueci-senha');
+        }}
+        onBackToSite={() => {
+          setView("landing");
+          window.history.pushState({}, '', '/');
+        }}
+      />
     );
   }
 
   if (view === "forgot-password") {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-[360px]"
-        >
-          <div className="text-center mb-6">
-            <div className="inline-flex w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center mb-4">
-              <Mail className="text-blue-600" size={20} />
-            </div>
-            <h2 className="text-xl font-semibold text-slate-900 tracking-tight">
-              Recuperar Senha
-            </h2>
-            <p className="text-sm text-slate-500">
-              Enviaremos um código para o seu e-mail
-            </p>
-          </div>
-
-          <Card className="p-6">
-            <form onSubmit={handleForgotPassword} className="space-y-4">
-              {authError && (
-                <div className="p-2.5 bg-red-50 border border-red-100 rounded-md flex items-center gap-2 text-red-600 text-xs font-medium animate-in fade-in slide-in-from-top-1">
-                  <AlertCircle size={14} /> {authError}
-                </div>
-              )}
-              {authSuccess && (
-                <div className="p-2.5 bg-emerald-50 border border-emerald-100 rounded-md flex items-center gap-2 text-emerald-700 text-xs font-medium animate-in fade-in slide-in-from-top-1">
-                  <Shield size={14} /> {authSuccess}
-                </div>
-              )}
-
-              <Input
-                label="E-mail Corporativo"
-                name="email"
-                type="email"
-                required
-                className="h-9 text-sm"
-                placeholder="exemplo@empresa.com"
-              />
-
-              <Button
-                type="submit"
-                size="sm"
-                className="w-full h-9 text-sm"
-              >
-                Enviar código
-              </Button>
-            </form>
-          </Card>
-
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => {
-                setView("login");
-                setAuthError(null);
-                setAuthSuccess(null);
-                window.history.pushState({}, '', '/login');
-              }}
-              className="text-xs font-medium text-slate-500 hover:text-slate-900 flex items-center justify-center gap-1.5 mx-auto transition-colors"
-            >
-              <ArrowRight size={14} className="rotate-180" /> Voltar ao login
-            </button>
-          </div>
-        </motion.div>
-      </div>
+      <ForgotPasswordPage
+        onSubmit={handleForgotPassword}
+        authError={authError}
+        authSuccess={authSuccess}
+        loading={authLoading}
+        onBackToLogin={() => {
+          setView("login");
+          setAuthError(null);
+          setAuthSuccess(null);
+          window.history.pushState({}, '', '/login');
+        }}
+        onBackToSite={() => {
+          setView("landing");
+          window.history.pushState({}, '', '/');
+        }}
+      />
     );
   }
 
   if (view === "reset-password") {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-[360px]"
-        >
-          <div className="text-center mb-6">
-            <div className="inline-flex w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center mb-4">
-              <Lock className="text-blue-600" size={20} />
-            </div>
-            <h2 className="text-xl font-semibold text-slate-900 tracking-tight">
-              Nova Senha
-            </h2>
-            <p className="text-sm text-slate-500">
-              Digite o código recebido no seu e-mail
-            </p>
-          </div>
-
-          <Card className="p-6">
-            <form onSubmit={handleResetPassword} className="space-y-4">
-              {authError && (
-                <div className="p-2.5 bg-red-50 border border-red-100 rounded-md flex items-center gap-2 text-red-600 text-xs font-medium animate-in fade-in slide-in-from-top-1">
-                  <AlertCircle size={14} /> {authError}
-                </div>
-              )}
-              {authSuccess && (
-                <div className="p-2.5 bg-emerald-50 border border-emerald-100 rounded-md flex items-center gap-2 text-emerald-700 text-xs font-medium animate-in fade-in slide-in-from-top-1">
-                  <Shield size={14} /> {authSuccess}
-                </div>
-              )}
-
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-slate-700">
-                  Código de 6 dígitos
-                </label>
-                <input
-                  name="token"
-                  type="text"
-                  required
-                  className="w-full h-10 bg-slate-50 border border-slate-200 rounded-md px-3 text-center text-lg font-semibold tracking-widest focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all outline-none"
-                  placeholder="000000"
-                  maxLength={6}
-                />
-              </div>
-
-              <Input
-                label="Nova Senha"
-                name="newPassword"
-                type="password"
-                required
-                className="h-9 text-sm"
-                placeholder="Mínimo 6 caracteres"
-              />
-
-              <Button
-                type="submit"
-                size="sm"
-                className="w-full h-9 text-sm"
-              >
-                Redefinir senha
-              </Button>
-            </form>
-          </Card>
-
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => {
-                setView("login");
-                setAuthError(null);
-                setAuthSuccess(null);
-                window.history.pushState({}, '', '/login');
-              }}
-              className="text-xs font-medium text-slate-500 hover:text-slate-900 flex items-center justify-center gap-1.5 mx-auto transition-colors"
-            >
-              <ArrowRight size={14} className="rotate-180" /> Voltar ao login
-            </button>
-          </div>
-        </motion.div>
-      </div>
+      <ResetPasswordPage
+        onSubmit={handleResetPassword}
+        initialEmail={resetEmail}
+        authError={authError}
+        authSuccess={authSuccess}
+        loading={authLoading}
+        onBackToLogin={() => {
+          setView("login");
+          setAuthError(null);
+          setAuthSuccess(null);
+          window.history.pushState({}, '', '/login');
+        }}
+        onBackToSite={() => {
+          setView("landing");
+          window.history.pushState({}, '', '/');
+        }}
+      />
     );
   }
 
