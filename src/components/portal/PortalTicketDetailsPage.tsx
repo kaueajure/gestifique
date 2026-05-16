@@ -70,8 +70,8 @@ export const PortalTicketDetailsPage = ({ ticketId, onBack, currentUser }: Porta
   const isClosed = ticket.status === 'resolvido' || ticket.status === 'fechado';
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      <div className="flex items-center gap-4 border-b border-slate-200 pb-6">
+    <div className="space-y-4 max-w-4xl mx-auto">
+      <div className="flex items-center gap-3 border-b border-slate-200 pb-4">
         <button onClick={onBack} className="p-2 -ml-2 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors">
           <ArrowLeft size={20} />
         </button>
@@ -80,18 +80,18 @@ export const PortalTicketDetailsPage = ({ ticketId, onBack, currentUser }: Porta
             <span className="text-sm font-bold text-slate-400">#{ticket.id}</span>
             {getStatusBadge(ticket.status)}
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{ticket.titulo}</h1>
+          <h1 className="text-lg font-bold tracking-tight text-slate-900">{ticket.titulo}</h1>
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm flex flex-col min-h-[500px]">
-        <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm flex flex-col min-h-[400px]">
+        <div className="p-4 border-b border-slate-100 bg-slate-50/50">
           <div className="prose prose-sm prose-slate max-w-none text-slate-700 whitespace-pre-wrap">
             {ticket.descricao}
           </div>
         </div>
 
-        <div className="flex-1 p-6 space-y-6 overflow-y-auto bg-slate-50">
+        <div className="flex-1 p-4 space-y-4 overflow-y-auto bg-slate-50">
           {messages.length === 0 ? (
             <div className="text-center py-10 text-slate-400 text-sm font-medium">Nenhuma mensagem ainda.</div>
           ) : (
@@ -100,7 +100,7 @@ export const PortalTicketDetailsPage = ({ ticketId, onBack, currentUser }: Porta
               
               if (msg.tipo === 'status_change') {
                  return (
-                   <div key={i} className="flex justify-center my-4">
+                   <div key={i} className="flex justify-center my-3">
                      <span className="text-xs font-medium text-slate-500 bg-white border border-slate-200 px-3 py-1 rounded-full">{msg.mensagem}</span>
                    </div>
                  );
@@ -113,7 +113,7 @@ export const PortalTicketDetailsPage = ({ ticketId, onBack, currentUser }: Porta
                     <span className="text-xs text-slate-500">{format(new Date(msg.created_at), "dd MMM, HH:mm", { locale: ptBR })}</span>
                   </div>
                   <div className={cn(
-                    "max-w-[85%] px-4 py-2.5 rounded-2xl text-sm whitespace-pre-wrap",
+                    "max-w-[85%] px-3 py-2 rounded-xl text-sm whitespace-pre-wrap",
                     isMine 
                       ? "bg-blue-600 text-white rounded-tr-sm shadow-sm" 
                       : "bg-white border border-slate-200 text-slate-700 rounded-tl-sm shadow-sm"
@@ -130,16 +130,16 @@ export const PortalTicketDetailsPage = ({ ticketId, onBack, currentUser }: Porta
         <div className="p-4 bg-white border-t border-slate-200">
           {isClosed ? (
             <div className="text-center py-3 text-emerald-600 bg-emerald-50 rounded-lg border border-emerald-100 flex flex-col items-center gap-1.5">
-              <CheckCircle2 size={20} />
+              <CheckCircle2 size={16} />
               <span className="text-sm font-medium">Este chamado foi finalizado.</span>
             </div>
           ) : (
-            <form onSubmit={handleReply} className="flex flex-col gap-3">
+            <form onSubmit={handleReply} className="flex flex-col gap-2.5">
               <textarea
                 value={replyMessage}
                 onChange={e => setReplyMessage(e.target.value)}
                 placeholder="Escreva sua mensagem..."
-                className="w-full resize-none h-20 p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all outline-none"
+                className="w-full resize-none h-16 p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all outline-none"
               />
               <div className="flex justify-end gap-2">
                 <Button type="submit" disabled={sending || !replyMessage.trim()} className="font-semibold px-5 text-sm h-9">

@@ -61,40 +61,40 @@ export const PortalKnowledgePage = ({ onNavigate, initialArticleId }: PortalKnow
 
   if (selectedArticle) {
     return (
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-4">
         <button 
           onClick={() => setSelectedArticle(null)}
-          className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors group"
+          className="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors group"
         >
-          <div className="w-8 h-8 rounded-md bg-slate-100 flex items-center justify-center group-hover:bg-slate-200 transition-colors">
+          <div className="w-8 h-8 rounded-md bg-white border border-slate-200 flex items-center justify-center group-hover:bg-slate-50 transition-colors">
             <ArrowLeft size={16} />
           </div>
           Voltar para a Base
         </button>
         
-        <div className="bg-white p-8 md:p-12 border border-slate-200 rounded-2xl shadow-sm">
-          <div className="mb-10 border-b border-slate-100 pb-10">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="px-2.5 py-1 bg-blue-50 text-blue-600 text-xs font-semibold rounded-md">
+        <div className="bg-white p-4 md:p-5 border border-slate-200 rounded-xl shadow-sm">
+          <div className="mb-4 border-b border-slate-100 pb-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-semibold rounded-md">
                 {selectedArticle.categoria || 'Geral'}
               </div>
-              <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+              <div className="flex items-center gap-1.5 text-xs text-slate-500">
                 <Clock size={14} />
                 Publicado em {new Date(selectedArticle.created_at).toLocaleDateString()}
               </div>
             </div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 leading-tight">{selectedArticle.titulo}</h1>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 leading-tight">{selectedArticle.titulo}</h1>
           </div>
           
-          <div className="prose prose-slate max-w-none prose-headings:font-semibold prose-p:text-slate-600" data-color-mode="light">
+          <div className="prose prose-slate max-w-none prose-headings:font-semibold prose-p:text-slate-600 prose-sm" data-color-mode="light">
             <MDEditor.Markdown source={selectedArticle.conteudo} />
           </div>
           
-          <div className="mt-16 pt-10 border-t border-slate-100 text-center space-y-4">
-            <p className="text-sm font-semibold text-slate-500 uppercase">Ainda precisa de ajuda?</p>
+          <div className="mt-6 pt-4 border-t border-slate-100 text-center space-y-3">
+            <p className="text-sm font-medium text-slate-600">Ainda precisa de ajuda?</p>
             <button 
               onClick={() => onNavigate('new-ticket')}
-              className="px-6 h-10 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-md shadow-sm transition-colors"
+              className="px-5 h-9 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-md shadow-sm transition-colors"
             >
               Abrir um Novo Chamado
             </button>
@@ -105,40 +105,40 @@ export const PortalKnowledgePage = ({ onNavigate, initialArticleId }: PortalKnow
   }
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto">
       {/* Hero Section */}
-      <div className="text-center py-10 bg-white rounded-xl border border-slate-200 p-8 shadow-sm overflow-hidden relative">
+      <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm overflow-hidden relative text-center">
         <div className="absolute top-0 left-0 w-full h-1 bg-blue-600" />
-        <div className="relative z-10">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 mb-4">
+        <div className="relative z-10 flex flex-col items-center">
+          <h1 className="text-xl font-bold tracking-tight text-slate-900 mb-1">
             Como podemos te ajudar hoje?
           </h1>
-          <p className="text-slate-500 text-sm mb-8">Central de autoatendimento</p>
+          <p className="text-slate-500 text-sm mb-4">Central de autoatendimento</p>
           
-          <div className="max-w-2xl mx-auto relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+          <div className="w-full max-w-lg relative group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={16} />
             <input 
               type="text"
               placeholder="Pesquisar por assunto, dúvida ou erro..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full h-12 pl-12 pr-6 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder:text-slate-400"
+              className="w-full h-9 pl-9 pr-4 bg-slate-50 border border-slate-200 rounded-md text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder:text-slate-400"
             />
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Sidebar categories */}
-        <div className="lg:col-span-3 space-y-6">
-          <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest flex items-center gap-2 px-1">
+        <div className="lg:col-span-3 space-y-4">
+          <h2 className="text-xs font-semibold text-slate-700 uppercase flex items-center gap-2 px-1">
             <Tag size={14} /> Categorias
           </h2>
           <div className="flex flex-col gap-1">
             <button
               onClick={() => setSelectedCategory(null)}
               className={cn(
-                "w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                "w-full text-left px-3 py-2 rounded-md text-sm transition-colors font-medium",
                 selectedCategory === null 
                   ? "bg-blue-50 text-blue-700" 
                   : "text-slate-600 hover:bg-slate-50"
@@ -151,7 +151,7 @@ export const PortalKnowledgePage = ({ onNavigate, initialArticleId }: PortalKnow
                 key={category}
                 onClick={() => setSelectedCategory(category)}
                 className={cn(
-                  "w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                  "w-full text-left px-3 py-2 rounded-md text-sm transition-colors font-medium",
                   selectedCategory === category 
                     ? "bg-blue-50 text-blue-700" 
                     : "text-slate-600 hover:bg-slate-50"
@@ -162,42 +162,42 @@ export const PortalKnowledgePage = ({ onNavigate, initialArticleId }: PortalKnow
             ))}
           </div>
           
-          <div className="p-5 bg-slate-900 rounded-xl text-white">
-            <BookOpen className="text-blue-400 mb-3" size={24} />
-            <h3 className="font-semibold text-base mb-1">Manual do Gestifique</h3>
-            <p className="text-xs text-slate-400 leading-relaxed mb-3">Aprenda a utilizar todos os recursos da nossa plataforma.</p>
-            <button className="text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors">Acessar Guia →</button>
+          <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl text-blue-900">
+            <BookOpen className="text-blue-600 mb-2" size={20} />
+            <h3 className="font-semibold text-sm mb-1">Manual do Gestifique</h3>
+            <p className="text-xs text-blue-800/70 mb-2">Aprenda a acessar e utilizar todos os recursos da nossa plataforma.</p>
+            <button className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors">Acessar Guia →</button>
           </div>
         </div>
 
         {/* Main Content */}
-        <div className="lg:col-span-9 space-y-6">
+        <div className="lg:col-span-9 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-xl text-slate-900">
+            <h2 className="font-semibold text-lg text-slate-900">
               {selectedCategory ? `Artigos em ${selectedCategory}` : 'Todos os Artigos'}
             </h2>
-            <span className="text-xs font-medium text-slate-500">
+            <span className="text-xs text-slate-500">
               {filtered.length} resultados
             </span>
           </div>
 
           {loading ? (
-            <div className="flex justify-center py-20"><Loader2 className="animate-spin text-blue-500" size={32}/></div>
+            <div className="flex justify-center py-8"><Loader2 className="animate-spin text-blue-500" size={24}/></div>
           ) : filtered.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {filtered.map(article => (
                 <button
                   key={article.id}
                   onClick={() => setSelectedArticle(article)}
-                  className="text-left bg-white border border-slate-200 hover:border-blue-300 hover:shadow-sm p-5 rounded-xl transition-all group flex items-start gap-4"
+                  className="text-left bg-white border border-slate-200 hover:border-blue-300 hover:shadow-sm p-3 rounded-xl transition-all group flex items-start gap-3"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-slate-50 text-slate-400 flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors shrink-0">
-                    <FileText size={20} />
+                  <div className="w-8 h-8 rounded-md bg-slate-50 text-slate-500 flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors shrink-0">
+                    <FileText size={16} />
                   </div>
                   <div>
-                    <div className="text-[10px] font-semibold text-blue-600 uppercase tracking-wider mb-1">{article.categoria || 'Geral'}</div>
-                    <h3 className="text-sm font-semibold text-slate-900 group-hover:text-blue-600 transition-colors leading-snug mb-2">{article.titulo}</h3>
-                    <div className="text-xs font-medium text-slate-500 flex items-center gap-1">
+                    <div className="text-xs font-medium text-slate-500 mb-0.5">{article.categoria || 'Geral'}</div>
+                    <h3 className="text-sm font-semibold text-slate-900 group-hover:text-blue-600 transition-colors leading-snug mb-1">{article.titulo}</h3>
+                    <div className="text-xs text-slate-400 flex items-center gap-1">
                       Ler Artigo <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
                     </div>
                   </div>
@@ -205,15 +205,15 @@ export const PortalKnowledgePage = ({ onNavigate, initialArticleId }: PortalKnow
               ))}
             </div>
           ) : (
-            <div className="text-center py-20 bg-slate-50 border border-dashed border-slate-200 rounded-xl">
-              <div className="w-16 h-16 bg-white border border-slate-100 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
-                <Search size={24} />
+            <div className="text-center py-8 bg-slate-50 border border-dashed border-slate-200 rounded-xl">
+              <div className="w-12 h-12 bg-white border border-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">
+                <Search size={20} />
               </div>
-              <h3 className="text-base font-semibold text-slate-900 mb-1">Nenhum artigo encontrado</h3>
-              <p className="text-slate-500 text-sm mb-6">Tente usar termos mais genéricos ou procure por categoria</p>
+              <h3 className="text-sm font-semibold text-slate-900 mb-1">Nenhum artigo encontrado</h3>
+              <p className="text-slate-500 text-xs mb-4">Tente usar termos mais genéricos ou procure por categoria</p>
               <button 
                 onClick={() => {setSearch(''); setSelectedCategory(null);}}
-                className="px-5 py-2 bg-white border border-slate-200 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                className="px-4 py-1.5 bg-white border border-slate-200 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
               >
                 Limpar Filtros
               </button>

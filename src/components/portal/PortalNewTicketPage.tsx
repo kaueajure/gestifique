@@ -66,15 +66,15 @@ export const PortalNewTicketPage = ({ onNavigate, currentUser }: PortalNewTicket
   };
 
   return (
-    <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <div className="lg:col-span-2 space-y-6">
+    <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-2 space-y-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 mb-2">Abrir Novo Chamado</h1>
-          <p className="text-slate-500 font-medium">Preencha os detalhes abaixo para que possamos te ajudar da melhor forma.</p>
+          <h1 className="text-lg font-semibold tracking-tight text-slate-900 mb-1">Abrir Novo Chamado</h1>
+          <p className="text-slate-500 text-sm">Preencha os detalhes abaixo para que possamos te ajudar da melhor forma.</p>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="bg-white p-4 md:p-5 rounded-xl border border-slate-200 shadow-sm">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <div className="p-3 bg-red-50 text-red-600 text-sm font-medium rounded-md border border-red-100">
                 {error}
@@ -120,7 +120,7 @@ export const PortalNewTicketPage = ({ onNavigate, currentUser }: PortalNewTicket
                 value={descricao}
                 onChange={e => setDescricao(e.target.value)}
                 required
-                rows={6}
+                rows={4}
                 placeholder="Descreva o máximo de detalhes possível para agilizarmos seu atendimento..."
                 className="w-full resize-y p-3 bg-slate-50 border border-slate-200 rounded-md text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all outline-none"
               />
@@ -137,24 +137,24 @@ export const PortalNewTicketPage = ({ onNavigate, currentUser }: PortalNewTicket
 
       <div className="lg:col-span-1">
         {suggestions.length > 0 && (
-          <div className="bg-blue-50/50 border border-blue-100 rounded-3xl p-6 sticky top-24">
-            <div className="flex items-center gap-2 text-blue-800 font-bold mb-4">
-              <Sparkles size={20} className="text-blue-500" />
+          <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 sticky top-24">
+            <div className="flex items-center gap-2 text-blue-800 font-semibold mb-2">
+              <Sparkles size={16} className="text-blue-500" />
               Talvez isso ajude?
             </div>
-            <p className="text-sm text-blue-600/80 mb-4 font-medium leading-relaxed">
+            <p className="text-xs text-blue-700 mb-3 font-medium">
               Encontramos alguns artigos que podem resolver sua dúvida antes mesmo de abrir o chamado:
             </p>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {suggestions.map(article => (
                 <button
                   key={article.id}
                   onClick={() => onNavigate('knowledge', article.id)}
-                  className="w-full text-left bg-white border border-blue-100 hover:border-blue-300 hover:shadow-md p-4 rounded-xl transition-all group flex items-start gap-3"
+                  className="w-full text-left bg-white border border-blue-100 hover:border-blue-300 hover:shadow-sm p-3 rounded-lg transition-all group flex items-start gap-2.5"
                 >
-                  <BookOpen size={16} className="text-blue-400 mt-0.5 shrink-0" />
+                  <BookOpen size={14} className="text-blue-400 mt-0.5 shrink-0" />
                   <div>
-                    <h4 className="font-bold text-sm text-slate-800 group-hover:text-blue-700 transition-colors line-clamp-2 leading-snug">{article.titulo}</h4>
+                    <h4 className="font-medium text-sm text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug">{article.titulo}</h4>
                   </div>
                 </button>
               ))}

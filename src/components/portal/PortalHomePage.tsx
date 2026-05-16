@@ -40,65 +40,59 @@ export const PortalHomePage = ({ onNavigate }: PortalHomePageProps) => {
   }, []);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       {/* Hero Section */}
-      <div className="text-center md:text-left p-6 md:p-10 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
-        <div className="relative z-10 max-w-xl">
-          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-slate-900 mb-2">
+      <div className="text-center md:text-left p-4 md:p-5 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+        <div className="relative z-10 w-full">
+          <h1 className="text-lg md:text-xl font-semibold tracking-tight text-slate-900 mb-1.5">
             Como podemos te ajudar hoje?
           </h1>
-          <p className="text-slate-500 text-sm mb-6">
+          <p className="text-slate-500 text-sm mb-4">
             Busque em nossa base de conhecimento ou abra um novo chamado.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-2.5">
             <button 
               onClick={() => onNavigate('new-ticket')}
-              className="h-10 px-5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-md flex items-center justify-center gap-2 transition-colors shadow-sm"
+              className="h-9 px-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-md flex items-center justify-center gap-2 transition-colors shadow-sm"
             >
-              <PlusCircle size={18} /> Novo Chamado
+              <PlusCircle size={16} /> Novo Chamado
             </button>
             <button 
               onClick={() => onNavigate('knowledge')}
-              className="h-10 px-5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-sm font-semibold rounded-md flex items-center justify-center gap-2 transition-colors"
+              className="h-9 px-4 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-sm font-semibold rounded-md flex items-center justify-center gap-2 transition-colors"
             >
-              <Search size={18} /> Base de Conhecimento
+              <Search size={16} /> Base de Conhecimento
             </button>
           </div>
-        </div>
-        
-        <div className="hidden lg:block relative opacity-80">
-           <div className="w-48 h-48 bg-blue-50/50 rounded-full flex items-center justify-center">
-              <HelpCircle size={80} className="text-blue-100" />
-           </div>
         </div>
       </div>
 
       {/* Knowledge Base Teaser */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-900">Consulta Rápida</h2>
+          <h2 className="text-base font-semibold text-slate-900">Consulta Rápida</h2>
           <button 
             onClick={() => onNavigate('knowledge')}
-            className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1.5"
+            className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1"
           >
-            Ver base completa <ArrowRight size={14} />
+            Ver base <ArrowRight size={14} />
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {loading ? (
             Array(4).fill(0).map((_, i) => (
-              <div key={i} className="h-28 bg-slate-100 rounded-xl animate-pulse" />
+              <div key={i} className="h-24 bg-slate-100 rounded-xl animate-pulse" />
             ))
           ) : popularArticles.length > 0 ? (
             popularArticles.map(article => (
               <button
                 key={article.id}
                 onClick={() => onNavigate('knowledge')} 
-                className="text-left bg-white border border-slate-200 hover:border-blue-300 hover:shadow-sm p-4 rounded-xl transition-all group flex flex-col h-full"
+                className="text-left bg-white border border-slate-200 hover:border-blue-300 hover:shadow-sm p-3 rounded-xl transition-all group flex flex-col h-full"
               >
-                <div className="w-8 h-8 rounded-lg bg-slate-50 text-slate-400 flex items-center justify-center mb-3 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                <div className="w-8 h-8 rounded-md bg-slate-50 text-slate-500 flex items-center justify-center mb-2 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
                   <FileText size={16} />
                 </div>
                 <h3 className="font-semibold text-sm text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-tight mb-1">{article.titulo}</h3>
@@ -113,69 +107,69 @@ export const PortalHomePage = ({ onNavigate }: PortalHomePageProps) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="p-6 flex items-center gap-4 border-slate-200">
-          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0">
-            <Clock size={24} />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <Card className="p-3 flex items-center gap-3 border-slate-200">
+          <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center shrink-0">
+            <Clock size={16} />
           </div>
           <div>
-            <div className="text-3xl font-bold tracking-tight text-slate-900 leading-none mb-1">{stats.open}</div>
-            <div className="text-xs font-semibold text-slate-500 uppercase">Em Andamento</div>
+            <div className="text-lg font-semibold tracking-tight text-slate-900 leading-none mb-0.5">{stats.open}</div>
+            <div className="text-xs text-slate-500 font-medium">Em Andamento</div>
           </div>
         </Card>
         
-        <Card className="p-6 flex items-center gap-4 border-slate-200">
-          <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center shrink-0">
-            <Ticket size={24} />
+        <Card className="p-3 flex items-center gap-3 border-slate-200">
+          <div className="w-8 h-8 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center shrink-0">
+            <Ticket size={16} />
           </div>
           <div>
-            <div className="text-3xl font-bold tracking-tight text-slate-900 leading-none mb-1">{stats.pending}</div>
-            <div className="text-xs font-semibold text-slate-500 uppercase">Aguardando Você</div>
+            <div className="text-lg font-semibold tracking-tight text-slate-900 leading-none mb-0.5">{stats.pending}</div>
+            <div className="text-xs text-slate-500 font-medium">Aguardando Você</div>
           </div>
         </Card>
         
-        <Card className="p-6 flex items-center gap-4 border-slate-200">
-          <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0">
-            <CheckCircle2 size={24} />
+        <Card className="p-3 flex items-center gap-3 border-slate-200">
+          <div className="w-8 h-8 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center shrink-0">
+            <CheckCircle2 size={16} />
           </div>
           <div>
-            <div className="text-3xl font-bold tracking-tight text-slate-900 leading-none mb-1">{stats.closed}</div>
-            <div className="text-xs font-semibold text-slate-500 uppercase">Finalizados</div>
+            <div className="text-lg font-semibold tracking-tight text-slate-900 leading-none mb-0.5">{stats.closed}</div>
+            <div className="text-xs text-slate-500 font-medium">Finalizados</div>
           </div>
         </Card>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-900">Seus chamados recentes</h2>
+          <h2 className="text-base font-semibold text-slate-900">Seus chamados recentes</h2>
           <button 
             onClick={() => onNavigate('tickets')}
-            className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1.5"
+            className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1"
           >
-            Ver histórico completo <ArrowRight size={14} />
+            Ver histórico <ArrowRight size={14} />
           </button>
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 gap-3">
+          <div className="grid grid-cols-1 gap-2.5">
              {Array(3).fill(0).map((_, i) => (
-                <div key={i} className="h-20 bg-slate-100 rounded-xl animate-pulse" />
+                <div key={i} className="h-16 bg-slate-100 rounded-xl animate-pulse" />
              ))}
           </div>
         ) : recentTickets.length > 0 ? (
-          <div className="grid grid-cols-1 gap-3">
+          <div className="grid grid-cols-1 gap-2.5">
             {recentTickets.map(ticket => (
               <button
                 key={ticket.id}
                 onClick={() => onNavigate('tickets', ticket.id)}
-                className="text-left w-full bg-white border border-slate-200 hover:border-blue-300 hover:shadow-sm rounded-xl p-4 transition-all flex items-center justify-between group"
+                className="text-left w-full bg-white border border-slate-200 hover:border-blue-300 hover:shadow-sm rounded-xl p-3 transition-colors flex items-center justify-between group"
               >
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center text-slate-500 font-semibold text-sm group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-md bg-slate-50 flex items-center justify-center text-slate-500 font-semibold text-xs group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
                     #{ticket.id}
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 mb-0.5">{ticket.titulo}</h3>
+                    <h3 className="font-semibold text-sm text-slate-900 truncate mb-0.5">{ticket.titulo}</h3>
                     <div className="text-xs text-slate-500 flex items-center gap-1.5">
                        <span className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600 font-medium">{ticket.categoria || 'Geral'}</span>
                        <span>•</span>
@@ -183,14 +177,14 @@ export const PortalHomePage = ({ onNavigate }: PortalHomePageProps) => {
                     </div>
                   </div>
                 </div>
-                <div className="text-slate-300 group-hover:text-blue-500 transition-colors bg-white">
-                  <ArrowRight size={20} />
+                <div className="text-slate-300 group-hover:text-blue-500 transition-colors">
+                  <ArrowRight size={18} />
                 </div>
               </button>
             ))}
           </div>
         ) : (
-          <div className="bg-slate-50/50 border border-dashed border-slate-200 rounded-xl p-8 text-center text-slate-500 text-sm">
+          <div className="bg-slate-50/50 border border-dashed border-slate-200 rounded-xl p-6 text-center text-slate-500 text-sm">
             Você ainda não possui nenhum chamado aberto.
           </div>
         )}
