@@ -84,42 +84,49 @@ export const TicketSavedViews: React.FC<Props> = ({
       )}
 
       {showSaveModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="p-6 border-b border-slate-100">
-              <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                <Bookmark className="text-blue-500" size={20} />
-                Salvar Nova View
-              </h3>
-              <p className="text-sm text-slate-500 mt-1">Os filtros e o modo de visualização atuais serão salvos.</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 backdrop-blur-sm p-4">
+          <div className="bg-white border border-slate-200 rounded-xl shadow-lg w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-semibold text-slate-900 flex items-center gap-2">
+                  <Bookmark className="text-blue-500" size={16} />
+                  Salvar View
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">Os filtros atuais serão salvos.</p>
+              </div>
+              <button
+                onClick={() => setShowSaveModal(false)}
+                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
+              >
+                <X size={16} />
+              </button>
             </div>
             
-            <div className="p-6 space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Nome da View</label>
+            <div className="p-4 space-y-3">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-slate-700">Nome da View</label>
                 <input
                   type="text"
                   autoFocus
                   value={newViewName}
                   onChange={(e) => setNewViewName(e.target.value)}
                   placeholder="Ex: Meus Urgentes"
-                  className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors placeholder:text-slate-400"
+                  className="w-full bg-white border border-slate-200 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors placeholder:text-slate-400"
                   onKeyDown={(e) => e.key === 'Enter' && handleSave()}
                 />
               </div>
             </div>
 
-            <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
-              <Button variant="ghost" onClick={() => setShowSaveModal(false)} className="text-slate-500 hover:bg-slate-100">
+            <div className="p-3 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+              <Button size="sm" variant="ghost" onClick={() => setShowSaveModal(false)}>
                 Cancelar
               </Button>
               <Button 
+                size="sm"
                 onClick={handleSave} 
                 disabled={!newViewName.trim()}
-                className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200 gap-2"
               >
-                <Save size={16} />
-                Confirmar
+                Salvar
               </Button>
             </div>
           </div>

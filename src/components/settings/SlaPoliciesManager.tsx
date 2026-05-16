@@ -88,7 +88,7 @@ export const SlaPoliciesManager = ({ currentCompanyId }: { currentCompanyId: num
   };
 
   return (
-    <Card className="p-6">
+    <Card className="p-4">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-sm font-semibold text-slate-800">Políticas de SLA</h3>
@@ -106,9 +106,9 @@ export const SlaPoliciesManager = ({ currentCompanyId }: { currentCompanyId: num
           Nenhuma política configurada. Utilizando SLA padrão do sistema.
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {policies.map(p => (
-            <div key={p.id} className="flex items-center justify-between p-3 border border-slate-100 rounded-lg bg-slate-50">
+            <div key={p.id} className="flex items-center justify-between p-2 border border-slate-100 rounded-md bg-slate-50">
                <div>
                  <div className="text-sm font-medium">{p.nome}</div>
                  <div className="text-[11px] text-slate-500">
@@ -119,10 +119,10 @@ export const SlaPoliciesManager = ({ currentCompanyId }: { currentCompanyId: num
                  </div>
                </div>
                <div className="flex items-center gap-1">
-                  <button onClick={() => handleOpenModal(p)} className="p-1.5 text-slate-400 hover:text-blue-600 rounded bg-white border border-slate-200">
+                  <button onClick={() => handleOpenModal(p)} className="p-1.5 text-slate-400 hover:text-blue-600 rounded bg-white border border-slate-200 shadow-sm">
                     <Edit2 size={12} />
                   </button>
-                  <button onClick={() => handleDelete(p.id)} className="p-1.5 text-slate-400 hover:text-red-600 rounded bg-white border border-slate-200">
+                  <button onClick={() => handleDelete(p.id)} className="p-1.5 text-slate-400 hover:text-red-600 rounded bg-white border border-slate-200 shadow-sm">
                     <Trash2 size={12} />
                   </button>
                </div>
@@ -132,21 +132,21 @@ export const SlaPoliciesManager = ({ currentCompanyId }: { currentCompanyId: num
       )}
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 p-4">
           <div className="w-full max-w-sm bg-white rounded-xl shadow-xl overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-slate-100">
               <h3 className="text-sm font-semibold">{editingPolicy ? 'Editar' : 'Nova'} Política SLA</h3>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600"><X size={16} /></button>
             </div>
-            <div className="p-4 space-y-4">
+            <div className="p-4 space-y-3">
                <div>
-                 <label className="block tracking-tight text-[11px] font-medium text-slate-500 uppercase mb-1">Nome</label>
-                 <Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Prioridade SLA Urgente" />
+                 <label className="block text-xs font-medium text-slate-700 mb-1">Nome</label>
+                 <Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Prioridade SLA Urgente" className="h-8 text-sm" />
                </div>
                <div className="grid grid-cols-2 gap-3">
                  <div>
-                   <label className="block tracking-tight text-[11px] font-medium text-slate-500 uppercase mb-1">Prioridade</label>
-                   <select value={prioridade} onChange={e => setPrioridade(e.target.value)} className="w-full h-9 px-3 text-sm flex items-center border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white">
+                   <label className="block text-xs font-medium text-slate-700 mb-1">Prioridade</label>
+                   <select value={prioridade} onChange={e => setPrioridade(e.target.value)} className="w-full h-8 px-2 text-sm flex items-center border border-slate-200 rounded-md outline-none focus:ring-1 focus:ring-blue-500 bg-white">
                      <option value="">Todas</option>
                      <option value="baixa">Baixa</option>
                      <option value="media">Média</option>
@@ -155,14 +155,14 @@ export const SlaPoliciesManager = ({ currentCompanyId }: { currentCompanyId: num
                    </select>
                  </div>
                  <div>
-                   <label className="block tracking-tight text-[11px] font-medium text-slate-500 uppercase mb-1">Resolver em (horas)</label>
-                   <Input type="number" value={tempoResolucao} onChange={e => setTempoResolucao(e.target.value)} />
+                   <label className="block text-xs font-medium text-slate-700 mb-1">Resolver em (horas)</label>
+                   <Input type="number" value={tempoResolucao} onChange={e => setTempoResolucao(e.target.value)} className="h-8 text-sm" />
                  </div>
                </div>
                <div className="grid grid-cols-2 gap-3">
                  <div>
-                   <label className="block tracking-tight text-[11px] font-medium text-slate-500 uppercase mb-1">Categoria (Opc)</label>
-                   <select value={categoria} onChange={e => setCategoria(e.target.value)} className="w-full h-9 px-3 text-sm flex items-center border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white">
+                   <label className="block text-xs font-medium text-slate-700 mb-1">Categoria (Opc)</label>
+                   <select value={categoria} onChange={e => setCategoria(e.target.value)} className="w-full h-8 px-2 text-sm flex items-center border border-slate-200 rounded-md outline-none focus:ring-1 focus:ring-blue-500 bg-white">
                      <option value="">Todas</option>
                      {categories?.map(c => (
                        <option key={c.valor} value={c.valor}>{c.nome}</option>
@@ -170,8 +170,8 @@ export const SlaPoliciesManager = ({ currentCompanyId }: { currentCompanyId: num
                    </select>
                  </div>
                  <div>
-                   <label className="block tracking-tight text-[11px] font-medium text-slate-500 uppercase mb-1">Serviço (Opc)</label>
-                   <select value={servico} onChange={e => setServico(e.target.value)} className="w-full h-9 px-3 text-sm flex items-center border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white">
+                   <label className="block text-xs font-medium text-slate-700 mb-1">Serviço (Opc)</label>
+                   <select value={servico} onChange={e => setServico(e.target.value)} className="w-full h-8 px-2 text-sm flex items-center border border-slate-200 rounded-md outline-none focus:ring-1 focus:ring-blue-500 bg-white">
                      <option value="">Todos</option>
                      {services?.map(s => (
                        <option key={s.valor} value={s.valor}>{s.nome}</option>
@@ -180,9 +180,9 @@ export const SlaPoliciesManager = ({ currentCompanyId }: { currentCompanyId: num
                  </div>
                </div>
             </div>
-            <div className="p-4 border-t border-slate-100 flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-              <Button onClick={handleSave} disabled={!nome || !tempoResolucao}>Salvar</Button>
+            <div className="p-4 border-t border-slate-100 flex justify-end gap-2 bg-slate-50">
+              <Button size="sm" variant="ghost" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
+              <Button size="sm" onClick={handleSave} disabled={!nome || !tempoResolucao}>Salvar</Button>
             </div>
           </div>
         </div>

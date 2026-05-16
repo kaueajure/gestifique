@@ -178,15 +178,15 @@ export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({
       {isOpen && (
         <div
           className={cn(
-            "absolute mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden animate-in fade-in zoom-in duration-200 origin-top-right",
+            "absolute mt-2 w-72 sm:w-80 bg-white rounded-xl shadow-lg border border-slate-200 z-50 overflow-hidden animate-in fade-in zoom-in duration-200 origin-top-right",
             compact ? "bottom-full left-0 mb-2 origin-bottom-left" : "right-0",
           )}
         >
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-            <h3 className="font-bold text-slate-800 flex items-center gap-2">
+          <div className="p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+            <h3 className="font-semibold text-slate-800 flex items-center gap-2 text-sm">
               Notificações
               {unreadCount > 0 && (
-                <Badge variant="blue" className="px-1.5 py-0">
+                <Badge variant="blue" className="px-1.5 py-0 text-[10px]">
                   {unreadCount} novas
                 </Badge>
               )}
@@ -194,19 +194,19 @@ export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({
             {unreadCount > 0 && (
               <button
                 onClick={markAllAsRead}
-                className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 transition-colors"
+                className="text-[11px] text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 transition-colors"
               >
-                <Check size={14} />
+                <Check size={12} />
                 Ler tudo
               </button>
             )}
           </div>
 
-          <div className="max-h-[70vh] overflow-y-auto">
+          <div className="max-h-[60vh] overflow-y-auto">
             {loading && notifications.length === 0 ? (
-              <div className="p-8 text-center">
-                <div className="inline-block animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full mb-2"></div>
-                <p className="text-sm text-slate-400">Carregando...</p>
+              <div className="p-6 text-center">
+                <div className="inline-block animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full mb-2"></div>
+                <p className="text-xs text-slate-500">Carregando...</p>
               </div>
             ) : notifications.length > 0 ? (
               <div className="divide-y divide-slate-50">
@@ -214,18 +214,18 @@ export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({
                   <div
                     key={notification.id}
                     onClick={() => handleNotificationClick(notification)}
-                    className={`p-4 hover:bg-blue-50/50 cursor-pointer transition-all flex gap-3 relative group ${
-                      !notification.lida ? "bg-blue-50/20" : ""
+                    className={`p-3 hover:bg-slate-50 cursor-pointer transition-all flex gap-2.5 relative group ${
+                      !notification.lida ? "bg-blue-50/30" : ""
                     }`}
                   >
                     {Number(notification.lida) === 0 && (
-                      <div className="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-500 rounded-full"></div>
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-blue-500 rounded-r-full"></div>
                     )}
 
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between mb-1">
+                      <div className="flex items-start justify-between mb-0.5">
                         <p
-                          className={`text-sm tracking-tight truncate pr-2 ${!notification.lida ? "font-bold text-slate-900" : "font-medium text-slate-600"}`}
+                          className={`text-[13px] truncate pr-2 ${!notification.lida ? "font-semibold text-slate-900" : "font-medium text-slate-700"}`}
                         >
                           {notification.titulo}
                         </p>
@@ -241,22 +241,18 @@ export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({
                         {notification.mensagem}
                       </p>
                     </div>
-
-                    <div className="self-center text-slate-300 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all">
-                      <ChevronRight size={16} />
-                    </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="p-12 text-center">
-                <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
-                  <Inbox size={24} />
+              <div className="p-6 text-center">
+                <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center mx-auto mb-3 border border-slate-100 text-slate-400">
+                  <Inbox size={20} />
                 </div>
-                <p className="text-slate-500 font-medium">
+                <p className="text-[13px] text-slate-900 font-semibold">
                   Nenhuma notificação
                 </p>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-slate-500 mt-0.5">
                   Você está em dia com tudo!
                 </p>
               </div>
@@ -264,9 +260,9 @@ export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({
           </div>
 
           {notifications.length > 0 && (
-            <div className="p-3 bg-slate-50/50 border-t border-slate-100 text-center">
+            <div className="p-2 bg-slate-50 border-t border-slate-100 text-center">
               <button
-                className="text-xs font-bold text-slate-500 hover:text-blue-600 transition-colors"
+                className="text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors"
                 onClick={() => setIsOpen(false)}
               >
                 Fechar

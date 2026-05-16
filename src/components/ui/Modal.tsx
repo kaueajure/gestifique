@@ -36,33 +36,33 @@ export const Modal = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm"
           />
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             className={cn(
-              "relative w-full bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]",
+              "relative w-full bg-white rounded-xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]",
               sizes[size],
             )}
           >
-            <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-white">
-              <h3 className="text-xl font-semibold text-slate-900 tracking-tight">
+            <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center bg-white">
+              <h3 className="text-base font-semibold text-slate-900">
                 {title}
               </h3>
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-slate-50 text-slate-400 hover:text-slate-600 rounded-xl transition-colors"
+                className="p-1.5 hover:bg-slate-50 text-slate-400 hover:text-slate-600 rounded-lg transition-colors"
               >
-                <X size={20} />
+                <X size={16} />
               </button>
             </div>
 
-            <div className="p-8 overflow-y-auto">{children}</div>
+            <div className="p-5 overflow-y-auto">{children}</div>
 
             {footer && (
-              <div className="px-8 py-6 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
+              <div className="px-5 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
                 {footer}
               </div>
             )}

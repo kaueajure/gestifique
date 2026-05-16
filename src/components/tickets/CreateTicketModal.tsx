@@ -111,32 +111,35 @@ export const CreateTicketModal = ({ isOpen, onClose, currentUser, onSuccess }: C
       title="Novo Atendimento"
       size="lg"
     >
-      <form onSubmit={handleCreateTicket} className="space-y-5">
+      <form onSubmit={handleCreateTicket} className="space-y-4">
         {createError && (
-            <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-xs font-semibold mb-4">
+            <div className="p-2 bg-red-50 border border-red-100 rounded text-red-600 text-xs font-medium mb-2">
               {createError}
             </div>
           )}
         
-        <Input 
-          label="Assunto do Atendimento"
-          name="titulo" 
-          required 
-          placeholder="Descreva o assunto brevemente" 
-          minLength={3}
-        />
+        <div className="space-y-1">
+          <Input 
+            label="Assunto do Atendimento"
+            name="titulo" 
+            required 
+            placeholder="Descreva o assunto brevemente" 
+            minLength={3}
+            className="h-9 text-sm"
+          />
+        </div>
 
          {!!currentUser.desenvolvedor && !currentUser.empresa_id && (
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700">Empresa Solicitante</label>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-slate-700">Empresa Solicitante</label>
             <div className="relative">
-              <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10" size={14} />
+              <Building className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 z-10" size={14} />
               <Select 
                 name="empresa_id"
                 value={empresaId}
                 onChange={setEmpresaId}
                 placeholder="Selecione uma empresa..."
-                buttonClassName="pl-9"
+                buttonClassName="pl-8 h-9 text-sm"
                 options={companies.map(emp => ({
                   value: String(emp.id),
                   label: emp.nome
@@ -151,31 +154,34 @@ export const CreateTicketModal = ({ isOpen, onClose, currentUser, onSuccess }: C
           </div>
         )}
 
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700">Categoria</label>
+        <div className="grid md:grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-slate-700">Categoria</label>
             <Select 
               name="categoria"
               value={categoria}
               onChange={setCategoria}
               options={categoryOptions}
+              buttonClassName="h-9 text-sm"
             />
           </div>
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700">Serviço</label>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-slate-700">Serviço</label>
             <Select 
               name="servico"
               value={servico}
               onChange={setServico}
               options={serviceOptions}
+              buttonClassName="h-9 text-sm"
             />
           </div>
-          <div className="space-y-1.5 md:col-span-2">
-            <label className="text-sm font-medium text-slate-700">Prioridade</label>
+          <div className="space-y-1 md:col-span-2">
+            <label className="text-xs font-medium text-slate-700">Prioridade</label>
             <Select 
               name="prioridade"
               value={prioridade}
               onChange={setPrioridade}
+              buttonClassName="h-9 text-sm"
               options={[
                 { value: 'baixa', label: 'Baixa' },
                 { value: 'media', label: 'Média' },
@@ -186,23 +192,23 @@ export const CreateTicketModal = ({ isOpen, onClose, currentUser, onSuccess }: C
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-slate-700">Descrição</label>
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-slate-700">Descrição</label>
           <textarea 
             name="descricao" 
             required
             minLength={5}
-            rows={5}
+            rows={4}
             placeholder="Descreva os detalhes da sua solicitação..."
-            className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all resize-none"
+            className="w-full bg-slate-50 border border-slate-200 rounded-md p-2.5 text-sm outline-none focus:bg-white focus:ring-1 focus:ring-blue-500 transition-all resize-none"
           ></textarea>
         </div>
 
-        <div className="pt-4 flex justify-end gap-2">
-            <Button variant="ghost" type="button" onClick={onClose}>
+        <div className="pt-2 flex justify-end gap-2">
+            <Button size="sm" variant="ghost" type="button" onClick={onClose}>
               Cancelar
             </Button>
-            <Button type="submit" loading={loadingCreate}>
+            <Button size="sm" type="submit" loading={loadingCreate}>
               Criar Atendimento
             </Button>
         </div>

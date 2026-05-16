@@ -110,27 +110,27 @@ export const TicketOptionsManager = ({ currentUser }: TicketOptionsManagerProps)
 
   const renderList = (type: 'category' | 'service', items: TicketOption[]) => {
     return (
-      <div className="space-y-3 mt-4">
+      <div className="space-y-1.5 mt-3">
         {items.map(item => (
-          <div key={item.id} className="flex justify-between items-center p-3 border border-slate-100 rounded-lg hover:border-slate-200 bg-slate-50/50">
+          <div key={item.id} className="flex justify-between items-center p-2 border border-slate-100 rounded-md hover:border-slate-200 bg-slate-50/50">
             {editingId === `${type}_${item.id}` ? (
               <div className="flex-1 flex gap-2 mr-4">
-                <Input value={editName} onChange={e => setEditName(e.target.value)} autoFocus />
-                <Button size="sm" onClick={() => handleSaveEdit(type, item.id)}><Check size={14}/></Button>
-                <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}><X size={14}/></Button>
+                <Input value={editName} onChange={e => setEditName(e.target.value)} autoFocus className="h-7 text-xs" />
+                <Button size="sm" className="h-7 w-7 p-0" onClick={() => handleSaveEdit(type, item.id)}><Check size={14}/></Button>
+                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setEditingId(null)}><X size={14}/></Button>
               </div>
             ) : (
               <div className="flex-1">
-                <span className="text-sm font-semibold text-slate-800">{item.nome}</span>
+                <span className="text-sm font-medium text-slate-800">{item.nome}</span>
               </div>
             )}
             
             {editingId !== `${type}_${item.id}` && (
               <div className="flex gap-1">
-                <Button size="sm" variant="ghost" onClick={() => startEdit(type, item.id, item.nome)} className="h-8 w-8 p-0 text-slate-500">
+                <Button size="sm" variant="ghost" onClick={() => startEdit(type, item.id, item.nome)} className="h-7 w-7 p-0 text-slate-400 hover:text-slate-600">
                   <Edit2 size={13} />
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => handleDelete(type, item.id)} className="h-8 w-8 p-0 text-red-500 hover:bg-red-50 hover:text-red-600">
+                <Button size="sm" variant="ghost" onClick={() => handleDelete(type, item.id)} className="h-7 w-7 p-0 text-red-500 hover:bg-red-50 hover:text-red-600">
                   <Trash2 size={13} />
                 </Button>
               </div>
@@ -138,7 +138,7 @@ export const TicketOptionsManager = ({ currentUser }: TicketOptionsManagerProps)
           </div>
         ))}
         {items.length === 0 && (
-          <div className="text-center p-6 bg-slate-50 rounded-lg border border-slate-100 text-slate-500 text-xs">
+          <div className="text-center p-4 bg-slate-50 rounded-md border border-slate-100 text-slate-400 text-xs">
             Nenhuma opção configurada.
           </div>
         )}
@@ -150,38 +150,38 @@ export const TicketOptionsManager = ({ currentUser }: TicketOptionsManagerProps)
     <div className="space-y-6">
       {error && <div className="p-3 bg-red-50 text-red-600 text-xs font-semibold rounded-lg border border-red-100">{error}</div>}
       
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card className="p-6">
-          <h3 className="text-sm font-bold text-slate-900 mb-1">Categorias</h3>
-          <p className="text-xs text-slate-500 mb-6 font-medium">Configure os tipos de atendimento da empresa.</p>
+      <div className="grid md:grid-cols-2 gap-4">
+        <Card className="p-4">
+          <h3 className="text-sm font-semibold text-slate-900 mb-0.5">Categorias</h3>
+          <p className="text-xs text-slate-500 mb-4">Configure os tipos de atendimento da empresa.</p>
           
           <div className="flex gap-2">
             <Input 
               value={newCategory} 
               onChange={e => setNewCategory(e.target.value)} 
               placeholder="Ex: Suporte Técnico" 
-              className="flex-1"
+              className="flex-1 h-8 text-sm"
               onKeyDown={e => e.key === 'Enter' && handleAdd('category')}
             />
-            <Button onClick={() => handleAdd('category')}><Plus size={16} /> Adicionar</Button>
+            <Button size="sm" onClick={() => handleAdd('category')}><Plus size={14} className="mr-1" /> Adicionar</Button>
           </div>
           
           {renderList('category', categories)}
         </Card>
         
-        <Card className="p-6">
-          <h3 className="text-sm font-bold text-slate-900 mb-1">Serviços</h3>
-          <p className="text-xs text-slate-500 mb-6 font-medium">Serviços oferecidos nos atendimentos.</p>
+        <Card className="p-4">
+          <h3 className="text-sm font-semibold text-slate-900 mb-0.5">Serviços</h3>
+          <p className="text-xs text-slate-500 mb-4">Serviços oferecidos nos atendimentos.</p>
           
           <div className="flex gap-2">
             <Input 
               value={newService} 
               onChange={e => setNewService(e.target.value)} 
               placeholder="Ex: Consultoria" 
-              className="flex-1"
+              className="flex-1 h-8 text-sm"
               onKeyDown={e => e.key === 'Enter' && handleAdd('service')}
             />
-            <Button onClick={() => handleAdd('service')}><Plus size={16} /> Adicionar</Button>
+            <Button size="sm" onClick={() => handleAdd('service')}><Plus size={14} className="mr-1" /> Adicionar</Button>
           </div>
           
           {renderList('service', services)}

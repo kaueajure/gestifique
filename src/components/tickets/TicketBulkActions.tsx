@@ -46,15 +46,15 @@ export const TicketBulkActions = ({ selectedCount, onAction, onClear, agents }: 
 
   return (
     <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
-      <div className="bg-slate-900 text-white rounded-2xl shadow-2xl border border-slate-800 p-2 pr-4 flex items-center gap-2 min-w-[500px]">
+      <div className="bg-white text-slate-900 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-200 p-1.5 flex items-center gap-1 min-w-[460px]">
         {/* Count Indicator */}
-        <div className="bg-blue-600 h-10 px-4 rounded-xl flex items-center gap-2 mr-2">
-            <span className="text-sm font-black">{selectedCount}</span>
-            <span className="text-[10px] font-medium uppercase tracking-widest opacity-80">Selecionados</span>
+        <div className="bg-blue-50 text-blue-700 h-8 px-3 rounded-lg flex items-center gap-1.5 mr-2">
+            <span className="text-[13px] font-semibold">{selectedCount}</span>
+            <span className="text-xs font-medium">Selecionados</span>
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           {/* Status */}
           <div className="relative">
             <Button 
@@ -62,21 +62,21 @@ export const TicketBulkActions = ({ selectedCount, onAction, onClear, agents }: 
               size="sm"
               onClick={() => setOpenMenu(openMenu === 'status' ? null : 'status')}
               className={cn(
-                "text-slate-300 hover:text-white hover:bg-slate-800 text-[10px] uppercase font-bold tracking-widest gap-2",
-                openMenu === 'status' && "bg-slate-800 text-white"
+                "text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-[11px] font-medium gap-1.5 px-2 h-8",
+                openMenu === 'status' && "bg-slate-100 text-slate-900"
               )}
             >
               <CheckCircle2 size={14} />
               Status
-              <ChevronDown size={10} className={cn("transition-transform", openMenu === 'status' && "rotate-180")} />
+              <ChevronDown size={12} className={cn("transition-transform text-slate-400", openMenu === 'status' && "rotate-180")} />
             </Button>
             {openMenu === 'status' && (
-              <div className="absolute bottom-full mb-2 left-0 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden min-w-[160px]">
+              <div className="absolute bottom-full mb-2 left-0 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden min-w-[140px]">
                 {STATUS_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
                     onClick={() => handleAction('status', opt.value)}
-                    className="w-full text-left px-4 py-2.5 text-[10px] uppercase font-black tracking-widest text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                    className="w-full text-left px-3 py-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50 transition-colors"
                   >
                     {opt.label}
                   </button>
@@ -92,21 +92,21 @@ export const TicketBulkActions = ({ selectedCount, onAction, onClear, agents }: 
               size="sm"
               onClick={() => setOpenMenu(openMenu === 'priority' ? null : 'priority')}
               className={cn(
-                "text-slate-300 hover:text-white hover:bg-slate-800 text-[10px] uppercase font-bold tracking-widest gap-2",
-                openMenu === 'priority' && "bg-slate-800 text-white"
+                "text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-[11px] font-medium gap-1.5 px-2 h-8",
+                openMenu === 'priority' && "bg-slate-100 text-slate-900"
               )}
             >
               <AlertCircle size={14} />
               Prioridade
-              <ChevronDown size={10} className={cn("transition-transform", openMenu === 'priority' && "rotate-180")} />
+              <ChevronDown size={12} className={cn("transition-transform text-slate-400", openMenu === 'priority' && "rotate-180")} />
             </Button>
             {openMenu === 'priority' && (
-              <div className="absolute bottom-full mb-2 left-0 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden min-w-[160px]">
+              <div className="absolute bottom-full mb-2 left-0 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden min-w-[140px]">
                 {PRIORITY_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
                     onClick={() => handleAction('prioridade', opt.value)}
-                    className="w-full text-left px-4 py-2.5 text-[10px] uppercase font-black tracking-widest text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                    className="w-full text-left px-3 py-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50 transition-colors"
                   >
                     {opt.label}
                   </button>
@@ -122,19 +122,19 @@ export const TicketBulkActions = ({ selectedCount, onAction, onClear, agents }: 
               size="sm"
               onClick={() => setOpenMenu(openMenu === 'agent' ? null : 'agent')}
               className={cn(
-                "text-slate-300 hover:text-white hover:bg-slate-800 text-[10px] uppercase font-bold tracking-widest gap-2",
-                openMenu === 'agent' && "bg-slate-800 text-white"
+                "text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-[11px] font-medium gap-1.5 px-2 h-8",
+                openMenu === 'agent' && "bg-slate-100 text-slate-900"
               )}
             >
               <UserPlus size={14} />
               Atribuir
-              <ChevronDown size={10} className={cn("transition-transform", openMenu === 'agent' && "rotate-180")} />
+              <ChevronDown size={12} className={cn("transition-transform text-slate-400", openMenu === 'agent' && "rotate-180")} />
             </Button>
             {openMenu === 'agent' && (
-              <div className="absolute bottom-full mb-2 left-0 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden min-w-[200px] max-h-[300px] overflow-y-auto custom-scrollbar">
+              <div className="absolute bottom-full mb-2 left-0 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden min-w-[180px] max-h-[250px] overflow-y-auto custom-scrollbar">
                 <button
                   onClick={() => handleAction('responsavel', null)}
-                  className="w-full text-left px-4 py-2.5 text-[10px] uppercase font-black tracking-widest text-red-500 hover:bg-red-50 transition-colors border-b border-slate-100"
+                  className="w-full text-left px-3 py-2 text-[11px] font-medium text-red-600 hover:bg-red-50 transition-colors border-b border-slate-100"
                 >
                   Remover Responsável
                 </button>
@@ -142,7 +142,7 @@ export const TicketBulkActions = ({ selectedCount, onAction, onClear, agents }: 
                   <button
                     key={agent.id}
                     onClick={() => handleAction('responsavel', agent.id)}
-                    className="w-full text-left px-4 py-2.5 text-[10px] uppercase font-black tracking-widest text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                    className="w-full text-left px-3 py-2 text-[11px] font-medium text-slate-700 hover:bg-slate-50 transition-colors"
                   >
                     {agent.nome}
                   </button>
@@ -158,39 +158,39 @@ export const TicketBulkActions = ({ selectedCount, onAction, onClear, agents }: 
               size="sm"
               onClick={() => setOpenMenu(openMenu === 'tag' ? null : 'tag')}
               className={cn(
-                "text-slate-300 hover:text-white hover:bg-slate-800 text-[10px] uppercase font-bold tracking-widest gap-2",
-                openMenu === 'tag' && "bg-slate-800 text-white"
+                "text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-[11px] font-medium gap-1.5 px-2 h-8",
+                openMenu === 'tag' && "bg-slate-100 text-slate-900"
               )}
             >
               <TagIcon size={14} />
               Tag
             </Button>
             {openMenu === 'tag' && (
-              <div className="absolute bottom-full mb-2 left-0 bg-white border border-slate-200 rounded-xl shadow-xl p-3 min-w-[200px]">
+              <div className="absolute bottom-full mb-2 left-0 bg-white border border-slate-200 rounded-lg shadow-lg p-2 min-w-[180px]">
                  <input 
                    autoFocus
                    type="text" 
                    placeholder="Nova tag..."
-                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 font-bold focus:outline-none focus:ring-2 focus:ring-blue-100"
+                   className="w-full bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
                    onKeyDown={(e) => {
                      if (e.key === 'Enter') {
                        handleAction('add_tag', (e.target as HTMLInputElement).value);
                      }
                    }}
                  />
-                 <p className="mt-2 text-[8px] text-slate-400 font-bold uppercase tracking-widest text-center">Pressione Enter para adicionar</p>
+                 <p className="mt-1.5 text-[10px] text-slate-400 text-center">Pressione Enter para adicionar</p>
               </div>
             )}
           </div>
 
-          <div className="w-px h-6 bg-slate-800 mx-1" />
+          <div className="w-px h-5 bg-slate-200 mx-1" />
 
           {/* Close */}
           <Button 
             variant="ghost" 
             size="sm"
             onClick={() => handleAction('fechar')}
-            className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-900/30 text-[10px] uppercase font-bold tracking-widest gap-2"
+            className="text-amber-600 hover:text-amber-700 hover:bg-amber-50 text-[11px] font-medium gap-1.5 px-2 h-8"
           >
             <Archive size={14} />
             Fechar
@@ -200,7 +200,7 @@ export const TicketBulkActions = ({ selectedCount, onAction, onClear, agents }: 
         {/* Clear */}
         <button 
           onClick={onClear}
-          className="ml-auto w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/10 transition-colors"
+          className="ml-auto w-8 h-8 rounded-md flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
           title="Limpar seleção"
         >
           <X size={16} />

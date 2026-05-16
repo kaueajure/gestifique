@@ -93,7 +93,7 @@ export const FileUpload = ({
   };
 
   return (
-    <div className={cn("space-y-3", className)}>
+    <div className={cn("space-y-2", className)}>
       <div className="flex items-center gap-2">
         <input
           type="file"
@@ -107,39 +107,39 @@ export const FileUpload = ({
           variant="outline"
           size="sm"
           onClick={() => fileInputRef.current?.click()}
-          className="text-slate-600 gap-1.5 font-semibold"
+          className="text-slate-600 gap-1.5 font-medium h-8"
           disabled={selectedFiles.length >= maxFiles}
         >
-          <Paperclip size={14} /> Anexar Arquivos
+          <Paperclip size={14} /> Anexar
         </Button>
-        <span className="text-[10px] text-slate-400 font-medium italic">
-          Max {maxFiles} arquivos de até {maxSizeMB}MB
+        <span className="text-[10px] text-slate-500 font-medium">
+          Limite: {maxFiles} / Até {maxSizeMB}MB
         </span>
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 p-2 bg-red-50 text-red-600 rounded-lg text-[11px] font-medium border border-red-100 animate-in fade-in slide-in-from-top-1">
+        <div className="flex items-center gap-1.5 p-1.5 bg-red-50 text-red-600 rounded text-xs font-medium border border-red-100 animate-in fade-in slide-in-from-top-1">
           <AlertCircle size={14} />
           {error}
         </div>
       )}
 
       {selectedFiles.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
           {selectedFiles.map((file, index) => (
             <div
               key={`${file.name}-${index}`}
-              className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200 group"
+              className="flex items-center justify-between p-1.5 rounded bg-slate-50 border border-slate-200 group"
             >
               <div className="flex items-center gap-2 min-w-0 flex-1">
-                <div className="w-7 h-7 rounded bg-white border border-slate-200 flex items-center justify-center text-slate-400 shrink-0">
-                  <FileIcon mimeType={file.type} size={14} />
+                <div className="w-6 h-6 rounded bg-white border border-slate-200 flex items-center justify-center text-slate-400 shrink-0">
+                  <FileIcon mimeType={file.type} size={12} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-semibold text-slate-600 truncate">
+                  <p className="text-[11px] font-medium text-slate-700 truncate leading-tight">
                     {file.name}
                   </p>
-                  <p className="text-[9px] font-medium text-slate-400">
+                  <p className="text-[9px] font-medium text-slate-500 leading-none mt-0.5">
                     {formatSize(file.size)}
                   </p>
                 </div>
@@ -149,7 +149,7 @@ export const FileUpload = ({
                 onClick={() => removeFile(index)}
                 className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
               >
-                <X size={14} />
+                <X size={12} />
               </button>
             </div>
           ))}
