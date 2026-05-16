@@ -4,6 +4,7 @@ import { PublicHomePage } from './PublicHomePage';
 import { PublicFeaturesPage } from './PublicFeaturesPage';
 import { PublicPricingPage } from './PublicPricingPage';
 import { PublicContactPage } from './PublicContactPage';
+import { PublicPreviewPage } from './PublicPreviewPage';
 
 interface PublicSiteProps {
   onLogin: () => void;
@@ -37,13 +38,16 @@ export const PublicSite = ({ onLogin }: PublicSiteProps) => {
         return <PublicPricingPage onNavigate={navigate} />;
       case '/contato':
         return <PublicContactPage />;
+      case '/demonstracao':
+      case '/preview':
+        return <PublicPreviewPage onNavigate={navigate} />;
       default:
         return <PublicHomePage onNavigate={navigate} />;
     }
   };
 
   useEffect(() => {
-    const validPaths = ['/', '/funcionalidades', '/precos', '/contato'];
+    const validPaths = ['/', '/funcionalidades', '/precos', '/contato', '/demonstracao', '/preview'];
     if (!validPaths.includes(currentPath)) {
       window.history.replaceState({}, '', '/');
       setCurrentPath('/');
@@ -56,7 +60,9 @@ export const PublicSite = ({ onLogin }: PublicSiteProps) => {
       '/': 'Gestifique — Gestão de tickets e atendimento',
       '/funcionalidades': 'Funcionalidades | Gestifique',
       '/precos': 'Preços | Gestifique',
-      '/contato': 'Contato | Gestifique'
+      '/contato': 'Contato | Gestifique',
+      '/demonstracao': 'Demonstração | Gestifique',
+      '/preview': 'Demonstração | Gestifique'
     };
     document.title = titles[currentPath] || 'Gestifique';
   }, [currentPath]);

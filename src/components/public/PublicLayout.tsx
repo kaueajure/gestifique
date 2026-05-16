@@ -16,6 +16,7 @@ export const PublicLayout = ({ children, onLogin, currentPath, onNavigate }: Pub
   const navItems = [
     { label: 'Início', path: '/' },
     { label: 'Funcionalidades', path: '/funcionalidades' },
+    { label: 'Demonstração', path: '/demonstracao' },
     { label: 'Preços', path: '/precos' },
     { label: 'Contato', path: '/contato' },
   ];

@@ -34,6 +34,14 @@ export const PublicHomePage = ({ onNavigate }: PublicHomePageProps) => {
                  Ver todas as funcionalidades
                </button>
             </div>
+            <div className="flex justify-center lg:justify-start pt-2">
+               <button 
+                 onClick={() => onNavigate('/demonstracao')}
+                 className="text-[13px] font-bold text-blue-600 hover:text-blue-700 hover:underline transition-all flex items-center gap-1"
+               >
+                 Ver prévia do sistema <ArrowRight size={14} />
+               </button>
+            </div>
             
             <div className="flex flex-wrap justify-center lg:justify-start gap-6 pt-6 text-[13px] font-semibold text-slate-500">
                <span className="flex items-center gap-1.5"><CheckCircle2 size={16} className="text-emerald-500"/> Implantação rápida </span>
