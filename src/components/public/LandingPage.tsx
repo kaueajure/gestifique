@@ -117,13 +117,13 @@ export const LandingPage = ({ onLogin }: LandingPageProps) => {
               <div className="flex flex-col sm:flex-row items-center gap-4">
                 <button 
                   onClick={onLogin}
-                  className="w-full sm:w-auto h-12 px-8 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-2"
+                  className="w-full sm:w-auto h-10 px-6 bg-blue-600 text-white text-sm font-semibold rounded-md hover:bg-blue-700 transition-all shadow-sm flex items-center justify-center gap-2"
                 >
-                  Começar agora <ArrowRight size={18} />
+                  Começar agora <ArrowRight size={16} />
                 </button>
                 <button 
                    onClick={() => document.getElementById('recursos')?.scrollIntoView({ behavior: 'smooth' })}
-                   className="w-full sm:w-auto h-12 px-8 border border-slate-200 text-slate-600 font-semibold rounded-xl hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+                   className="w-full sm:w-auto h-10 px-6 border border-slate-200 text-slate-600 text-sm font-semibold rounded-md hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
                 >
                   Ver recursos
                 </button>
@@ -341,7 +341,7 @@ export const LandingPage = ({ onLogin }: LandingPageProps) => {
               <div className="pt-4">
                 <button 
                   onClick={onLogin}
-                  className="h-11 px-6 bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-800 transition-all flex items-center gap-2 text-sm"
+                  className="h-10 px-6 bg-slate-900 text-white font-semibold rounded-md hover:bg-slate-800 transition-all flex items-center gap-2 text-sm"
                 >
                   Acessar plataforma <ArrowRight size={16} />
                 </button>
@@ -380,18 +380,18 @@ export const LandingPage = ({ onLogin }: LandingPageProps) => {
       {/* CTA Section */}
       <section className="py-20 px-6">
         <div className="max-w-4xl mx-auto">
-          <div className="bg-blue-600 rounded-2xl p-12 lg:p-16 text-center space-y-8 relative overflow-hidden shadow-2xl shadow-blue-50 text-white">
+          <div className="bg-blue-600 rounded-xl p-10 lg:p-12 text-center space-y-6 relative overflow-hidden shadow-xl shadow-blue-100 text-white">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-700 -z-10"></div>
             
-            <div className="space-y-4">
-              <h2 className="text-3xl lg:text-4xl font-bold tracking-tight leading-tight">Menos caos no atendimento. Mais controle para sua operação.</h2>
-              <p className="text-lg text-blue-100 font-medium max-w-2xl mx-auto">Centralize tickets, mensagens e indicadores em uma plataforma simples e moderna.</p>
+            <div className="space-y-3">
+              <h2 className="text-2xl lg:text-3xl font-bold tracking-tight leading-tight">Menos caos no atendimento. Mais controle para sua operação.</h2>
+              <p className="text-base text-blue-100 font-medium max-w-2xl mx-auto">Centralize tickets, mensagens e indicadores em uma plataforma simples e moderna.</p>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
               <button 
                 onClick={onLogin}
-                className="w-full sm:w-auto h-12 px-10 bg-white text-blue-600 font-bold rounded-xl hover:bg-slate-50 transition-all active:scale-95"
+                className="w-full sm:w-auto h-10 px-8 bg-white text-blue-600 font-semibold text-sm rounded-md hover:bg-slate-50 transition-all active:scale-95"
               >
                 Acessar plataforma
               </button>

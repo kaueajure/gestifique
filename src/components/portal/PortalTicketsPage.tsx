@@ -70,10 +70,10 @@ export const PortalTicketsPage = ({ onSelectTicket }: PortalTicketsPageProps) =>
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="px-6 py-4 text-[10px] font-bold tracking-widest text-slate-500 uppercase">ID</th>
-                  <th className="px-6 py-4 text-[10px] font-bold tracking-widest text-slate-500 uppercase">Assunto</th>
-                  <th className="px-6 py-4 text-[10px] font-bold tracking-widest text-slate-500 uppercase">Status</th>
-                  <th className="px-6 py-4 text-[10px] font-bold tracking-widest text-slate-500 uppercase">Atualização</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-500">ID</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-500">Assunto</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-500">Status</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-500">Atualização</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -83,15 +83,15 @@ export const PortalTicketsPage = ({ onSelectTicket }: PortalTicketsPageProps) =>
                     onClick={() => onSelectTicket(ticket.id)}
                     className="hover:bg-slate-50 cursor-pointer transition-colors group"
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-400 group-hover:text-slate-900">#{ticket.id}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-500 group-hover:text-slate-900">#{ticket.id}</td>
                     <td className="px-6 py-4">
-                      <div className="font-semibold text-slate-900">{ticket.titulo}</div>
-                      <div className="text-xs font-medium text-slate-500 mt-1">{ticket.categoria || 'Sem categoria'}</div>
+                      <div className="font-semibold text-sm text-slate-900">{ticket.titulo}</div>
+                      <div className="text-xs text-slate-500 mt-0.5">{ticket.categoria || 'Sem categoria'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(ticket.status)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                       {format(new Date(ticket.updated_at), "dd MMM, HH:mm", { locale: ptBR })}
                     </td>
                   </tr>
@@ -101,9 +101,9 @@ export const PortalTicketsPage = ({ onSelectTicket }: PortalTicketsPageProps) =>
           </div>
         </div>
       ) : (
-        <div className="bg-white border border-slate-200 rounded-2xl p-16 text-center text-slate-500 shadow-sm flex flex-col items-center justify-center">
-          <Ticket size={48} className="text-slate-200 mb-4" />
-          Nenhum chamado encontrado.
+        <div className="bg-white border border-slate-200 rounded-xl p-12 text-center text-slate-500 shadow-sm flex flex-col items-center justify-center">
+          <Ticket size={40} className="text-slate-300 mb-4" />
+          <p className="text-sm">Nenhum chamado encontrado.</p>
         </div>
       )}
     </div>

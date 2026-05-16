@@ -81,8 +81,8 @@ export const PortalLayout = ({ currentUser, onLogout }: PortalLayoutProps) => {
 
           <div className="flex items-center gap-4">
             <div className="hidden md:block text-right">
-              <div className="text-sm font-bold tracking-tight text-slate-900">{currentUser.nome}</div>
-              <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Cliente</div>
+              <div className="text-sm font-semibold text-slate-900">{currentUser.nome}</div>
+              <div className="text-xs text-slate-500">Cliente</div>
             </div>
             
             <button 

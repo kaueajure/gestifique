@@ -40,115 +40,117 @@ export const PortalHomePage = ({ onNavigate }: PortalHomePageProps) => {
   }, []);
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-8">
       {/* Hero Section */}
-      <div className="text-center md:text-left py-12 md:py-16 bg-white rounded-[3rem] p-8 md:p-16 shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-12 relative overflow-hidden">
+      <div className="text-center md:text-left p-6 md:p-10 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
         <div className="relative z-10 max-w-xl">
-          <h1 className="text-4xl md:text-5xl font-black tracking-tight text-slate-900 mb-6 leading-tight lowercase">
-            Como podemos te <span className="text-blue-600">ajudar</span> hoje?
+          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-slate-900 mb-2">
+            Como podemos te ajudar hoje?
           </h1>
-          <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-xs mb-10">Busque em nossa base de conhecimento ou abra um novo chamado.</p>
+          <p className="text-slate-500 text-sm mb-6">
+            Busque em nossa base de conhecimento ou abra um novo chamado.
+          </p>
           
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-3">
             <button 
               onClick={() => onNavigate('new-ticket')}
-              className="h-14 px-8 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl flex items-center justify-center gap-3 transition-all shadow-xl shadow-blue-100 hover:-translate-y-1"
+              className="h-10 px-5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-md flex items-center justify-center gap-2 transition-colors shadow-sm"
             >
-              <PlusCircle size={20} /> Novo Chamado
+              <PlusCircle size={18} /> Novo Chamado
             </button>
             <button 
               onClick={() => onNavigate('knowledge')}
-              className="h-14 px-8 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-black text-xs uppercase tracking-[0.2em] rounded-2xl flex items-center justify-center gap-3 transition-all"
+              className="h-10 px-5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-sm font-semibold rounded-md flex items-center justify-center gap-2 transition-colors"
             >
-              <Search size={20} /> Base de Conhecimento
+              <Search size={18} /> Base de Conhecimento
             </button>
           </div>
         </div>
         
-        <div className="hidden lg:block relative">
-           <div className="w-64 h-64 bg-blue-50 rounded-full flex items-center justify-center animate-pulse">
-              <HelpCircle size={120} className="text-blue-100" />
-           </div>
-           <div className="absolute -top-4 -right-4 w-12 h-12 bg-white rounded-2xl shadow-lg border border-slate-100 flex items-center justify-center text-blue-500 animate-bounce">
-              <BookOpen size={24} />
-           </div>
-           <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-white rounded-2xl shadow-lg border border-slate-100 flex items-center justify-center text-emerald-500">
-              <CheckCircle2 size={32} />
+        <div className="hidden lg:block relative opacity-80">
+           <div className="w-48 h-48 bg-blue-50/50 rounded-full flex items-center justify-center">
+              <HelpCircle size={80} className="text-blue-100" />
            </div>
         </div>
       </div>
 
       {/* Knowledge Base Teaser */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between px-2">
-          <h2 className="text-xl font-black text-slate-900 lowercase italic">Antes de abrir um chamado, consulte a base</h2>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-slate-900">Consulta Rápida</h2>
           <button 
             onClick={() => onNavigate('knowledge')}
-            className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 hover:text-blue-700 flex items-center gap-2"
+            className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1.5"
           >
             Ver base completa <ArrowRight size={14} />
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {loading ? (
             Array(4).fill(0).map((_, i) => (
-              <div key={i} className="h-32 bg-slate-100 rounded-[2rem] animate-pulse" />
+              <div key={i} className="h-28 bg-slate-100 rounded-xl animate-pulse" />
             ))
           ) : popularArticles.length > 0 ? (
             popularArticles.map(article => (
               <button
                 key={article.id}
-                onClick={() => onNavigate('knowledge')} // In future versions we could navigate directly to the article
-                className="text-left bg-white border border-slate-200 hover:border-blue-500 hover:shadow-xl hover:shadow-blue-50 p-6 rounded-[2rem] transition-all group"
+                onClick={() => onNavigate('knowledge')} 
+                className="text-left bg-white border border-slate-200 hover:border-blue-300 hover:shadow-sm p-4 rounded-xl transition-all group flex flex-col h-full"
               >
-                <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center mb-4 group-hover:bg-blue-600 group-hover:text-white transition-all">
-                  <FileText size={20} />
+                <div className="w-8 h-8 rounded-lg bg-slate-50 text-slate-400 flex items-center justify-center mb-3 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                  <FileText size={16} />
                 </div>
-                <h3 className="font-black text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-tight mb-2 uppercase text-[10px] tracking-widest">{article.titulo}</h3>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{article.categoria || 'Geral'}</p>
+                <h3 className="font-semibold text-sm text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-tight mb-1">{article.titulo}</h3>
+                <p className="text-xs text-slate-500 mt-auto truncate">{article.categoria || 'Geral'}</p>
               </button>
             ))
           ) : (
-            <div className="col-span-full py-12 text-center bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2rem] text-slate-400 font-bold uppercase tracking-widest text-[10px]">
-              Nenhum artigo popular disponível no momento.
+            <div className="col-span-full py-8 text-center bg-slate-50/50 border border-dashed border-slate-200 rounded-xl text-slate-500 text-sm">
+              Nenhum artigo disponível no momento.
             </div>
           )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="p-8 flex flex-col items-center justify-center text-center shadow-sm border-slate-200 rounded-[2.5rem]">
-          <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-sm">
-            <Clock size={28} />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="p-6 flex items-center gap-4 border-slate-200">
+          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0">
+            <Clock size={24} />
           </div>
-          <div className="text-4xl font-black tracking-tight text-slate-900">{stats.open}</div>
-          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mt-2">Em Andamento</div>
+          <div>
+            <div className="text-3xl font-bold tracking-tight text-slate-900 leading-none mb-1">{stats.open}</div>
+            <div className="text-xs font-semibold text-slate-500 uppercase">Em Andamento</div>
+          </div>
         </Card>
         
-        <Card className="p-8 flex flex-col items-center justify-center text-center shadow-sm border-slate-200 rounded-[2.5rem]">
-          <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mb-6 shadow-sm">
-            <Ticket size={28} />
+        <Card className="p-6 flex items-center gap-4 border-slate-200">
+          <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center shrink-0">
+            <Ticket size={24} />
           </div>
-          <div className="text-4xl font-black tracking-tight text-slate-900">{stats.pending}</div>
-          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mt-2">Aguardando Você</div>
+          <div>
+            <div className="text-3xl font-bold tracking-tight text-slate-900 leading-none mb-1">{stats.pending}</div>
+            <div className="text-xs font-semibold text-slate-500 uppercase">Aguardando Você</div>
+          </div>
         </Card>
         
-        <Card className="p-8 flex flex-col items-center justify-center text-center shadow-sm border-slate-200 rounded-[2.5rem]">
-          <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-6 shadow-sm">
-            <CheckCircle2 size={28} />
+        <Card className="p-6 flex items-center gap-4 border-slate-200">
+          <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0">
+            <CheckCircle2 size={24} />
           </div>
-          <div className="text-4xl font-black tracking-tight text-slate-900">{stats.closed}</div>
-          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mt-2">Finalizados</div>
+          <div>
+            <div className="text-3xl font-bold tracking-tight text-slate-900 leading-none mb-1">{stats.closed}</div>
+            <div className="text-xs font-semibold text-slate-500 uppercase">Finalizados</div>
+          </div>
         </Card>
       </div>
 
-      <div className="space-y-6">
-        <div className="flex items-center justify-between px-2">
-          <h2 className="text-xl font-black text-slate-900 lowercase italic">Seus chamados recentes</h2>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-slate-900">Seus chamados recentes</h2>
           <button 
             onClick={() => onNavigate('tickets')}
-            className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 hover:text-blue-700 flex items-center gap-2"
+            className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1.5"
           >
             Ver histórico completo <ArrowRight size={14} />
           </button>
@@ -157,38 +159,38 @@ export const PortalHomePage = ({ onNavigate }: PortalHomePageProps) => {
         {loading ? (
           <div className="grid grid-cols-1 gap-3">
              {Array(3).fill(0).map((_, i) => (
-                <div key={i} className="h-20 bg-slate-100 rounded-2xl animate-pulse" />
+                <div key={i} className="h-20 bg-slate-100 rounded-xl animate-pulse" />
              ))}
           </div>
         ) : recentTickets.length > 0 ? (
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 gap-3">
             {recentTickets.map(ticket => (
               <button
                 key={ticket.id}
                 onClick={() => onNavigate('tickets', ticket.id)}
-                className="text-left w-full bg-white border border-slate-200 hover:border-blue-500 hover:shadow-xl hover:shadow-blue-50 rounded-3xl p-6 transition-all flex items-center justify-between group"
+                className="text-left w-full bg-white border border-slate-200 hover:border-blue-300 hover:shadow-sm rounded-xl p-4 transition-all flex items-center justify-between group"
               >
-                <div className="flex items-center gap-6">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 font-black text-xs group-hover:bg-blue-600 group-hover:text-white transition-all">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center text-slate-500 font-semibold text-sm group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
                     #{ticket.id}
                   </div>
                   <div>
-                    <h3 className="font-black text-slate-900 mb-1 capitalize">{ticket.titulo}</h3>
-                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                       <span className="px-2 py-0.5 bg-slate-100 rounded-md">{ticket.categoria || 'Geral'}</span>
+                    <h3 className="font-semibold text-slate-900 mb-0.5">{ticket.titulo}</h3>
+                    <div className="text-xs text-slate-500 flex items-center gap-1.5">
+                       <span className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600 font-medium">{ticket.categoria || 'Geral'}</span>
                        <span>•</span>
                        <span>Atualizado em {new Date(ticket.updated_at).toLocaleDateString()}</span>
                     </div>
                   </div>
                 </div>
-                <div className="w-10 h-10 rounded-full flex items-center justify-center text-slate-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all">
-                  <ArrowRight size={24} />
+                <div className="text-slate-300 group-hover:text-blue-500 transition-colors bg-white">
+                  <ArrowRight size={20} />
                 </div>
               </button>
             ))}
           </div>
         ) : (
-          <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[3rem] p-16 text-center text-slate-400 font-bold uppercase tracking-widest text-[10px]">
+          <div className="bg-slate-50/50 border border-dashed border-slate-200 rounded-xl p-8 text-center text-slate-500 text-sm">
             Você ainda não possui nenhum chamado aberto.
           </div>
         )}

@@ -73,10 +73,10 @@ export const PortalNewTicketPage = ({ onNavigate, currentUser }: PortalNewTicket
           <p className="text-slate-500 font-medium">Preencha os detalhes abaixo para que possamos te ajudar da melhor forma.</p>
         </div>
 
-        <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-sm">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="p-4 bg-red-50 text-red-600 text-sm font-semibold rounded-xl border border-red-100">
+              <div className="p-3 bg-red-50 text-red-600 text-sm font-medium rounded-md border border-red-100">
                 {error}
               </div>
             )}
@@ -90,8 +90,8 @@ export const PortalNewTicketPage = ({ onNavigate, currentUser }: PortalNewTicket
             />
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wide px-1">Categoria (Opcional)</label>
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-slate-700 px-1">Categoria (Opcional)</label>
                 <Select
                   value={categoria}
                   onChange={setCategoria}
@@ -101,8 +101,8 @@ export const PortalNewTicketPage = ({ onNavigate, currentUser }: PortalNewTicket
                   ]}
                 />
               </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wide px-1">Serviço (Opcional)</label>
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-slate-700 px-1">Serviço (Opcional)</label>
                 <Select
                   value={servico}
                   onChange={setServico}
@@ -114,21 +114,21 @@ export const PortalNewTicketPage = ({ onNavigate, currentUser }: PortalNewTicket
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 uppercase tracking-wide px-1">Descrição Detalhada</label>
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-slate-700 px-1">Descrição Detalhada</label>
               <textarea
                 value={descricao}
                 onChange={e => setDescricao(e.target.value)}
                 required
                 rows={6}
                 placeholder="Descreva o máximo de detalhes possível para agilizarmos seu atendimento..."
-                className="w-full resize-y p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-100 focus:bg-white transition-all outline-none"
+                className="w-full resize-y p-3 bg-slate-50 border border-slate-200 rounded-md text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all outline-none"
               />
             </div>
 
-            <div className="pt-4 flex justify-end">
-              <Button type="submit" disabled={loading} className="w-full sm:w-auto h-12 px-8 font-bold text-sm">
-                {loading ? 'Criando...' : <span className="flex items-center"><Send size={18} className="mr-2" /> Enviar Chamado</span>}
+            <div className="pt-2 flex justify-end">
+              <Button type="submit" disabled={loading} className="w-full sm:w-auto h-9 px-6 text-sm">
+                {loading ? 'Criando...' : <span className="flex items-center"><Send size={16} className="mr-2" /> Enviar Chamado</span>}
               </Button>
             </div>
           </form>

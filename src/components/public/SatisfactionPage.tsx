@@ -58,44 +58,44 @@ export function SatisfactionPage({ token }: SatisfactionPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-blue-50/50 via-transparent to-transparent">
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
       <motion.div 
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-lg"
+        className="w-full max-w-[400px]"
       >
-        <div className="text-center mb-8">
-           <AppLogo size={56} className="mb-4 mx-auto" />
+        <div className="text-center mb-6">
+           <AppLogo size={48} className="mb-3 mx-auto" />
            <h2 className="text-xl font-semibold text-slate-900 tracking-tight">Pesquisa de Satisfação</h2>
-           <p className="text-sm text-slate-500 font-medium">Sua opinião é muito importante para nós.</p>
+           <p className="text-sm text-slate-500">Sua opinião é muito importante para nós.</p>
         </div>
 
-        <Card className="p-8 shadow-xl shadow-slate-200/50">
+        <Card className="p-6">
            {error && !success ? (
-             <div className="text-center space-y-4">
-               <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
-                 <AlertCircle className="w-8 h-8 text-red-600" />
+             <div className="text-center space-y-3">
+               <div className="mx-auto w-12 h-12 bg-red-50 rounded-full flex items-center justify-center">
+                 <AlertCircle className="w-6 h-6 text-red-600" />
                </div>
-               <h3 className="text-lg font-medium text-slate-900">Ops!</h3>
+               <h3 className="text-base font-medium text-slate-900">Ops!</h3>
                <p className="text-sm text-slate-600">{error}</p>
              </div>
            ) : success || data?.respondido_em ? (
-             <div className="text-center space-y-4">
+             <div className="text-center space-y-3">
                <motion.div 
                  initial={{ scale: 0 }}
                  animate={{ scale: 1 }}
-                 className="mx-auto w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center"
+                 className="mx-auto w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center"
                >
-                 <CheckCircle className="w-8 h-8 text-emerald-600" />
+                 <CheckCircle className="w-6 h-6 text-emerald-600" />
                </motion.div>
-               <h3 className="text-lg font-medium text-slate-900">Obrigado!</h3>
+               <h3 className="text-base font-medium text-slate-900">Obrigado!</h3>
                <p className="text-sm text-slate-600">Sua avaliação foi registrada com sucesso.</p>
              </div>
            ) : (
-             <form onSubmit={handleSubmit} className="space-y-6">
+             <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="text-center">
-                  <p className="text-sm font-medium text-slate-700 mb-4">Como você avalia o atendimento recebido?</p>
-                  <div className="flex justify-center gap-2">
+                  <p className="text-sm font-medium text-slate-700 mb-3">Como você avalia o atendimento recebido?</p>
+                  <div className="flex justify-center gap-1.5">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <button
                         key={star}
@@ -106,7 +106,7 @@ export function SatisfactionPage({ token }: SatisfactionPageProps) {
                         className="p-1 focus:outline-none transition-transform hover:scale-110"
                       >
                         <Star 
-                          className={`w-10 h-10 ${
+                          className={`w-8 h-8 ${
                             star <= (hoverRating || rating) 
                               ? 'text-yellow-400 fill-yellow-400' 
                               : 'text-slate-300'
@@ -115,7 +115,7 @@ export function SatisfactionPage({ token }: SatisfactionPageProps) {
                       </button>
                     ))}
                   </div>
-                  <p className="text-xs text-slate-400 mt-2 font-medium">
+                  <p className="text-xs text-slate-500 mt-2 font-medium">
                     {rating === 1 && 'Muito ruim'}
                     {rating === 2 && 'Ruim'}
                     {rating === 3 && 'Regular'}
@@ -125,13 +125,13 @@ export function SatisfactionPage({ token }: SatisfactionPageProps) {
                   </p>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-700 block text-left">
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-slate-700 block text-left">
                     Comentário (opcional)
                   </label>
                   <textarea
-                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-4 focus:ring-blue-100 outline-none resize-none"
-                    rows={4}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-md px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:bg-white outline-none resize-none"
+                    rows={3}
                     placeholder="Deixe um comentário sobre o atendimento..."
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
@@ -140,8 +140,9 @@ export function SatisfactionPage({ token }: SatisfactionPageProps) {
 
                 <Button 
                   type="submit" 
+                  size="sm"
                   disabled={rating === 0 || submitting} 
-                  className="w-full h-11"
+                  className="w-full h-9 text-sm"
                 >
                   {submitting ? 'Enviando...' : 'Enviar Avaliação'}
                 </Button>

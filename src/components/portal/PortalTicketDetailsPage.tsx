@@ -101,22 +101,22 @@ export const PortalTicketDetailsPage = ({ ticketId, onBack, currentUser }: Porta
               if (msg.tipo === 'status_change') {
                  return (
                    <div key={i} className="flex justify-center my-4">
-                     <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 bg-white border border-slate-200 px-3 py-1 rounded-full">{msg.mensagem}</span>
+                     <span className="text-xs font-medium text-slate-500 bg-white border border-slate-200 px-3 py-1 rounded-full">{msg.mensagem}</span>
                    </div>
                  );
               }
               
               return (
                 <div key={i} className={cn("flex flex-col", isMine ? "items-end" : "items-start")}>
-                  <div className="flex items-center gap-2 mb-1.5 px-1">
-                    <span className="text-xs font-bold text-slate-900">{msg.usuario_nome || 'Atendimento'}</span>
-                    <span className="text-[10px] font-medium text-slate-400">{format(new Date(msg.created_at), "dd MMM, HH:mm", { locale: ptBR })}</span>
+                  <div className="flex items-center gap-2 mb-1 px-1">
+                    <span className="text-sm font-semibold text-slate-900">{msg.usuario_nome || 'Atendimento'}</span>
+                    <span className="text-xs text-slate-500">{format(new Date(msg.created_at), "dd MMM, HH:mm", { locale: ptBR })}</span>
                   </div>
                   <div className={cn(
-                    "max-w-[85%] px-4 py-3 rounded-2xl text-sm whitespace-pre-wrap",
+                    "max-w-[85%] px-4 py-2.5 rounded-2xl text-sm whitespace-pre-wrap",
                     isMine 
-                      ? "bg-blue-600 text-white rounded-br-none shadow-sm" 
-                      : "bg-white border border-slate-200 text-slate-700 rounded-bl-none shadow-sm"
+                      ? "bg-blue-600 text-white rounded-tr-sm shadow-sm" 
+                      : "bg-white border border-slate-200 text-slate-700 rounded-tl-sm shadow-sm"
                   )}>
                     {msg.mensagem}
                   </div>
@@ -129,9 +129,9 @@ export const PortalTicketDetailsPage = ({ ticketId, onBack, currentUser }: Porta
 
         <div className="p-4 bg-white border-t border-slate-200">
           {isClosed ? (
-            <div className="text-center py-4 text-emerald-600 bg-emerald-50 rounded-xl border border-emerald-100 flex flex-col items-center gap-2">
-              <CheckCircle2 size={24} />
-              <span className="text-sm font-bold">Este chamado foi finalizado.</span>
+            <div className="text-center py-3 text-emerald-600 bg-emerald-50 rounded-lg border border-emerald-100 flex flex-col items-center gap-1.5">
+              <CheckCircle2 size={20} />
+              <span className="text-sm font-medium">Este chamado foi finalizado.</span>
             </div>
           ) : (
             <form onSubmit={handleReply} className="flex flex-col gap-3">
@@ -139,15 +139,10 @@ export const PortalTicketDetailsPage = ({ ticketId, onBack, currentUser }: Porta
                 value={replyMessage}
                 onChange={e => setReplyMessage(e.target.value)}
                 placeholder="Escreva sua mensagem..."
-                className="w-full resize-none h-24 p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-100 focus:bg-white transition-all outline-none"
+                className="w-full resize-none h-20 p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all outline-none"
               />
               <div className="flex justify-end gap-2">
-                {/* 
-                <Button type="button" variant="secondary" className="font-semibold px-4 text-xs h-9">
-                  <Paperclip size={16} className="mr-2" /> Anexar
-                </Button> 
-                */}
-                <Button type="submit" disabled={sending || !replyMessage.trim()} className="font-semibold px-6 text-xs h-9">
+                <Button type="submit" disabled={sending || !replyMessage.trim()} className="font-semibold px-5 text-sm h-9">
                   {sending ? 'Enviando...' : <span className="flex items-center"><Send size={16} className="mr-2" /> Enviar</span>}
                 </Button>
               </div>
