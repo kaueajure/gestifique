@@ -64,7 +64,7 @@ Mensagem: ${contactData.mensagem}`;
                  <div>
                    <h3 className="text-xl font-bold text-slate-900 mb-2">Informações organizadas!</h3>
                    <p className="text-sm font-medium text-slate-500 max-w-md mx-auto">
-                     Agrupamos suas informações. Como a integração automática ainda não está ativa, clique no botão abaixo para nos enviar um e-mail com sua solicitação de demonstração.
+                     Organizamos suas informações. Como a integração automática ainda não está ativa, clique no botão abaixo para abrir um e-mail já preenchido com sua solicitação de demonstração.
                    </p>
                  </div>
                  <div className="flex flex-col gap-3 max-w-xs mx-auto w-full mt-4">

@@ -38,7 +38,7 @@ export const PublicSite = ({ onLogin }: PublicSiteProps) => {
       case '/contato':
         return <PublicContactPage />;
       default:
-        return null;
+        return <PublicHomePage onNavigate={navigate} />;
     }
   };
 
