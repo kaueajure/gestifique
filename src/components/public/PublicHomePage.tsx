@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Ticket, Clock, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Ticket, Clock, CheckCircle2, ShieldCheck, Zap, Users, LayoutDashboard, Database, ArrowRightCircle, Check, HelpCircle, BarChart3, Inbox, MessageSquare } from 'lucide-react';
 
 interface PublicHomePageProps {
   onNavigate: (path: string) => void;
@@ -8,66 +8,88 @@ interface PublicHomePageProps {
 
 export const PublicHomePage = ({ onNavigate, onLogin }: PublicHomePageProps) => {
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col bg-white">
       {/* Hero */}
-      <section className="pt-20 pb-16 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-12">
-          <div className="flex-1 space-y-6 text-center lg:text-left">
-            <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-slate-900 leading-[1.2]">
-              Pare de perder chamados em e-mails e planilhas.
+      <section className="pt-20 pb-16 px-6 lg:pt-28 lg:pb-24 overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-50/50 rounded-full blur-3xl -z-10 translate-x-1/2 -translate-y-1/4" />
+        
+        <div className="max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
+          <div className="flex-1 space-y-8 text-center lg:text-left z-10">
+            <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-slate-900 leading-[1.15]">
+              Centralize atendimentos, controle SLAs e organize sua equipe.
             </h1>
-            <p className="text-[15px] text-slate-500 font-medium leading-relaxed max-w-xl mx-auto lg:mx-0">
-              O Gestifique é a plataforma B2B enxuta que centraliza tickets, organiza equipes e garante as respostas dentro do prazo.
+            <p className="text-base lg:text-lg text-slate-500 font-medium leading-relaxed max-w-2xl mx-auto lg:mx-0">
+              O Gestifique ajuda empresas a transformar e-mails soltos, solicitações informais e demandas urgentes em tickets organizados, rastreáveis e mensuráveis.
             </p>
-            <div className="flex w-full sm:w-auto flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 pt-2">
+            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
                <button 
                  onClick={() => onNavigate('/contato')}
-                 className="w-full sm:w-auto h-10 px-6 bg-blue-600 text-white text-[13px] font-semibold rounded-lg hover:bg-blue-700 transition-all shadow-sm flex items-center justify-center gap-2"
+                 className="w-full sm:w-auto h-12 px-8 bg-blue-600 text-white text-[14px] font-bold rounded-lg hover:bg-blue-700 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
                >
-                 Solicitar demonstração <ArrowRight size={16} />
+                 Solicitar demonstração <ArrowRight size={18} />
                </button>
                <button 
                  onClick={() => onNavigate('/funcionalidades')}
-                 className="w-full sm:w-auto h-10 px-6 bg-white border border-slate-200 text-slate-700 text-[13px] font-semibold rounded-lg hover:bg-slate-50 transition-all flex items-center justify-center"
+                 className="w-full sm:w-auto h-12 px-8 bg-white border border-slate-200 text-slate-700 text-[14px] font-bold rounded-lg hover:bg-slate-50 transition-all flex items-center justify-center"
                >
-                 Ver funcionalidades
+                 Ver todas as funcionalidades
                </button>
             </div>
             
-            <div className="flex flex-wrap justify-center lg:justify-start gap-4 pt-6 text-[11px] font-semibold text-slate-400">
-               <span className="flex items-center gap-1.5"><CheckCircle2 size={14} className="text-emerald-500"/> Rápida Implantação </span>
-               <span className="flex items-center gap-1.5"><CheckCircle2 size={14} className="text-emerald-500"/> Focado em B2B </span>
+            <div className="flex flex-wrap justify-center lg:justify-start gap-6 pt-6 text-[13px] font-semibold text-slate-500">
+               <span className="flex items-center gap-1.5"><CheckCircle2 size={16} className="text-emerald-500"/> Implantação rápida </span>
+               <span className="flex items-center gap-1.5"><CheckCircle2 size={16} className="text-emerald-500"/> Portal do cliente </span>
+               <span className="flex items-center gap-1.5"><CheckCircle2 size={16} className="text-emerald-500"/> Controle de SLA </span>
+               <span className="flex items-center gap-1.5"><CheckCircle2 size={16} className="text-emerald-500"/> Foco em operação B2B </span>
             </div>
           </div>
           
-          <div className="flex-1 w-full max-w-lg relative">
-             <div className="absolute -inset-4 bg-blue-50 blur-2xl rounded-full -z-10 opacity-70"></div>
-             <div className="bg-white rounded-xl border border-slate-200 shadow-md overflow-hidden flex flex-col h-[320px]">
-               <div className="h-10 bg-slate-50 border-b border-slate-200 flex items-center px-4 gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-slate-300"></div>
-                  <div className="w-2.5 h-2.5 rounded-full bg-slate-300"></div>
-                  <div className="w-2.5 h-2.5 rounded-full bg-slate-300"></div>
+          <div className="flex-1 w-full max-w-[500px] lg:max-w-none relative z-10">
+             <div className="bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden flex flex-col">
+               <div className="h-12 bg-slate-900 flex items-center px-4 gap-2">
+                  <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                  <div className="w-3 h-3 rounded-full bg-amber-400"></div>
+                  <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
+                  <div className="ml-4 h-6 w-48 bg-white/10 rounded text-[10px] flex items-center px-2 text-white/50 font-mono">gestifique.app</div>
                </div>
-               <div className="flex-1 p-5 space-y-4">
-                  <div className="flex gap-4">
-                    <div className="flex-1 h-20 rounded-lg bg-orange-50 border border-orange-100 flex flex-col justify-center px-4">
-                       <span className="text-[10px] font-bold text-orange-600 uppercase tracking-tight">Em Atraso</span>
-                       <span className="text-2xl font-bold text-slate-900 leading-none mt-1">3</span>
+               <div className="flex-1 p-6 bg-slate-50">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="font-bold text-slate-900 text-lg">Visão Geral</h3>
+                    <div className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded">Hoje</div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="bg-white p-4 rounded-lg border border-red-100 shadow-sm relative overflow-hidden">
+                       <div className="absolute top-0 left-0 w-1 h-full bg-red-500" />
+                       <span className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">SLA Atrasado</span>
+                       <div className="text-3xl font-bold text-slate-900 mt-1">4</div>
                     </div>
-                    <div className="flex-1 h-20 rounded-lg bg-blue-50 border border-blue-100 flex flex-col justify-center px-4">
-                       <span className="text-[10px] font-bold text-blue-600 uppercase tracking-tight">Abertos</span>
-                       <span className="text-2xl font-bold text-slate-900 leading-none mt-1">12</span>
+                    <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm relative overflow-hidden">
+                       <div className="absolute top-0 left-0 w-1 h-full bg-blue-500" />
+                       <span className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">Abertos hoje</span>
+                       <div className="text-3xl font-bold text-slate-900 mt-1">18</div>
                     </div>
                   </div>
                   
-                  <div className="space-y-2">
-                     {[1,2,3].map(i => (
-                       <div key={i} className="h-12 border border-slate-100 rounded-lg bg-slate-50/50 flex items-center px-3 gap-3">
-                          <Ticket size={14} className="text-slate-400" />
-                          <div className="flex-1 space-y-1.5">
-                            <div className="h-2 bg-slate-200 rounded w-1/2"></div>
-                            <div className="h-1.5 bg-slate-200 rounded w-1/4"></div>
+                  <div className="space-y-3">
+                     {[
+                       { id: '#4092', title: 'Dúvida faturamento mensal', status: 'Novo', prio: 'Alta', color: 'bg-emerald-100 text-emerald-700' },
+                       { id: '#4091', title: 'Erro de acesso portal', status: 'Em Análise', prio: 'Urgente', color: 'bg-blue-100 text-blue-700' },
+                       { id: '#4090', title: 'Atualização de plano', status: 'Aguard. Cliente', prio: 'Média', color: 'bg-orange-100 text-orange-700' },
+                     ].map((item, i) => (
+                       <div key={i} className="bg-white border border-slate-200 rounded-lg p-3 flex items-center justify-between shadow-sm">
+                          <div className="flex items-center gap-3">
+                             <div className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">
+                               {item.id}
+                             </div>
+                             <div>
+                                <div className="text-[13px] font-bold text-slate-900">{item.title}</div>
+                                <div className="text-[11px] font-medium text-slate-500 mt-0.5">{item.prio} • Há 15 min</div>
+                             </div>
                           </div>
+                          <span className={`text-[10px] font-bold px-2 py-1 rounded ${item.color}`}>
+                            {item.status}
+                          </span>
                        </div>
                      ))}
                   </div>
@@ -77,45 +99,180 @@ export const PublicHomePage = ({ onNavigate, onLogin }: PublicHomePageProps) => 
         </div>
       </section>
 
-      {/* Como Ajudamos / Problema vs Solução */}
-      <section className="py-16 px-6 bg-slate-50">
-         <div className="max-w-6xl mx-auto space-y-10">
-            <div className="text-center max-w-2xl mx-auto space-y-2">
-              <h2 className="text-2xl font-bold tracking-tight">Menos ferramentas soltas, mais processos claros.</h2>
-              <p className="text-sm font-medium text-slate-500">Substitua a confusão de canais informais por uma esteira de operação estruturada.</p>
+      {/* Pain Section */}
+      <section className="py-20 px-6 bg-slate-900 text-white">
+         <div className="max-w-6xl mx-auto space-y-12">
+            <div className="text-center max-w-2xl mx-auto space-y-4">
+              <h2 className="text-3xl font-bold tracking-tight">Quando o atendimento cresce, planilhas e mensagens soltas viram problema.</h2>
+              <p className="text-lg text-slate-400">Processos informais não escalam. Veja onde a operação costuma quebrar:</p>
             </div>
             
-            <div className="grid md:grid-cols-3 gap-6">
-              {[
-                { icon: Ticket, title: 'Centralização Total', desc: 'Acabe com demandas espalhadas.' },
-                { icon: Clock, title: 'Gestão de SLA', desc: 'Metas claras para tempos de primeira resposta e resolução.' },
-                { icon: ShieldCheck, title: 'Controle Multi-empresa', desc: 'Gerencie múltiplos clientes B2B na mesma base.' }
-              ].map((item, i) => (
-                 <div key={i} className="p-5 bg-white border border-slate-200 rounded-xl flex flex-col gap-3 shadow-sm">
-                   <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                     <item.icon size={20} />
-                   </div>
-                   <div>
-                     <h3 className="text-sm font-bold text-slate-900 mb-1">{item.title}</h3>
-                     <p className="text-xs font-medium text-slate-500 leading-relaxed">{item.desc}</p>
-                   </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+               {[
+                 { icon: Inbox, title: "Chamados perdidos", desc: "E-mails que ficam sem resposta e problemas que caem no esquecimento coletivo." },
+                 { icon: Users, title: "Sindrome do \"de quem é?\"", desc: "Ninguém sabe quem pegou a demanda ou de quem é a responsabilidade técnica." },
+                 { icon: ShieldCheck, title: "Cliente no escuro", desc: "Seu cliente B2B precisa perguntar toda hora sobre o status da solicitação." },
+                 { icon: BarChart3, title: "Gestor sem dados", desc: "Impossível saber volume de demanda, tempo médio de resposta ou quem produz mais." }
+               ].map((pain, idx) => (
+                 <div key={idx} className="bg-slate-800 border border-slate-700 p-6 rounded-xl space-y-4">
+                   <pain.icon className="text-red-400" size={24} />
+                   <h3 className="text-lg font-bold text-white">{pain.title}</h3>
+                   <p className="text-sm text-slate-400 leading-relaxed">{pain.desc}</p>
                  </div>
-              ))}
+               ))}
             </div>
          </div>
       </section>
 
-      {/* CTA Final */}
-      <section className="py-20 px-6">
-         <div className="max-w-3xl mx-auto text-center space-y-6">
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Pronto para organizar sua operação?</h2>
-            <p className="text-[15px] font-medium text-slate-500">Agende uma demonstração com nosso time e veja o Gestifique na prática.</p>
-            <div className="pt-2">
+      {/* Solution Section */}
+      <section className="py-24 px-6 bg-slate-50">
+         <div className="max-w-6xl mx-auto space-y-16">
+            <div className="text-center max-w-2xl mx-auto space-y-4">
+              <h2 className="text-3xl font-bold tracking-tight text-slate-900">Com o Gestifique, cada solicitação vira um fluxo claro.</h2>
+              <p className="text-lg text-slate-500">Uma esteira completa que vai do acionamento pelo cliente até o encerramento pela equipe técnica.</p>
+            </div>
+            
+            <div className="grid sm:grid-cols-4 gap-8 relative">
+               <div className="hidden sm:block absolute top-[28px] left-[10%] right-[10%] h-0.5 bg-slate-200" />
+               
+               {[
+                 { step: 1, title: 'Cliente aciona', desc: 'Abertura via portal do cliente de forma estruturada.' },
+                 { step: 2, title: 'Equipe organiza', desc: 'Classificação, prioridade e designação de responsável.' },
+                 { step: 3, title: 'SLA é monitorado', desc: 'Atendimento conta com prazos de primeira resposta.' },
+                 { step: 4, title: 'Gestor analisa', desc: 'Relatórios entregam visibilidade total da operação.' }
+               ].map((item, idx) => (
+                 <div key={idx} className="relative z-10 flex flex-col items-center text-center space-y-4">
+                   <div className="w-14 h-14 bg-white border-4 border-slate-50 rounded-full shadow-sm flex items-center justify-center text-lg font-bold text-blue-600">
+                     {item.step}
+                   </div>
+                   <div className="space-y-1.5">
+                     <h4 className="font-bold text-slate-900 text-lg">{item.title}</h4>
+                     <p className="text-sm font-medium text-slate-500 leading-relaxed px-4">{item.desc}</p>
+                   </div>
+                 </div>
+               ))}
+            </div>
+         </div>
+      </section>
+
+      {/* Core Features */}
+      <section className="py-24 px-6">
+         <div className="max-w-6xl mx-auto space-y-16">
+            <div className="text-center max-w-2xl mx-auto space-y-4">
+              <h2 className="text-3xl font-bold tracking-tight text-slate-900">Tudo para estruturar sua operação B2B</h2>
+              <p className="text-lg text-slate-500">Módulos essenciais sem a complexidade desnecessária de softwares antigos.</p>
+            </div>
+            
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+               {[
+                 { icon: Ticket, title: "Gestão Múltiplos Tickets", desc: "Organize por status, categoria, prioridade e mantenha histórico completo para auditoria." },
+                 { icon: Clock, title: "Controle de SLA", desc: "Tempos de resposta e resolução claramente definidos para garantir a entrega prometida ao cliente." },
+                 { icon: LayoutDashboard, title: "Portal do Cliente B2B", desc: "Seus clientes empresariais ganham acesso a um portal dedicado para acompanhar suas próprias demandas." },
+                 { icon: Database, title: "Base de Conhecimento", desc: "Crie artigos para resolução rápida de incidentes e reduza a abertura de tickets por dúvidas comuns." },
+                 { icon: BarChart3, title: "Métricas gerenciais", desc: "Mensure produtividade da equipe, volume por horários e ofensores recorrentes." },
+                 { icon: Zap, title: "Fluxo e Automação", desc: "Poupe cliques com direcionamento automático, encerramento por inatividade e templates de resposta." }
+               ].map((feature, idx) => (
+                 <div key={idx} className="bg-white border border-slate-200 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                    <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 mb-5">
+                      <feature.icon size={24} />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900 mb-2">{feature.title}</h3>
+                    <p className="text-sm text-slate-500 leading-relaxed font-medium">{feature.desc}</p>
+                 </div>
+               ))}
+            </div>
+         </div>
+      </section>
+
+      {/* Para quem é & Diferenciais (Before/After) */}
+      <section className="py-24 px-6 bg-slate-50">
+         <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-16">
+            <div className="space-y-8">
+               <div>
+                 <h2 className="text-3xl font-bold tracking-tight text-slate-900 mb-4">Para quem o Gestifique foi feito?</h2>
+                 <p className="text-lg text-slate-500 mb-8">Nascemos para atender operações estruturadas que precisam de rastreabilidade, mas recusam a complexidade de sistemas legados.</p>
+               </div>
+               
+               <ul className="space-y-4">
+                 {[
+                   "Equipes de Suporte B2B e Customer Success",
+                   "Help Desk e Service Desk interno de TI",
+                   "Operações Administrativas e Facilities",
+                   "Contabilidade, DP e Jurídico de alto volume"
+                 ].map((item, idx) => (
+                   <li key={idx} className="flex items-center gap-3 text-[15px] font-bold text-slate-700">
+                     <CheckCircle2 size={20} className="text-blue-600" /> {item}
+                   </li>
+                 ))}
+               </ul>
+            </div>
+            
+            <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-xl space-y-6">
+               <h3 className="text-xl font-bold text-slate-900 text-center">Do caos à operação</h3>
+               <div className="flex flex-col md:flex-row gap-6">
+                  <div className="flex-1 space-y-3">
+                     <div className="text-sm font-bold text-slate-400 uppercase tracking-tight text-center pb-2 border-b border-slate-100">Como é hoje</div>
+                     <ul className="space-y-3">
+                       {['Caixa de e-mail lotada', 'Cliente cobrando via WhatsApp', 'Relatórios manuais em Excel', 'Prazos sempre violados'].map((t, i) => (
+                         <li key={i} className="text-sm font-medium text-slate-600 flex items-start gap-2">
+                            <span className="text-red-400 mt-0.5">✕</span> {t}
+                         </li>
+                       ))}
+                     </ul>
+                  </div>
+                  <div className="flex-1 space-y-3">
+                     <div className="text-sm font-bold text-blue-600 uppercase tracking-tight text-center pb-2 border-b border-blue-50">Com Gestifique</div>
+                     <ul className="space-y-3">
+                       {['Caixa unificada interativa', 'Portal cliente transparente', 'Dashboard automático real', 'SLA monitorado por cor'].map((t, i) => (
+                         <li key={i} className="text-sm font-bold text-slate-800 flex items-start gap-2">
+                            <Check size={16} className="text-emerald-500 mt-0.5" /> {t}
+                         </li>
+                       ))}
+                     </ul>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="py-24 px-6">
+         <div className="max-w-3xl mx-auto space-y-12">
+            <div className="text-center space-y-4">
+              <h2 className="text-3xl font-bold tracking-tight text-slate-900">Perguntas Frequentes</h2>
+              <p className="text-lg text-slate-500">Tire suas dúvidas técnicas e comerciais.</p>
+            </div>
+            
+            <div className="space-y-4">
+               {[
+                 { q: 'O Gestifique atende operações de TI interna?', a: 'Sim. Você pode usar a plataforma tanto para clientes externos B2B quanto para chamados internos (manutenção, acessos, equipamentos).' },
+                 { q: 'Existe um limite de empresas ou clientes a cadastrar?', a: 'O limite depende do plano escolhido, mas nossa arquitetura é feita para suportar desde poucas dezenas até centenas de clientes e contratos separadamente.' },
+                 { q: 'Posso configurar SLA para diferentes urgências?', a: 'Sim. A plataforma permite determinar os tempos exatos para primeira resposta e resolução conforme a prioridade (Baixa, Média, Alta, Urgente).' },
+                 { q: 'As métricas e relatórios estão disponíveis a qualquer momento?', a: 'Exato. O Dashboard é atualizado em tempo real com informações operacionais, sem necessidade de extrações manuais cansativas.' },
+                 { q: 'O formulário de contato do site público já envia e-mail ao time?', a: 'O formulário público atual está preparado e estruturado para implementação do envio automático em breve. Por enquanto, a melhor via de contato comercial oficial é enviando e-mail diretamente para contato@gestifique.com.br.' },
+               ].map((faq, idx) => (
+                 <div key={idx} className="p-6 bg-slate-50 border border-slate-100 rounded-xl">
+                   <h4 className="text-[15px] font-bold text-slate-900 flex items-center gap-2 mb-2">
+                     <HelpCircle size={18} className="text-blue-600" /> {faq.q}
+                   </h4>
+                   <p className="text-sm text-slate-600 font-medium leading-relaxed pl-6">{faq.a}</p>
+                 </div>
+               ))}
+            </div>
+         </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="py-24 px-6 bg-blue-600 text-white text-center">
+         <div className="max-w-2xl mx-auto space-y-8">
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Pronto para transformar seu atendimento em processo?</h2>
+            <p className="text-blue-100 text-lg font-medium">Deixe as planilhas no passado. Fale conosco e entenda como implantar o Gestifique na sua operação em dias, não meses.</p>
+            <div className="pt-4 flex justify-center">
               <button 
                  onClick={() => onNavigate('/contato')}
-                 className="h-10 px-8 bg-blue-600 text-white text-[13px] font-semibold rounded-lg hover:bg-blue-700 transition-all shadow-sm"
+                 className="h-14 px-8 bg-white text-blue-600 text-[15px] font-bold rounded-lg hover:bg-slate-50 transition-all shadow-xl flex items-center justify-center gap-2"
                >
-                 Falar com o time
+                 Solicitar uma demonstração <ArrowRight size={18} />
                </button>
             </div>
          </div>
@@ -123,3 +280,4 @@ export const PublicHomePage = ({ onNavigate, onLogin }: PublicHomePageProps) => 
     </div>
   );
 };
+

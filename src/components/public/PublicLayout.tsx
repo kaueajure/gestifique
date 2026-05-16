@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AppLogo } from '../ui/Logo';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Mail } from 'lucide-react';
 
 interface PublicLayoutProps {
   children: React.ReactNode;
@@ -121,33 +121,45 @@ export const PublicLayout = ({ children, onLogin, currentPath, onNavigate }: Pub
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 pt-16 flex flex-col">
+      <main className="flex-1 pt-16 flex flex-col bg-white">
         {children}
       </main>
 
       {/* Footer */}
       <footer className="py-12 px-6 border-t border-slate-100 bg-slate-50 mt-auto">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex flex-col items-center md:items-start gap-2">
-            <div className="flex items-center gap-2 grayscale opacity-80">
-              <AppLogo size={20} />
-              <span className="font-bold text-slate-800 tracking-tight">Gestifique</span>
+        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+          <div className="flex flex-col items-start gap-4">
+            <div className="flex items-center gap-2 grayscale-0">
+              <AppLogo size={24} />
+              <span className="font-bold text-slate-900 tracking-tight text-lg">Gestifique</span>
             </div>
-            <p className="text-xs font-medium text-slate-500">
-              Plataforma B2B para gestão eficiente de tickets.
+            <p className="text-sm font-medium text-slate-500 leading-relaxed max-w-xs">
+              Sua operação mais estruturada. A plataforma enxuta para centralizar tickets B2B e SLA.
             </p>
           </div>
-          <div className="flex items-center gap-6 text-xs font-semibold text-slate-500">
-             <a href="/funcionalidades" onClick={(e) => handleNavClick(e, '/funcionalidades')} className="hover:text-blue-600 transition-colors">Funcionalidades</a>
-             <a href="/precos" onClick={(e) => handleNavClick(e, '/precos')} className="hover:text-blue-600 transition-colors">Preços</a>
-             <a href="/contato" onClick={(e) => handleNavClick(e, '/contato')} className="hover:text-blue-600 transition-colors">Contato</a>
+          
+          <div className="flex flex-col gap-3">
+             <h4 className="text-[13px] font-bold text-slate-900 uppercase tracking-wider mb-2">Para Clientes</h4>
+             <a href="/funcionalidades" onClick={(e) => handleNavClick(e, '/funcionalidades')} className="text-sm text-slate-500 hover:text-blue-600 transition-colors inline-block w-fit">Funcionalidades</a>
+             <a href="/precos" onClick={(e) => handleNavClick(e, '/precos')} className="text-sm text-slate-500 hover:text-blue-600 transition-colors inline-block w-fit">Preços</a>
+             <button onClick={onLogin} className="text-sm text-slate-500 hover:text-blue-600 transition-colors text-left w-fit cursor-pointer">Login (Portal e Atendente)</button>
+          </div>
+
+          <div className="flex flex-col gap-3">
+             <h4 className="text-[13px] font-bold text-slate-900 uppercase tracking-wider mb-2">Comercial</h4>
+             <a href="/contato" onClick={(e) => handleNavClick(e, '/contato')} className="text-sm text-slate-500 hover:text-blue-600 transition-colors inline-block w-fit">Agendar Demonstração</a>
+             <div className="flex items-center gap-2 text-sm text-slate-500 mt-2">
+                <Mail size={16} className="text-slate-400" />
+                <span>contato@gestifique.com.br</span>
+             </div>
           </div>
         </div>
-        <div className="max-w-6xl mx-auto mt-8 pt-6 border-t border-slate-200/60 text-center md:text-left flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-[11px] font-medium text-slate-400">© {new Date().getFullYear()} Gestifique. Todos os direitos reservados.</p>
-          <div className="flex items-center gap-4 text-[11px] font-medium text-slate-400">
-            <a href="#" className="hover:text-slate-600 transition-colors">Termos</a>
-            <a href="#" className="hover:text-slate-600 transition-colors">Privacidade</a>
+
+        <div className="max-w-6xl mx-auto pt-6 border-t border-slate-200 text-center md:text-left flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-[12px] font-semibold text-slate-400">© {new Date().getFullYear()} Gestifique. Todos os direitos reservados.</p>
+          <div className="flex items-center gap-6 text-[12px] font-semibold text-slate-400">
+            <span className="hover:text-slate-600 transition-colors cursor-pointer">Termos de Uso</span>
+            <span className="hover:text-slate-600 transition-colors cursor-pointer">Privacidade</span>
           </div>
         </div>
       </footer>

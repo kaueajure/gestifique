@@ -1,69 +1,157 @@
 import React from 'react';
-import { Ticket, Clock, Users, ShieldCheck, History, MessagesSquare, LayoutDashboard, Database, RefreshCw, Layers, Bell, CheckCircle2 } from 'lucide-react';
+import { Ticket, Clock, Users, ShieldCheck, History, MessagesSquare, LayoutDashboard, Database, RefreshCw, Layers, Bell, CheckCircle2, MessageSquare, Briefcase, Zap, PieChart, Activity, FolderOpen } from 'lucide-react';
 
 interface PublicFeaturesPageProps {
   onNavigate: (path: string) => void;
 }
 
 export const PublicFeaturesPage = ({ onNavigate }: PublicFeaturesPageProps) => {
-  const features = [
-    { icon: Ticket, title: 'Gestão Inteligente de Tickets', desc: 'Estruturação por status, prioridades, e status operacional contínuo.' },
-    { icon: Clock, title: 'Monitoramento de SLA', desc: 'Acompanhe metas de primeira resposta e tempo de resolução geral.' },
-    { icon: ShieldCheck, title: 'Permissões por Nível', desc: 'Administradores, Atendentes e Clientes com acessos baseados em função.' },
-    { icon: MessagesSquare, title: 'Comunicação Interna', desc: 'Notas e anexos visíveis somente para sua equipe técnica.' },
-    { icon: Users, title: 'Portal do Cliente', desc: 'Um ambiente exclusivo para os clientes acompanharem os chamados.' },
-    { icon: Database, title: 'Base de Conhecimento', desc: 'Documentação integrada e FAQ acessível na plataforma.' },
-    { icon: History, title: 'Histórico & Auditoria', desc: 'Acompanhamento total de mudanças e interações de cada ticket.' },
-    { icon: LayoutDashboard, title: 'Dashboard Gerencial', desc: 'Painel em tempo real da saúde da operação.' },
-    { icon: CheckCircle2, title: 'Respostas Prontas', desc: 'Catálogo de macros para respostas comuns.' },
-    { icon: Layers, title: 'Campos Personalizados', desc: 'Enriqueça o ticket com dados vitais da operação.' },
-    { icon: Bell, title: 'Notificações', desc: 'Alertas e badges atualizados instantaneamente.' },
-    { icon: RefreshCw, title: 'Status Moderno', desc: 'Fluxos desenhados para a realidade de suporte B2B.' },
+  const modules = [
+    {
+      title: "Gestão de Tickets",
+      desc: "O motor da sua operação de atendimento.",
+      icon: Ticket,
+      features: [
+        { title: "Criação Estruturada", desc: "Abertura de chamados com tipificação clara e campos obrigatórios para evitar idas e vindas de informações." },
+        { title: "Status e Workflow", desc: "Fluxos de status (Aberto, Em Atendimento, Pendente Cliente, Resolvido) que refletem a vida real." },
+        { title: "Prioridade Dinâmica", desc: "Classifique a urgência para guiar o trabalho da equipe." },
+        { title: "Definição de Responsável", desc: "Fim do 'de quem é?'. Todo ticket tem um dono claro." }
+      ]
+    },
+    {
+      title: "Operação e Produtividade",
+      desc: "Ferramentas para o atendente trabalhar rápido.",
+      icon: Zap,
+      features: [
+        { title: "Painel do Atendente", desc: "Caixa de entrada centralizada: o que precisa ser feito hoje, sem distrações." },
+        { title: "Comentários Internos", desc: "Discuta o ticket com a equipe técnica sem que o cliente veja a conversa de bastidor." },
+        { title: "Respostas Prontas", desc: "Catálogo de respostas padrão (Macros) para incidentes comuns. Um clique, problema explicado." },
+        { title: "Histórico Completo", desc: "Auditoria inquebrável. Saiba quem mudou o status, quando respondeu e quem assumiu o ticket." }
+      ]
+    },
+    {
+      title: "SLA e Controle",
+      desc: "Garantia de que o combinado será entregue.",
+      icon: Clock,
+      features: [
+        { title: "Prazo de Primeira Resposta", desc: "Garante que o cliente não fique no vácuo logo após abrir a solicitação." },
+        { title: "Prazo de Resolução", desc: "Controle rígido do tempo aceitável para entregar a solução definitiva." },
+        { title: "Alertas Visuais", desc: "Tickets prestes a estourar mudam de cor para chamar a atenção imediata da equipe." },
+        { title: "Pausa no Relógio", desc: "Se depender do cliente (ex: aguardando retorno), o relógio do SLA pausa automaticamente." }
+      ]
+    },
+    {
+      title: "Cliente e Conhecimento",
+      desc: "Empodere o cliente e reduza volume.",
+      icon: Users,
+      features: [
+        { title: "Portal do Cliente (B2B)", desc: "Seus clientes fazem login e veem exatamente o status das demandas, sem precisar mandar e-mail/WhatsApp." },
+        { title: "Base de Conhecimento", desc: "Artigos práticos integrados ao portal para autoatendimento ('Como resetar senha', etc)." },
+        { title: "Pesquisa de Satisfação", desc: "Envio automático de CSAT quando o ticket é resolvido. Avalie o atendimento (1 a 5 estrelas)." },
+        { title: "Acesso Simplificado", desc: "O formulário já abre pré-preenchido logado na conta do cliente." }
+      ]
+    },
+    {
+      title: "Gestão e Relatórios",
+      desc: "Visibilidade em tempo real para os líderes.",
+      icon: PieChart,
+      features: [
+        { title: "Dashboard Real-time", desc: "Visão imediata do dia: tickets abertos, atrasados e taxa de resolução atual." },
+        { title: "Indicadores de Desempenho", desc: "Saiba quais categorias geram mais demanda e onde a equipe gasta mais tempo." },
+        { title: "Métricas Individuais", desc: "Analise a produtividade e a saúde do SLA filtrado por cada atendente." },
+        { title: "Permissões de Acesso", desc: "Visão segmentada. O cliente só vê o que é dele, atendente o que opera e o gestor vê tudo." }
+      ]
+    }
   ];
 
   return (
-    <div className="flex flex-col pb-20">
+    <div className="flex flex-col bg-slate-50 min-h-screen">
       {/* Header */}
-      <section className="pt-20 pb-12 px-6 bg-slate-50 border-b border-slate-100">
-        <div className="max-w-3xl mx-auto text-center space-y-4">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-            Funcionalidades para organizar seu atendimento
+      <section className="pt-24 pb-16 px-6 bg-slate-900 border-b border-slate-800 text-white">
+        <div className="max-w-3xl mx-auto text-center space-y-6">
+          <h1 className="text-4xl lg:text-5xl font-bold tracking-tight">
+            Tudo que sua equipe precisa para atender melhor.
           </h1>
-          <p className="text-[15px] font-medium text-slate-500 leading-relaxed">
-            Sem excesso de botões. Apenas os recursos necessários para que sua equipe seja ágil e seu cliente bem atendido.
+          <p className="text-lg font-medium text-slate-400 leading-relaxed">
+            Do primeiro contato até a resolução, o Gestifique organiza cada etapa do atendimento sem a poluição visual de sistemas antigos.
           </p>
         </div>
       </section>
 
-      {/* Grid */}
-      <section className="py-16 px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {features.map((feature, i) => (
-              <div 
-                key={i}
-                className="p-5 bg-white border border-slate-200 rounded-xl hover:border-blue-300 transition-colors shadow-sm"
-              >
-                <div className="w-8 h-8 bg-slate-50 text-slate-500 rounded-lg flex items-center justify-center mb-3">
-                  <feature.icon size={16} />
-                </div>
-                <h3 className="text-sm font-bold mb-1.5">{feature.title}</h3>
-                <p className="text-[13px] font-medium text-slate-500 leading-relaxed">{feature.desc}</p>
-              </div>
-            ))}
-          </div>
+      {/* Modules */}
+      <section className="py-20 px-6">
+        <div className="max-w-5xl mx-auto space-y-24">
+          {modules.map((module, i) => (
+            <div key={i} className="scroll-mt-24 space-y-8">
+               <div className="flex items-center gap-4 border-b border-slate-200 pb-4">
+                  <div className="w-12 h-12 bg-blue-100 rounded-xl text-blue-700 flex items-center justify-center">
+                    <module.icon size={24} />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-slate-900">{module.title}</h2>
+                    <p className="text-sm font-medium text-slate-500 mt-1">{module.desc}</p>
+                  </div>
+               </div>
+
+               <div className="grid md:grid-cols-2 gap-6 pt-4">
+                 {module.features.map((feat, j) => (
+                   <div key={j} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                      <h3 className="text-[15px] font-bold text-slate-900 mb-2 flex items-center gap-2">
+                        <CheckCircle2 size={16} className="text-emerald-500" /> {feat.title}
+                      </h3>
+                      <p className="text-sm text-slate-600 font-medium leading-relaxed">{feat.desc}</p>
+                   </div>
+                 ))}
+               </div>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* CTA Final */}
-      <section className="pt-10 px-6 text-center">
-         <h2 className="text-lg font-bold mb-4">Veja como essas ferramentas se encaixam no seu negócio</h2>
-         <button 
-           onClick={() => onNavigate('/contato')}
-           className="h-9 px-6 bg-blue-600 text-white text-[13px] font-semibold rounded-lg hover:bg-blue-700 transition-all shadow-sm"
-         >
-           Falar com o time
-         </button>
+      {/* Como muda o dia a dia */}
+      <section className="py-20 px-6 bg-white border-y border-slate-200">
+         <div className="max-w-5xl mx-auto">
+            <h2 className="text-2xl font-bold text-center text-slate-900 tracking-tight mb-12">Como isso muda o dia a dia da operação?</h2>
+            <div className="grid md:grid-cols-3 gap-8">
+               <div className="text-center space-y-3 p-6">
+                  <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-4">
+                    <Users size={20} />
+                  </div>
+                  <h3 className="font-bold text-slate-900 text-lg">Para o Atendente</h3>
+                  <p className="text-sm text-slate-500 font-medium leading-relaxed">Ele sabe o que precisa ser feito primeiro. A cor do SLA dita a prioridade, e ele não perde tempo procurando histórico em e-mails.</p>
+               </div>
+               <div className="text-center space-y-3 p-6">
+                  <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-4">
+                    <Activity size={20} />
+                  </div>
+                  <h3 className="font-bold text-slate-900 text-lg">Para o Gestor</h3>
+                  <p className="text-sm text-slate-500 font-medium leading-relaxed">Fim do achismo. Ele sabe exatamente quantos chamados caíram na semana, onde estão os gargalos e quem é o melhor atendente.</p>
+               </div>
+               <div className="text-center space-y-3 p-6">
+                  <div className="w-12 h-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mx-auto mb-4">
+                    <ShieldCheck size={20} />
+                  </div>
+                  <h3 className="font-bold text-slate-900 text-lg">Para o Cliente</h3>
+                  <p className="text-sm text-slate-500 font-medium leading-relaxed">Transparência total. Ele acompanha o andamento em tempo real e se sente seguro de que nada foi esquecido.</p>
+               </div>
+            </div>
+         </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="py-24 px-6 text-center bg-slate-50">
+         <div className="max-w-2xl mx-auto space-y-6">
+           <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Parece com o que você procura?</h2>
+           <p className="text-sm text-slate-500 font-medium">Veja essas funcionalidades operando ao vivo em nossa demonstração.</p>
+           <div className="pt-4">
+             <button 
+               onClick={() => onNavigate('/contato')}
+               className="h-12 px-8 bg-blue-600 text-white text-[14px] font-bold rounded-lg hover:bg-blue-700 transition-all shadow-md"
+             >
+               Solicitar demonstração guiada
+             </button>
+           </div>
+         </div>
       </section>
     </div>
   );
