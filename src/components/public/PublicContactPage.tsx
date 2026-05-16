@@ -36,14 +36,19 @@ export const PublicContactPage = () => {
                    <CheckCircle size={24} />
                  </div>
                  <div>
-                   <h3 className="text-xl font-bold text-slate-900 mb-2">Intenção de contato registrada</h3>
+                   <h3 className="text-xl font-bold text-slate-900 mb-2">Informações organizadas!</h3>
                    <p className="text-sm font-medium text-slate-500 max-w-md mx-auto">
-                     Agradecemos o seu interesse. O formulário público ainda não possui envio automático. Sua intenção de contato foi registrada localmente. Por favor, envie um e-mail para <span className="font-bold">contato@gestifique.com.br</span>.
+                     Agrupamos suas informações. Como a integração automática ainda não está ativa, clique no botão abaixo para nos enviar um e-mail com sua solicitação de demonstração.
                    </p>
                  </div>
-                 <Button onClick={() => setSent(false)} variant="outline" className="mt-4 h-10 px-6">
-                   Enviar nova mensagem
-                 </Button>
+                 <div className="flex flex-col gap-3 max-w-xs mx-auto w-full mt-4">
+                     <a href="mailto:contato@gestifique.com.br?subject=Demonstração%20Gestifique" className="h-11 flex items-center justify-center bg-blue-600 text-white rounded-lg font-bold text-[14px] shadow-sm hover:bg-blue-700 transition-all">
+                       Enviar e-mail para contato
+                     </a>
+                     <Button onClick={() => setSent(false)} variant="outline" className="h-11 w-full">
+                       Preencher novamente
+                     </Button>
+                 </div>
                </div>
              ) : (
                <form onSubmit={handleSubmit} className="space-y-4">

@@ -158,8 +158,8 @@ export const PublicLayout = ({ children, onLogin, currentPath, onNavigate }: Pub
         <div className="max-w-6xl mx-auto pt-6 border-t border-slate-200 text-center md:text-left flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-[12px] font-semibold text-slate-400">© {new Date().getFullYear()} Gestifique. Todos os direitos reservados.</p>
           <div className="flex items-center gap-6 text-[12px] font-semibold text-slate-400">
-            <span className="hover:text-slate-600 transition-colors cursor-pointer">Termos de Uso</span>
-            <span className="hover:text-slate-600 transition-colors cursor-pointer">Privacidade</span>
+            <span>Termos de Uso</span>
+            <span>Privacidade em breve</span>
           </div>
         </div>
       </footer>

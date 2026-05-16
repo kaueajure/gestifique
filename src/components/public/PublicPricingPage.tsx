@@ -123,7 +123,7 @@ export const PublicPricingPage = ({ onNavigate }: PublicPricingPageProps) => {
                 "Volume mensal de atendimentos",
                 "Multi-empresas e marcas",
                 "Necessidade rigorosa de SLA",
-                "Uso de Portal do Cliente VIP",
+                "Portal do Cliente para operações B2B",
                 "Treinamento de Implantação"
               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-3 p-4 bg-slate-50 rounded-lg border border-slate-100">

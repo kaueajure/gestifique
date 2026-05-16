@@ -38,7 +38,11 @@ export const PublicSite = ({ onLogin }: PublicSiteProps) => {
       case '/contato':
         return <PublicContactPage />;
       default:
-        // Se a rota não for encontrada, cai na home, mas não altera a URL.
+        // Redireciona rota inválida para home
+        window.history.replaceState({}, '', '/');
+        if (currentPath !== '/') {
+           setTimeout(() => setCurrentPath('/'), 0);
+        }
         return <PublicHomePage onNavigate={navigate} />;
     }
   };

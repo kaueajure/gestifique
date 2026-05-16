@@ -36,7 +36,7 @@ export const PublicFeaturesPage = ({ onNavigate }: PublicFeaturesPageProps) => {
       features: [
         { title: "Prazo de Primeira Resposta", desc: "Garante que o cliente não fique no vácuo logo após abrir a solicitação." },
         { title: "Prazo de Resolução", desc: "Controle rígido do tempo aceitável para entregar a solução definitiva." },
-        { title: "Alertas Visuais", desc: "Tickets prestes a estourar mudam de cor para chamar a atenção imediata da equipe." },
+        { title: "Foco no que Importa", desc: "Tickets críticos ganham destaque visual para orientar a equipe." },
         { title: "Controle de Prazos", desc: "O acompanhamento de SLA considera o status atual do chamado e ajuda a priorizar tickets críticos." }
       ]
     },
@@ -47,7 +47,7 @@ export const PublicFeaturesPage = ({ onNavigate }: PublicFeaturesPageProps) => {
       features: [
         { title: "Portal do Cliente (B2B)", desc: "Seus clientes fazem login e veem exatamente o status das demandas, sem precisar mandar e-mail/WhatsApp." },
         { title: "Base de Conhecimento", desc: "Artigos práticos integrados ao portal para autoatendimento ('Como resetar senha', etc)." },
-        { title: "Pesquisa de Satisfação", desc: "Pesquisa de satisfação após resolução. Avalie o atendimento (1 a 5 estrelas)." },
+        { title: "Pesquisa de Satisfação", desc: "Pesquisa de satisfação vinculada ao encerramento do atendimento." },
         { title: "Acesso pelo Portal", desc: "O cliente acessa o portal para abrir e acompanhar chamados de forma estruturada." }
       ]
     },
@@ -142,7 +142,7 @@ export const PublicFeaturesPage = ({ onNavigate }: PublicFeaturesPageProps) => {
       <section className="py-16 px-6 bg-white border-t border-slate-100 text-center">
          <div className="max-w-2xl mx-auto space-y-6">
            <h2 className="text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">Parece com o que você procura?</h2>
-           <p className="text-slate-500 text-base lg:text-lg font-medium">Veja essas funcionalidades operando em nosso sistema de demonstração.</p>
+           <p className="text-slate-500 text-base lg:text-lg font-medium">Veja essas funcionalidades em uma demonstração guiada.</p>
            <div className="pt-2 flex justify-center">
              <button 
                onClick={() => onNavigate('/contato')}

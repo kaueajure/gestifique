@@ -49,7 +49,7 @@ export const PublicHomePage = ({ onNavigate }: PublicHomePageProps) => {
                   <div className="w-2.5 h-2.5 rounded-full bg-red-400"></div>
                   <div className="w-2.5 h-2.5 rounded-full bg-amber-400"></div>
                   <div className="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
-                  <div className="ml-4 h-5 w-48 bg-white/10 rounded text-[10px] flex items-center px-2 text-white/50 font-mono">gestifique.app</div>
+                  <div className="ml-4 h-5 w-48 bg-white/10 rounded text-[10px] flex items-center px-2 text-white/50 font-mono">app.gestifique.com.br</div>
                </div>
                <div className="flex-1 p-5 bg-slate-50">
                   <div className="flex items-center justify-between mb-5">
