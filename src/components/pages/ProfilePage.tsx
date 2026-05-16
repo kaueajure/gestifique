@@ -113,8 +113,8 @@ export const ProfilePage = ({ currentUser, onUpdate }: ProfilePageProps) => {
            </Card>
 
            <Card className="p-4 bg-white border-slate-200 shadow-sm text-slate-800">
-              <h4 className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest flex items-center gap-2 mb-3">
-                 <Building2 size={12} className="text-blue-500" /> Empresa
+              <h4 className="text-xs font-semibold text-slate-700 flex items-center gap-2 mb-3">
+                 <Building2 size={14} className="text-blue-500" /> Empresa
               </h4>
               <div className="flex items-center gap-3">
                  <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
@@ -130,7 +130,7 @@ export const ProfilePage = ({ currentUser, onUpdate }: ProfilePageProps) => {
               </div>
               <div className="mt-4 pt-3 border-t border-slate-100 grid grid-cols-2 gap-3">
                  <div className="space-y-0.5">
-                    <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">ID Membro</span>
+                    <span className="text-[10px] font-medium text-slate-500 uppercase">ID Membro</span>
                     <div className="text-xs font-mono font-medium text-slate-700">#{currentUser.id?.toString().padStart(4, '0')}</div>
                  </div>
               </div>

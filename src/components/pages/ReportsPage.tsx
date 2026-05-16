@@ -519,8 +519,8 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                 </div>
                 <div className="flex flex-col justify-center space-y-4">
                   <div className="text-center md:text-left">
-                     <div className="text-3xl font-black text-slate-900">{data.csat.average}</div>
-                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Média Geral</div>
+                     <div className="text-3xl font-bold text-slate-900">{data.csat.average}</div>
+                     <div className="text-xs font-semibold text-slate-500 mb-2">Média Geral</div>
                      <div className="flex justify-center md:justify-start gap-1">
                         {[1, 2, 3, 4, 5].map(star => (
                           <div 
@@ -530,11 +530,11 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                         ))}
                      </div>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     {data.csat.score_distribution.slice(0, 3).map((item, idx) => (
                       <div key={idx} className="flex items-center justify-between">
-                         <span className="text-[10px] font-bold text-slate-500 uppercase">{item.name}</span>
-                         <span className="text-xs font-black text-slate-700">{item.value}</span>
+                         <span className="text-xs text-slate-500">{item.name}</span>
+                         <span className="text-xs font-semibold text-slate-900">{item.value}</span>
                       </div>
                     ))}
                   </div>

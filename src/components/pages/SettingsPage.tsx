@@ -454,8 +454,8 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
                               <Database size={16} />
                            </div>
                            <div>
-                              <div className="text-sm font-bold">Banco de Dados</div>
-                              <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Conexão principal</div>
+                              <div className="text-sm font-semibold">Banco de Dados</div>
+                              <div className="text-[10px] font-semibold text-slate-500 uppercase">Conexão principal</div>
                            </div>
                            <div className="space-y-2">
                              <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
@@ -490,8 +490,8 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
                              </div>
                            </div>
                            <div>
-                              <div className="text-sm font-bold text-slate-900">API do Sistema</div>
-                              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">{healthData.system.environment}</div>
+                              <div className="text-sm font-semibold text-slate-900">API do Sistema</div>
+                              <div className="text-[10px] font-semibold text-slate-400 uppercase">{healthData.system.environment}</div>
                            </div>
                            <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
                               <Badge 
@@ -517,8 +517,8 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
                              </div>
                            </div>
                            <div>
-                              <div className="text-sm font-bold text-slate-900">Camada de Segurança</div>
-                              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
+                              <div className="text-sm font-semibold text-slate-900">Camada de Segurança</div>
+                              <div className="text-[10px] font-semibold text-slate-400 uppercase">
                                 {healthData.security.auth ? 'Autenticação Ativa' : 'Autenticação Mista'}
                               </div>
                            </div>

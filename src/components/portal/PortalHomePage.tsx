@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PortalTab } from './PortalLayout';
 import { Card } from '../ui/Card';
-import { Ticket, PlusCircle, Search, Clock, CheckCircle2, ArrowRight, BookOpen, FileText, HelpCircle } from 'lucide-react';
+import { Ticket, PlusCircle, Search, Clock, CheckCircle2, ArrowRight, FileText } from 'lucide-react';
 import { api } from '../../lib/api';
 
 interface PortalHomePageProps {

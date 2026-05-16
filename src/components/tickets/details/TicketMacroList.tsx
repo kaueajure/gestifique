@@ -63,12 +63,12 @@ export const TicketMacroList = ({ ticket, currentUser, onSelect, onClose }: Tick
   const canManage = currentUser.administrador || currentUser.desenvolvedor;
 
   return (
-    <div className="flex flex-col h-[400px] w-[340px] bg-white shadow-2xl rounded-2xl border border-slate-200 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
-      <div className="p-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
-          <MessageSquare size={13} className="text-blue-500" /> Respostas Prontas
+    <div className="flex flex-col h-[400px] w-[340px] bg-white shadow-lg rounded-xl border border-slate-200 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
+      <div className="p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <h3 className="text-xs font-semibold text-slate-700 flex items-center gap-2">
+          <MessageSquare size={14} className="text-blue-500" /> Respostas Prontas
         </h3>
-        <button onClick={onClose} className="p-1.5 hover:bg-slate-200/50 rounded-lg text-slate-400 transition-colors">
+        <button onClick={onClose} className="p-1.5 hover:bg-slate-200 rounded-md text-slate-400 transition-colors">
           <X size={16} />
         </button>
       </div>
@@ -80,7 +80,7 @@ export const TicketMacroList = ({ ticket, currentUser, onSelect, onClose }: Tick
             autoFocus
             type="text" 
             placeholder="Buscar por título, categoria ou conteúdo..." 
-            className="w-full h-9 pl-9 pr-3 text-[11px] bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all font-medium text-slate-700"
+            className="w-full h-8 pl-9 pr-3 text-xs bg-slate-50 border border-slate-200 rounded-md outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all text-slate-900"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -91,14 +91,14 @@ export const TicketMacroList = ({ ticket, currentUser, onSelect, onClose }: Tick
         {loading ? (
           <div className="h-full flex flex-col items-center justify-center gap-2">
             <Loader2 size={24} className="text-blue-500 animate-spin" />
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Carregando...</span>
+            <span className="text-xs font-medium text-slate-500">Carregando...</span>
           </div>
         ) : filteredMacros.length > 0 ? (
           <div className="space-y-4 py-1">
             {(Object.entries(groupedMacros) as [string, TicketMacro[]][]).map(([category, items]) => (
               <div key={category} className="space-y-1">
                 <div className="px-2 pb-1">
-                  <span className="text-[9px] font-black uppercase tracking-[0.1em] text-blue-500/60 bg-blue-50 px-1.5 py-0.5 rounded">
+                  <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md">
                     {category}
                   </span>
                 </div>
@@ -107,12 +107,12 @@ export const TicketMacroList = ({ ticket, currentUser, onSelect, onClose }: Tick
                     <button
                       key={macro.id}
                       onClick={() => handleSelect(macro)}
-                      className="w-full text-left p-3 hover:bg-slate-50 rounded-xl transition-all group border border-transparent hover:border-slate-100 active:scale-[0.98]"
+                      className="w-full text-left p-2.5 hover:bg-slate-50 rounded-lg transition-all group border border-transparent hover:border-slate-100"
                     >
-                      <div className="font-bold text-[12px] text-slate-800 mb-0.5 group-hover:text-blue-700 transition-colors">
+                      <div className="font-semibold text-sm text-slate-900 mb-0.5 group-hover:text-blue-700 transition-colors">
                         {macro.titulo}
                       </div>
-                      <div className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed font-medium">
+                      <div className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
                         {macro.conteudo}
                       </div>
                     </button>
@@ -123,23 +123,23 @@ export const TicketMacroList = ({ ticket, currentUser, onSelect, onClose }: Tick
           </div>
         ) : (
           <div className="h-full flex flex-col items-center justify-center p-8 text-center">
-            <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center mb-3">
-              <MessageSquare size={24} className="text-slate-200" />
+            <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3">
+              <MessageSquare size={24} className="text-slate-300" />
             </div>
-            <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Nada encontrado</p>
-            <p className="text-[10px] font-medium text-slate-400 mt-1">Experimente outros termos</p>
+            <p className="text-sm font-semibold text-slate-700">Nada encontrado</p>
+            <p className="text-xs text-slate-500 mt-1">Experimente outros termos</p>
           </div>
         )}
       </div>
 
       <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">
-          {macros.length} Respostas cadastradas
+        <span className="text-xs text-slate-500 font-medium">
+          {macros.length} {macros.length === 1 ? 'Resposta' : 'Respostas'}
         </span>
         {canManage && (
           <button 
             type="button"
-            className="text-[9px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-700 underline underline-offset-2"
+            className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors"
           >
             Gerenciar
           </button>

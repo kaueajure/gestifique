@@ -258,18 +258,18 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
     return (
       <div className="h-[70vh] flex flex-col items-center justify-center space-y-3">
         <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-        <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest">Carregando...</p>
+        <p className="text-slate-500 font-medium text-xs">Carregando...</p>
       </div>
     );
   }
 
   if (error || !ticket) {
     return (
-      <Card className="p-10 border-red-100 bg-red-50/30 flex flex-col items-center justify-center text-center rounded-xl">
-         <AlertCircle className="w-12 h-12 text-red-500 mb-3" />
-         <h2 className="text-lg font-bold text-slate-900 mb-1">Atendimento não encontrado</h2>
-         <p className="text-slate-500 font-medium text-sm mb-6 max-w-sm">{error || 'O atendimento solicitado pode ter sido removido ou você não tem acesso.'}</p>
-         <Button onClick={onBack} size="sm">Voltar para a Lista</Button>
+      <Card className="p-8 border-red-100 bg-red-50/50 flex flex-col items-center justify-center text-center rounded-xl">
+         <AlertCircle className="w-10 h-10 text-red-500 mb-2" />
+         <h2 className="text-base font-semibold text-slate-900 mb-1">Atendimento não encontrado</h2>
+         <p className="text-slate-600 font-medium text-sm mb-5 max-w-sm">{error || 'O atendimento solicitado pode ter sido removido ou você não tem acesso.'}</p>
+         <Button onClick={onBack} size="sm" variant="outline" className="font-medium h-9">Voltar para a Lista</Button>
       </Card>
     );
   }

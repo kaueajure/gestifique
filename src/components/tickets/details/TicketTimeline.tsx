@@ -57,23 +57,23 @@ const getEventColor = (type: string) => {
 export const TicketTimeline = ({ timeline, loading }: TicketTimelineProps) => {
   if (loading) {
     return (
-      <div className="py-20 flex flex-col items-center justify-center space-y-4">
-        <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center">
-           <RefreshCw size={24} className="text-blue-500 animate-spin" />
+      <div className="py-8 flex flex-col items-center justify-center space-y-3">
+        <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+           <RefreshCw size={20} className="text-blue-500 animate-spin" />
         </div>
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Carregando histórico...</p>
+        <p className="text-xs font-semibold text-slate-500">Carregando histórico...</p>
       </div>
     );
   }
 
   if (!timeline || timeline.length === 0) {
     return (
-      <div className="py-20 text-center flex flex-col items-center">
-        <div className="w-16 h-16 bg-slate-50 text-slate-200 rounded-[2rem] flex items-center justify-center mb-6 border border-slate-100 shadow-sm">
-          <History size={32} />
+      <div className="py-8 text-center flex flex-col items-center">
+        <div className="w-12 h-12 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mb-3 border border-slate-100 shadow-sm">
+          <History size={24} />
         </div>
-        <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-1">Timeline Vazia</h4>
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Nenhuma atividade registrada neste ticket.</p>
+        <h4 className="text-sm font-semibold text-slate-900 mb-1">Timeline Vazia</h4>
+        <p className="text-xs text-slate-500">Nenhuma atividade registrada.</p>
       </div>
     );
   }

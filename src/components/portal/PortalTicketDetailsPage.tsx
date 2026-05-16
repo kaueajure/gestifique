@@ -3,7 +3,7 @@ import { api } from '../../lib/api';
 import { Badge } from '../ui/Badge';
 import { User } from '../../types';
 import { Button } from '../ui/Button';
-import { ArrowLeft, Send, Loader2, Paperclip, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '../../lib/utils';
