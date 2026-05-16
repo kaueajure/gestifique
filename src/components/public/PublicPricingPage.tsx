@@ -51,7 +51,7 @@ export const PublicPricingPage = ({ onNavigate }: PublicPricingPageProps) => {
   return (
     <div className="flex flex-col bg-white">
       {/* Header */}
-      <section className="pt-20 pb-12 px-6 bg-white border-b border-slate-200 text-center">
+      <section className="pt-20 pb-16 px-6 bg-gradient-to-b from-slate-50 to-white border-b border-slate-100 text-center">
         <div className="max-w-3xl mx-auto space-y-6">
           <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-slate-900">
             Planos para diferentes fases da sua operação.
@@ -63,7 +63,7 @@ export const PublicPricingPage = ({ onNavigate }: PublicPricingPageProps) => {
       </section>
 
       {/* Pricing Grid */}
-      <section className="py-16 px-6 -mt-6 bg-slate-50 flex-1">
+      <section className="py-16 px-6 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-3 gap-6 items-stretch">
              {plans.map((plan, i) => (
@@ -113,7 +113,7 @@ export const PublicPricingPage = ({ onNavigate }: PublicPricingPageProps) => {
       </section>
 
       {/* O que influencia */}
-      <section className="py-16 px-6 bg-white border-y border-slate-200">
+      <section className="py-16 px-6 bg-slate-50 border-t border-slate-100">
          <div className="max-w-4xl mx-auto">
             <h2 className="text-2xl font-bold text-center text-slate-900 tracking-tight mb-10">O que influencia a proposta?</h2>
             
@@ -136,7 +136,7 @@ export const PublicPricingPage = ({ onNavigate }: PublicPricingPageProps) => {
       </section>
 
       {/* FAQ */}
-      <section className="py-16 px-6">
+      <section className="py-16 px-6 bg-white border-t border-slate-100">
          <div className="max-w-3xl mx-auto space-y-10">
             <div className="text-center space-y-4">
               <h2 className="text-2xl lg:text-3xl font-bold tracking-tight text-slate-900">Perguntas sobre Planos</h2>
@@ -150,9 +150,9 @@ export const PublicPricingPage = ({ onNavigate }: PublicPricingPageProps) => {
                  { q: 'O preço é estritamente por usuário?', a: 'Avaliamos o escopo técnico todo: volume esperado, necessidades, integrações se houverem. Tudo sob consulta.' },
                  { q: 'Posso solicitar demonstração antes de contratar?', a: 'Sim! É mandatório para que tenhamos plena certeza de que seremos a ferramenta correta para o momento de vocês.' },
                ].map((faq, idx) => (
-                 <div key={idx} className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
+                 <div key={idx} className="p-4 bg-slate-50 border border-slate-100 rounded-xl shadow-sm">
                    <h4 className="text-[14px] font-bold text-slate-900 flex items-center gap-2 mb-2">
-                     <HelpCircle size={16} className="text-slate-400" /> {faq.q}
+                     <HelpCircle size={16} className="text-blue-600" /> {faq.q}
                    </h4>
                    <p className="text-[13px] text-slate-600 font-medium leading-relaxed pl-6">{faq.a}</p>
                  </div>
@@ -162,14 +162,14 @@ export const PublicPricingPage = ({ onNavigate }: PublicPricingPageProps) => {
       </section>
 
       {/* Final CTA */}
-      <section className="py-16 px-6 bg-blue-600 text-white text-center">
+      <section className="py-16 px-6 bg-slate-50 border-t border-slate-100 text-center">
          <div className="max-w-2xl mx-auto space-y-6">
-           <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">Vamos montar sua proposta?</h2>
-           <p className="text-blue-100 text-base lg:text-lg font-medium">Converse com nossa equipe para entendermos seu cenário e desenharmos o plano ideal.</p>
+           <h2 className="text-2xl lg:text-3xl font-bold tracking-tight text-slate-900">Vamos montar sua proposta?</h2>
+           <p className="text-slate-500 text-base lg:text-lg font-medium">Converse com nossa equipe para entendermos seu cenário e desenharmos o plano ideal.</p>
            <div className="pt-2 flex justify-center">
              <button 
                onClick={() => onNavigate('/contato')}
-               className="h-11 px-6 bg-white text-blue-600 text-[14px] font-bold rounded-lg hover:bg-slate-50 transition-all shadow-md flex items-center justify-center gap-2"
+               className="h-11 px-6 bg-blue-600 text-white text-[14px] font-bold rounded-lg hover:bg-blue-700 transition-all shadow-sm flex items-center justify-center gap-2"
              >
                Falar com consultor agora <ArrowRight size={18} />
              </button>

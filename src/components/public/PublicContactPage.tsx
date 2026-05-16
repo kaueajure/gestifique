@@ -14,18 +14,18 @@ export const PublicContactPage = () => {
 
   return (
     <div className="flex flex-col bg-white">
-      <section className="pt-20 pb-12 px-6 bg-white border-b border-slate-200 text-center">
+      <section className="pt-20 pb-16 px-6 bg-gradient-to-b from-slate-50 to-white border-b border-slate-100 text-center">
         <div className="max-w-3xl mx-auto space-y-6">
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">
             Vamos entender sua operação de atendimento?
           </h1>
           <p className="text-base font-medium text-slate-500 leading-relaxed max-w-xl mx-auto">
-            Conte um pouco sobre sua equipe e retornaremos com uma sugestão de implantação guiada.
+            Conte um pouco sobre sua equipe. Enquanto a integração automática não está ativa, o contato comercial oficial é feito por <span className="font-bold">contato@gestifique.com.br</span>.
           </p>
         </div>
       </section>
 
-      <section className="py-20 px-6 -mt-8 bg-slate-50 flex-1">
+      <section className="py-16 px-6 bg-slate-50 flex-1">
         <div className="max-w-6xl mx-auto grid lg:grid-cols-[1fr_360px] gap-8">
           
           {/* Form */}
@@ -108,13 +108,13 @@ export const PublicContactPage = () => {
                 <div>
                    <h3 className="text-[15px] font-bold text-slate-900 mb-5">O que acontece depois?</h3>
                    <div className="space-y-5">
-                      <div className="flex items-start gap-4">
-                         <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm shrink-0">1</div>
-                         <div>
-                            <div className="text-[14px] font-bold text-slate-900">Entendemos a operação</div>
-                            <div className="text-[13px] text-slate-500 mt-1 leading-relaxed">Nossa equipe entrará em contato para mapear seus gargalos atuais.</div>
-                         </div>
-                      </div>
+                     <div className="flex items-start gap-4">
+                        <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm shrink-0">1</div>
+                        <div>
+                           <div className="text-[14px] font-bold text-slate-900">Você organiza sua solicitação</div>
+                           <div className="text-[13px] text-slate-500 mt-1 leading-relaxed">Você preenche o formulário e envia para nosso time pelo e-mail comercial.</div>
+                        </div>
+                     </div>
                       <div className="flex items-start gap-4">
                          <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm shrink-0">2</div>
                          <div>

@@ -3,10 +3,9 @@ import { ArrowRight, Ticket, Clock, CheckCircle2, ShieldCheck, Zap, Users, Layou
 
 interface PublicHomePageProps {
   onNavigate: (path: string) => void;
-  onLogin: () => void;
 }
 
-export const PublicHomePage = ({ onNavigate, onLogin }: PublicHomePageProps) => {
+export const PublicHomePage = ({ onNavigate }: PublicHomePageProps) => {
   return (
     <div className="flex flex-col bg-white">
       {/* Hero */}
@@ -100,11 +99,11 @@ export const PublicHomePage = ({ onNavigate, onLogin }: PublicHomePageProps) => 
       </section>
 
       {/* Pain Section */}
-      <section className="py-16 px-6 bg-slate-900 text-white">
+      <section className="py-16 px-6 bg-slate-50 border-t border-slate-100">
          <div className="max-w-6xl mx-auto space-y-10">
             <div className="text-center max-w-2xl mx-auto space-y-3">
-              <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">Quando o atendimento cresce, planilhas e mensagens soltas viram problema.</h2>
-              <p className="text-base lg:text-lg text-slate-300">Processos informais não escalam. Veja onde a operação costuma quebrar:</p>
+              <h2 className="text-2xl lg:text-3xl font-bold tracking-tight text-slate-900">Quando o atendimento cresce, planilhas e mensagens soltas viram problema.</h2>
+              <p className="text-base lg:text-lg text-slate-600">Processos informais não escalam. Veja onde a operação costuma quebrar:</p>
             </div>
             
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -114,10 +113,10 @@ export const PublicHomePage = ({ onNavigate, onLogin }: PublicHomePageProps) => 
                  { icon: ShieldCheck, title: "Cliente no escuro", desc: "Seu cliente B2B precisa perguntar toda hora sobre o status da solicitação." },
                  { icon: BarChart3, title: "Gestor sem dados", desc: "Impossível saber volume de demanda, tempo médio de resposta ou quem produz mais." }
                ].map((pain, idx) => (
-                 <div key={idx} className="bg-slate-800 border border-slate-700 p-5 rounded-xl space-y-3 shadow-sm">
-                   <pain.icon className="text-red-400" size={20} />
-                   <h3 className="text-base font-bold text-white">{pain.title}</h3>
-                   <p className="text-sm text-slate-300 leading-relaxed">{pain.desc}</p>
+                 <div key={idx} className="bg-white border border-slate-200 p-5 rounded-xl space-y-3 shadow-sm hover:shadow-md transition-shadow">
+                   <pain.icon className="text-red-500" size={20} />
+                   <h3 className="text-base font-bold text-slate-900">{pain.title}</h3>
+                   <p className="text-sm text-slate-600 leading-relaxed">{pain.desc}</p>
                  </div>
                ))}
             </div>
@@ -125,7 +124,7 @@ export const PublicHomePage = ({ onNavigate, onLogin }: PublicHomePageProps) => 
       </section>
 
       {/* Solution Section */}
-      <section className="py-16 px-6 bg-slate-50">
+      <section className="py-16 px-6 bg-white">
          <div className="max-w-6xl mx-auto space-y-12">
             <div className="text-center max-w-2xl mx-auto space-y-3">
               <h2 className="text-2xl lg:text-3xl font-bold tracking-tight text-slate-900">Com o Gestifique, cada solicitação vira um fluxo claro.</h2>
@@ -156,7 +155,7 @@ export const PublicHomePage = ({ onNavigate, onLogin }: PublicHomePageProps) => 
       </section>
 
       {/* Core Features */}
-      <section className="py-16 px-6">
+      <section className="py-16 px-6 bg-slate-50 border-t border-slate-100">
          <div className="max-w-6xl mx-auto space-y-12">
             <div className="text-center max-w-2xl mx-auto space-y-3">
               <h2 className="text-2xl lg:text-3xl font-bold tracking-tight text-slate-900">Tudo para estruturar sua operação B2B</h2>
@@ -185,7 +184,7 @@ export const PublicHomePage = ({ onNavigate, onLogin }: PublicHomePageProps) => 
       </section>
 
       {/* Para quem é & Diferenciais (Before/After) */}
-      <section className="py-16 px-6 bg-slate-50">
+      <section className="py-16 px-6 bg-white border-t border-slate-100">
          <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-10">
             <div className="space-y-6">
                <div>
@@ -236,7 +235,7 @@ export const PublicHomePage = ({ onNavigate, onLogin }: PublicHomePageProps) => 
       </section>
 
       {/* FAQ */}
-      <section className="py-16 px-6">
+      <section className="py-16 px-6 bg-slate-50 border-t border-slate-100">
          <div className="max-w-3xl mx-auto space-y-10">
             <div className="text-center space-y-3">
               <h2 className="text-2xl lg:text-3xl font-bold tracking-tight text-slate-900">Perguntas Frequentes</h2>
@@ -262,14 +261,14 @@ export const PublicHomePage = ({ onNavigate, onLogin }: PublicHomePageProps) => 
       </section>
 
       {/* Final CTA */}
-      <section className="py-16 px-6 bg-blue-600 text-white text-center">
+      <section className="py-16 px-6 bg-white border-t border-slate-100 text-center">
          <div className="max-w-2xl mx-auto space-y-6">
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Pronto para organizar seu atendimento?</h2>
-            <p className="text-blue-100 text-base lg:text-lg font-medium">Deixe a rotina caótica no passado. Fale conosco e entenda como usar o Gestifique na sua operação.</p>
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">Pronto para organizar seu atendimento?</h2>
+            <p className="text-slate-500 text-base lg:text-lg font-medium">Deixe a rotina caótica no passado. Fale conosco e entenda como usar o Gestifique na sua operação.</p>
             <div className="pt-2 flex justify-center">
               <button 
                  onClick={() => onNavigate('/contato')}
-                 className="h-11 px-6 bg-white text-blue-600 text-[14px] font-bold rounded-lg hover:bg-slate-50 transition-all shadow-md flex items-center justify-center gap-2"
+                 className="h-11 px-6 bg-blue-600 text-white text-[14px] font-bold rounded-lg hover:bg-blue-700 transition-all shadow-sm flex items-center justify-center gap-2"
                >
                  Solicitar uma demonstração <ArrowRight size={18} />
                </button>

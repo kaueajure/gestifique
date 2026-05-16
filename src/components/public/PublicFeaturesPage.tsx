@@ -37,7 +37,7 @@ export const PublicFeaturesPage = ({ onNavigate }: PublicFeaturesPageProps) => {
         { title: "Prazo de Primeira Resposta", desc: "Garante que o cliente não fique no vácuo logo após abrir a solicitação." },
         { title: "Prazo de Resolução", desc: "Controle rígido do tempo aceitável para entregar a solução definitiva." },
         { title: "Alertas Visuais", desc: "Tickets prestes a estourar mudam de cor para chamar a atenção imediata da equipe." },
-        { title: "Controle de Prazos", desc: "Se depender do cliente (ex: aguardando retorno), o relógio do SLA pausa automaticamente." }
+        { title: "Controle de Prazos", desc: "O acompanhamento de SLA considera o status atual do chamado e ajuda a priorizar tickets críticos." }
       ]
     },
     {
@@ -48,12 +48,12 @@ export const PublicFeaturesPage = ({ onNavigate }: PublicFeaturesPageProps) => {
         { title: "Portal do Cliente (B2B)", desc: "Seus clientes fazem login e veem exatamente o status das demandas, sem precisar mandar e-mail/WhatsApp." },
         { title: "Base de Conhecimento", desc: "Artigos práticos integrados ao portal para autoatendimento ('Como resetar senha', etc)." },
         { title: "Pesquisa de Satisfação", desc: "Pesquisa de satisfação após resolução. Avalie o atendimento (1 a 5 estrelas)." },
-        { title: "Acesso pelo Portal", desc: "O formulário já abre pré-preenchido logado na conta do cliente." }
+        { title: "Acesso pelo Portal", desc: "O cliente acessa o portal para abrir e acompanhar chamados de forma estruturada." }
       ]
     },
     {
       title: "Gestão e Relatórios",
-      desc: "Visibilidade em tempo real para os líderes.",
+      desc: "Visibilidade operacional para os líderes.",
       icon: PieChart,
       features: [
         { title: "Dashboard Operacional", desc: "Visão imediata do dia: tickets abertos, atrasados e taxa de resolução atual." },
@@ -67,7 +67,7 @@ export const PublicFeaturesPage = ({ onNavigate }: PublicFeaturesPageProps) => {
   return (
     <div className="flex flex-col bg-white">
       {/* Header */}
-      <section className="pt-20 pb-12 px-6 bg-white border-b border-slate-200">
+      <section className="pt-20 pb-16 px-6 bg-gradient-to-b from-slate-50 to-white border-b border-slate-100">
         <div className="max-w-3xl mx-auto text-center space-y-6">
           <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-slate-900">
             Tudo que sua equipe precisa para atender melhor.
@@ -118,7 +118,7 @@ export const PublicFeaturesPage = ({ onNavigate }: PublicFeaturesPageProps) => {
                     <Users size={18} />
                   </div>
                   <h3 className="font-bold text-slate-900 text-base">Para o Atendente</h3>
-                  <p className="text-[13px] text-slate-500 font-medium leading-relaxed">Ele sabe o que precisa ser feito primeiro. A cor do SLA dita a prioridade, e ele não perde tempo procurando histórico.</p>
+                  <p className="text-[13px] text-slate-500 font-medium leading-relaxed">Ele sabe o que precisa ser feito primeiro. A visualização de SLA ajuda o atendente a priorizar o que exige atenção.</p>
                </div>
                <div className="text-center space-y-3 p-4">
                   <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3">
@@ -139,14 +139,14 @@ export const PublicFeaturesPage = ({ onNavigate }: PublicFeaturesPageProps) => {
       </section>
 
       {/* Final CTA */}
-      <section className="py-16 px-6 bg-blue-600 text-white text-center">
+      <section className="py-16 px-6 bg-white border-t border-slate-100 text-center">
          <div className="max-w-2xl mx-auto space-y-6">
-           <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">Parece com o que você procura?</h2>
-           <p className="text-blue-100 text-base lg:text-lg font-medium">Veja essas funcionalidades operando em nosso sistema de demonstração.</p>
+           <h2 className="text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">Parece com o que você procura?</h2>
+           <p className="text-slate-500 text-base lg:text-lg font-medium">Veja essas funcionalidades operando em nosso sistema de demonstração.</p>
            <div className="pt-2 flex justify-center">
              <button 
                onClick={() => onNavigate('/contato')}
-               className="h-11 px-6 bg-white text-blue-600 text-[14px] font-bold rounded-lg hover:bg-slate-50 transition-all shadow-md flex items-center justify-center gap-2"
+               className="h-11 px-6 bg-blue-600 text-white text-[14px] font-bold rounded-lg hover:bg-blue-700 transition-all shadow-sm flex items-center justify-center gap-2"
              >
                Solicitar demonstração guiada <ArrowRight size={18} />
              </button>

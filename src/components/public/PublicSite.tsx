@@ -30,7 +30,7 @@ export const PublicSite = ({ onLogin }: PublicSiteProps) => {
   const renderContent = () => {
     switch (currentPath) {
       case '/':
-        return <PublicHomePage onNavigate={navigate} onLogin={onLogin} />;
+        return <PublicHomePage onNavigate={navigate} />;
       case '/funcionalidades':
         return <PublicFeaturesPage onNavigate={navigate} />;
       case '/precos':
@@ -39,7 +39,7 @@ export const PublicSite = ({ onLogin }: PublicSiteProps) => {
         return <PublicContactPage />;
       default:
         // Se a rota não for encontrada, cai na home, mas não altera a URL.
-        return <PublicHomePage onNavigate={navigate} onLogin={onLogin} />;
+        return <PublicHomePage onNavigate={navigate} />;
     }
   };
 
