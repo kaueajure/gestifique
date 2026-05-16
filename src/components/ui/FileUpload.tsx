@@ -2,8 +2,6 @@ import React, { useRef, useState } from "react";
 import {
   Paperclip,
   X,
-  Upload,
-  File as FileIconLucide,
   AlertCircle,
 } from "lucide-react";
 import { Button } from "./Button";

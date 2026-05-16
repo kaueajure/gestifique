@@ -158,7 +158,6 @@ export const KnowledgePage = ({ currentUser }: KnowledgeManagerProps) => {
       <PageHeader
         title="Base de Conhecimento"
         description="Documentação técnica para equipe e autoatendimento para clientes"
-        icon={<BookOpen size={20} className="text-slate-500" />}
         action={
           <Button onClick={openNew} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm">
             <Plus size={16} className="mr-2" /> Novo Artigo

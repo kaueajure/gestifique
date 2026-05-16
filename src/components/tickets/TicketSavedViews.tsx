@@ -2,9 +2,8 @@ import React, { useState } from 'react';
 import { 
   Bookmark, 
   Plus, 
-  Trash2, 
-  Save, 
-  ChevronDown
+  Trash2,
+  X
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { TicketView } from '../../types';
@@ -50,7 +49,7 @@ export const TicketSavedViews: React.FC<Props> = ({
           }
         }}
         className="min-w-[180px]"
-        buttonClassName="h-[38px] shadow-sm font-medium"
+        buttonClassName="h-8 shadow-sm font-medium text-sm"
         options={[
           { value: 'none', label: 'Filtros Personalizados' },
           ...views.map(view => ({
@@ -64,7 +63,7 @@ export const TicketSavedViews: React.FC<Props> = ({
         variant="outline"
         size="sm"
         onClick={() => setShowSaveModal(true)}
-        className="text-slate-600 hover:text-blue-600 hover:bg-blue-50 gap-2 border-slate-200 h-[38px] bg-white shadow-sm"
+        className="text-slate-600 hover:text-blue-600 hover:bg-blue-50 gap-2 border-slate-200 h-8 bg-white shadow-sm"
         title="Salvar filtros atuais como view"
       >
         <Plus size={16} />
@@ -74,9 +73,9 @@ export const TicketSavedViews: React.FC<Props> = ({
       {currentViewId && (
         <Button
           variant="outline"
-          size="icon"
+          size="sm"
           onClick={() => onDeleteView(currentViewId)}
-          className="text-rose-500 hover:text-rose-600 hover:bg-rose-50 border-slate-200 h-[38px] w-[38px] bg-white shadow-sm"
+          className="text-rose-500 hover:text-rose-600 hover:bg-rose-50 border-slate-200 h-8 w-8 p-0 bg-white shadow-sm flex items-center justify-center"
           title="Excluir view selecionada"
         >
           <Trash2 size={16} />

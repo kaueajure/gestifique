@@ -45,8 +45,8 @@ export const TicketBulkActions = ({ selectedCount, onAction, onClear, agents }: 
   };
 
   return (
-    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
-      <div className="bg-white text-slate-900 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-200 p-1.5 flex items-center gap-1 min-w-[460px]">
+    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300 w-[calc(100vw-24px)] md:w-auto max-w-[560px] overflow-x-auto no-scrollbar rounded-xl">
+      <div className="bg-white text-slate-900 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-200 p-1.5 flex items-center gap-1 w-max mx-auto">
         {/* Count Indicator */}
         <div className="bg-blue-50 text-blue-700 h-8 px-3 rounded-lg flex items-center gap-1.5 mr-2">
             <span className="text-[13px] font-semibold">{selectedCount}</span>
