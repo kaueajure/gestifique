@@ -13,7 +13,7 @@ import { SettingsPage } from "./components/pages/SettingsPage";
 import { ReportsPage } from "./components/pages/ReportsPage";
 import { KnowledgePage } from "./components/pages/KnowledgePage";
 import { AccessDenied } from "./components/ui/AccessDenied";
-import { LandingPage } from "./components/public/LandingPage";
+import { PublicSite } from "./components/public/PublicSite";
 import { SatisfactionPage } from "./components/public/SatisfactionPage";
 import { hasPermission } from "./lib/permissions";
 import { User } from "./types";
@@ -55,7 +55,14 @@ type ActiveTab =
   | "knowledge";
 
 export default function App() {
-  const [view, setView] = useState<ViewState>("landing");
+  const [view, setView] = useState<ViewState>(() => {
+    // Initial view resolution based on path
+    const path = window.location.pathname;
+    if (path === '/login') return 'login';
+    if (path === '/esqueci-senha') return 'forgot-password';
+    if (path === '/reset-password') return 'reset-password';
+    return 'landing'; // Let PublicSite handle /, /funcionalidades, /precos, /contato
+  });
   const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard");
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -103,6 +110,7 @@ export default function App() {
 
       setCurrentUser(null);
       setView("login");
+      window.history.pushState({}, '', '/login');
       setAuthError("Sessão expirada. Faça login novamente.");
     };
 
@@ -160,6 +168,7 @@ export default function App() {
     } catch (e) {}
     setCurrentUser(null);
     setView("landing");
+    window.history.pushState({}, '', '/');
   };
 
   const handleForgotPassword = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -176,7 +185,10 @@ export default function App() {
       );
       setAuthSuccess(data.message);
       setResetEmail(email);
-      setTimeout(() => setView("reset-password"), 2000);
+      setTimeout(() => {
+        setView("reset-password");
+        window.history.pushState({}, '', '/reset-password');
+      }, 2000);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Erro ao solicitar recuperação.";
@@ -201,6 +213,7 @@ export default function App() {
       setAuthSuccess(data.message);
       setTimeout(() => {
         setView("login");
+        window.history.pushState({}, '', '/login');
         setAuthSuccess(null);
       }, 2000);
     } catch (err) {
@@ -221,7 +234,10 @@ export default function App() {
   // --- RENDERING VIEWS ---
 
   if (view === "landing") {
-    return <LandingPage onLogin={() => setView("login")} />;
+    return <PublicSite onLogin={() => {
+      setView("login");
+      window.history.pushState({}, '', '/login');
+    }} />;
   }
 
   if (view === "login") {
@@ -270,6 +286,7 @@ export default function App() {
                       setView("forgot-password");
                       setAuthError(null);
                       setAuthSuccess(null);
+                      window.history.pushState({}, '', '/esqueci-senha');
                     }}
                     className="text-xs font-medium text-blue-600 hover:text-blue-700"
                   >
@@ -293,7 +310,10 @@ export default function App() {
 
           <div className="mt-6 text-center">
             <button
-              onClick={() => setView("landing")}
+              onClick={() => {
+                setView("landing");
+                window.history.pushState({}, '', '/');
+              }}
               className="text-xs font-medium text-slate-500 hover:text-slate-900 flex items-center justify-center gap-1.5 mx-auto transition-colors"
             >
               <ArrowRight size={14} className="rotate-180" /> Voltar ao início
@@ -362,6 +382,7 @@ export default function App() {
                 setView("login");
                 setAuthError(null);
                 setAuthSuccess(null);
+                window.history.pushState({}, '', '/login');
               }}
               className="text-xs font-medium text-slate-500 hover:text-slate-900 flex items-center justify-center gap-1.5 mx-auto transition-colors"
             >
@@ -445,6 +466,7 @@ export default function App() {
                 setView("login");
                 setAuthError(null);
                 setAuthSuccess(null);
+                window.history.pushState({}, '', '/login');
               }}
               className="text-xs font-medium text-slate-500 hover:text-slate-900 flex items-center justify-center gap-1.5 mx-auto transition-colors"
             >
