@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
-  PieChart, Pie, Cell, LineChart, Line, AreaChart, Area
+  PieChart, Pie, Cell, AreaChart, Area
 } from 'recharts';
 import { 
-  Download, Filter, RefreshCw, Calendar, TrendingUp, AlertCircle, 
-  Clock, CheckCircle2, Inbox, Activity, ChevronRight, FileText, Printer
+  Download, Filter, RefreshCw, TrendingUp,
+  Clock, Inbox, Activity, FileText, Printer
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { PageHeader } from '../ui/PageHeader';
@@ -325,7 +325,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
       )}
 
       {data && (
-        <div className="space-y-8 animate-in fade-in duration-500">
+        <div className="space-y-5 animate-in fade-in duration-500">
           {/* Main Indicators */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <IndicatorCard 
@@ -517,7 +517,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                 </div>
                 <div className="flex flex-col justify-center space-y-4">
                   <div className="text-center md:text-left">
-                     <div className="text-3xl font-bold text-slate-900">{data.csat.average}</div>
+                     <div className="text-2xl font-bold text-slate-900">{data.csat.average}</div>
                      <div className="text-xs font-semibold text-slate-500 mb-2">Média Geral</div>
                      <div className="flex justify-center md:justify-start gap-1">
                         {[1, 2, 3, 4, 5].map(star => (

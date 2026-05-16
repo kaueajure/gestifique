@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { Ticket, Message, User, TicketAttachment, TicketTimelineItem, TicketStatus } from '../../types';
-import { AlertCircle, Loader2, MessageSquare, History, CheckCircle2, Clock, ChevronLeft, User as UserIcon, Mail, Globe } from 'lucide-react';
+import { AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 import { Button } from '../ui/Button';
-import { Badge } from '../ui/Badge';
 import { Card } from '../ui/Card';
 import { TicketHeader } from '../tickets/details/TicketHeader';
 import { TicketProperties } from '../tickets/details/TicketProperties';
 import { TicketConversation } from '../tickets/details/TicketConversation';
 import { TicketTimeline } from '../tickets/details/TicketTimeline';
 import { Select } from '../ui/Select';
-import { cn, getSlaInfo } from '../../lib/utils';
+import { cn } from '../../lib/utils';
 import { getSocket } from '../../lib/socket';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -265,11 +264,11 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
 
   if (error || !ticket) {
     return (
-      <Card className="p-8 border-red-100 bg-red-50/50 flex flex-col items-center justify-center text-center rounded-xl">
-         <AlertCircle className="w-10 h-10 text-red-500 mb-2" />
+      <Card className="p-6 border-red-100 bg-red-50/50 flex flex-col items-center justify-center text-center rounded-xl max-w-md mx-auto mt-8">
+         <AlertCircle className="w-8 h-8 text-red-500 mb-2" />
          <h2 className="text-base font-semibold text-slate-900 mb-1">Atendimento não encontrado</h2>
-         <p className="text-slate-600 font-medium text-sm mb-5 max-w-sm">{error || 'O atendimento solicitado pode ter sido removido ou você não tem acesso.'}</p>
-         <Button onClick={onBack} size="sm" variant="outline" className="font-medium h-9">Voltar para a Lista</Button>
+         <p className="text-slate-600 text-sm mb-4">{error || 'O atendimento solicitado pode ter sido removido ou você não tem acesso.'}</p>
+         <Button onClick={onBack} size="sm" variant="outline" className="font-medium h-8">Voltar para a Lista</Button>
       </Card>
     );
   }

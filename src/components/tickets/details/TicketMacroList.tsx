@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../../lib/api';
 import { TicketMacro, Ticket, User } from '../../../types';
 import { Search, Loader2, MessageSquare, X } from 'lucide-react';
-import { cn } from '../../../lib/utils';
 
 interface TicketMacroListProps {
   ticket: Ticket;

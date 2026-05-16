@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User } from '../../types';
 import { api } from '../../lib/api';
-import { Building2, Keyboard, ShieldCheck, Database, Cpu, Lock, Save, Zap, Palette, ChevronRight, CheckCircle2, AlertCircle, Layout, Globe, Building, Shield, TrendingUp, BookOpen, RefreshCw } from 'lucide-react';
+import { Building2, Keyboard, ShieldCheck, Database, Cpu, Lock, Save, Zap, Palette, ChevronRight, CheckCircle2, AlertCircle, Layout, Globe, Building, Shield, TrendingUp, RefreshCw } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -275,8 +275,8 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
               <Card className="p-5">
                  {!currentUser.empresa_id ? (
                    <div className="flex flex-col items-center justify-center py-10 px-4 text-center space-y-3">
-                      <div className="w-12 h-12 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center">
-                         <AlertCircle size={24} />
+                      <div className="w-10 h-10 bg-amber-50 text-amber-500 rounded-lg flex items-center justify-center">
+                         <AlertCircle size={20} />
                       </div>
                       <div className="space-y-1">
                          <h4 className="text-sm font-semibold text-slate-900">Empresa não vinculada</h4>
@@ -426,8 +426,8 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
                  ) : healthError ? (
                    <Card className="p-6">
                      <div className="flex flex-col items-center justify-center text-center space-y-3">
-                        <div className="w-12 h-12 bg-red-50 text-red-500 rounded-xl flex items-center justify-center">
-                           <AlertCircle size={24} />
+                        <div className="w-10 h-10 bg-red-50 text-red-500 rounded-lg flex items-center justify-center">
+                           <AlertCircle size={20} />
                         </div>
                         <div className="space-y-1">
                            <h4 className="text-sm font-semibold text-slate-900">Falha no Diagnóstico</h4>
@@ -588,8 +588,8 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
                  ) : (
                    <Card className="p-6">
                      <div className="flex flex-col items-center justify-center text-center space-y-3">
-                        <div className="w-12 h-12 bg-slate-50 text-slate-400 rounded-xl flex items-center justify-center border border-slate-200">
-                           <Database size={24} />
+                        <div className="w-10 h-10 bg-slate-50 text-slate-400 rounded-lg flex items-center justify-center border border-slate-200">
+                           <Database size={20} />
                         </div>
                         <div className="space-y-1">
                            <h4 className="text-sm font-semibold text-slate-900">Nenhum diagnóstico carregado</h4>

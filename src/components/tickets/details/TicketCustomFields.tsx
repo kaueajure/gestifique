@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { TicketCustomField } from '../../../types';
 import { LayoutGrid, Plus, Trash2, Edit2, Check, X, Info } from 'lucide-react';
-import { Badge } from '../../ui/Badge';
-import { cn } from '../../../lib/utils';
 import { Button } from '../../ui/Button';
 
 interface TicketCustomFieldsProps {

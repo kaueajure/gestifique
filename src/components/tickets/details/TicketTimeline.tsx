@@ -1,20 +1,14 @@
 import React from 'react';
 import { TicketTimelineItem } from '../../../types';
 import { 
-  PlusCircle, 
   MessageCircle, 
   Lock, 
   RefreshCw, 
-  UserCheck, 
-  Paperclip, 
   CheckCircle,
   Activity,
   History,
   Tag,
-  Settings,
-  ArrowUpCircle,
   FileText,
-  Clock,
   ShieldCheck,
   RotateCcw,
   Zap
