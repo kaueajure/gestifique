@@ -20,8 +20,8 @@ export const AuthAlert = ({ type, message }: AuthAlertProps) => {
   }[type];
 
   return (
-    <div className={`p-3 border rounded-lg flex items-start gap-2.5 text-xs font-semibold leading-relaxed animate-in fade-in slide-in-from-top-1 ${styles[type]}`}>
-      <Icon size={16} className="mt-0.5 shrink-0" />
+    <div className={`px-3 py-2.5 border rounded-lg flex items-start gap-2.5 text-[13px] font-medium leading-relaxed animate-in fade-in slide-in-from-top-1 ${styles[type]}`}>
+      <Icon size={16} className="mt-[2px] shrink-0" />
       <span>{message}</span>
     </div>
   );
