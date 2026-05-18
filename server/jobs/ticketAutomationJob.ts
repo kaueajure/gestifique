@@ -7,8 +7,6 @@ export const runTicketAutomations = async () => {
       "SELECT * FROM ticket_automacoes WHERE ativo = 1 AND evento IN ('tempo_sem_interacao', 'aguardando_cliente_por_tempo', 'sla_primeira_resposta_vencido', 'sla_resolucao_vencido')"
     );
 
-    if (regras.length === 0) return;
-
     for (const regra of regras) {
        let query = "";
        let params: any[] = [];
@@ -16,7 +14,9 @@ export const runTicketAutomations = async () => {
        if (regra.evento === 'sla_resolucao_vencido') {
          query = `
            SELECT * FROM tickets 
-           WHERE status NOT IN ('resolvido', 'fechado')
+           WHERE status NOT IN ('resolvido', 'fechado', 'aguardando_cliente')
+           AND sla_pausado_em IS NULL
+           AND sla_status_operacional != 'pausado'
            AND (sla_resolucao_status != 'violado' OR sla_resolucao_status IS NULL)
            AND prazo_sla < NOW()
            AND empresa_id = ?

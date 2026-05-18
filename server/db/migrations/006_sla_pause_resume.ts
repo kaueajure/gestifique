@@ -28,17 +28,23 @@ export async function up(connection: PoolConnection) {
   }
   
   // 4. Initialize sla_status_operacional for existing tickets
+  // And populate sla_pausado_em for those in waiting client status
   await connection.query(`
     UPDATE tickets 
-    SET sla_status_operacional = CASE 
-      WHEN status IN ('resolvido', 'fechado') AND sla_resolucao_status = 'cumprido' THEN 'cumprido'
-      WHEN status IN ('resolvido', 'fechado') AND sla_resolucao_status = 'violado' THEN 'violado'
-      WHEN status = 'aguardando_cliente' THEN 'pausado'
-      WHEN status NOT IN ('resolvido', 'fechado') AND prazo_sla < NOW() THEN 'vencido'
-      WHEN status NOT IN ('resolvido', 'fechado') AND prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) THEN 'vencendo'
-      WHEN status NOT IN ('resolvido', 'fechado') AND prazo_sla > DATE_ADD(NOW(), INTERVAL 2 HOUR) THEN 'dentro_sla'
-      ELSE 'sem_sla'
-    END
+    SET 
+      sla_pausado_em = CASE 
+        WHEN status = 'aguardando_cliente' AND sla_pausado_em IS NULL THEN COALESCE(updated_at, NOW())
+        ELSE sla_pausado_em
+      END,
+      sla_status_operacional = CASE 
+        WHEN status IN ('resolvido', 'fechado') AND sla_resolucao_status = 'cumprido' THEN 'cumprido'
+        WHEN status IN ('resolvido', 'fechado') AND sla_resolucao_status = 'violado' THEN 'violado'
+        WHEN status = 'aguardando_cliente' THEN 'pausado'
+        WHEN status NOT IN ('resolvido', 'fechado') AND prazo_sla < NOW() THEN 'vencido'
+        WHEN status NOT IN ('resolvido', 'fechado') AND prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) THEN 'vencendo'
+        WHEN status NOT IN ('resolvido', 'fechado') AND prazo_sla > DATE_ADD(NOW(), INTERVAL 2 HOUR) THEN 'dentro_sla'
+        ELSE 'sem_sla'
+      END
     WHERE sla_status_operacional IS NULL
   `);
 }

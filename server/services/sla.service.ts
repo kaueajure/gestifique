@@ -12,7 +12,7 @@ class SlaService {
       return ticket.sla_resolucao_status === 'cumprido' ? 'cumprido' : 'violado';
     }
 
-    if (ticket.sla_pausado_em || ticket.status === 'aguardando_cliente') {
+    if (ticket.sla_pausado_em || ticket.status === 'aguardando_cliente' || ticket.sla_status_operacional === 'pausado') {
       return 'pausado';
     }
 
