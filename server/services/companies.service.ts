@@ -90,6 +90,95 @@ class CompaniesService {
     params.push(id);
     await pool.query(`UPDATE empresas SET ${fields.join(', ')} WHERE id = ?`, params);
   }
+  async deleteCascade(id: number, currentUser: any) {
+    if (Number(currentUser.empresa_id) === Number(id)) {
+      throw new Error('Não é possível excluir a empresa à qual você está logado no momento.');
+    }
+
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      const [empresaRows]: any = await connection.query('SELECT nome FROM empresas WHERE id = ?', [id]);
+      if (empresaRows.length === 0) {
+        throw new Error('Empresa não encontrada.');
+      }
+      const nomeEmpresa = empresaRows[0].nome;
+
+      // 1. Get attachments paths to delete files (physical)
+      let attachments: any[] = [];
+      try {
+        const [anexosRows]: any = await connection.query('SELECT caminho FROM ticket_anexos WHERE empresa_id = ? AND caminho IS NOT NULL', [id]);
+        attachments = anexosRows;
+      } catch (err) {
+        console.error(`[CompaniesService] Erro ao buscar anexos para deleção da empresa ${id}:`, err);
+      }
+
+      // 2. Cascade delete
+      const tablesWithEmpresaId = [
+        'processed_emails',
+        'ticket_satisfacao',
+        'ticket_eventos',
+        'ticket_macros',
+        'ticket_views',
+        'ticket_anexos',
+        'notificacoes',
+        'ticket_automacoes',
+        'knowledge_articles',
+        'empresa_email_canais',
+        'empresa_ticket_categorias',
+        'empresa_ticket_servicos',
+        'empresa_sla_politicas',
+        'empresa_distribuicao_regras',
+        'logs_sistema',
+        'usuarios'
+      ];
+
+      // Delete references using ticket_id first to avoid foreign key issues if ON DELETE CASCADE is missing
+      await connection.query('DELETE FROM ticket_leituras WHERE ticket_id IN (SELECT id FROM tickets WHERE empresa_id = ?)', [id]);
+      await connection.query('DELETE FROM ticket_custom_fields WHERE ticket_id IN (SELECT id FROM tickets WHERE empresa_id = ?)', [id]);
+      await connection.query('DELETE FROM ticket_tags WHERE ticket_id IN (SELECT id FROM tickets WHERE empresa_id = ?)', [id]);
+      await connection.query('DELETE FROM ticket_mensagens WHERE ticket_id IN (SELECT id FROM tickets WHERE empresa_id = ?)', [id]);
+
+      // Delete specific tables with empresa_id
+      for (const table of tablesWithEmpresaId) {
+        try {
+          await connection.query(`DELETE FROM ${table} WHERE empresa_id = ?`, [id]);
+        } catch (e: any) {
+          console.warn(`[CompaniesService] Warning: Could not delete from ${table} for company ${id} - ${e.message}`);
+          // Proceed cautiously, maybe table doesn't exist or is empty
+        }
+      }
+
+      // Delete tickets
+      await connection.query('DELETE FROM tickets WHERE empresa_id = ?', [id]);
+
+      // Finally delete company
+      await connection.query('DELETE FROM empresas WHERE id = ?', [id]);
+
+      await connection.commit();
+
+      // Attempt to physically delete attachments (we don't fail transaction if this fails)
+      if (attachments.length > 0) {
+        const fs = await import('fs/promises');
+        for (const file of attachments) {
+          if (file.caminho) {
+            try {
+              await fs.unlink(file.caminho);
+            } catch (e: any) {
+              console.warn(`[CompaniesService] Warning: Could not delete physical file ${file.caminho}: ${e.message}`);
+            }
+          }
+        }
+      }
+
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
 }
 
 export default new CompaniesService();

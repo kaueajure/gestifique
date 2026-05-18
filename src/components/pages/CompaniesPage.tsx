@@ -13,7 +13,8 @@ import {
   AlertCircle,
   Loader2,
   Target,
-  XCircle
+  XCircle,
+  Trash2
 } from 'lucide-react';
 import { PageHeader } from '../ui/PageHeader';
 import { Badge } from '../ui/Badge';
@@ -48,10 +49,15 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isStatusConfirmOpen, setIsStatusConfirmOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<Empresa | null>(null);
+  const [deleteConfirmationName, setDeleteConfirmationName] = useState('');
   const [loadingSave, setLoadingSave] = useState(false);
+  const [loadingDelete, setLoadingDelete] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
@@ -154,6 +160,30 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao alterar status.';
       setError(message);
+    }
+  };
+
+  const handleDeleteCompany = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCompany) return;
+    
+    if (deleteConfirmationName !== selectedCompany.nome) {
+      setDeleteError('O nome digitado não corresponde ao nome da empresa.');
+      return;
+    }
+
+    setLoadingDelete(true);
+    setDeleteError(null);
+    try {
+      await api.delete(`/companies/${selectedCompany.id}`);
+      showSuccess('Empresa e todos os dados foram excluídos permanentemente.');
+      setIsDeleteConfirmOpen(false);
+      fetchCompanies();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao excluir empresa.';
+      setDeleteError(message);
+    } finally {
+      setLoadingDelete(false);
     }
   };
 
@@ -342,6 +372,13 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
                             >
                                {company.ativo ? <XCircle size={14} /> : <CheckCircle2 size={14} />}
                             </button>
+                            <button
+                              onClick={() => { setSelectedCompany(company); setDeleteError(null); setDeleteConfirmationName(''); setIsDeleteConfirmOpen(true); }}
+                              className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 transition-all ml-1"
+                              title="Excluir empresa permanentemente"
+                            >
+                               <Trash2 size={14} />
+                            </button>
                          </div>
                       </td>
                    </tr>
@@ -470,6 +507,58 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
         confirmLabel={selectedCompany?.ativo ? 'Desativar' : 'Ativar'}
         variant={selectedCompany?.ativo ? 'danger' : 'info'}
       />
+
+      <Modal
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        title="Excluir empresa permanentemente?"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div className="p-3 bg-red-50 border border-red-100 rounded-lg flex items-start gap-3 text-red-800">
+            <AlertCircle size={20} className="shrink-0 mt-0.5 text-red-600" />
+            <div className="text-sm">
+              <p className="font-bold mb-1 text-red-900">Esta ação não pode ser desfeita.</p>
+              <p>
+                Você está prestes a excluir permanentemente a empresa <strong>{selectedCompany?.nome}</strong>.
+                Essa ação removerá todos os usuários, tickets, mensagens, anexos, configurações, automações, canais de e-mail e relatórios vinculados a esta empresa.
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={handleDeleteCompany} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700">
+                Para confirmar, digite <strong>{selectedCompany?.nome}</strong>:
+              </label>
+              <Input
+                value={deleteConfirmationName}
+                onChange={(e) => setDeleteConfirmationName(e.target.value)}
+                placeholder={selectedCompany?.nome}
+                className="font-mono text-sm"
+                autoComplete="off"
+              />
+              {deleteError && (
+                <p className="text-xs font-semibold text-red-600 mt-1">{deleteError}</p>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+              <Button type="button" variant="ghost" onClick={() => setIsDeleteConfirmOpen(false)}>
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                variant="danger"
+                loading={loadingDelete}
+                disabled={deleteConfirmationName !== selectedCompany?.nome}
+              >
+                Excluir Empresa
+              </Button>
+            </div>
+          </form>
+        </div>
+      </Modal>
     </div>
   );
 };

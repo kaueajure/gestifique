@@ -97,6 +97,24 @@ router.patch('/:id/status', isDev, async (req: AuthRequest, res) => {
   }
 });
 
+router.delete('/:id', isDev, async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
+    const id = parseInt(req.params.id);
+    if (!id || isNaN(id)) return sendError(res, 'ID inválido', 400);
+
+    await companiesService.deleteCascade(id, currentUser);
+    await logSystemAction(req, currentUser.id, null, 'COMPANY_DELETE', `Excluiu empresa ID ${id} e todos os seus dados vinculados`);
+    
+    sendSuccess(res, null, 'Empresa e todos os seus dados foram excluídos com sucesso');
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao excluir empresa';
+    sendError(res, message);
+  }
+});
+
 // Settings: Ticket Categories
 router.get('/:id/ticket-categories', async (req: AuthRequest, res) => {
   try {
