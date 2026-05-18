@@ -28,7 +28,7 @@ export const Topbar = ({
 
       <div className="flex-1 max-w-[140px] sm:max-w-xs ml-auto mr-0">
         {showSearch && (
-          <div className="relative group hidden xs:block">
+          <div className="relative group hidden sm:block">
             <Search
               className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"
               size={13}

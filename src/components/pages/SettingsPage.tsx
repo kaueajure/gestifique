@@ -198,8 +198,8 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
              className="space-y-4"
           >
             {activeSubTab === 'general' && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                 <Card className="p-5 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <Card className="p-4 sm:p-5 space-y-4">
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
                          <ShieldCheck size={18} />
@@ -235,7 +235,7 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
                     </div>
                  </Card>
 
-                 <Card className="p-5 space-y-4">
+                 <Card className="p-4 sm:p-5 space-y-4">
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center">
                          <Keyboard size={18} />
@@ -272,7 +272,7 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
             )}
 
             {activeSubTab === 'company' && (
-              <Card className="p-5">
+              <Card className="p-4 sm:p-5">
                  {!currentUser.empresa_id ? (
                    <div className="flex flex-col items-center justify-center py-10 px-4 text-center space-y-3">
                       <div className="w-10 h-10 bg-amber-50 text-amber-500 rounded-lg flex items-center justify-center">
@@ -411,7 +411,7 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
             )}
 
             {activeSubTab === 'company' && !!currentUser.empresa_id && (
-               <Card className="p-5">
+               <Card className="p-4 sm:p-5">
                  <EmailChannelsManager empresaId={currentUser.empresa_id} />
                </Card>
             )}
@@ -549,7 +549,7 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
                        </div>
                      )}
 
-                     <Card className="p-5 space-y-4">
+                     <Card className="p-4 sm:p-5 space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2.5">
                           <div className="w-8 h-8 bg-slate-100 text-slate-700 border border-slate-200 rounded-lg flex items-center justify-center">

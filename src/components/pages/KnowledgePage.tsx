@@ -166,7 +166,7 @@ export const KnowledgePage = ({ currentUser }: KnowledgeManagerProps) => {
       />
 
       {/* Toolbar compacta de filtros */}
-      <div className="bg-white p-2 sm:p-3 rounded-lg border border-slate-200 shadow-sm flex flex-col md:flex-row items-center gap-3">
+      <div className="bg-white p-2 sm:p-3 rounded-lg border border-slate-200 shadow-sm flex flex-col lg:flex-row items-center gap-3">
         <div className="relative flex-1 w-full group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={14} />
           <input 
@@ -178,7 +178,7 @@ export const KnowledgePage = ({ currentUser }: KnowledgeManagerProps) => {
           />
         </div>
 
-        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full md:w-auto">
+        <div className="flex flex-col sm:flex-row items-center gap-2 w-full lg:w-auto">
           {currentUser.desenvolvedor && (
             <Select
               value={selectedCompanyId}

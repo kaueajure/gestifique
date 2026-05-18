@@ -164,7 +164,7 @@ export const ProfilePage = ({ currentUser, onUpdate }: ProfilePageProps) => {
 
            {/* Meus Dados */}
            <Card>
-              <form onSubmit={handleUpdateProfile} className="p-5 space-y-4">
+              <form onSubmit={handleUpdateProfile} className="p-4 sm:p-5 space-y-4">
                 <div className="flex items-center gap-2.5 mb-2">
                   <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-md flex items-center justify-center border border-blue-100">
                      <UserIcon size={16} />
@@ -218,7 +218,7 @@ export const ProfilePage = ({ currentUser, onUpdate }: ProfilePageProps) => {
 
            {/* Segurança */}
            <Card>
-              <form onSubmit={handleChangePassword} className="p-5 space-y-4">
+              <form onSubmit={handleChangePassword} className="p-4 sm:p-5 space-y-4">
                 <div className="flex items-center gap-2.5 mb-2">
                   <div className="w-8 h-8 bg-amber-50 text-amber-600 rounded-md flex items-center justify-center border border-amber-100">
                      <Key size={16} />

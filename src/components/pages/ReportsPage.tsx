@@ -293,7 +293,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
               options={[
                 { value: '', label: 'Todas' },
                 { value: 'email', label: 'E-mail' },
-                { value: 'portal', label: 'Portal Client' },
+                { value: 'portal', label: 'Portal do Cliente' },
                 { value: 'interno', label: 'Interno' },
                 { value: 'whatsapp', label: 'WhatsApp' }
               ]}
