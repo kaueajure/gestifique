@@ -63,7 +63,8 @@ class TicketMessagesService {
     // Security: Only agents can create internal messages
     const finalInterno = isAgent ? interno : false;
 
-    // 2. Create the message
+      // 2. Create the message
+    console.log(`[TicketMessagesService] Adding message: ticket_id=${ticket_id}, usuario_id=${usuario_id}, interno=${finalInterno}, message_id=${message_id}, tipo=${tipo}`);
     const [result]: any = await pool.query(
       'INSERT INTO ticket_mensagens (ticket_id, usuario_id, mensagem, interno, message_id, tipo) VALUES (?, ?, ?, ?, ?, ?)',
       [ticket_id, usuario_id || null, mensagem, finalInterno ? 1 : 0, message_id || null, tipo]
@@ -169,18 +170,21 @@ class TicketMessagesService {
           const replyToId = ticket.message_id;
           
           const outboundMessageId = `<ticket-${ticket_id}-msg-${messageId}-${Date.now()}@gestifique.com.br>`;
+          console.log(`[TicketMessagesService] Generated outboundMessageId: ${outboundMessageId}`);
           
-          sendTicketNotification(
-            ticket.cliente_email,
-            ticket_id,
-            ticket.titulo,
-            `Olá ${ticket.cliente_nome}, você tem uma nova resposta de ${authorName}:<br><br><i>"${mensagem}"</i>`,
-            {
-              inReplyTo: replyToId,
-              references: replyToId ? [replyToId] : undefined,
-              messageId: outboundMessageId
-            }
-          ).then(async (smtpResult) => {
+          try {
+            const smtpResult = await sendTicketNotification(
+              ticket.cliente_email,
+              ticket_id,
+              ticket.titulo,
+              `Olá ${ticket.cliente_nome}, você tem uma nova resposta de ${authorName}:<br><br><i>"${mensagem}"</i>`,
+              {
+                inReplyTo: replyToId,
+                references: replyToId ? [replyToId] : undefined,
+                messageId: outboundMessageId
+              }
+            );
+
             if (smtpResult && smtpResult.success) {
               console.log(`[TicketMessagesService] External notification email sent to ${ticket.cliente_email} for ticket #${ticket_id} (Message-ID: ${smtpResult.messageId})`);
               // Save to processed_emails so replies can be threaded to this ticket
@@ -188,13 +192,15 @@ class TicketMessagesService {
                 await pool.query(
                   'INSERT IGNORE INTO processed_emails (message_id, empresa_id, ticket_id) VALUES (?, ?, ?)',
                   [smtpResult.messageId, ticket.empresa_id, ticket_id]
-                ).catch(err => console.error('[TicketMessagesService] Failed to save outbound message to processed_emails:', err));
+                );
                 console.log(`[TicketMessagesService] Saved outbound Message-ID to processed_emails: ${smtpResult.messageId}`);
               }
             } else if (smtpResult && !smtpResult.success) {
                console.error('[TicketMessagesService] Mail failed:', smtpResult.error);
             }
-          }).catch(err => console.error('[Notification Error] Mail failed:', err));
+          } catch (err) {
+            console.error('[Notification Error] Mail failed:', err);
+          }
         }
       }
 

@@ -643,6 +643,13 @@ router.post('/:id/messages', async (req: AuthRequest, res) => {
       interno: isAgent ? !!interno : false
     }, currentUser);
 
+    const [getInsertedMsg]: any = await pool.query('SELECT id, ticket_id, interno, mensagem FROM ticket_mensagens WHERE id = ?', [messageId]);
+    console.log(`[TicketsRoutes] Message ${messageId} added checking DB directly: `, getInsertedMsg[0]);
+    
+    // getMessages test
+    const testMessages = await ticketsService.getMessages(id, true);
+    console.log(`[TicketsRoutes] Validation getMessages ticket_id ${id} total messages visible: ${(testMessages as any[]).length}. includes added? ${(testMessages as any[]).some((m: any) => m.id === messageId)}`);
+
     const [ticketRows]: any = await pool.query('SELECT empresa_id FROM tickets WHERE id = ?', [id]);
     const empresaId = ticketRows[0]?.empresa_id || currentUser.empresa_id;
 
