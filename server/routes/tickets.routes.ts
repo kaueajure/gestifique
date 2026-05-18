@@ -24,6 +24,7 @@ function parseTicketQueue(value: unknown): string {
 }
 
 const isAgentUser = (user: any) => !!(user.administrador || user.desenvolvedor || user.perfil === 'gestor' || user.perfil === 'atendente');
+const canManageTickets = (user: any) => !!(user.administrador || user.desenvolvedor || user.perfil === 'gestor');
 
 router.use(authMiddleware);
 
@@ -194,9 +195,9 @@ router.patch('/bulk', async (req: AuthRequest, res) => {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
     
-    const canManage = isAgentUser(currentUser);
+    const canManage = canManageTickets(currentUser);
     if (!canManage) {
-      return sendError(res, 'Apenas atendentes podem realizar ações em massa', 403);
+      return sendError(res, 'Apenas gestores e administradores podem realizar ações em massa', 403);
     }
 
     const { ticket_ids, action, value } = req.body;
@@ -870,7 +871,7 @@ router.put('/:id/custom-fields', async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
-    if (!isAgentUser(currentUser)) return sendError(res, 'Permissão negada', 403);
+    if (!canManageTickets(currentUser)) return sendError(res, 'Permissão negada', 403);
 
     const id = parseInt(req.params.id);
     const { fields } = req.body;
