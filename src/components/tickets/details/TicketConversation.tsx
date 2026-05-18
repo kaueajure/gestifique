@@ -151,6 +151,23 @@ export const TicketConversation = ({
     messagesEndRef.current?.scrollIntoView({ behavior });
   };
 
+  const normalizeMessage = (value?: string | null) =>
+    String(value || '')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .toLowerCase();
+
+  const normalizedDesc = normalizeMessage(ticket.descricao);
+  
+  // No point 4, pede para considerar as primeiras mensagens. 
+  // No point 2, deu a fórmula com messages.some.
+  // Vamos buscar a duplicata apenas entre as primeiras mensagens públicas para não esconder a abertura
+  // se houver uma mensagem idêntica muito depois na conversa.
+  const hasInitialMessageInMessages = messages
+    .filter(msg => !Number(msg.interno))
+    .slice(0, 3) // Entre as primeiras mensagens do ticket
+    .some(msg => normalizeMessage(msg.mensagem) === normalizedDesc);
+
   useEffect(() => {
     scrollToBottom('smooth');
   }, [messages]);
@@ -165,8 +182,8 @@ export const TicketConversation = ({
              </p>
           </div>
 
-          {/* Abertura do Chamado */}
-          {ticket.descricao && (
+          {/* Abertura do Chamado - Apenas se não estiver nas mensagens iniciais */}
+          {ticket.descricao && !hasInitialMessageInMessages && (
             <MessageBubble 
               msg={{
                 ...ticket,
@@ -189,26 +206,16 @@ export const TicketConversation = ({
                 </p>
             </div>
           ) : (
-            messages.map((msg) => {
-              // Evitar duplicidade visual se a primeira mensagem for idêntica à descrição e próxima no tempo
-              const isFirstMessage = messages[0]?.id === msg.id;
-              const isDuplicateOfDesc = isFirstMessage && 
-                                      msg.mensagem === ticket.descricao && 
-                                      Math.abs(new Date(msg.created_at).getTime() - new Date(ticket.created_at).getTime()) < 10000;
-              
-              if (isDuplicateOfDesc) return null;
-
-              return (
-                <div key={msg.id}>
-                  <MessageBubble 
-                    msg={msg}
-                    isCliente={msg.usuario_id === ticket.usuario_id || (!msg.usuario_id && !msg.interno)}
-                    isCurrentUser={msg.usuario_id && msg.usuario_id === currentUser.id}
-                    onDeleteAttachment={onDeleteAttachment}
-                  />
-                </div>
-              );
-            })
+            messages.map((msg) => (
+              <div key={msg.id}>
+                <MessageBubble 
+                  msg={msg}
+                  isCliente={msg.usuario_id === ticket.usuario_id || (!msg.usuario_id && !msg.interno)}
+                  isCurrentUser={msg.usuario_id && msg.usuario_id === currentUser.id}
+                  onDeleteAttachment={onDeleteAttachment}
+                />
+              </div>
+            ))
           )}
           <div ref={messagesEndRef} />
         </div>
