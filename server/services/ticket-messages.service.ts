@@ -168,6 +168,8 @@ class TicketMessagesService {
           // Get the original messageId from the ticket or the latest message for threading
           const replyToId = ticket.message_id;
           
+          const outboundMessageId = `<ticket-${ticket_id}-msg-${messageId}-${Date.now()}@gestifique.com.br>`;
+          
           sendTicketNotification(
             ticket.cliente_email,
             ticket_id,
@@ -175,11 +177,24 @@ class TicketMessagesService {
             `Olá ${ticket.cliente_nome}, você tem uma nova resposta de ${authorName}:<br><br><i>"${mensagem}"</i>`,
             {
               inReplyTo: replyToId,
-              references: replyToId ? [replyToId] : undefined
+              references: replyToId ? [replyToId] : undefined,
+              messageId: outboundMessageId
             }
-          ).catch(err => console.error('[Notification Error] Mail failed:', err));
-          
-          console.log(`[TicketMessagesService] External notification email sent to ${ticket.cliente_email} for ticket #${ticket_id}`);
+          ).then(async (smtpResult) => {
+            if (smtpResult && smtpResult.success) {
+              console.log(`[TicketMessagesService] External notification email sent to ${ticket.cliente_email} for ticket #${ticket_id} (Message-ID: ${smtpResult.messageId})`);
+              // Save to processed_emails so replies can be threaded to this ticket
+              if (smtpResult.messageId) {
+                await pool.query(
+                  'INSERT IGNORE INTO processed_emails (message_id, empresa_id, ticket_id) VALUES (?, ?, ?)',
+                  [smtpResult.messageId, ticket.empresa_id, ticket_id]
+                ).catch(err => console.error('[TicketMessagesService] Failed to save outbound message to processed_emails:', err));
+                console.log(`[TicketMessagesService] Saved outbound Message-ID to processed_emails: ${smtpResult.messageId}`);
+              }
+            } else if (smtpResult && !smtpResult.success) {
+               console.error('[TicketMessagesService] Mail failed:', smtpResult.error);
+            }
+          }).catch(err => console.error('[Notification Error] Mail failed:', err));
         }
       }
 

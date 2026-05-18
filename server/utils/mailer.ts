@@ -129,10 +129,19 @@ export const sendTicketNotification = async (
   }
 
   try {
-    await transporter.sendMail(mailOptions);
-    console.log(`[Mailer] Ticket notification sent to ${email} (ID: ${ticketId})`);
-  } catch (error) {
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`[Mailer] Ticket notification sent to ${email} (ID: ${ticketId}, Message-ID: ${info.messageId})`);
+    return {
+      success: true,
+      messageId: msgId,
+      providerMessageId: info.messageId
+    };
+  } catch (error: any) {
     console.error(`[Mailer] Failed to send ticket notification to ${email}:`, error);
+    return {
+      success: false,
+      error: error.message
+    };
   }
 };
 

@@ -278,65 +278,86 @@ export class EmailListenerService {
           let targetTicketId: number | null = null;
           console.log(`[Email Listener] [UID:${uid}] Processing message from ${senderEmail}: "${subject}" (MessageID: ${messageId})`);
 
-          // A) By [Ticket #ID] in subject
-          const subjectMatch = subject.match(/\[Ticket\s*#(\d+)\]/i);
-          if (subjectMatch) {
-            targetTicketId = parseInt(subjectMatch[1]);
-          }
+          const identifyTicket = async () => {
+             // A) By X-Gestifique-Ticket-ID in headers
+             const headerTicketIdStr = parsed.headers.get('x-gestifique-ticket-id');
+             if (headerTicketIdStr && typeof headerTicketIdStr === 'string' && !isNaN(parseInt(headerTicketIdStr))) {
+                console.log(`[Email Listener] Identified existing ticket #${parseInt(headerTicketIdStr)} via X-Gestifique-Ticket-ID header.`);
+                return parseInt(headerTicketIdStr);
+             }
 
-          // B) By In-Reply-To or References headers
-          if (!targetTicketId) {
-            const inReplyTo = parsed.inReplyTo;
-            const references = Array.isArray(parsed.references) ? parsed.references : (parsed.references ? [parsed.references] : []);
-            const allRefs = [inReplyTo, ...references].filter(r => !!r);
-            
-            if (allRefs.length > 0) {
-              const [refMatch]: any = await pool.query(
-                `SELECT ticket_id FROM processed_emails WHERE message_id IN (?) AND empresa_id = ? ORDER BY created_at DESC LIMIT 1`,
-                [allRefs, targetEmpresaId]
-              );
-              if (refMatch.length > 0) {
-                 targetTicketId = refMatch[0].ticket_id;
-                 console.log(`[Email Listener] Identified existing ticket #${targetTicketId} via headers.`);
-              }
-            }
-          }
+             // B) By [Ticket #ID], Chamado #ID, etc in subject
+             const subjectMatch = subject.match(/(?:\[Ticket\s*#(\d+)\]|Chamado\s*#(\d+)|Ticket\s*#(\d+))/i);
+             if (subjectMatch) {
+               const id = parseInt(subjectMatch[1] || subjectMatch[2] || subjectMatch[3]);
+               console.log(`[Email Listener] Identified existing ticket #${id} via Subject.`);
+               return id;
+             }
 
-          // C) Smart deduplication fallback (Subject + Sender in 48h)
-          if (!targetTicketId) {
+             // C) By In-Reply-To or References headers
+             const inReplyTo = parsed.inReplyTo;
+             const references = Array.isArray(parsed.references) ? parsed.references : (parsed.references ? [parsed.references] : []);
+             const allRefs = [inReplyTo, ...references].filter(r => !!r);
+             
+             if (allRefs.length > 0) {
+               // We search in processed_emails, ordered by created_at DESC
+               // We validate by company below, here we just try to get the original ticket ID linked to these emails
+               const [refMatch]: any = await pool.query(
+                 `SELECT ticket_id FROM processed_emails WHERE message_id IN (?) ORDER BY created_at DESC LIMIT 1`,
+                 [allRefs]
+               );
+               if (refMatch.length > 0) {
+                  console.log(`[Email Listener] Identified existing ticket #${refMatch[0].ticket_id} via headers (References).`);
+                  return refMatch[0].ticket_id;
+               }
+             }
+
+             // D) Smart deduplication fallback (Subject + Sender in 48h)
              const [dupRows]: any = await pool.query(
                'SELECT id FROM tickets WHERE titulo = ? AND (solicitante_email = ? OR usuario_id = ?) AND empresa_id = ? AND created_at > (NOW() - INTERVAL 2 DAY) AND status != "fechado" ORDER BY created_at DESC LIMIT 1',
                [subject, senderEmail, userId, targetEmpresaId]
              );
              if (dupRows.length > 0) {
-                targetTicketId = dupRows[0].id;
-                console.log(`[Email Listener] Identified duplicate ticket #${targetTicketId} via subject/sender matching.`);
+                console.log(`[Email Listener] Identified duplicate ticket #${dupRows[0].id} via subject/sender matching.`);
+                return dupRows[0].id;
              }
-          }
+
+             return null;
+          };
+
+          targetTicketId = await identifyTicket();
 
           // 7. Handle Create or Update
           if (targetTicketId) {
              // Verification: Same company
              const [ticketCheck]: any = await pool.query('SELECT id, empresa_id FROM tickets WHERE id = ?', [targetTicketId]);
-             if (ticketCheck.length > 0 && ticketCheck[0].empresa_id === targetEmpresaId) {
-                const msgId = await ticketsService.addMessage({
-                  ticket_id: targetTicketId,
-                  usuario_id: userId || null,
-                  mensagem: text,
-                  interno: 0,
-                  message_id: messageId
-                });
+             if (ticketCheck.length > 0) {
+                 if (ticketCheck[0].empresa_id === targetEmpresaId) {
+                    const msgId = await ticketsService.addMessage({
+                      ticket_id: targetTicketId,
+                      usuario_id: userId || null,
+                      mensagem: text,
+                      interno: 0,
+                      message_id: messageId
+                    });
 
-                await this.logSystem(targetEmpresaId, 'EMAIL_MESSAGE_ADDED', `Nova mensagem via e-mail no ticket #${targetTicketId} de ${senderEmail}.`);
-                
-                await this.processAttachments(parsed, targetTicketId, msgId, userId, targetEmpresaId);
-                
-                // MARK AS SEEN ONLY ON SUCCESS
-                await this.connection.addFlags(uid, '\\Seen');
-                console.log(`[Email Listener] [UID:${uid}] Ticket #${targetTicketId} updated and email marked as seen.`);
+                    await this.logSystem(targetEmpresaId, 'EMAIL_MESSAGE_ADDED', `Nova mensagem via e-mail no ticket #${targetTicketId} de ${senderEmail}.`);
+                    
+                    await this.processAttachments(parsed, targetTicketId, msgId, userId, targetEmpresaId);
+                    
+                    // MARK AS SEEN ONLY ON SUCCESS
+                    await this.connection.addFlags(uid, '\\Seen');
+                    console.log(`[Email Listener] [UID:${uid}] Ticket #${targetTicketId} updated and email marked as seen.`);
+                 } else {
+                    await this.logSystem(targetEmpresaId, 'EMAIL_TICKET_MISMATCH', `Tentativa de responder ao ticket #${targetTicketId} que pertence à empresa ${ticketCheck[0].empresa_id} através do canal da empresa ${targetEmpresaId}.`);
+                    console.warn(`[Email Listener] Ticket ${targetTicketId} belongs to company ${ticketCheck[0].empresa_id}, but email received on channel for company ${targetEmpresaId}. Ignoring.`);
+                    // We don't create a new ticket if we confidently identified it's a reply to an existing one but cross-company.
+                    // We mark it as seen to avoid infinite retry, or maybe just log. Marking as seen matches "Não criar ticket novo".
+                    await this.connection.addFlags(uid, '\\Seen');
+                 }
              } else {
-                await this.logSystem(targetEmpresaId, 'EMAIL_TICKET_MISMATCH', `Tentativa de responder ao ticket #${targetTicketId} que pertence à empresa ${ticketCheck[0]?.empresa_id || 'unkn'} através do canal da empresa ${targetEmpresaId}.`);
-                targetTicketId = null; // Forces creation of a new ticket if cross-company
+                 console.warn(`[Email Listener] Identified ticket ${targetTicketId} does not exist. Proceeding to create new ticket.`);
+                 targetTicketId = null; // Forces creation of a new ticket
              }
           }
 
