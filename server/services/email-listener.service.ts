@@ -216,7 +216,7 @@ export class EmailListenerService {
               } else {
                   // Fallback to legacy support email check
                   const [empresasMatch]: any = await pool.query(
-                      'SELECT id FROM empresas WHERE LOWER(email) IN (?) OR email_suporte IN (?) LIMIT 1',
+                      'SELECT id FROM empresas WHERE LOWER(email) IN (?) OR LOWER(email_suporte) IN (?) LIMIT 1',
                       [potentialRecipients, potentialRecipients]
                   );
                   if (empresasMatch.length > 0) {
