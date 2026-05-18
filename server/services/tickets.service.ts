@@ -2,8 +2,8 @@ import pool from '../db/connection.js';
 import notificationsService from './notifications.service.js';
 import { sendTicketNotification } from '../utils/mailer.js';
 import { recordTicketEvent } from './ticket-events.service.js';
-
 import ticketMessagesService from './ticket-messages.service.js';
+import slaService from './sla.service.js';
 
 export function toPositiveInt(value: unknown): number | undefined {
   if (value === undefined || value === null || value === '') return undefined;
@@ -25,8 +25,6 @@ export function toPositiveInt(value: unknown): number | undefined {
   const n = Number(str);
   return Number.isInteger(n) && n > 0 ? n : undefined;
 }
-
-import slaService from './sla.service.js';
 
 class TicketsService {
   private isValidDateOnly(value: unknown): value is string {
