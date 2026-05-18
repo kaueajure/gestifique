@@ -1,6 +1,7 @@
 import pool from '../db/connection.js';
 import { recordTicketEvent } from './ticket-events.service.js';
 import ticketMessagesService from './ticket-messages.service.js';
+import slaService from './sla.service.js';
 
 const parseJsonArray = (value: any) => {
   if (Array.isArray(value)) return value;
@@ -133,8 +134,19 @@ export async function runAutomations(evento: string, ticket: any, contexto: any)
         for (const acao of acoes) {
           try {
             if (acao.tipo === 'alterar_status' && acao.valor) {
+              const oldStatus = ticket.status;
               await pool.query('UPDATE tickets SET status = ?, updated_at = NOW() WHERE id = ?', [acao.valor, ticket.id]);
               ticket.status = acao.valor;
+              
+              // Handle SLA for the new status
+              if (acao.valor === 'aguardando_cliente') {
+                await slaService.pauseSla(ticket.id, contexto?.usuario_id || null);
+              } else if (oldStatus === 'aguardando_cliente' && acao.valor !== 'aguardando_cliente') {
+                await slaService.resumeSla(ticket.id, contexto?.usuario_id || null);
+              } else {
+                await slaService.updateOperationalStatus(ticket.id);
+              }
+
               executedAcoes.push(`Status alterado para: ${acao.valor}`);
             }
             else if (acao.tipo === 'alterar_prioridade' && acao.valor) {
@@ -178,11 +190,19 @@ export async function runAutomations(evento: string, ticket: any, contexto: any)
                executedAcoes.push(`Notificação enviada ao responsável`);
             }
             else if (acao.tipo === 'fechar_com_motivo' && acao.valor) {
+               const oldStatus = ticket.status;
                await pool.query(
                  'UPDATE tickets SET status = "fechado", resolucao_motivo = ?, finalizado_em = NOW(), updated_at = NOW() WHERE id = ?',
                  [acao.valor, ticket.id]
                );
                ticket.status = 'fechado';
+
+               if (oldStatus === 'aguardando_cliente') {
+                 await slaService.resumeSla(ticket.id, contexto?.usuario_id || null);
+               } else {
+                 await slaService.updateOperationalStatus(ticket.id);
+               }
+
                executedAcoes.push(`Chamado fechado com motivo: ${acao.valor}`);
             }
           } catch (acaoErr) {

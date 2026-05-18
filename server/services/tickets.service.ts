@@ -26,6 +26,8 @@ export function toPositiveInt(value: unknown): number | undefined {
   return Number.isInteger(n) && n > 0 ? n : undefined;
 }
 
+import slaService from './sla.service.js';
+
 class TicketsService {
   private isValidDateOnly(value: unknown): value is string {
     return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
@@ -550,6 +552,7 @@ class TicketsService {
 
     const [tickets]: any = await pool.query(`
       SELECT t.id, t.titulo, t.status, t.prioridade, t.categoria, t.servico, t.created_at, t.updated_at, t.prazo_sla, t.responsavel_id, t.empresa_id,
+             t.sla_status_operacional, t.sla_pausado_em,
              COALESCE(t.solicitante_nome, u.nome, 'Usuário Removido') as cliente_nome, 
              COALESCE(t.solicitante_email, u.email, 'Usuário Removido') as cliente_email, 
              COALESCE(r.nome, 'Não Atribuído') as responsavel_nome, 
@@ -692,6 +695,9 @@ class TicketsService {
     );
     const ticketId = result.insertId;
 
+    // Initialize SLA Status Operacional
+    await slaService.updateOperationalStatus(ticketId);
+
     // Track processed email to avoid duplicates
     if (message_id) {
       await pool.query(
@@ -790,6 +796,7 @@ class TicketsService {
         t.status, t.prioridade, t.categoria, t.servico, t.origem, t.email_channel_id, t.message_id, 
         t.prazo_sla, t.finalizado_em,
         t.prazo_primeira_resposta, t.primeira_resposta_em, t.sla_primeira_resposta_status, t.sla_resolucao_status,
+        t.sla_pausado_em, t.sla_pausado_total_minutos, t.sla_status_operacional,
         t.resolucao_motivo, t.resolucao_observacao, t.reaberto_em, t.reaberto_por,
         t.created_at, t.updated_at,
         COALESCE(t.solicitante_nome, u.nome, 'Usuário Removido') as cliente_nome, 
@@ -868,6 +875,15 @@ class TicketsService {
       `UPDATE tickets SET status = ?, finalizado_em = ${finalizado_em ? '?' : 'NULL'}, sla_resolucao_status = ?, updated_at = NOW() WHERE id = ?`,
       finalizado_em ? [status, finalizado_em, sla_resolucao_status, id] : [status, sla_resolucao_status, id]
     );
+
+    // Sprint 2: SLA Pause/Resume logic
+    if (status === 'aguardando_cliente') {
+      await slaService.pauseSla(id, changedByUserId);
+    } else if (oldTicket.status === 'aguardando_cliente' && status !== 'aguardando_cliente') {
+      await slaService.resumeSla(id, changedByUserId);
+    } else {
+      await slaService.updateOperationalStatus(id);
+    }
 
     if (['resolvido', 'fechado'].includes(status) && !['resolvido', 'fechado'].includes(oldTicket.status)) {
       await this.ensureSatisfactionSurvey(id, oldTicket.empresa_id, changedByUserId);
@@ -962,6 +978,20 @@ class TicketsService {
 
     paramsList.push(id);
     await pool.query(`UPDATE tickets SET ${fields.join(', ')} WHERE id = ?`, paramsList);
+
+    // Sprint 2: Handle SLA status Operational and Pause/Resume if status changed
+    if (data.status && data.status !== oldTicket.status) {
+      if (data.status === 'aguardando_cliente') {
+        await slaService.pauseSla(id, currentUser?.id || null);
+      } else if (oldTicket.status === 'aguardando_cliente' && data.status !== 'aguardando_cliente') {
+        await slaService.resumeSla(id, currentUser?.id || null);
+      } else {
+        await slaService.updateOperationalStatus(id);
+      }
+    } else {
+      // For any other update, ensure status is still correct
+      await slaService.updateOperationalStatus(id);
+    }
 
     // Notificações de Status ou Responsável
     try {
@@ -1198,6 +1228,13 @@ class TicketsService {
       [status, resolucao_motivo, observacao, sla_resolucao_status, id]
     );
 
+    // Sprint 2: Sync SLA Status
+    if (oldTicket.status === 'aguardando_cliente') {
+      await slaService.resumeSla(id, currentUser?.id || null);
+    } else {
+      await slaService.updateOperationalStatus(id);
+    }
+
     if (!['resolvido', 'fechado'].includes(oldTicket.status)) {
       await this.ensureSatisfactionSurvey(id, oldTicket.empresa_id, currentUser?.id || null);
 
@@ -1222,6 +1259,13 @@ class TicketsService {
       'UPDATE tickets SET status = "aberto", finalizado_em = NULL, reaberto_em = NOW(), reaberto_por = ?, updated_at = NOW() WHERE id = ?',
       [currentUser.id, id]
     );
+
+    // Sprint 2: Sync SLA Status
+    if (ticket.status === 'aguardando_cliente') {
+      await slaService.resumeSla(id, currentUser.id);
+    } else {
+      await slaService.updateOperationalStatus(id);
+    }
 
     return { success: true };
   }

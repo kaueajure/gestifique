@@ -3,6 +3,7 @@ import { recordTicketEvent } from './ticket-events.service.js';
 import notificationsService from './notifications.service.js';
 import { sendTicketNotification } from '../utils/mailer.js';
 import { io } from '../server.js';
+import slaService from './sla.service.js';
 
 export interface AddMessageData {
   ticket_id: number;
@@ -117,6 +118,7 @@ class TicketMessagesService {
           // If agent replies publicly and it was 'aberto', move to 'em_andamento'
           if (ticket.status === 'aberto') {
             await pool.query('UPDATE tickets SET status = "em_andamento" WHERE id = ?', [ticket_id]);
+            await slaService.updateOperationalStatus(ticket_id);
             await recordTicketEvent({
               ticket_id,
               empresa_id: ticket.empresa_id,
@@ -129,6 +131,7 @@ class TicketMessagesService {
           // If client replies and it was 'aguardando_cliente', move back to 'em_andamento'
           if (ticket.status === 'aguardando_cliente') {
             await pool.query('UPDATE tickets SET status = "em_andamento" WHERE id = ?', [ticket_id]);
+            await slaService.resumeSla(ticket_id, usuario_id);
             await recordTicketEvent({
               ticket_id,
               empresa_id: ticket.empresa_id,
@@ -136,6 +139,8 @@ class TicketMessagesService {
               tipo: 'status_alterado',
               descricao: 'Status alterado de "Aguardando Cliente" para "Em Andamento" pela resposta do cliente'
             });
+          } else {
+            await slaService.updateOperationalStatus(ticket_id);
           }
         }
       }

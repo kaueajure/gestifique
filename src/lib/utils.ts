@@ -43,7 +43,7 @@ export function formatRelativeTime(
 }
 
 export interface SlaInfo {
-  status: "normal" | "vencendo" | "vencido" | "finalizado" | "sem_sla";
+  status: "normal" | "vencendo" | "vencido" | "finalizado" | "sem_sla" | "pausado";
   label: string;
   color: string;
   remainingText?: string;
@@ -54,7 +54,19 @@ export interface SlaInfo {
 export function getSlaInfo(
   prazo_sla: string | null | undefined,
   ticketStatus: string,
+  slaInfoFromTicket?: string
 ): SlaInfo {
+  // If explicitly paused or status operational is paused
+  if (ticketStatus === "aguardando_cliente" || slaInfoFromTicket === "pausado") {
+    return {
+      status: "pausado",
+      label: "SLA Pausado",
+      compactText: "Paus.",
+      color: "text-orange-600 bg-orange-50 border-orange-100",
+      remainingText: "Pausado (aguardando cliente)",
+    };
+  }
+
   if (ticketStatus === "resolvido" || ticketStatus === "fechado") {
     return {
       status: "finalizado",

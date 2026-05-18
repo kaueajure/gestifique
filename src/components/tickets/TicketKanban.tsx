@@ -196,7 +196,7 @@ export const TicketKanban = ({ kanbanData, onSelectTicket, currentUser, onStatus
                     )}
                   >
                     {column.tickets.map((ticket, index) => {
-                      const sla = getSlaInfo(ticket.prazo_sla, ticket.status);
+                      const sla = getSlaInfo(ticket.prazo_sla, ticket.status, ticket.sla_status_operacional);
                       const priorityColor = getPriorityInfo(ticket.prioridade);
                       
                       return (

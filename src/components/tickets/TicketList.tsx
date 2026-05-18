@@ -227,7 +227,7 @@ export const TicketList = ({
           </thead>
           <tbody className="divide-y divide-slate-100">
             {sortedTickets.map((ticket) => {
-              const sla = getSlaInfo(ticket.prazo_sla, ticket.status);
+              const sla = getSlaInfo(ticket.prazo_sla, ticket.status, ticket.sla_status_operacional);
               const isAbertoESemResp = ticket.status === 'aberto' && !ticket.responsavel_id;
               const isSelected = selectedTicketIds.includes(ticket.id);
               const priority = getPriorityInfo(ticket.prioridade);

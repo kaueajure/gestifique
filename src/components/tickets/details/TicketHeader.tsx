@@ -37,13 +37,14 @@ export const TicketHeader = ({
     origem, 
     cliente_nome,
     responsavel_nome,
-    prazo_sla 
+    prazo_sla,
+    sla_status_operacional
   } = ticket;
 
   const showResolveButton = canManage && status !== 'resolvido' && status !== 'fechado';
   const showReopenButton = canManage && (status === 'resolvido' || status === 'fechado');
   
-  const slaInfo = getSlaInfo(prazo_sla, status);
+  const slaInfo = getSlaInfo(prazo_sla, status, sla_status_operacional);
 
   const getPriorityInfo = (prio: string) => {
     switch (prio) {

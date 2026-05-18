@@ -128,6 +128,9 @@ export interface Ticket {
   responsavel_nome?: string;
   empresa_nome?: string;
   finalizado_em: string | null;
+  sla_pausado_em?: string | null;
+  sla_pausado_total_minutos?: number;
+  sla_status_operacional?: string | null;
   resolucao_motivo?: string | null;
   resolucao_observacao?: string | null;
   reaberto_em?: string | null;

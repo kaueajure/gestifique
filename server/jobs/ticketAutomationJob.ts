@@ -62,24 +62,40 @@ export const runTicketAutomations = async () => {
        }
     }
 
-    // Keep existing SLA status update logic if no automations are defined, 
-    // or just let automations handle it if they exist.
-    // To be safe, let's keep a baseline SLA violation update for tickets without specific rules.
+    // Baseline SLA violation update for tickets without specific rules.
+    // Sprint 2: Respect paused tickets
     await pool.query(`
       UPDATE tickets 
-      SET sla_resolucao_status = 'violado', updated_at = NOW() 
-      WHERE status NOT IN ('resolvido', 'fechado') 
+      SET sla_resolucao_status = 'violado', 
+          sla_status_operacional = 'violado',
+          updated_at = NOW() 
+      WHERE status NOT IN ('resolvido', 'fechado', 'aguardando_cliente') 
       AND (sla_resolucao_status != 'violado' OR sla_resolucao_status IS NULL)
+      AND sla_pausado_em IS NULL
       AND prazo_sla < NOW()
     `);
 
     await pool.query(`
       UPDATE tickets 
-      SET sla_primeira_resposta_status = 'violado', updated_at = NOW() 
+      SET sla_primeira_resposta_status = 'violado', 
+          updated_at = NOW() 
       WHERE status IN ('aberto', 'em_andamento')
       AND primeira_resposta_em IS NULL
       AND (sla_primeira_resposta_status = 'aguardando' OR sla_primeira_resposta_status IS NULL)
       AND prazo_primeira_resposta < NOW()
+    `);
+
+    // Sync other operacional statuses for non-paused, non-resolved tickets
+    await pool.query(`
+      UPDATE tickets
+      SET sla_status_operacional = CASE
+        WHEN prazo_sla < NOW() THEN 'vencido'
+        WHEN prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) THEN 'vencendo'
+        ELSE 'dentro_sla'
+      END
+      WHERE status NOT IN ('resolvido', 'fechado', 'aguardando_cliente')
+      AND sla_pausado_em IS NULL
+      AND prazo_sla IS NOT NULL
     `);
 
   } catch (err) {
