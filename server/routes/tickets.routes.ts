@@ -23,6 +23,8 @@ function parseTicketQueue(value: unknown): string {
   return typeof value === 'string' && validQueues.includes(value) ? value : 'todos';
 }
 
+const isAgentUser = (user: any) => !!(user.administrador || user.desenvolvedor || user.perfil === 'gestor' || user.perfil === 'atendente');
+
 router.use(authMiddleware);
 
 router.post('/:id/read', async (req: AuthRequest, res) => {
@@ -192,9 +194,9 @@ router.patch('/bulk', async (req: AuthRequest, res) => {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
     
-    const canManage = !!(currentUser.administrador || currentUser.desenvolvedor);
+    const canManage = isAgentUser(currentUser);
     if (!canManage) {
-      return sendError(res, 'Apenas administradores podem realizar ações em massa', 403);
+      return sendError(res, 'Apenas atendentes podem realizar ações em massa', 403);
     }
 
     const { ticket_ids, action, value } = req.body;
@@ -321,7 +323,7 @@ router.patch('/:id/resolve', async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
-    if (!currentUser.administrador && !currentUser.desenvolvedor) return sendError(res, 'Apenas atendentes podem finalizar chamados', 403);
+    if (!isAgentUser(currentUser)) return sendError(res, 'Apenas atendentes podem finalizar chamados', 403);
 
     const id = parseInt(req.params.id);
     const ticket: any = await ticketsService.getByIdForUser(id, currentUser);
@@ -342,7 +344,7 @@ router.patch('/:id/reopen', async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
-    if (!currentUser.administrador && !currentUser.desenvolvedor) return sendError(res, 'Apenas atendentes podem reabrir chamados', 403);
+    if (!isAgentUser(currentUser)) return sendError(res, 'Apenas atendentes podem reabrir chamados', 403);
 
     const id = parseInt(req.params.id);
     const ticket: any = await ticketsService.getByIdForUser(id, currentUser);
@@ -450,7 +452,7 @@ router.patch('/:id/status', async (req: AuthRequest, res) => {
 
     const ticket = result;
 
-    const canManage = currentUser.administrador || currentUser.desenvolvedor;
+    const canManage = isAgentUser(currentUser);
     if (!canManage) {
         return sendError(res, 'Permissão negada', 403);
     }
@@ -487,7 +489,7 @@ router.patch('/:id', async (req: AuthRequest, res) => {
 
     const ticket = result;
 
-    const canManage = currentUser.administrador || currentUser.desenvolvedor;
+    const canManage = isAgentUser(currentUser);
     if (!canManage && ticket.usuario_id !== currentUser.id) {
         return sendError(res, 'Permissão negada', 403);
     }
@@ -583,12 +585,12 @@ router.get('/:id/messages', async (req: AuthRequest, res) => {
     if (!result) return sendError(res, 'Ticket não encontrado', 404);
     if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
-    const isAdminOrDev = currentUser.administrador || currentUser.desenvolvedor;
-    const messages = await ticketsService.getMessages(id, isAdminOrDev);
+    const isAgent = isAgentUser(currentUser);
+    const messages = await ticketsService.getMessages(id, isAgent);
     
     // Fetch attachments for each message
     const messagesWithAttachments = await Promise.all((messages as any[]).map(async (msg: any) => {
-      const attachments = await attachmentsService.getByMessage(msg.id, isAdminOrDev);
+      const attachments = await attachmentsService.getByMessage(msg.id, isAgent);
       return { ...msg, attachments };
     }));
 
@@ -610,9 +612,9 @@ router.get('/:id/timeline', async (req: AuthRequest, res) => {
     if (!result) return sendError(res, 'Ticket não encontrado', 404);
     if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
-    const isAdminOrDev = !!(currentUser.administrador || currentUser.desenvolvedor);
+    const isAgent = isAgentUser(currentUser);
     
-    const timeline = await ticketsService.getTimeline(id, isAdminOrDev);
+    const timeline = await ticketsService.getTimeline(id, isAgent);
     if (!timeline) return sendError(res, 'Ticket não encontrado', 404);
 
     sendSuccess(res, timeline);
@@ -630,14 +632,14 @@ router.post('/:id/messages', async (req: AuthRequest, res) => {
     const id = parseInt(req.params.id);
     const { mensagem, interno } = req.body;
     
-    const isAdminOrDev = !!(currentUser.administrador || currentUser.desenvolvedor);
+    const isAgent = isAgentUser(currentUser);
     
     // Using TicketMessagesService via ticketsService (already updated)
     const messageId = await ticketsService.addMessage({
       ticket_id: id,
       usuario_id: currentUser.id,
       mensagem,
-      interno: isAdminOrDev ? !!interno : false
+      interno: isAgent ? !!interno : false
     }, currentUser);
 
     const [ticketRows]: any = await pool.query('SELECT empresa_id FROM tickets WHERE id = ?', [id]);
@@ -663,8 +665,8 @@ router.get('/:id/attachments', async (req: AuthRequest, res) => {
     if (!result) return sendError(res, 'Ticket não encontrado', 404);
     if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
-    const isAdminOrDev = currentUser.administrador || currentUser.desenvolvedor;
-    const attachments = await attachmentsService.listByTicket(id, isAdminOrDev);
+    const isAgent = isAgentUser(currentUser);
+    const attachments = await attachmentsService.listByTicket(id, isAgent);
     sendSuccess(res, attachments);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erro ao listar anexos';
@@ -715,8 +717,8 @@ router.post('/:id/attachments', ticketUpload.array('files', 5), async (req: Auth
 
     const ticket = ticketResult;
 
-    const isAdminOrDev = !!(currentUser.administrador || currentUser.desenvolvedor);
-    const isInternal = isAdminOrDev ? (interno === 'true' || interno === true) : false;
+    const isAgent = isAgentUser(currentUser);
+    const isInternal = isAgent ? (interno === 'true' || interno === true) : false;
 
     const createdAttachments = await Promise.all(files.map(async (file) => {
       const attachmentId = await attachmentsService.create({
@@ -785,7 +787,7 @@ router.post('/:id/tags', async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
-    if (!currentUser.administrador && !currentUser.desenvolvedor) return sendError(res, 'Permissão negada', 403);
+    if (!isAgentUser(currentUser)) return sendError(res, 'Permissão negada', 403);
 
     const id = parseInt(req.params.id);
     const { tag } = req.body;
@@ -807,7 +809,7 @@ router.put('/:id/tags', async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
-    if (!currentUser.administrador && !currentUser.desenvolvedor) return sendError(res, 'Permissão negada', 403);
+    if (!isAgentUser(currentUser)) return sendError(res, 'Permissão negada', 403);
 
     const id = parseInt(req.params.id);
     const { tags } = req.body;
@@ -829,7 +831,7 @@ router.delete('/:id/tags/:tag', async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
-    if (!currentUser.administrador && !currentUser.desenvolvedor) return sendError(res, 'Permissão negada', 403);
+    if (!isAgentUser(currentUser)) return sendError(res, 'Permissão negada', 403);
 
     const id = parseInt(req.params.id);
     const { tag } = req.params;
@@ -868,7 +870,7 @@ router.put('/:id/custom-fields', async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
-    if (!currentUser.administrador && !currentUser.desenvolvedor) return sendError(res, 'Permissão negada', 403);
+    if (!isAgentUser(currentUser)) return sendError(res, 'Permissão negada', 403);
 
     const id = parseInt(req.params.id);
     const { fields } = req.body;

@@ -41,9 +41,11 @@ class TicketMessagesService {
       throw new Error('Chamado não encontrado');
     }
 
-    const isDev = currentUser?.desenvolvedor;
-    const isAdmin = currentUser?.administrador;
-    const isAgent = isDev || isAdmin;
+    const isDev = !!currentUser?.desenvolvedor;
+    const isAdmin = !!currentUser?.administrador;
+    const isManager = currentUser?.perfil === 'gestor';
+    const isStaff = currentUser?.perfil === 'atendente';
+    const isAgent = isDev || isAdmin || isManager || isStaff;
 
     if (currentUser) {
       // Data isolation check
@@ -52,7 +54,7 @@ class TicketMessagesService {
       }
 
       // Customer specific check
-      if (!isAgent && Number(ticket.usuario_id) !== Number(currentUser.id)) {
+      if (!isAgent && Number(ticket.usuario_id) !== Number(currentUser?.id)) {
         throw new Error('Acesso negado: este chamado pertence a outro usuário');
       }
     }
@@ -191,6 +193,7 @@ class TicketMessagesService {
 
     // 6. WebSocket Emit
     try {
+      // TODO: Consider using a singleton Realtime Service to decouple from server.js
       if (io) {
         // Fetch updated ticket using direct query to avoid circular dependency
         const [updatedRows]: any = await pool.query(
