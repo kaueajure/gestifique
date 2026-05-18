@@ -33,7 +33,7 @@ export const ForgotPasswordPage = ({ onSubmit, authError, authSuccess, onBackToL
         <p className="text-[14px] font-medium text-slate-500">Informe o e-mail cadastrado para receber o código de recuperação.</p>
       </div>
 
-      <Card className="p-6 md:p-8 bg-white border border-slate-200 shadow-sm rounded-2xl">
+      <Card className="p-6 md:p-8 bg-white border border-slate-200 shadow-sm rounded-xl">
         <form onSubmit={onSubmit} className="space-y-5">
           {authError && <AuthAlert type="error" message={authError} />}
           {authSuccess && <AuthAlert type="success" message={authSuccess} />}
@@ -63,7 +63,7 @@ export const ForgotPasswordPage = ({ onSubmit, authError, authSuccess, onBackToL
         </form>
       </Card>
 
-      <div className="mt-8 text-center space-y-4">
+      <div className="mt-8 flex flex-col items-center gap-4 text-center">
         <button
           onClick={onBackToLogin}
           className="text-[13px] font-semibold text-slate-600 hover:text-slate-900 transition-colors outline-none inline-flex items-center gap-1.5"
@@ -71,7 +71,6 @@ export const ForgotPasswordPage = ({ onSubmit, authError, authSuccess, onBackToL
         >
           <ArrowRight size={14} className="rotate-180" /> Voltar ao login
         </button>
-        <br />
         <button
           onClick={onBackToSite}
           className="text-[12px] font-semibold text-slate-400 hover:text-slate-600 transition-colors outline-none inline-flex items-center gap-1.5"

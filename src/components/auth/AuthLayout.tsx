@@ -14,7 +14,7 @@ export const AuthLayout = ({ children }: AuthLayoutProps) => {
         
         {/* Esquerda: Branding Institucional (Oculto no mobile e tablet) */}
         <div className="hidden lg:flex w-[55%] flex-col relative z-10">
-          <div className="bg-white/80 backdrop-blur-md border border-slate-200/80 p-10 rounded-2xl shadow-sm text-slate-800 flex flex-col justify-between min-h-[600px] relative overflow-hidden">
+          <div className="bg-white/80 backdrop-blur-md border border-slate-200/80 p-10 rounded-xl shadow-sm text-slate-800 flex flex-col justify-between min-h-[560px] relative overflow-hidden">
              
             {/* Efeitos de luz no BG */}
             <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-100/50 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2 pointer-events-none" />
@@ -46,7 +46,7 @@ export const AuthLayout = ({ children }: AuthLayoutProps) => {
                   <div className="w-7 h-7 rounded-md bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
                     <ShieldCheck className="text-emerald-600" size={14} />
                   </div>
-                   <span className="text-sm font-semibold text-slate-700">SLA e prioridades dinâmicas</span>
+                   <span className="text-sm font-semibold text-slate-700">Controle de SLA e prioridades</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-7 h-7 rounded-md bg-purple-50 border border-purple-100 flex items-center justify-center shrink-0">
@@ -58,13 +58,13 @@ export const AuthLayout = ({ children }: AuthLayoutProps) => {
                   <div className="w-7 h-7 rounded-md bg-orange-50 border border-orange-100 flex items-center justify-center shrink-0">
                     <LayoutDashboard className="text-orange-600" size={14} />
                   </div>
-                   <span className="text-sm font-semibold text-slate-700">Relatórios gerenciais completos</span>
+                   <span className="text-sm font-semibold text-slate-700">Indicadores gerenciais de atendimento</span>
                 </div>
               </div>
             </div>
 
             {/* Mini preview do sistema */}
-            <div className="relative z-10 mt-10 rounded-xl border border-slate-200 bg-[#FDFDFF] shadow-sm overflow-hidden flex transform origin-bottom-left hover:scale-[1.02] transition-transform duration-300">
+            <div className="relative z-10 mt-10 rounded-xl border border-slate-200 bg-[#FDFDFF] shadow-sm overflow-hidden flex">
                {/* Sidebar mini */}
                <div className="w-16 bg-white border-r border-slate-100 flex flex-col items-center py-4 gap-4">
                   <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center"><AppLogo size={16} /></div>

@@ -34,7 +34,7 @@ export const LoginPage = ({ onSubmit, authError, onForgotPassword, onBackToSite,
         <p className="text-[14px] font-medium text-slate-500">Acesse sua central de atendimento.</p>
       </div>
 
-      <Card className="p-6 md:p-8 bg-white border border-slate-200 shadow-sm rounded-2xl">
+      <Card className="p-6 md:p-8 bg-white border border-slate-200 shadow-sm rounded-xl">
         <form onSubmit={onSubmit} className="space-y-5">
           {authError && <AuthAlert type="error" message={authError} />}
 
