@@ -41,6 +41,13 @@ export const env = {
     USER: process.env.IMAP_USER as string,
     PASS: process.env.IMAP_PASS as string,
   },
+  SMTP: {
+    HOST: process.env.SMTP_HOST as string,
+    PORT: parseInt(process.env.SMTP_PORT || '587'),
+    USER: process.env.SMTP_USER as string,
+    PASS: process.env.SMTP_PASS as string,
+    FROM: process.env.MAIL_FROM || '"Gestifique" <suporte@gestifique.com>',
+  },
   // Scaling & Features
   ENABLE_WEB_SERVER: process.env.ENABLE_WEB_SERVER !== 'false',
   ENABLE_EMAIL_LISTENER: process.env.ENABLE_EMAIL_LISTENER === 'true', // Default false to be safe

@@ -155,11 +155,18 @@ class TicketMessagesService {
       if (!finalInterno && !isClient && ticket.usuario_id) {
         recipients.add(ticket.usuario_id);
         if (ticket.cliente_email && ticket.cliente_email !== 'removido@sistema.com') {
+          // Get the original messageId from the ticket or the latest message for threading
+          const replyToId = ticket.message_id;
+          
           sendTicketNotification(
             ticket.cliente_email,
             ticket_id,
             ticket.titulo,
-            `Olá ${ticket.cliente_nome}, você tem uma nova resposta de ${authorName}:<br><br><i>"${mensagem}"</i>`
+            `Olá ${ticket.cliente_nome}, você tem uma nova resposta de ${authorName}:<br><br><i>"${mensagem}"</i>`,
+            {
+              inReplyTo: replyToId,
+              references: replyToId ? [replyToId] : undefined
+            }
           ).catch(err => console.error('[Notification Error] Mail failed:', err));
         }
       }

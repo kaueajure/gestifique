@@ -128,6 +128,7 @@ export class EmailListenerService {
 
       for (const item of messages) {
         const uid = item.attributes.uid;
+        let senderEmailStr = 'unknown';
         try {
           const bodyPart: any = item.parts.find((part: any) => part.which === '');
           if (!bodyPart) continue;
@@ -136,6 +137,7 @@ export class EmailListenerService {
           const messageId = parsed.messageId;
           const fromObj = parsed.from?.value[0];
           const senderEmail = fromObj?.address?.toLowerCase();
+          senderEmailStr = senderEmail || 'unknown';
           const senderName = fromObj?.name || senderEmail || 'Sem Nome';
           const subject = parsed.subject || 'Sem Assunto';
 
@@ -155,41 +157,51 @@ export class EmailListenerService {
           // 2. Identify Recipient Company/Channel
           let potentialRecipients: string[] = [];
           
-          const toArr = Array.isArray(parsed.to) 
-              ? parsed.to.flatMap((t: any) => t.value?.map((v: any) => v.address) || [])
-              : (parsed.to as any)?.value?.map((v: any) => v.address) || [];
-          potentialRecipients.push(...toArr);
+          const extractAddresses = (field: any) => {
+            if (!field) return [];
+            if (Array.isArray(field)) {
+              return field.flatMap(f => extractAddresses(f));
+            }
+            if (field.value && Array.isArray(field.value)) {
+              return field.value.map((v: any) => v.address).filter(Boolean);
+            }
+            if (typeof field === 'string') {
+               // Try to extract email from "Name <email@domain.com>"
+               const match = field.match(/<(.+?)>/);
+               return [match ? match[1].toLowerCase().trim() : field.toLowerCase().trim()];
+            }
+            if (field.address) return [field.address.toLowerCase().trim()];
+            return [];
+          };
 
-          const ccArr = Array.isArray(parsed.cc) 
-              ? parsed.cc.flatMap((t: any) => t.value?.map((v: any) => v.address) || [])
-              : (parsed.cc as any)?.value?.map((v: any) => v.address) || [];
-          potentialRecipients.push(...ccArr);
+          potentialRecipients.push(...extractAddresses(parsed.to));
+          potentialRecipients.push(...extractAddresses(parsed.cc));
+          potentialRecipients.push(...extractAddresses(parsed.bcc));
 
           // Check common standard headers for original recipient
-          const headerKeys = ['delivered-to', 'x-original-to', 'envelope-to', 'x-forwarded-to', 'apparently-to'];
+          const headerKeys = ['delivered-to', 'x-original-to', 'envelope-to', 'x-forwarded-to', 'apparently-to', 'x-real-to'];
           for (const key of headerKeys) {
-             const val = parsed.headers.get(key) as any;
-             if (val) {
-                if (typeof val === 'string') potentialRecipients.push(val);
-                else if (Array.isArray(val)) potentialRecipients.push(...val.map(v => typeof v === 'string' ? v : v.address));
-                else if (val.value && Array.isArray(val.value)) potentialRecipients.push(...val.value.map((v: any) => v.address));
-             }
+             const val = parsed.headers.get(key);
+             potentialRecipients.push(...extractAddresses(val));
           }
           
-          potentialRecipients = [...new Set(potentialRecipients.filter(a => !!a).map(a => a.toLowerCase()))];
-          
+          potentialRecipients = [...new Set(potentialRecipients.filter(a => !!a).map(a => a.toLowerCase().trim()))];
+          console.log(`[Email Listener] [UID:${uid}] Detected recipients: ${potentialRecipients.join(', ')}`);
+
           let targetEmpresaId = null;
           let matchedChannelId = null;
 
           if (potentialRecipients.length > 0) {
+              // Try normalized inbound_address first
               const [canaisMatch]: any = await pool.query(
-                  'SELECT id, empresa_id, status FROM empresa_email_canais WHERE inbound_address IN (?) LIMIT 1',
-                  [potentialRecipients]
+                  'SELECT id, empresa_id, status FROM empresa_email_canais WHERE LOWER(inbound_address) IN (?) OR LOWER(email_publico) IN (?) LIMIT 1',
+                  [potentialRecipients, potentialRecipients]
               );
               
               if (canaisMatch.length > 0) {
                   matchedChannelId = canaisMatch[0].id;
                   targetEmpresaId = canaisMatch[0].empresa_id;
+                  console.log(`[Email Listener] [UID:${uid}] Matched channel ID ${matchedChannelId} for company ${targetEmpresaId}`);
                   
                   await pool.query(
                      'UPDATE empresa_email_canais SET last_received_at = NOW(), ultimo_erro = NULL WHERE id = ?',
@@ -200,44 +212,52 @@ export class EmailListenerService {
                         'UPDATE empresa_email_canais SET status = ?, verified_at = NOW() WHERE id = ?',
                         ['ativo', matchedChannelId]
                      );
-                     await this.logSystem(targetEmpresaId, 'EMAIL_CHANNEL_VERIFIED', `Canal de e-mail ID ${matchedChannelId} verificado pelo recebimento de email.`);
                   }
               } else {
                   // Fallback to legacy support email check
                   const [empresasMatch]: any = await pool.query(
-                      'SELECT id FROM empresas WHERE email_suporte IN (?) LIMIT 1',
-                      [potentialRecipients]
+                      'SELECT id FROM empresas WHERE LOWER(email) IN (?) OR email_suporte IN (?) LIMIT 1',
+                      [potentialRecipients, potentialRecipients]
                   );
                   if (empresasMatch.length > 0) {
                       targetEmpresaId = empresasMatch[0].id;
-                      await this.logSystem(targetEmpresaId, 'EMAIL_WITHOUT_CHANNEL', `E-mail de ${senderEmail} processado via email_suporte legado. Destinatários: ${potentialRecipients.join(', ')}`);
+                      console.log(`[Email Listener] [UID:${uid}] Matched company ${targetEmpresaId} via legacy support email fallback.`);
                   }
               }
           }
 
           if (!targetEmpresaId) {
-             console.warn(`[IMAP] No company found for recipients: ${potentialRecipients.join(', ')}. Sender: ${senderEmail}.`);
+             console.warn(`[Email Listener] [UID:${uid}] No company found for recipients: ${potentialRecipients.join(', ')}. From: ${senderEmail}.`);
              await this.logSystem(null, 'EMAIL_WITHOUT_COMPANY', `Falha ao identificar empresa para email de ${senderEmail} (Para: ${potentialRecipients.join(', ')}).`);
-             await this.connection.addFlags(uid, '\\Seen');
-             continue;
+             // We don't mark as seen if we can't route it, unless we want to ignore unknown recipients
+             // If we mark as seen, it won't be tried again. 
+             // Requirement says: "Não marcar como lido se não encontrou empresa/canal"
+             continue; 
           }
 
           // 3. Anti-Loop & System Prevention
-          const precedence = parsed.headers.get('precedence') as string;
-          const autoSubmitted = parsed.headers.get('auto-submitted') as string;
+          const precedence = (parsed.headers.get('precedence') as string || '').toLowerCase();
+          const autoSubmitted = (parsed.headers.get('auto-submitted') as string || '').toLowerCase();
           const isAutoMsg = precedence === 'bulk' || precedence === 'junk' || precedence === 'list' || (autoSubmitted && autoSubmitted !== 'no');
           
-          const isSystem = senderEmail?.includes('mailer-daemon') || 
-                           senderEmail?.includes('postmaster') || 
-                           senderEmail?.includes('noreply') ||
-                           senderEmail?.includes('no-reply');
+          const systemEmails = [
+            env.IMAP.USER?.toLowerCase(),
+            env.SMTP.USER?.toLowerCase(),
+            'mailer-daemon',
+            'postmaster',
+            'noreply',
+            'no-reply'
+          ].filter(Boolean);
+
+          const isSystem = systemEmails.some(sys => senderEmail?.includes(sys!));
           
-          if (isSystem || isAutoMsg || senderEmail === env.IMAP.USER?.toLowerCase()) {
-             console.warn(`[IMAP] Anti-Loop triggered for ${senderEmail} (isSystem: ${isSystem}, isAuto: ${isAutoMsg})`);
+          if (isSystem || isAutoMsg) {
+             console.warn(`[Email Listener] [UID:${uid}] Anti-Loop triggered for ${senderEmail} (isSystem: ${isSystem}, isAuto: ${isAutoMsg})`);
              await this.logSystem(targetEmpresaId, 'EMAIL_LOOP_PREVENTED', `Email de ${senderEmail} ignorado (Precedence: ${precedence}, Auto-Submitted: ${autoSubmitted}).`);
              await this.connection.addFlags(uid, '\\Seen');
              continue;
           }
+
 
           // 4. Resolve Sender Context
           const { userId } = await this.resolveSenderContext(senderEmail!, targetEmpresaId);
@@ -256,6 +276,7 @@ export class EmailListenerService {
 
           // 6. Identification of existing ticket (Reply check)
           let targetTicketId: number | null = null;
+          console.log(`[Email Listener] [UID:${uid}] Processing message from ${senderEmail}: "${subject}" (MessageID: ${messageId})`);
 
           // A) By [Ticket #ID] in subject
           const subjectMatch = subject.match(/\[Ticket\s*#(\d+)\]/i);
@@ -309,6 +330,10 @@ export class EmailListenerService {
                 await this.logSystem(targetEmpresaId, 'EMAIL_MESSAGE_ADDED', `Nova mensagem via e-mail no ticket #${targetTicketId} de ${senderEmail}.`);
                 
                 await this.processAttachments(parsed, targetTicketId, msgId, userId, targetEmpresaId);
+                
+                // MARK AS SEEN ONLY ON SUCCESS
+                await this.connection.addFlags(uid, '\\Seen');
+                console.log(`[Email Listener] [UID:${uid}] Ticket #${targetTicketId} updated and email marked as seen.`);
              } else {
                 await this.logSystem(targetEmpresaId, 'EMAIL_TICKET_MISMATCH', `Tentativa de responder ao ticket #${targetTicketId} que pertence à empresa ${ticketCheck[0]?.empresa_id || 'unkn'} através do canal da empresa ${targetEmpresaId}.`);
                 targetTicketId = null; // Forces creation of a new ticket if cross-company
@@ -338,13 +363,17 @@ export class EmailListenerService {
             }
             
             await this.processAttachments(parsed, newTicketId, null, userId, targetEmpresaId);
+
+            // MARK AS SEEN ONLY ON SUCCESS
+            await this.connection.addFlags(uid, '\\Seen');
+            console.log(`[Email Listener] [UID:${uid}] Ticket #${newTicketId} created and email marked as seen.`);
           }
 
-        } catch (itemError) {
-          console.error('[IMAP TICKET ERROR] Falha ao processar item individual:', itemError);
-        } finally {
-          await this.connection.addFlags(uid, ['\\Seen']);
-          console.log(`[IMAP] UID ${uid} processado e marcado como lido.`);
+        } catch (itemError: any) {
+          console.error(`[Email Listener] [UID:${uid}] Error processing item:`, itemError);
+          // If it's a specific error we know we should mark as read (like invalid format), we could.
+          // But generally, we don't mark as seen if it failed, so it can be retried or inspected.
+          await this.logSystem(null, 'EMAIL_PROCESS_ERROR', `Erro ao processar e-mail UID ${uid} de ${senderEmailStr}: ${itemError.message}`);
         }
       }
     } catch (e) {
