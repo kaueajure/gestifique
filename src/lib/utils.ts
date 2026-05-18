@@ -284,3 +284,8 @@ export function compactDateFormatter(
     minute: "2-digit",
   }).format(d);
 }
+
+export function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
