@@ -336,7 +336,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
               trend={`${data.totals.resolution_rate}% resolvidos`}
             />
             <IndicatorCard 
-              title="T.M. Resolucao" 
+              title="T.M. Resolução" 
               value={`${data.totals.average_resolution_hours}h`} 
               icon={<Clock />} 
               color="emerald" 
@@ -361,7 +361,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <SectionHeader 
                title="Métricas de Compromisso (SLA)" 
-               description="Performace operacional" 
+               description="Performance operacional" 
                className="col-span-1 lg:col-span-3 mb-0 mt-2" 
             />
               {/* SLA Compliance Section */}

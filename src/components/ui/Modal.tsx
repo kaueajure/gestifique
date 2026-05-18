@@ -30,7 +30,7 @@ export const Modal = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -47,13 +47,13 @@ export const Modal = ({
               sizes[size],
             )}
           >
-            <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center bg-white">
-              <h3 className="text-base font-semibold text-slate-900">
+            <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-100 flex justify-between items-center bg-white gap-4">
+              <h3 className="text-base font-semibold text-slate-900 truncate min-w-0">
                 {title}
               </h3>
               <button
                 onClick={onClose}
-                className="p-1.5 hover:bg-slate-50 text-slate-400 hover:text-slate-600 rounded-lg transition-colors"
+                className="p-1.5 hover:bg-slate-50 text-slate-400 hover:text-slate-600 rounded-lg transition-colors shrink-0"
               >
                 <X size={16} />
               </button>

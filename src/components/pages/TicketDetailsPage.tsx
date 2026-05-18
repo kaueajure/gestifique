@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { Ticket, Message, User, TicketAttachment, TicketTimelineItem, TicketStatus } from '../../types';
-import { AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, Loader2, CheckCircle2, X } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { TicketHeader } from '../tickets/details/TicketHeader';
@@ -375,36 +375,42 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
 
       {/* Resolution Modal */}
       {isResolveModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-3 sm:p-4">
           <motion.div 
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden border border-slate-200"
           >
-             <div className="p-4 border-b border-slate-100 flex flex-col gap-1">
-                <div className="flex items-center gap-3 mb-1">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
+             <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-100 flex justify-between items-center bg-white gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
                      <CheckCircle2 size={16} />
                   </div>
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-900 tracking-tight">
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-semibold text-slate-900 tracking-tight truncate">
                        Concluir Atendimento
                     </h3>
-                    <p className="text-xs text-slate-500 font-medium">
+                    <p className="text-[10px] sm:text-xs text-slate-500 font-medium truncate">
                        Informe como este chamado foi resolvido
                     </p>
                   </div>
                 </div>
+                <button
+                  onClick={() => setIsResolveModalOpen(false)}
+                  className="p-1.5 hover:bg-slate-50 text-slate-400 hover:text-slate-600 rounded-lg transition-colors shrink-0 md:hidden"
+                >
+                  <X size={16} />
+                </button>
              </div>
 
-             <div className="p-4 space-y-4">
+             <div className="p-4 sm:p-5 space-y-4">
                 <div className="space-y-1.5">
                    <label className="text-[11px] font-semibold text-slate-600">Motivo da Resolução</label>
                    <Select 
                      value={resolutionData.resolucao_motivo}
                      onChange={(value) => setResolutionData(prev => ({ ...prev, resolucao_motivo: value }))}
                      placeholder="Selecione o motivo..."
-                     buttonClassName="h-9 bg-slate-50 border-slate-200 rounded-lg text-xs"
+                     buttonClassName="h-9 bg-slate-50 border-slate-200 rounded-lg text-xs font-sans"
                      options={[
                        { value: "duvida_sanada", label: "Dúvida sanada" },
                        { value: "problema_corrigido", label: "Problema corrigido" },
@@ -423,16 +429,16 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                      value={resolutionData.resolucao_observacao}
                      onChange={(e) => setResolutionData(prev => ({ ...prev, resolucao_observacao: e.target.value }))}
                      placeholder="Detalhes sobre a solução..."
-                     className="w-full h-16 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 outline-none focus:ring-1 focus:ring-blue-400 transition-all resize-none"
+                     className="w-full h-16 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 outline-none focus:ring-1 focus:ring-blue-400 transition-all resize-none font-sans"
                    />
                 </div>
              </div>
 
-             <div className="p-4 bg-slate-50/50 flex flex-col md:flex-row justify-end gap-2 rounded-b-xl border-t border-slate-100">
+             <div className="px-4 sm:px-5 py-3 sm:py-4 bg-slate-50/50 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 border-t border-slate-100">
                 <Button 
                    variant="ghost" 
                    size="sm"
-                   className="text-slate-500 hover:text-slate-700" 
+                   className="text-slate-500 hover:text-slate-700 font-sans" 
                    onClick={() => setIsResolveModalOpen(false)}
                 >
                    Desistir
@@ -441,7 +447,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                    size="sm"
                    onClick={handleConfirmResolution} 
                    disabled={!resolutionData.resolucao_motivo}
-                   className="bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm"
+                   className="bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm font-sans"
                 >
                    Finalizar Agora
                 </Button>

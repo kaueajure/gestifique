@@ -301,7 +301,7 @@ export const KnowledgePage = ({ currentUser }: KnowledgeManagerProps) => {
       {/* Editor Modal */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
             <motion.div 
               initial={{ opacity: 0 }} 
               animate={{ opacity: 1 }} 
@@ -316,24 +316,24 @@ export const KnowledgePage = ({ currentUser }: KnowledgeManagerProps) => {
               exit={{ scale: 0.95, opacity: 0, y: 10 }}
               className="bg-white rounded-xl shadow-lg w-full max-w-4xl max-h-[90vh] flex flex-col relative z-10 overflow-hidden border border-slate-200"
             >
-              <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
+              <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-100 flex items-center justify-between bg-white gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
                     <BookOpen size={16}/>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-slate-800 text-sm">
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-slate-800 text-sm truncate">
                       {editingArticle ? 'Editar Artigo' : 'Novo Artigo'}
                     </h3>
-                    <p className="text-[11px] text-slate-500">Documentação da base de conhecimento</p>
+                    <p className="text-[10px] sm:text-[11px] text-slate-500 truncate">Documentação da base de conhecimento</p>
                   </div>
                 </div>
-                <button onClick={() => setIsModalOpen(false)} className="w-8 h-8 hover:bg-slate-200 rounded flex items-center justify-center text-slate-500 transition-colors">
+                <button onClick={() => setIsModalOpen(false)} className="w-8 h-8 hover:bg-slate-50 rounded flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors shrink-0">
                   <X size={18} />
                 </button>
               </div>
 
-              <div className="p-5 overflow-y-auto flex-1 custom-scrollbar">
+              <div className="p-4 sm:p-5 overflow-y-auto flex-1 custom-scrollbar min-h-0">
                 <form id="knowledge-form" onSubmit={handleSave} className="space-y-5">
                   {error && (
                     <div className="p-3 bg-red-50 text-red-600 text-xs font-medium rounded-md flex items-center gap-2 border border-red-100">
@@ -348,7 +348,7 @@ export const KnowledgePage = ({ currentUser }: KnowledgeManagerProps) => {
                         type="text" 
                         required
                         placeholder="Ex: Como configurar seu e-mail..."
-                        className="w-full h-9 bg-white border border-slate-200 rounded-md px-3 text-xs focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all outline-none"
+                        className="w-full h-9 bg-white border border-slate-200 rounded-md px-3 text-xs focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all outline-none font-sans"
                         value={formData.titulo}
                         onChange={e => setFormData(f => ({ ...f, titulo: e.target.value }))}
                       />
@@ -358,7 +358,7 @@ export const KnowledgePage = ({ currentUser }: KnowledgeManagerProps) => {
                       <input 
                         type="text" 
                         placeholder="Selecione ou digite uma nova..."
-                        className="w-full h-9 bg-white border border-slate-200 rounded-md px-3 text-xs focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all outline-none"
+                        className="w-full h-9 bg-white border border-slate-200 rounded-md px-3 text-xs focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all outline-none font-sans"
                         value={formData.categoria}
                         onChange={e => setFormData(f => ({ ...f, categoria: e.target.value }))}
                         list="category-suggestions"
@@ -377,7 +377,7 @@ export const KnowledgePage = ({ currentUser }: KnowledgeManagerProps) => {
                         onChange={(val) => setFormData(f => ({ ...f, conteudo: val || '' }))}
                         height={320}
                         preview="edit"
-                        className="border-none shadow-none"
+                        className="border-none shadow-none font-sans"
                         textareaProps={{
                           placeholder: 'Utilize markdown para formatar seu texto...'
                         }}
@@ -421,9 +421,9 @@ export const KnowledgePage = ({ currentUser }: KnowledgeManagerProps) => {
                 </form>
               </div>
 
-              <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-end gap-2 bg-slate-50/50">
-                <Button variant="ghost" size="sm" className="font-medium text-slate-500" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-                <Button type="submit" form="knowledge-form" size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm">
+              <div className="px-4 sm:px-5 py-3 sm:py-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-center justify-end gap-2 sm:gap-3 bg-slate-50/50">
+                <Button variant="ghost" size="sm" className="font-medium text-slate-500 w-full sm:w-auto font-sans" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
+                <Button type="submit" form="knowledge-form" size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm w-full sm:w-auto font-sans">
                   <Save size={14} className="mr-1.5" /> {editingArticle ? 'Atualizar' : 'Publicar'}
                 </Button>
               </div>
