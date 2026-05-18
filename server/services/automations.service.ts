@@ -1,5 +1,6 @@
 import pool from '../db/connection.js';
 import { recordTicketEvent } from './ticket-events.service.js';
+import ticketMessagesService from './ticket-messages.service.js';
 
 const parseJsonArray = (value: any) => {
   if (Array.isArray(value)) return value;
@@ -156,11 +157,13 @@ export async function runAutomations(evento: string, ticket: any, contexto: any)
               executedAcoes.push(`Tag adicionada: ${acao.valor}`);
             }
             else if (acao.tipo === 'adicionar_comentario' && acao.valor) {
-              await pool.query(
-                'INSERT INTO ticket_mensagens (ticket_id, usuario_id, mensagem, interno) VALUES (?, NULL, ?, 1)',
-                [ticket.id, acao.valor]
-              );
-              executedAcoes.push(`Comentário interno adicionado`);
+               await ticketMessagesService.addMessage({
+                 ticket_id: ticket.id,
+                 usuario_id: null,
+                 mensagem: acao.valor,
+                 interno: true
+               }, { administrador: true, desenvolvedor: true }); // System/Admin bypass
+               executedAcoes.push(`Comentário interno adicionado`);
             }
             else if (acao.tipo === 'notificar_responsavel' && ticket.responsavel_id) {
                const { default: notificationsService } = await import('./notifications.service.js');

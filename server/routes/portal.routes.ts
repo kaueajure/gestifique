@@ -99,37 +99,18 @@ router.post('/tickets/:id/messages', async (req: any, res: any) => {
   const { mensagem } = req.body;
   if (!mensagem) return sendError(res, 'Mensagem vazia', 400);
 
-  const conn = await pool.getConnection();
   try {
-    const [ticketRows]: any = await conn.query('SELECT status FROM tickets WHERE id = ? AND usuario_id = ? FOR UPDATE', [req.params.id, req.user.id]);
-    if (!ticketRows.length) return sendError(res, 'Chamado não encontrado', 404);
+    const messageId = await ticketsService.addMessage({
+      ticket_id: Number(req.params.id),
+      usuario_id: req.user.id,
+      mensagem,
+      interno: false
+    }, req.user);
 
-    await conn.beginTransaction();
-
-    await conn.query(`
-      INSERT INTO ticket_mensagens (ticket_id, usuario_id, mensagem, tipo, interno)
-      VALUES (?, ?, ?, 'texto', 0)
-    `, [req.params.id, req.user.id, mensagem]);
-
-    // Mudar status para aberto se estiver aguardando cliente
-    if (ticketRows[0].status === 'aguardando_cliente') {
-      await conn.query('UPDATE tickets SET status = "aberto", updated_at = NOW() WHERE id = ?', [req.params.id]);
-      
-      await conn.query(`
-        INSERT INTO ticket_mensagens (ticket_id, usuario_id, mensagem, tipo, interno)
-        VALUES (?, ?, 'Status alterado de Aguardando Você para Aberto', 'status_change', 0)
-      `, [req.params.id, req.user.id]);
-    } else {
-      await conn.query('UPDATE tickets SET updated_at = NOW() WHERE id = ?', [req.params.id]);
-    }
-
-    await conn.commit();
-    res.status(201).json({ message: 'Mensagem enviada com sucesso' });
-  } catch (error) {
-    await conn.rollback();
-    sendError(res, 'Erro ao enviar mensagem', 500);
-  } finally {
-    conn.release();
+    res.status(201).json({ success: true, message: 'Mensagem enviada com sucesso', messageId });
+  } catch (error: any) {
+    console.error('[Portal] Erro ao enviar mensagem:', error);
+    sendError(res, error.message || 'Erro ao enviar mensagem', 500);
   }
 });
 

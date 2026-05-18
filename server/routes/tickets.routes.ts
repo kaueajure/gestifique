@@ -628,35 +628,23 @@ router.post('/:id/messages', async (req: AuthRequest, res) => {
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
 
     const id = parseInt(req.params.id);
-    
-    const result: any = await ticketsService.getByIdForUser(id, currentUser);
-    if (!result) return sendError(res, 'Ticket não encontrado', 404);
-    if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
-
     const { mensagem, interno } = req.body;
     
-    const isAdminOrDev = currentUser.administrador || currentUser.desenvolvedor;
+    const isAdminOrDev = !!(currentUser.administrador || currentUser.desenvolvedor);
     
-    const ticket = result;
+    // Using TicketMessagesService via ticketsService (already updated)
     const messageId = await ticketsService.addMessage({
       ticket_id: id,
       usuario_id: currentUser.id,
       mensagem,
-      interno: isAdminOrDev ? interno : false
-    });
+      interno: isAdminOrDev ? !!interno : false
+    }, currentUser);
 
-    await logSystemAction(req, currentUser.id, ticket.empresa_id, 'MESSAGE_SEND', `Nova mensagem no chamado #${id}`);
+    const [ticketRows]: any = await pool.query('SELECT empresa_id FROM tickets WHERE id = ?', [id]);
+    const empresaId = ticketRows[0]?.empresa_id || currentUser.empresa_id;
+
+    await logSystemAction(req, currentUser.id, empresaId, 'MESSAGE_SEND', `Nova mensagem no chamado #${id}`);
     
-    // Real-time update via WebSocket
-    const io = req.app.get('io');
-    if (io) {
-      io.to(`empresa_${ticket.empresa_id}`).emit('ticketMessagesChanged', {
-        ticketId: id,
-        empresaId: ticket.empresa_id,
-        messageId
-      });
-    }
-
     sendSuccess(res, { id: messageId }, 'Mensagem enviada');
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erro ao enviar mensagem';

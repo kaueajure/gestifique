@@ -3,6 +3,8 @@ import notificationsService from './notifications.service.js';
 import { sendTicketNotification } from '../utils/mailer.js';
 import { recordTicketEvent } from './ticket-events.service.js';
 
+import ticketMessagesService from './ticket-messages.service.js';
+
 export function toPositiveInt(value: unknown): number | undefined {
   if (value === undefined || value === null || value === '') return undefined;
   if (Array.isArray(value)) value = value[0];
@@ -1131,125 +1133,8 @@ class TicketsService {
     return rows;
   }
 
-  async addMessage(data: any) {
-    const { ticket_id, usuario_id, mensagem, interno, message_id } = data;
-    const [result]: any = await pool.query(
-      'INSERT INTO ticket_mensagens (ticket_id, usuario_id, mensagem, interno, message_id) VALUES (?, ?, ?, ?, ?)',
-      [ticket_id, usuario_id || null, mensagem, interno ? 1 : 0, message_id || null]
-    );
-    const messageId = result.insertId;
-
-    // Track processed email to avoid duplicates
-    if (message_id) {
-       const ticket = await this.getById(ticket_id);
-       if (ticket) {
-          await pool.query(
-            'INSERT IGNORE INTO processed_emails (message_id, empresa_id, ticket_id) VALUES (?, ?, ?)',
-            [message_id, ticket.empresa_id, ticket_id]
-          );
-       }
-    }
-
-    await pool.query('UPDATE tickets SET updated_at = NOW() WHERE id = ?', [ticket_id]);
-
-    // Lógica de Auto-Status e SLA de Primeira Resposta
-    try {
-      const ticket = await this.getById(ticket_id);
-      if (ticket && !['resolvido', 'fechado'].includes(ticket.status)) {
-        const isClient = Number(usuario_id) === Number(ticket.usuario_id);
-        
-        // Registrar primeira resposta do atendente
-        if (!isClient && !interno && !ticket.primeira_resposta_em) {
-          const agora = new Date();
-          const agoraFormatado = agora.toISOString().slice(0, 19).replace('T', ' ');
-          let prStatus = 'cumprido';
-          
-          if (ticket.prazo_primeira_resposta) {
-            const prazoPR = new Date(ticket.prazo_primeira_resposta);
-            if (agora > prazoPR) prStatus = 'violado';
-          }
-
-          await pool.query(
-            'UPDATE tickets SET primeira_resposta_em = ?, sla_primeira_resposta_status = ? WHERE id = ?',
-            [agoraFormatado, prStatus, ticket_id]
-          );
-
-          try {
-            await recordTicketEvent({
-              ticket_id: ticket_id,
-              empresa_id: ticket.empresa_id,
-              usuario_id: usuario_id,
-              tipo: 'primeira_resposta_registrada',
-              descricao: `Primeira resposta registrada em ${agoraFormatado} (${prStatus === 'cumprido' ? 'Dentro do prazo' : 'Fora do prazo'})`
-            });
-          } catch(e) {}
-        }
-
-        if (!isClient && !interno) {
-          // Atendente respondeu: se estava aberto, vai para em_andamento
-          if (ticket.status === 'aberto') {
-            await pool.query('UPDATE tickets SET status = "em_andamento" WHERE id = ?', [ticket_id]);
-          }
-        } else if (isClient) {
-          // Cliente respondeu: se estava aguardando_cliente, volta para em_andamento ou aberto
-          if (ticket.status === 'aguardando_cliente') {
-            await pool.query('UPDATE tickets SET status = "em_andamento" WHERE id = ?', [ticket_id]);
-          }
-        }
-      }
-
-      if (ticket) {
-        const [author]: any = await pool.query('SELECT nome FROM usuarios WHERE id = ?', [usuario_id]);
-        const authorName = author[0]?.nome || 'Alguém';
-
-        const recipients = new Set<number>();
-        
-        // 1. Notificar solicitante se não for ele e não for interno
-        if (!interno && ticket.usuario_id && ticket.usuario_id !== usuario_id) {
-          recipients.add(ticket.usuario_id);
-          if (ticket.cliente_email && ticket.cliente_email !== 'removido@sistema.com') {
-             sendTicketNotification(
-               ticket.cliente_email,
-               ticket_id,
-               ticket.titulo,
-               `Olá ${ticket.cliente_nome}, você tem uma nova resposta de ${authorName}:<br><br><i>"${mensagem}"</i>`
-             ).catch(err => console.error('Email error:', err));
-          }
-        }
-
-        // 2. Notificar responsável se não for ele
-        if (ticket.responsavel_id && ticket.responsavel_id !== usuario_id) {
-           recipients.add(ticket.responsavel_id);
-        }
-
-        // 3. Se for interno, notificar admins/devs da empresa (que não sejam o autor)
-        if (interno) {
-           const [admins]: any = await pool.query(
-             'SELECT id FROM usuarios WHERE empresa_id = ? AND administrador = 1',
-             [ticket.empresa_id]
-           );
-           admins.forEach((a: any) => {
-             if (a.id !== usuario_id) recipients.add(a.id);
-           });
-        }
-
-        const recipientIds = Array.from(recipients);
-        if (recipientIds.length > 0) {
-          await notificationsService.createMany(recipientIds, {
-            empresa_id: ticket.empresa_id,
-            tipo: 'TICKET_MESSAGE',
-            titulo: interno ? 'Nota interna no chamado' : 'Nova resposta no chamado',
-            mensagem: `${authorName}: ${mensagem.substring(0, 100)}${mensagem.length > 100 ? '...' : ''}`,
-            link: `ticket:${ticket_id}`,
-            metadata: { ticketId: ticket_id, messageId }
-          });
-        }
-      }
-    } catch (e) {
-      console.error('Erro ao processar nova mensagem e auto-status:', e);
-    }
-
-    return messageId;
+  async addMessage(data: any, currentUser?: any) {
+    return ticketMessagesService.addMessage(data, currentUser);
   }
 
   private async ensureSatisfactionSurvey(ticketId: number, empresaId: number, usuarioId: number | null) {

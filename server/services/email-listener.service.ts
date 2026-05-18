@@ -308,13 +308,6 @@ export class EmailListenerService {
 
                 await this.logSystem(targetEmpresaId, 'EMAIL_MESSAGE_ADDED', `Nova mensagem via e-mail no ticket #${targetTicketId} de ${senderEmail}.`);
                 
-                // WebSocket notifies
-                const updatedTicket = await ticketsService.getById(targetTicketId);
-                if (updatedTicket && io) {
-                   io.to(`empresa_${targetEmpresaId}`).emit('ticketUpdated', updatedTicket);
-                   io.to(`empresa_${targetEmpresaId}`).emit('ticketMessagesChanged', { ticketId: targetTicketId, empresaId: targetEmpresaId, messageId: msgId });
-                }
-                
                 await this.processAttachments(parsed, targetTicketId, msgId, userId, targetEmpresaId);
              } else {
                 await this.logSystem(targetEmpresaId, 'EMAIL_TICKET_MISMATCH', `Tentativa de responder ao ticket #${targetTicketId} que pertence à empresa ${ticketCheck[0]?.empresa_id || 'unkn'} através do canal da empresa ${targetEmpresaId}.`);
