@@ -535,8 +535,8 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
       <div className="flex flex-col lg:flex-row gap-3 items-start">
         <div className="flex-1 w-full space-y-3 min-w-0">
           {/* Main Toolbar */}
-          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
-            <div className="flex-1 w-full flex flex-col sm:flex-row items-center gap-2">
+          <div className="flex flex-col md:flex-row xl:items-center justify-between gap-3 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
+            <div className="flex-1 w-full flex flex-col lg:flex-row items-center gap-2">
               <div className="relative flex-1 w-full group">
                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={14} />
                  <input 
@@ -548,7 +548,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                  />
               </div>
 
-              <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="flex items-center gap-2 w-full lg:w-auto">
                 <TicketSavedViews 
                   views={savedViews}
                   currentViewId={currentViewId}
@@ -562,12 +562,13 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                   size="sm"
                   onClick={() => setShowAdvanced(true)}
                   className={cn(
-                    "h-8 px-2.5 transition-all text-xs flex-1 sm:flex-none",
+                    "h-8 px-2.5 transition-all text-xs flex-1 lg:flex-none whitespace-nowrap",
                     hasAnyFilters ? "bg-blue-50 text-blue-700 border-blue-200" : ""
                   )}
                 >
                   <Filter size={14} className={cn("mr-1.5", hasAnyFilters ? "text-blue-600" : "text-slate-400")} />
-                  Filtros
+                  <span className="hidden xs:inline">Filtros</span>
+                  <span className="xs:hidden">Filtro</span>
                   {hasAnyFilters && (
                     <span className="ml-1.5 flex items-center justify-center min-w-[16px] h-4 px-1 rounded bg-blue-600 text-white text-[10px] font-bold">
                       {getActiveFilterChips().length}
@@ -577,7 +578,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
               </div>
             </div>
             
-            <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
+            <div className="flex items-center justify-between lg:justify-end gap-2 shrink-0">
               <div className="flex items-center p-0.5 bg-slate-100 rounded-md border border-slate-200/50">
                 <button 
                   onClick={() => setViewMode('list')}
@@ -603,7 +604,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
 
               <div className="flex items-center gap-2">
                 {!!currentUser.desenvolvedor && (
-                  <div className="relative w-32 sm:w-36">
+                  <div className="relative w-28 sm:w-36">
                     <Building className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 z-10" size={14} />
                     <Select 
                       size="sm"
@@ -628,7 +629,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                   onClick={() => setIsModalOpen(true)}
                 >
                   <Plus size={14} className="mr-1" /> 
-                  Novo
+                  <span className="hidden xs:inline">Novo</span>
                 </Button>
 
                 <Select

@@ -294,9 +294,9 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
       </div>
 
       {/* Main Workspace Grid */}
-      <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
         {/* Left: Conversation Feed */}
-        <div className="flex-1 flex flex-col min-w-0 bg-white shadow-[1px_0_0_rgba(0,0,0,0.05)] z-10 overflow-hidden">
+        <div className="flex-1 flex flex-col min-w-0 bg-white shadow-[1px_0_0_rgba(0,0,0,0.05)] z-10 overflow-hidden min-h-0">
           <TicketConversation 
             ticket={ticket}
             messages={messages}

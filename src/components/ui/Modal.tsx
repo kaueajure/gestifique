@@ -59,10 +59,10 @@ export const Modal = ({
               </button>
             </div>
 
-            <div className="p-5 overflow-y-auto">{children}</div>
+            <div className="p-4 sm:p-5 overflow-y-auto min-h-0">{children}</div>
 
             {footer && (
-              <div className="px-5 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
+              <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/50 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
                 {footer}
               </div>
             )}
