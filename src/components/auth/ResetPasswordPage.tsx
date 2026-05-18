@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowRight, Lock, Loader2, Eye, EyeOff, ShieldCheck, Cloud } from 'lucide-react';
+import { ArrowRight, Loader2, Eye, EyeOff, ShieldCheck, Cloud } from 'lucide-react';
 import { AppLogo } from '../ui/Logo';
 import { Card } from '../ui/Card';
 import { Input } from '../ui/Input';
@@ -175,7 +175,7 @@ export const ResetPasswordPage = ({ onSubmit, authError, authSuccess, onBackToLo
         </form>
       </Card>
 
-      <div className="mt-8 flex flex-col items-center gap-4 text-center">
+      <div className="mt-8 flex flex-col items-center gap-3 text-center">
         <button
           onClick={onBackToLogin}
           className="text-[13px] font-semibold text-slate-600 hover:text-slate-900 transition-colors outline-none inline-flex items-center gap-1.5"

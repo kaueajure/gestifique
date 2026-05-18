@@ -97,7 +97,7 @@ export const LoginPage = ({ onSubmit, authError, onForgotPassword, onBackToSite,
         </form>
       </Card>
 
-      <div className="mt-8 text-center space-y-5">
+      <div className="mt-8 text-center space-y-4">
         <button
           onClick={onBackToSite}
           className="text-[13px] font-semibold text-slate-500 hover:text-slate-800 transition-colors outline-none inline-flex items-center gap-1.5"
