@@ -1,6 +1,6 @@
 import pool from '../db/connection.js';
 import notificationsService from './notifications.service.js';
-import { sendTicketNotification } from '../utils/mailer.js';
+import { sendTicketEmail } from '../utils/mailer.js';
 import { recordTicketEvent } from './ticket-events.service.js';
 import ticketMessagesService from './ticket-messages.service.js';
 import slaService from './sla.service.js';
@@ -763,12 +763,29 @@ class TicketsService {
       }
 
       if (authorEmail) {
-        sendTicketNotification(
-          authorEmail,
+        const outboundMessageId = `<ticket-${ticketId}-msg-created-${Date.now()}@gestifique.com.br>`;
+        sendTicketEmail({
+          to: authorEmail,
           ticketId,
-          titulo,
-          `Olá ${authorName}, seu chamado foi registrado com sucesso e em breve nossa equipe fará o atendimento. Detalhes: ${descricao}`
-        ).catch(err => console.error('Email error:', err));
+          type: 'ticket_created',
+          title: titulo,
+          customerName: authorName,
+          message: descricao,
+          status: 'Aberto',
+          priority: prioridade,
+          category: categoria,
+          messageId: outboundMessageId,
+          inReplyTo: message_id,           // Reply to the original email if applicable
+          references: message_id ? [message_id] : undefined
+        }).then(async (smtpResult) => {
+          if (smtpResult && smtpResult.success && smtpResult.messageId) {
+             console.log(`[TicketsService] External notification email sent to ${authorEmail} for ticket #${ticketId} (Message-ID: ${smtpResult.messageId})`);
+             await pool.query(
+               'INSERT IGNORE INTO processed_emails (message_id, empresa_id, ticket_id) VALUES (?, ?, ?)',
+               [smtpResult.messageId, empresa_id, ticketId]
+             ).catch((err: any) => console.error('[TicketsService] Failed to save outbound message to processed_emails:', err));
+          }
+        }).catch((err: any) => console.error('[TicketsService] Email error:', err));
       }
     } catch (e) {
       console.error('Erro ao notificar criação de ticket:', e);
@@ -1031,6 +1048,36 @@ class TicketsService {
             mensagem: `O chamado #${id} sob sua responsabilidade mudou para: ${newStatusText}`,
             link: `ticket:${id}`
           });
+        }
+        
+        // Disparar e-mail externo para cliente se resolvido ou fechado
+        if ((data.status === 'resolvido' || data.status === 'fechado') && oldTicket.cliente_email && oldTicket.cliente_email !== 'removido@sistema.com') {
+          // Determine reason if available (it might be in 'data' object being updated now)
+          const motivo = data.resolucao_motivo || oldTicket.resolucao_motivo;
+          const observacao = data.resolucao_observacao || oldTicket.resolucao_observacao;
+
+          const outboundMessageId = `<ticket-${id}-msg-${data.status}-${Date.now()}@gestifique.com.br>`;
+          sendTicketEmail({
+            to: oldTicket.cliente_email,
+            ticketId: id,
+            type: data.status === 'resolvido' ? 'ticket_resolved' : 'ticket_closed',
+            title: oldTicket.titulo,
+            customerName: oldTicket.cliente_nome,
+            status: newStatusText,
+            resolutionReason: motivo,
+            resolutionObservation: observacao,
+            messageId: outboundMessageId,
+            inReplyTo: oldTicket.message_id,
+            references: oldTicket.message_id ? [oldTicket.message_id] : undefined
+          }).then(async (smtpResult) => {
+             if (smtpResult && smtpResult.success && smtpResult.messageId) {
+                console.log(`[TicketsService] External notification email sent to ${oldTicket.cliente_email} for ticket #${id} (Status: ${data.status})`);
+                await pool.query(
+                  'INSERT IGNORE INTO processed_emails (message_id, empresa_id, ticket_id) VALUES (?, ?, ?)',
+                  [smtpResult.messageId, oldTicket.empresa_id, id]
+                ).catch((err: any) => console.error('[TicketsService] Failed to save outbound message to processed_emails:', err));
+             }
+          }).catch((err: any) => console.error('[TicketsService] Email error:', err));
         }
       }
     } catch (e) {

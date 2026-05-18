@@ -1,7 +1,7 @@
 import pool from '../db/connection.js';
 import { recordTicketEvent } from './ticket-events.service.js';
 import notificationsService from './notifications.service.js';
-import { sendTicketNotification } from '../utils/mailer.js';
+import { sendTicketEmail } from '../utils/mailer.js';
 import { io } from '../server.js';
 import slaService from './sla.service.js';
 
@@ -173,17 +173,19 @@ class TicketMessagesService {
           console.log(`[TicketMessagesService] Generated outboundMessageId: ${outboundMessageId}`);
           
           try {
-            const smtpResult = await sendTicketNotification(
-              ticket.cliente_email,
-              ticket_id,
-              ticket.titulo,
-              `Olá ${ticket.cliente_nome}, você tem uma nova resposta de ${authorName}:<br><br><i>"${mensagem}"</i>`,
-              {
-                inReplyTo: replyToId,
-                references: replyToId ? [replyToId] : undefined,
-                messageId: outboundMessageId
-              }
-            );
+            const smtpResult = await sendTicketEmail({
+              to: ticket.cliente_email,
+              ticketId: ticket_id,
+              type: 'agent_reply',
+              title: ticket.titulo,
+              customerName: ticket.cliente_nome,
+              agentName: authorName,
+              message: mensagem,
+              status: ticket.status || 'Aberto',
+              messageId: outboundMessageId,
+              inReplyTo: replyToId,
+              references: replyToId ? [replyToId] : undefined
+            });
 
             if (smtpResult && smtpResult.success) {
               console.log(`[TicketMessagesService] External notification email sent to ${ticket.cliente_email} for ticket #${ticket_id} (Message-ID: ${smtpResult.messageId})`);
