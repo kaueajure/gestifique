@@ -1149,9 +1149,10 @@ class TicketsService {
   async getMessages(ticketId: number, includeInternal: boolean) {
     let query = `
       SELECT m.id, m.ticket_id, m.usuario_id, m.mensagem, m.interno, m.anexo, m.message_id, m.created_at,
-             COALESCE(u.nome, 'Usuário Removido') as usuario_nome 
+             COALESCE(u.nome, t.solicitante_nome, 'Cliente') as usuario_nome 
       FROM ticket_mensagens m
       LEFT JOIN usuarios u ON m.usuario_id = u.id
+      LEFT JOIN tickets t ON m.ticket_id = t.id
       WHERE m.ticket_id = ?
     `;
     if (!includeInternal) query += ' AND m.interno = 0';
@@ -1701,9 +1702,11 @@ class TicketsService {
 
     // 2. Fetch last overall message for each ticket (for "last message in list")
     const [lastMessages]: any = await pool.query(`
-      SELECT m.ticket_id, m.id as mensagem_id, m.usuario_id as mensagem_usuario_id, m.created_at as ultima_mensagem_em, u.nome as ultima_mensagem_por_nome, m.interno as ultima_mensagem_interna
+      SELECT m.ticket_id, m.id as mensagem_id, m.usuario_id as mensagem_usuario_id, m.created_at as ultima_mensagem_em, 
+             COALESCE(u.nome, t.solicitante_nome, 'Cliente') as ultima_mensagem_por_nome, m.interno as ultima_mensagem_interna
       FROM ticket_mensagens m
       LEFT JOIN usuarios u ON m.usuario_id = u.id
+      LEFT JOIN tickets t ON m.ticket_id = t.id
       WHERE m.id IN (
         SELECT MAX(id) FROM ticket_mensagens WHERE ticket_id IN (?) GROUP BY ticket_id
       )

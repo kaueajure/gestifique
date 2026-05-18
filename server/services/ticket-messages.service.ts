@@ -83,13 +83,18 @@ class TicketMessagesService {
 
     // 5. Business Logic: Status, SLA and Notifications
     try {
-      const isClient = usuario_id !== null && Number(usuario_id) === Number(ticket.usuario_id);
-      const isResponseFromAgent = !isClient && !finalInterno;
-
+      const isExternalEmail = !!message_id;
+      // A message is from client if it came from the ticket owner OR from external email with null usuario_id
+      const isClient = (usuario_id !== null && Number(usuario_id) === Number(ticket.usuario_id)) || (isExternalEmail && usuario_id === null);
+      
+      // A response from agent is when it's NOT an internal note AND NOT from the client
+      // We also ensure it's actually an agent user if it's not an external email
+      const isAgentResponse = !finalInterno && !isClient && (isAgent || !isExternalEmail);
+      
       if (!['resolvido', 'fechado'].includes(ticket.status)) {
         
         // A) SLA Primera Resposta (only if from agent and public)
-        if (isResponseFromAgent && !ticket.primeira_resposta_em) {
+        if (isAgentResponse && !ticket.primeira_resposta_em) {
           const agora = new Date();
           const agoraFormatado = agora.toISOString().slice(0, 19).replace('T', ' ');
           let prStatus = 'cumprido';
@@ -114,7 +119,7 @@ class TicketMessagesService {
         }
 
         // B) Status Transitions
-        if (isResponseFromAgent) {
+        if (isAgentResponse) {
           // If agent replies publicly and it was 'aberto', move to 'em_andamento'
           if (ticket.status === 'aberto') {
             await pool.query('UPDATE tickets SET status = "em_andamento" WHERE id = ?', [ticket_id]);
@@ -147,13 +152,18 @@ class TicketMessagesService {
 
       // C) Notifications
       const [author]: any = await pool.query('SELECT nome FROM usuarios WHERE id = ?', [usuario_id]);
-      const authorName = author[0]?.nome || (data.message_id ? 'Remetente E-mail' : 'Sistema');
+      const authorName = author[0]?.nome || (isExternalEmail ? (ticket.cliente_nome || 'Cliente Externo') : 'Sistema');
 
       const recipients = new Set<number>();
       
       // 1. Notify Client (if agent responds publicly)
-      if (!finalInterno && !isClient && ticket.usuario_id) {
-        recipients.add(ticket.usuario_id);
+      if (!finalInterno && isAgentResponse) {
+        // If there's a registered user, add to in-app notifications
+        if (ticket.usuario_id) {
+          recipients.add(ticket.usuario_id);
+        }
+
+        // Send email to the external contact or registered user email
         if (ticket.cliente_email && ticket.cliente_email !== 'removido@sistema.com') {
           // Get the original messageId from the ticket or the latest message for threading
           const replyToId = ticket.message_id;
@@ -168,6 +178,8 @@ class TicketMessagesService {
               references: replyToId ? [replyToId] : undefined
             }
           ).catch(err => console.error('[Notification Error] Mail failed:', err));
+          
+          console.log(`[TicketMessagesService] External notification email sent to ${ticket.cliente_email} for ticket #${ticket_id}`);
         }
       }
 

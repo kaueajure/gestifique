@@ -366,7 +366,7 @@ export class EmailListenerService {
 
             // MARK AS SEEN ONLY ON SUCCESS
             await this.connection.addFlags(uid, '\\Seen');
-            console.log(`[Email Listener] [UID:${uid}] Ticket #${newTicketId} created and email marked as seen.`);
+            console.log(`[Email Listener] [UID:${uid}] Ticket #${newTicketId} created from email and marked as seen.`);
           }
 
         } catch (itemError: any) {
