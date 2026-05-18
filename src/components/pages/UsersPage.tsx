@@ -195,23 +195,23 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
       />
 
       <Card>
-        <div className="p-3 border-b border-slate-100 flex flex-col lg:flex-row gap-3">
-          <div className="relative flex-1">
-             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+        <div className="p-2 sm:p-3 border-b border-slate-100 flex flex-col sm:flex-row items-center gap-3">
+          <div className="relative flex-1 w-full group">
+             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={14} />
              <input 
                type="text" 
                placeholder="Buscar usuário..." 
-               className="w-full h-8 bg-slate-50 border border-slate-200 rounded-md pl-9 pr-4 text-xs font-medium text-slate-600 outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-400 transition-all"
+               className="w-full h-8 bg-slate-50 border border-slate-200 rounded-md pl-9 pr-4 text-xs font-medium text-slate-600 outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-400 transition-all font-sans"
                value={searchTerm}
                onChange={(e) => setSearchTerm(e.target.value)}
              />
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <Select 
               size="sm"
               value={statusFilter}
               onChange={setStatusFilter}
-              buttonClassName="h-8 text-xs font-medium"
+              buttonClassName="h-8 text-xs font-medium w-full sm:w-40"
               options={[
                 { value: 'todos', label: 'Todos os Status' },
                 { value: 'ativo', label: 'Ativos' },

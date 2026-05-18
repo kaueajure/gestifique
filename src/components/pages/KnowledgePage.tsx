@@ -166,19 +166,19 @@ export const KnowledgePage = ({ currentUser }: KnowledgeManagerProps) => {
       />
 
       {/* Toolbar compacta de filtros */}
-      <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm flex flex-col md:flex-row items-center gap-3">
-        <div className="relative flex-1 w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+      <div className="bg-white p-2 sm:p-3 rounded-lg border border-slate-200 shadow-sm flex flex-col md:flex-row items-center gap-3">
+        <div className="relative flex-1 w-full group">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={14} />
           <input 
             type="text"
-            placeholder="Buscar artigo..."
+            placeholder="Buscar nos artigos..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-1.5 bg-slate-50 border border-slate-200 rounded-md text-xs font-medium focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+            className="w-full pl-9 pr-4 h-8 bg-slate-50 border border-slate-200 rounded-md text-xs font-medium focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all outline-none"
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full md:w-auto">
           {currentUser.desenvolvedor && (
             <Select
               value={selectedCompanyId}
@@ -188,22 +188,22 @@ export const KnowledgePage = ({ currentUser }: KnowledgeManagerProps) => {
                 { value: '', label: 'Gestifique Central' },
                 ...companies.map(c => ({ value: String(c.id), label: c.nome }))
               ]}
-              buttonClassName="h-8 bg-slate-50 border-slate-200 rounded-md text-xs font-medium min-w-[150px]"
+              buttonClassName="h-8 bg-slate-50 border-slate-200 rounded-md text-xs font-medium min-w-[120px] flex-1 sm:flex-none"
             />
           )}
 
           <Select
             value={selectedCategory}
             onChange={setSelectedCategory}
-            placeholder="Todas as categorias"
+            placeholder="Categorias"
             options={[
-              { value: '', label: 'Todas as categorias' },
+              { value: '', label: 'Todas Categorias' },
               ...categories.map(c => ({ value: c, label: c }))
             ]}
-            buttonClassName="h-8 bg-slate-50 border-slate-200 rounded-md text-xs font-medium min-w-[160px]"
+            buttonClassName="h-8 bg-slate-50 border-slate-200 rounded-md text-xs font-medium min-w-[120px] flex-1 sm:flex-none"
           />
 
-          <div className="bg-slate-100 p-0.5 rounded flex gap-0.5 shrink-0 ml-auto md:ml-0">
+          <div className="bg-slate-100 p-0.5 rounded flex gap-0.5 shrink-0 ml-auto">
             <button 
               onClick={() => setViewMode('list')}
               className={cn("p-1.5 rounded-sm transition-all", viewMode === 'list' ? "bg-white shadow-sm text-blue-600" : "text-slate-400 hover:text-slate-600")}

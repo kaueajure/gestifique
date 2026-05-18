@@ -211,18 +211,18 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
       </div>
 
       <Card>
-        <div className="p-3 border-b border-slate-100 flex flex-col lg:flex-row gap-3">
-          <div className="relative flex-1">
-             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+        <div className="p-2 sm:p-3 border-b border-slate-100 flex flex-col sm:flex-row items-center gap-3">
+          <div className="relative flex-1 w-full group">
+             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={14} />
              <input 
                type="text" 
                placeholder="Buscar por nome ou CNPJ..." 
                value={searchTerm}
                onChange={(e) => setSearchTerm(e.target.value)}
-               className="w-full h-8 bg-slate-50 border border-slate-200 rounded-md pl-9 pr-4 text-xs font-medium text-slate-600 outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-400 transition-all" 
+               className="w-full h-8 bg-slate-50 border border-slate-200 rounded-md pl-9 pr-4 text-xs font-medium text-slate-600 outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-400 transition-all font-sans" 
              />
           </div>
-          <div className="flex bg-slate-100/50 p-1 rounded-md">
+          <div className="flex bg-slate-100/50 p-1 rounded-md w-full sm:w-auto overflow-x-auto custom-scrollbar">
              {[
                { id: 'todos', label: 'Todas' },
                { id: 'ativo', label: 'Ativas' },
@@ -232,7 +232,7 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
                 key={f.id}
                 onClick={() => setStatusFilter(f.id)}
                 className={cn(
-                  "h-7 px-3 rounded text-[11px] font-medium transition-all",
+                  "h-7 px-3 rounded text-[11px] font-medium transition-all flex-1 sm:flex-none whitespace-nowrap",
                   statusFilter === f.id 
                     ? "bg-white text-slate-900 shadow-sm" 
                     : "text-slate-500 hover:text-slate-700"

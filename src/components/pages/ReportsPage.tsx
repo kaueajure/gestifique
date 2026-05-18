@@ -205,58 +205,58 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
       {/* Header */}
       <PageHeader
         title="Relatórios Avançados"
-        className="mb-4"
+        className="mb-2 sm:mb-4"
         action={
-          <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => window.print()} className="print:hidden">
-              <Printer size={18} className="mr-2" /> Imprimir
+          <div className="flex flex-wrap gap-2 lg:justify-end">
+            <Button variant="secondary" size="sm" onClick={() => window.print()} className="print:hidden h-8 sm:h-9">
+              <Printer size={16} className="mr-2" /> <span className="hidden sm:inline">Imprimir</span>
             </Button>
             <div className="relative print:hidden">
-              <Button variant="secondary" onClick={() => setDropdownOpen(!dropdownOpen)}>
-                <Download size={18} className="mr-2" /> Exportar
+              <Button variant="secondary" size="sm" onClick={() => setDropdownOpen(!dropdownOpen)} className="h-8 sm:h-9">
+                <Download size={16} className="mr-2" /> <span className="hidden sm:inline">Exportar</span>
               </Button>
               {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 shadow-md rounded-lg overflow-hidden py-1 z-50">
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 shadow-lg rounded-lg overflow-hidden py-1 z-50">
                    <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-sm text-slate-700" onClick={() => handleExportCSV('tickets')}>Tickets Detalhados</button>
                    <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-sm text-slate-700" onClick={() => handleExportCSV('agents')}>Atendentes</button>
                    <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-sm text-slate-700" onClick={() => handleExportCSV('satisfaction')}>Satisfação (CSAT)</button>
                 </div>
               )}
             </div>
-            <Button onClick={fetchData} className="print:hidden">
-              <RefreshCw size={18} className={`mr-2 ${loading ? 'animate-spin' : ''}`} /> Atualizar
+            <Button size="sm" onClick={fetchData} className="print:hidden h-8 sm:h-9">
+              <RefreshCw size={16} className={`mr-2 ${loading ? 'animate-spin' : ''}`} /> Atualizar
             </Button>
           </div>
         }
       />
 
       {/* Filters Container */}
-      <Card className="p-3 bg-slate-50/50 border-slate-200 print:hidden shadow-sm">
-        <div className="flex items-center gap-1.5 mb-2 text-xs font-semibold text-slate-600">
-          <Filter size={14} /> Refinar Análise
+      <Card className="p-3 sm:p-4 bg-slate-50/50 border-slate-200 print:hidden shadow-sm">
+        <div className="flex items-center gap-1.5 mb-3 text-xs font-bold text-slate-600 uppercase tracking-wider">
+          <Filter size={14} /> Filtros de Análise
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-          <div className="space-y-1">
-            <label className="text-[10px] font-medium text-slate-500">Período</label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold text-slate-500 uppercase ml-0.5">Período</label>
             <div className="flex gap-2">
               <input 
                 type="date"
-                className="flex-1 min-w-0 bg-white border border-slate-300 rounded-md px-2 py-1 text-xs focus:ring-2 focus:ring-blue-100 outline-none transition-all h-8"
+                className="flex-1 min-w-0 bg-white border border-slate-300 rounded-md px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500 outline-none transition-all h-8"
                 value={filters.start_date}
                 onChange={(e) => setFilters(f => ({ ...f, start_date: e.target.value }))}
               />
               <input 
                 type="date"
-                className="flex-1 min-w-0 bg-white border border-slate-300 rounded-md px-2 py-1 text-xs focus:ring-2 focus:ring-blue-100 outline-none transition-all h-8"
+                className="flex-1 min-w-0 bg-white border border-slate-300 rounded-md px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500 outline-none transition-all h-8"
                 value={filters.end_date}
                 onChange={(e) => setFilters(f => ({ ...f, end_date: e.target.value }))}
               />
             </div>
           </div>
-          <div className="space-y-1">
-            <label className="text-[10px] font-medium text-slate-500">Prioridade</label>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold text-slate-500 uppercase ml-0.5">Prioridade</label>
             <Select 
-              buttonClassName="w-full h-8 text-xs font-medium bg-white border-slate-300 rounded-md shrink-0 overflow-hidden"
+              buttonClassName="w-full h-8 text-xs font-medium bg-white border-slate-300 rounded-md"
               value={filters.prioridade}
               onChange={(value) => setFilters(f => ({ ...f, prioridade: value }))}
               options={[
@@ -268,10 +268,10 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
               ]}
             />
           </div>
-          <div className="space-y-1">
-            <label className="text-[10px] font-medium text-slate-500">Status</label>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold text-slate-500 uppercase ml-0.5">Status</label>
             <Select 
-              buttonClassName="w-full h-8 text-xs font-medium bg-white border-slate-300 rounded-md shrink-0 overflow-hidden"
+              buttonClassName="w-full h-8 text-xs font-medium bg-white border-slate-300 rounded-md"
               value={filters.status}
               onChange={(value) => setFilters(f => ({ ...f, status: value }))}
               options={[
@@ -284,10 +284,10 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
               ]}
             />
           </div>
-          <div className="space-y-1">
-            <label className="text-[10px] font-medium text-slate-500">Origem</label>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold text-slate-500 uppercase ml-0.5">Origem</label>
             <Select 
-              buttonClassName="w-full h-8 text-xs font-medium bg-white border-slate-300 rounded-md shrink-0 overflow-hidden"
+              buttonClassName="w-full h-8 text-xs font-medium bg-white border-slate-300 rounded-md"
               value={filters.origem}
               onChange={(value) => setFilters(f => ({ ...f, origem: value }))}
               options={[
@@ -300,10 +300,10 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
             />
           </div>
           {!!currentUser.desenvolvedor && (
-             <div className="space-y-1">
-               <label className="text-[10px] font-medium text-slate-500">Empresa</label>
+             <div className="space-y-1.5">
+               <label className="text-[10px] font-bold text-slate-500 uppercase ml-0.5">Empresa</label>
                <Select 
-                 buttonClassName="w-full h-8 text-xs font-medium bg-white border-slate-300 rounded-md shrink-0 overflow-hidden text-left truncate"
+                 buttonClassName="w-full h-8 text-xs font-medium bg-white border-slate-300 rounded-md text-left truncate"
                  value={filters.empresa_id}
                  onChange={(value) => setFilters(f => ({ ...f, empresa_id: value }))}
                  options={[

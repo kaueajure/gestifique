@@ -311,7 +311,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
         </div>
 
         {/* Right Sidebar: Tabs for Props & Timeline */}
-        <div className="w-full md:w-[280px] lg:w-[320px] shrink-0 border-t md:border-t-0 md:border-l border-slate-200 bg-slate-50/30 flex flex-col min-h-[400px] md:min-h-0">
+        <div className="w-full md:w-[280px] lg:w-[320px] shrink-0 border-t md:border-t-0 md:border-l border-slate-200 bg-slate-50/30 flex flex-col h-full overflow-hidden">
           <div className="flex bg-white border-b border-slate-100 shrink-0 sticky top-0 z-20">
              <button 
                onClick={() => setActiveTab('messages')}
@@ -333,7 +333,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
              </button>
           </div>
 
-          <div className="p-3 pb-8">
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-4 pb-8">
              <AnimatePresence mode="wait">
                {activeTab === 'messages' ? (
                  <motion.div
