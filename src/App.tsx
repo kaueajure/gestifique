@@ -376,7 +376,7 @@ export default function App() {
 
           <main
             className={cn(
-              "flex-1 custom-scrollbar",
+              "flex-1 custom-scrollbar min-h-0",
               activeTab === "tickets" && selectedTicketId
                 ? "overflow-hidden"
                 : "overflow-y-auto",
@@ -384,10 +384,10 @@ export default function App() {
           >
             <div
               className={cn(
-                "max-w-[1600px] mx-auto w-full",
+                "max-w-[1600px] mx-auto w-full transition-all duration-300",
                 activeTab === "tickets" && selectedTicketId
-                  ? "h-full p-0 sm:p-4"
-                  : "p-4 sm:p-5",
+                  ? "h-full p-0 sm:p-3 lg:p-4"
+                  : "p-3 sm:p-4 lg:p-6 lg:pb-10",
               )}
             >
               <AnimatePresence mode="wait">

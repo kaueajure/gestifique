@@ -118,7 +118,7 @@ export const LogsPage = () => {
 
       <Card className="p-3">
         <form onSubmit={handleSearch} className="space-y-3">
-          <div className="flex flex-col lg:flex-row gap-2">
+          <div className="flex flex-col md:flex-row gap-2">
             <div className="relative flex-1 group">
                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={14} />
                <input 
@@ -149,7 +149,7 @@ export const LogsPage = () => {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-slate-100">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-3 pt-2 border-t border-slate-100">
              <div className="flex items-center gap-2">
                 <span className="text-[11px] font-medium text-slate-500">Início</span>
                 <input 

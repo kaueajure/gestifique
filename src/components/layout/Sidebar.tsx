@@ -121,7 +121,7 @@ export const Sidebar = ({
 
       <aside
         className={cn(
-          "fixed lg:static inset-y-0 left-0 w-56 bg-white border-r border-slate-200/60 z-50 flex flex-col transition-transform duration-300 ease-in-out",
+          "fixed lg:static inset-y-0 left-0 w-52 xl:w-56 bg-white border-r border-slate-200/60 z-50 flex flex-col transition-transform duration-300 ease-in-out",
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
       >

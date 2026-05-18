@@ -72,13 +72,14 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader 
         title="Dashboard" 
         description="Visão geral da operação de atendimento" 
+        className="mb-0"
       />
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 lg:gap-4">
         <MetricCard compact label="Ativos" value={chamadosAtivos} icon={<TicketIcon size={16} />} color="blue" loading={loading} />
         <MetricCard compact label="SLA Vencido" value={slaAtrasados} icon={<AlertCircle size={16} />} color="red" loading={loading} />
         <MetricCard compact label="Resolvidos (Mês)" value={resolvidosMes} icon={<CheckCircle2 size={16} />} color="emerald" loading={loading} />
@@ -87,12 +88,12 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
 
       {/* Atenção agora */}
       {(slaAtrasados > 0 || chamadosAtivos > 0) && (
-        <Card className="p-4 bg-slate-50/50">
-          <h2 className="text-[13px] font-semibold text-slate-800 mb-3 flex items-center gap-2">
+        <Card className="p-3 sm:p-4 bg-slate-50/50">
+          <h2 className="text-[12px] sm:text-[13px] font-bold text-slate-800 mb-3 flex items-center gap-2">
             <AlertCircle size={14} className="text-red-500" />
             Atenção agora
           </h2>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             {slaAtrasados > 0 && (
               <div className="flex items-center gap-2 p-2 rounded-md bg-white border border-red-100 shadow-sm min-w-[120px]">
                 <div className="w-6 h-6 rounded flex items-center justify-center bg-red-50 text-red-600 font-bold text-xs">
@@ -113,11 +114,11 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
         </Card>
       )}
 
-      <div className="grid lg:grid-cols-2 gap-4">
-        <Card className="overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 py-3 px-4">
-            <h3 className="text-[13px] font-semibold text-slate-900 tracking-tight">Atendimentos Recentes</h3>
-            <Button variant="ghost" size="xs" onClick={() => onNavigate?.('tickets')}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card className="overflow-hidden border-slate-200 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 py-2.5 px-4 bg-white/50 backdrop-blur-sm">
+            <h3 className="text-[13px] font-bold text-slate-900 tracking-tight">Atendimentos Recentes</h3>
+            <Button variant="ghost" size="xs" onClick={() => onNavigate?.('tickets')} className="h-7 text-[11px] font-bold">
               Ver todos <ChevronRight size={14} />
             </Button>
           </CardHeader>
@@ -126,25 +127,25 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
               <LoadingState compact message="Carregando recentes..." />
             ) : recentTickets && recentTickets.length > 0 ? (
               recentTickets.map((ticket: Ticket) => (
-                <div key={ticket.id} onClick={() => onNavigate?.('tickets')} className="p-3 px-4 flex items-center gap-3 hover:bg-slate-50 transition-colors cursor-pointer group">
-                  <div className="w-7 h-7 rounded border border-slate-200 bg-white flex items-center justify-center text-slate-400 group-hover:text-blue-600 group-hover:border-blue-200 transition-colors shadow-sm shrink-0">
+                <div key={ticket.id} onClick={() => onNavigate?.('tickets')} className="p-3 px-4 flex items-center gap-3 hover:bg-slate-50/80 transition-colors cursor-pointer group">
+                  <div className="w-8 h-8 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-400 group-hover:text-blue-600 group-hover:border-blue-200 transition-all shadow-sm shrink-0">
                     <TicketIcon size={14} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-[13px] font-semibold text-slate-800 truncate group-hover:text-slate-950">{ticket.titulo}</span>
-                      <Badge variant={statusToBadgeVariant(ticket.status || '')}>{ticket.status?.replace('_', ' ')}</Badge>
+                      <span className="text-[13px] font-bold text-slate-800 truncate group-hover:text-slate-950 tracking-tight">{ticket.titulo}</span>
+                      <Badge variant={statusToBadgeVariant(ticket.status || '')} className="text-[9px] h-4.5">{ticket.status?.replace('_', ' ')}</Badge>
                     </div>
-                    <div className="flex items-center gap-2 text-[11px] font-medium text-slate-400">
-                      <span className="text-slate-500 font-semibold">#{ticket.id}</span>
-                      <span>•</span>
-                      <span>{compactDateFormatter(ticket.created_at)}</span>
-                      <span>•</span>
-                      <span className="truncate">{ticket.cliente_nome || 'Usuário'}</span>
+                    <div className="flex items-center gap-2 text-[10px] sm:text-[11px] font-medium text-slate-400">
+                      <span className="text-slate-500 font-bold shrink-0">#{ticket.id}</span>
+                      <span className="opacity-50">•</span>
+                      <span className="shrink-0">{compactDateFormatter(ticket.created_at)}</span>
+                      <span className="opacity-50 hidden sm:inline">•</span>
+                      <span className="truncate hidden sm:inline">{ticket.cliente_nome || 'Usuário'}</span>
                     </div>
                   </div>
-                  <div className="hidden sm:block">
-                      <Badge variant={priorityToBadgeVariant(ticket.prioridade || '')}>
+                  <div className="hidden md:block">
+                      <Badge variant={priorityToBadgeVariant(ticket.prioridade || '')} className="text-[9px] uppercase">
                         {ticket.prioridade}
                       </Badge>
                   </div>

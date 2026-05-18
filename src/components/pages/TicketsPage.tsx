@@ -533,11 +533,11 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
       </div>
 
       <div className="flex flex-col lg:flex-row gap-3 items-start">
-        <div className="flex-1 w-full space-y-3">
+        <div className="flex-1 w-full space-y-3 min-w-0">
           {/* Main Toolbar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
-            <div className="flex-1 w-full max-w-3xl flex items-center gap-2">
-              <div className="relative flex-1 group">
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
+            <div className="flex-1 w-full flex flex-col sm:flex-row items-center gap-2">
+              <div className="relative flex-1 w-full group">
                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={14} />
                  <input 
                    type="text" 
@@ -548,34 +548,36 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                  />
               </div>
 
-              <TicketSavedViews 
-                views={savedViews}
-                currentViewId={currentViewId}
-                onSelectView={handleSelectView}
-                onSaveCurrent={handleSaveView}
-                onDeleteView={handleDeleteView}
-              />
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <TicketSavedViews 
+                  views={savedViews}
+                  currentViewId={currentViewId}
+                  onSelectView={handleSelectView}
+                  onSaveCurrent={handleSaveView}
+                  onDeleteView={handleDeleteView}
+                />
 
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setShowAdvanced(true)}
-                className={cn(
-                  "h-8 px-2.5 transition-all",
-                  hasAnyFilters ? "bg-blue-50 text-blue-700 border-blue-200" : ""
-                )}
-              >
-                <Filter size={14} className={cn("mr-1.5", hasAnyFilters ? "text-blue-600" : "text-slate-400")} />
-                Filtros
-                {hasAnyFilters && (
-                  <span className="ml-1.5 flex items-center justify-center min-w-[16px] h-4 px-1 rounded bg-blue-600 text-white text-[10px] font-bold">
-                    {getActiveFilterChips().length}
-                  </span>
-                )}
-              </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowAdvanced(true)}
+                  className={cn(
+                    "h-8 px-2.5 transition-all text-xs flex-1 sm:flex-none",
+                    hasAnyFilters ? "bg-blue-50 text-blue-700 border-blue-200" : ""
+                  )}
+                >
+                  <Filter size={14} className={cn("mr-1.5", hasAnyFilters ? "text-blue-600" : "text-slate-400")} />
+                  Filtros
+                  {hasAnyFilters && (
+                    <span className="ml-1.5 flex items-center justify-center min-w-[16px] h-4 px-1 rounded bg-blue-600 text-white text-[10px] font-bold">
+                      {getActiveFilterChips().length}
+                    </span>
+                  )}
+                </Button>
+              </div>
             </div>
             
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
               <div className="flex items-center p-0.5 bg-slate-100 rounded-md border border-slate-200/50">
                 <button 
                   onClick={() => setViewMode('list')}
@@ -585,7 +587,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                   )}
                 >
                   <ListIcon size={14} />
-                  <span className="text-[11px] font-medium hidden sm:inline">Lista</span>
+                  <span className="text-[11px] font-bold hidden sm:inline">Lista</span>
                 </button>
                 <button 
                   onClick={() => setViewMode('kanban')}
@@ -595,58 +597,58 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
                   )}
                 >
                   <Kanban size={14} />
-                  <span className="text-[11px] font-medium hidden sm:inline">Kanban</span>
+                  <span className="text-[11px] font-bold hidden sm:inline">Kanban</span>
                 </button>
               </div>
 
-              <div className="w-px h-5 bg-slate-200 mx-0.5 hidden sm:block" />
+              <div className="flex items-center gap-2">
+                {!!currentUser.desenvolvedor && (
+                  <div className="relative w-32 sm:w-36">
+                    <Building className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 z-10" size={14} />
+                    <Select 
+                      size="sm"
+                      value={devCompanyId}
+                      onChange={setDevCompanyId}
+                      placeholder="Empresa..."
+                      buttonClassName="pl-8 bg-slate-50 border-slate-200 h-8 text-[11px]"
+                      options={[
+                        { value: '', label: 'Selecione a empresa' },
+                        ...companies.map(emp => ({
+                          value: String(emp.id),
+                          label: emp.nome
+                        }))
+                      ]}
+                    />
+                  </div>
+                )}
 
-              {!!currentUser.desenvolvedor && (
-                <div className="relative w-36">
-                  <Building className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 z-10" size={14} />
-                  <Select 
-                    size="sm"
-                    value={devCompanyId}
-                    onChange={setDevCompanyId}
-                    placeholder="Empresa..."
-                    buttonClassName="pl-8 bg-slate-50 border-slate-200 h-8 text-[11px]"
-                    options={[
-                      { value: '', label: 'Selecione a empresa' },
-                      ...companies.map(emp => ({
-                        value: String(emp.id),
-                        label: emp.nome
-                      }))
-                    ]}
-                  />
-                </div>
-              )}
+                <Button 
+                  size="sm"
+                  className="h-8 text-[11px] font-bold px-3"
+                  onClick={() => setIsModalOpen(true)}
+                >
+                  <Plus size={14} className="mr-1" /> 
+                  Novo
+                </Button>
 
-              <Button 
-                size="sm"
-                className="h-8 text-[11px] px-2.5"
-                onClick={() => setIsModalOpen(true)}
-              >
-                <Plus size={14} className="mr-1" /> 
-                Novo
-              </Button>
-
-              <Select
-                size="sm"
-                value=""
-                onChange={(val) => {
-                  if (val === 'equipe') setShowTeamSidebar(!showTeamSidebar);
-                  if (val === 'exportar') exportToCSV();
-                  if (val === 'atualizar') fetchData();
-                }}
-                options={[
-                   { value: '', label: 'Opções' },
-                   { value: 'equipe', label: 'Ver Equipe' },
-                   { value: 'exportar', label: 'Exportar CSV' },
-                   { value: 'atualizar', label: 'Atualizar' }
-                ]}
-                className="w-24 hidden md:block text-[11px]"
-                buttonClassName="h-8"
-              />
+                <Select
+                  size="sm"
+                  value=""
+                  onChange={(val) => {
+                    if (val === 'equipe') setShowTeamSidebar(!showTeamSidebar);
+                    if (val === 'exportar') exportToCSV();
+                    if (val === 'atualizar') fetchData();
+                  }}
+                  options={[
+                     { value: '', label: 'Mais' },
+                     { value: 'equipe', label: 'Ver Equipe' },
+                     { value: 'exportar', label: 'Exportar CSV' },
+                     { value: 'atualizar', label: 'Atualizar' }
+                  ]}
+                  className="w-20 sm:w-24 text-[11px]"
+                  buttonClassName="h-8"
+                />
+              </div>
             </div>
           </div>
 

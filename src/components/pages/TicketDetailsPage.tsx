@@ -294,9 +294,9 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
       </div>
 
       {/* Main Workspace Grid */}
-      <div className="flex-1 min-h-0 flex overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden">
         {/* Left: Conversation Feed */}
-        <div className="flex-1 flex flex-col min-w-0 bg-white shadow-[1px_0_0_rgba(0,0,0,0.05)] z-10">
+        <div className="flex-1 flex flex-col min-w-0 bg-white shadow-[1px_0_0_rgba(0,0,0,0.05)] z-10 overflow-hidden">
           <TicketConversation 
             ticket={ticket}
             messages={messages}
@@ -311,8 +311,8 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
         </div>
 
         {/* Right Sidebar: Tabs for Props & Timeline */}
-        <div className="w-full md:w-[280px] lg:w-[300px] shrink-0 overflow-y-auto flex flex-col bg-slate-50/30 border-l border-slate-200 custom-scrollbar">
-          <div className="flex bg-white border-b border-slate-100 shrink-0">
+        <div className="w-full md:w-[280px] lg:w-[320px] shrink-0 border-t md:border-t-0 md:border-l border-slate-200 bg-slate-50/30 flex flex-col min-h-[400px] md:min-h-0">
+          <div className="flex bg-white border-b border-slate-100 shrink-0 sticky top-0 z-20">
              <button 
                onClick={() => setActiveTab('messages')}
                className={cn(

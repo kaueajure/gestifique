@@ -13,30 +13,30 @@ export const Topbar = ({
   showSearch = true,
 }: TopbarProps) => {
   return (
-    <header className="h-12 bg-white border-b border-slate-100 flex items-center justify-between px-5 sticky top-0 z-30 shrink-0">
-      <div className="flex items-center gap-4">
+    <header className="h-12 bg-white border-b border-slate-100 flex items-center justify-between px-3 sm:px-5 sticky top-0 z-30 shrink-0">
+      <div className="flex items-center gap-2 sm:gap-4 overflow-hidden">
         <button
           onClick={onMenuClick}
-          className="lg:hidden p-1.5 text-slate-500 hover:bg-slate-50 rounded-md transition-colors"
+          className="lg:hidden p-1.5 text-slate-500 hover:bg-slate-50 rounded-md transition-colors shrink-0"
         >
           <Menu size={16} />
         </button>
-        <h1 className="text-[14px] font-semibold text-slate-800 tracking-tight hidden sm:block">
+        <h1 className="text-sm font-semibold text-slate-900 tracking-tight truncate">
           {title}
         </h1>
       </div>
 
-      <div className="flex-1 max-w-xs ml-auto mr-0 hidden md:block">
+      <div className="flex-1 max-w-[200px] sm:max-w-xs ml-auto mr-0">
         {showSearch && (
           <div className="relative group">
             <Search
               className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"
-              size={14}
+              size={13}
             />
             <input
               type="text"
               placeholder="Pesquisar..."
-              className="w-full h-8 bg-slate-50/50 border border-slate-200 rounded-md pl-8 pr-3 text-[13px] text-slate-700 placeholder:text-slate-400 focus:bg-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
+              className="w-full h-8 bg-slate-50/50 border border-slate-200 rounded-md pl-8 pr-3 text-xs text-slate-700 placeholder:text-slate-400 focus:bg-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
             />
           </div>
         )}
