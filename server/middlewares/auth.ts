@@ -63,3 +63,17 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
     return res.status(401).json({ success: false, message: 'Sessão inválida ou expirada' });
   }
 };
+
+export const requireDeveloper = (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (!req.user || !req.user.desenvolvedor) {
+    return res.status(403).json({ success: false, message: 'Acesso negado. Apenas desenvolvedores podem realizar esta ação.' });
+  }
+  next();
+};
+
+export const requireAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (!req.user || (!req.user.administrador && !req.user.desenvolvedor)) {
+    return res.status(403).json({ success: false, message: 'Acesso negado. Permissões de administrador necessárias.' });
+  }
+  next();
+};

@@ -287,3 +287,33 @@ export interface Notification {
   created_at: string;
   read_at?: string | null;
 }
+
+export interface PricingPlan {
+  id: string;
+  name: string;
+  target: string;
+  highlightText: string;
+  priceLabel: string;
+  features: string[];
+  highlight: boolean;
+  active: boolean;
+  order: number;
+}
+
+export interface PricingSettings {
+  header: {
+    title: string;
+    subtitle: string;
+  };
+  plans: PricingPlan[];
+  proposalFactors: string[];
+  faq: {
+    question: string;
+    answer: string;
+  }[];
+  cta: {
+    title: string;
+    subtitle: string;
+    buttonText: string;
+  };
+}

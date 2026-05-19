@@ -13,6 +13,7 @@ import { EmailChannelsManager } from '../companies/EmailChannelsManager';
 import { TicketOptionsManager } from '../settings/TicketOptionsManager';
 import { SlaPoliciesManager } from '../settings/SlaPoliciesManager';
 import { AutomationsManager } from '../settings/AutomationsManager';
+import { ScreensSettingsManager } from '../settings/ScreensSettingsManager';
 
 type AppTab = 'dashboard' | 'tickets' | 'users' | 'companies' | 'logs' | 'profile' | 'settings' | 'reports';
 
@@ -57,7 +58,7 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [activeSubTab, setActiveSubTab] = useState<'general' | 'company' | 'system' | 'tickets'>('general');
+  const [activeSubTab, setActiveSubTab] = useState<'general' | 'company' | 'system' | 'tickets' | 'screens'>('general');
   const [loadingHealth, setLoadingHealth] = useState(false);
   const [healthError, setHealthError] = useState<string | null>(null);
   const [healthData, setHealthData] = useState<HealthOverviewResponse | null>(null);
@@ -183,6 +184,18 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
             )}
           >
             <Cpu size={14} /> Sistema
+          </button>
+        )}
+        
+        {!!currentUser.desenvolvedor && (
+          <button 
+            onClick={() => setActiveSubTab('screens')}
+            className={cn(
+              "h-8 px-3 rounded-md text-xs font-medium transition-all flex items-center gap-1.5",
+              activeSubTab === 'screens' ? "bg-slate-100 text-slate-900 shadow-sm border border-slate-200/50" : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+            )}
+          >
+            <Globe size={14} /> Telas
           </button>
         )}
       </div>
@@ -610,6 +623,10 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
                  <SlaPoliciesManager currentCompanyId={currentUser.empresa_id!} />
                  <AutomationsManager currentCompanyId={currentUser.empresa_id!} />
               </div>
+            )}
+
+            {activeSubTab === 'screens' && (
+              <ScreensSettingsManager currentUser={currentUser} />
             )}
           </motion.div>
         </AnimatePresence>
