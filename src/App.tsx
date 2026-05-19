@@ -12,6 +12,7 @@ import { ProfilePage } from "./components/pages/ProfilePage";
 import { SettingsPage } from "./components/pages/SettingsPage";
 import { ReportsPage } from "./components/pages/ReportsPage";
 import { KnowledgePage } from "./components/pages/KnowledgePage";
+import { AITesterPage } from "./components/pages/AITesterPage";
 import { AccessDenied } from "./components/ui/AccessDenied";
 import { PublicSite } from "./components/public/PublicSite";
 import { SatisfactionPage } from "./components/public/SatisfactionPage";
@@ -44,7 +45,8 @@ type ActiveTab =
   | "profile"
   | "settings"
   | "reports"
-  | "knowledge";
+  | "knowledge"
+  | "ai";
 
 export default function App() {
   const getViewFromPath = (pathname: string): ViewState => {
@@ -464,6 +466,8 @@ export default function App() {
           return "Relatórios Gerenciais";
         case "knowledge":
           return "Base de Conhecimento";
+        case "ai":
+          return "Assistente IA";
         case "profile":
           return "Configurações de Perfil";
         case "settings":
@@ -586,6 +590,10 @@ export default function App() {
                     ) : (
                       <AccessDenied />
                     ))}
+
+                  {activeTab === "ai" && (
+                     <AITesterPage currentUser={currentUser} />
+                  )}
 
                   {activeTab === "profile" && (
                     <ProfilePage

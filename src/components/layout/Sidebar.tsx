@@ -11,6 +11,7 @@ import {
   LogOut,
   X,
   BookOpen,
+  Bot
 } from "lucide-react";
 import { User } from "../../types";
 import { cn } from "../../lib/utils";
@@ -82,6 +83,12 @@ export const Sidebar = ({
     {
       title: "Sistema",
       items: [
+        {
+          id: "ai",
+          icon: Bot,
+          label: "Assistente IA",
+          access: true, // Everyone can see it, or restrict to dev
+        },
         {
           id: "settings",
           icon: Settings,
