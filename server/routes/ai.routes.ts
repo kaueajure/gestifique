@@ -106,7 +106,7 @@ router.post('/chat', authMiddleware, async (req: any, res) => {
       contents.push({ role: 'user', parts: [{ text: prompt }] });
       
       const response = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
+        model: "gemini-3.5-flash",
         contents,
         config: {
           systemInstruction: "Você é um assistente criativo e prestativo do sistema Gestifique3.",
@@ -117,7 +117,7 @@ router.post('/chat', authMiddleware, async (req: any, res) => {
     }
 
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-3.5-flash",
       contents: prompt,
       config: {
         systemInstruction: "Você é um assistente criativo e prestativo do sistema Gestifique3.",

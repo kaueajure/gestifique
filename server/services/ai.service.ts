@@ -28,7 +28,7 @@ Chamado:
 ${messageContent}
 `;
       const response = await ai.models.generateContent({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-3.5-flash',
         contents: prompt,
         config: {
           responseMimeType: 'application/json',
@@ -56,7 +56,7 @@ Histórico do Chamado:
 ${timeline}
 `;
       const response = await ai.models.generateContent({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-3.5-flash',
         contents: prompt,
         config: { temperature: 0.4 }
       });
@@ -83,7 +83,7 @@ ${timeline}
 ${agentDraft ? `Rascunho do Atendente (por favor refine, corrija e complete este rascunho de forma profissional): ${agentDraft}` : 'Por favor, gere a melhor resposta possível para resolver a pendência atual ou orientar o cliente adequadamente baseado no histórico.'}
 `;
       const response = await ai.models.generateContent({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-3.5-flash',
         contents: prompt,
         config: { temperature: 0.7 }
       });
