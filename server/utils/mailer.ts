@@ -274,6 +274,49 @@ export const sendTicketEmail = async (params: TicketEmailParams) => {
   }
 };
 
+export const sendPortalAccessCodeEmail = async (params: {
+  to: string;
+  code: string;
+  empresaNome?: string;
+  expiresMinutes?: number;
+}) => {
+  const { to, code, empresaNome = 'Gestifique', expiresMinutes = 10 } = params;
+  const safeEmpresaNome = escapeHtml(empresaNome);
+
+  const mailOptions = {
+    from: env.SMTP.FROM,
+    to,
+    subject: 'Código de acesso ao Portal do Cliente',
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+        <div style="background-color: #2563eb; padding: 24px; text-align: center;">
+          <h2 style="color: white; margin: 0;">Código de Acesso</h2>
+        </div>
+        <div style="padding: 32px; color: #334155;">
+          <p style="font-size: 16px;">Você solicitou acesso ao Portal do Cliente da <strong>${safeEmpresaNome}</strong>. Use o código abaixo para entrar:</p>
+          <div style="background-color: #f1f5f9; padding: 24px; border-radius: 8px; text-align: center; margin: 24px 0;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 12px; color: #0f172a; font-family: monospace;">${code}</span>
+          </div>
+          <p style="font-size: 14px; color: #64748b;">Este código é válido por ${expiresMinutes} minutos.</p>
+          <p style="font-size: 14px; color: #94a3b8; margin-top: 24px;">Se você não solicitou este acesso, pode ignorar este e-mail com segurança.</p>
+        </div>
+        <div style="background-color: #f8fafc; padding: 16px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0;">
+          Enviado por Gestifique - Gestão de Atendimento
+        </div>
+      </div>
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`[Mailer] Portal access code sent to ${to}`);
+    return { success: true, messageId: info.messageId };
+  } catch (error: any) {
+    console.error(`[Mailer] Failed to send portal access code to ${to}:`, error);
+    return { success: false, error: error.message };
+  }
+};
+
 export const sendTicketNotification = async (
   email: string, 
   ticketId: number, 

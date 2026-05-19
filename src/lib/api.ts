@@ -16,6 +16,11 @@ class ApiService {
        headers['Content-Type'] = 'application/json';
     }
 
+    const portalToken = localStorage.getItem("portal_token");
+    if (portalToken && endpoint.startsWith("/portal") && !endpoint.startsWith("/portal-auth")) {
+      headers["Authorization"] = `Bearer ${portalToken}`;
+    }
+
     const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
       credentials: 'include',
@@ -23,6 +28,12 @@ class ApiService {
     });
 
     if (response.status === 401) {
+      if (endpoint.startsWith("/portal") && !endpoint.startsWith("/portal-auth")) {
+        localStorage.removeItem("portal_token");
+        window.dispatchEvent(new CustomEvent("portal:unauthorized"));
+        throw new Error("Acesso ao portal expirado. Solicite um novo código.");
+      }
+
       // Avoid triggering unauthorized event for endpoints that handle their own errors
       // or for the initial session check.
       const silentEndpoints = ['/profile', '/auth/login'];

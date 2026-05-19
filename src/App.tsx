@@ -73,6 +73,43 @@ export default function App() {
     return <SatisfactionPage token={token} />;
   }
 
+  const restorePortalSession = async () => {
+    const portalToken = localStorage.getItem("portal_token");
+    if (!portalToken) return false;
+
+    try {
+      const profile = await api.get<{
+        email: string;
+        empresa_id: number;
+        nome?: string;
+        empresa_nome?: string;
+      }>("/portal/me");
+
+      const portalUser: User = {
+        id: 0,
+        nome: profile.nome || profile.email,
+        email: profile.email,
+        empresa_id: profile.empresa_id,
+        perfil: "cliente",
+        administrador: false,
+        desenvolvedor: false,
+        ativo: true,
+        cargo: "",
+        telefone: undefined,
+        foto: undefined,
+        ultimo_login: undefined,
+        created_at: new Date().toISOString()
+      };
+
+      setCurrentUser(portalUser);
+      setView("portal");
+      return true;
+    } catch {
+      localStorage.removeItem("portal_token");
+      return false;
+    }
+  };
+
   useEffect(() => {
     const handlePopState = () => {
       // Sync browser history with the app state for public routes
@@ -97,6 +134,19 @@ export default function App() {
   useEffect(() => {
     // Check session on load
     const checkAuth = async () => {
+      const pathname = window.location.pathname;
+      
+      if (pathname === '/portal') {
+        const restored = await restorePortalSession();
+        if (restored) {
+          setIsBooting(false);
+          return;
+        }
+        setView("portal-access");
+        setIsBooting(false);
+        return;
+      }
+
       try {
         const user = await api.get<User>("/profile");
         setCurrentUser(user);
@@ -129,15 +179,30 @@ export default function App() {
       setAuthError("Sessão expirada. Faça login novamente.");
     };
 
+    const handlePortalUnauthorized = () => {
+      setCurrentUser(null);
+      setView("portal-access");
+      window.history.pushState({}, "", "/portal");
+    };
+
     window.addEventListener(
       "api:unauthorized",
       handleUnauthorized as EventListener,
     );
-    return () =>
+    window.addEventListener(
+      "portal:unauthorized",
+      handlePortalUnauthorized as EventListener,
+    );
+    return () => {
       window.removeEventListener(
         "api:unauthorized",
         handleUnauthorized as EventListener,
       );
+      window.removeEventListener(
+        "portal:unauthorized",
+        handlePortalUnauthorized as EventListener,
+      );
+    };
   }, []);
 
   const handleNotificationNavigate = (link: string) => {
@@ -184,6 +249,7 @@ export default function App() {
     try {
       await api.post("/auth/logout", {});
     } catch (e) {}
+    localStorage.removeItem("portal_token");
     setCurrentUser(null);
     setView("landing");
     window.history.pushState({}, '', '/');

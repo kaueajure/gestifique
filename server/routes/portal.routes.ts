@@ -1,46 +1,134 @@
 import { Router } from 'express';
 import pool from '../db/connection.js';
 import { authMiddleware } from '../middlewares/auth.js';
-import { sendError } from '../utils/response.js';
+import { portalAuthMiddleware } from '../middlewares/portal-auth.js';
+import { sendError, sendSuccess } from '../utils/response.js';
 import ticketsService from '../services/tickets.service.js';
 
 const router = Router();
-router.use(authMiddleware);
 
-// Middleware apenas para clientes ou usuários da própria empresa
-const requirePortalAccess = (req: any, res: any, next: any) => {
-  if (!req.user.empresa_id) {
-    return sendError(res, 'Conta sem empresa vinculada', 403);
+// Middleware híbrido para aceitar autenticação normal ou por token do portal
+const portalIdentityMiddleware = (req: any, res: any, next: any) => {
+  const authHeader = req.headers.authorization;
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    // Tenta autenticar pelo token do portal
+    return portalAuthMiddleware(req, res, next);
+  } else {
+    // Tenta autenticação padrão (cookie/admin/atendente/cliente logado)
+    return authMiddleware(req, res, next);
   }
-  next();
 };
 
-router.use(requirePortalAccess);
+router.use(portalIdentityMiddleware);
+
+function getPortalContext(req: any) {
+  if (req.portalCustomer) {
+    return {
+      mode: 'external',
+      empresa_id: req.portalCustomer.empresa_id,
+      customer_email: req.portalCustomer.customer_email.toLowerCase(),
+      usuario_id: req.portalCustomer.usuario_id || null,
+      nome: req.portalCustomer.nome || req.portalCustomer.customer_email
+    };
+  }
+
+  if (req.user) {
+    return {
+      mode: 'user',
+      empresa_id: req.user.empresa_id,
+      customer_email: req.user.email.toLowerCase(),
+      usuario_id: req.user.id,
+      nome: req.user.nome
+    };
+  }
+
+  return null;
+}
+
+// Rota para pegar perfil do portal (utilizado no App.tsx checkAuth)
+router.get('/me', async (req: any, res: any) => {
+  const context = getPortalContext(req);
+  if (!context) return sendError(res, 'Não autorizado', 401);
+
+  try {
+    const [empresaRows]: any = await pool.query('SELECT nome FROM empresas WHERE id = ?', [context.empresa_id]);
+    const empresaNome = empresaRows[0]?.nome || 'Gestifique';
+
+    sendSuccess(res, {
+      email: context.customer_email,
+      empresa_id: context.empresa_id,
+      nome: context.nome,
+      empresa_nome: empresaNome
+    });
+  } catch (error) {
+    sendError(res, 'Erro ao carregar perfil do portal', 500);
+  }
+});
 
 router.get('/tickets', async (req: any, res: any) => {
+  const context = getPortalContext(req);
+  if (!context) return sendError(res, 'Não autorizado', 401);
+
   try {
-    const limit = req.query.limit ? `LIMIT ${Number(req.query.limit)}` : '';
-    // Clientes só veem os próprios tickets
+    const limitNum = parseInt(req.query.limit as string) || 50;
+    const safeLimit = Math.min(limitNum, 100);
+
+    // Clientes só veem os próprios tickets (solicitante_email ou usuario_id vinculado)
     const [rows] = await pool.query(`
       SELECT id, titulo, status, categoria, servico, prioridade, created_at, updated_at
       FROM tickets
-      WHERE usuario_id = ?
+      WHERE empresa_id = ?
+        AND (
+          LOWER(solicitante_email) = ?
+          OR usuario_id IN (
+            SELECT id FROM usuarios WHERE LOWER(email) = ? AND empresa_id = ?
+          )
+          OR (usuario_id = ? AND ? IS NOT NULL)
+        )
       ORDER BY updated_at DESC
-      ${limit}
-    `, [req.user.id]);
+      LIMIT ?
+    `, [
+      context.empresa_id, 
+      context.customer_email, 
+      context.customer_email, 
+      context.empresa_id, 
+      context.usuario_id, 
+      context.usuario_id,
+      safeLimit
+    ]);
     res.json(rows);
   } catch (error) {
+    console.error('[Portal] Erro ao buscar chamados:', error);
     sendError(res, 'Erro ao buscar chamados', 500);
   }
 });
 
 router.get('/tickets/:id', async (req: any, res: any) => {
+  const context = getPortalContext(req);
+  if (!context) return sendError(res, 'Não autorizado', 401);
+
   try {
     const [rows]: any = await pool.query(`
       SELECT id, titulo, descricao, status, categoria, servico, prioridade, created_at, updated_at
       FROM tickets
-      WHERE id = ? AND usuario_id = ?
-    `, [req.params.id, req.user.id]);
+      WHERE id = ? AND empresa_id = ?
+        AND (
+          LOWER(solicitante_email) = ?
+          OR usuario_id IN (
+            SELECT id FROM usuarios WHERE LOWER(email) = ? AND empresa_id = ?
+          )
+          OR (usuario_id = ? AND ? IS NOT NULL)
+        )
+    `, [
+      req.params.id, 
+      context.empresa_id, 
+      context.customer_email, 
+      context.customer_email, 
+      context.empresa_id, 
+      context.usuario_id, 
+      context.usuario_id
+    ]);
 
     if (!rows.length) return sendError(res, 'Chamado não encontrado', 404);
     res.json(rows[0]);
@@ -50,9 +138,31 @@ router.get('/tickets/:id', async (req: any, res: any) => {
 });
 
 router.get('/tickets/:id/messages', async (req: any, res: any) => {
+  const context = getPortalContext(req);
+  if (!context) return sendError(res, 'Não autorizado', 401);
+
   try {
-    // Verifica se o ticket é do usuario
-    const [ticketRows]: any = await pool.query('SELECT id FROM tickets WHERE id = ? AND usuario_id = ?', [req.params.id, req.user.id]);
+    // Verifica se o ticket pertence ao cliente
+    const [ticketRows]: any = await pool.query(`
+      SELECT id FROM tickets 
+      WHERE id = ? AND empresa_id = ?
+        AND (
+          LOWER(solicitante_email) = ?
+          OR usuario_id IN (
+            SELECT id FROM usuarios WHERE LOWER(email) = ? AND empresa_id = ?
+          )
+          OR (usuario_id = ? AND ? IS NOT NULL)
+        )
+    `, [
+      req.params.id, 
+      context.empresa_id, 
+      context.customer_email, 
+      context.customer_email, 
+      context.empresa_id, 
+      context.usuario_id, 
+      context.usuario_id
+    ]);
+
     if (!ticketRows.length) return sendError(res, 'Chamado não encontrado', 404);
 
     const [rows] = await pool.query(`
@@ -70,6 +180,9 @@ router.get('/tickets/:id/messages', async (req: any, res: any) => {
 });
 
 router.post('/tickets', async (req: any, res: any) => {
+  const context = getPortalContext(req);
+  if (!context) return sendError(res, 'Não autorizado', 401);
+
   const { titulo, descricao, categoria, servico } = req.body;
   
   if (!titulo || !descricao) {
@@ -78,8 +191,10 @@ router.post('/tickets', async (req: any, res: any) => {
 
   try {
     const ticketId = await ticketsService.create({
-      empresa_id: req.user.empresa_id,
-      usuario_id: req.user.id,
+      empresa_id: context.empresa_id,
+      usuario_id: context.usuario_id,
+      solicitante_email: context.customer_email,
+      solicitante_nome: context.nome,
       titulo,
       descricao,
       categoria: categoria || 'geral',
@@ -96,16 +211,47 @@ router.post('/tickets', async (req: any, res: any) => {
 });
 
 router.post('/tickets/:id/messages', async (req: any, res: any) => {
+  const context = getPortalContext(req);
+  if (!context) return sendError(res, 'Não autorizado', 401);
+
   const { mensagem } = req.body;
   if (!mensagem) return sendError(res, 'Mensagem vazia', 400);
 
   try {
+    // Verifica se o ticket pertence ao cliente
+    const [ticketRows]: any = await pool.query(`
+      SELECT id, empresa_id FROM tickets 
+      WHERE id = ? AND empresa_id = ?
+        AND (
+          LOWER(solicitante_email) = ?
+          OR usuario_id IN (
+            SELECT id FROM usuarios WHERE LOWER(email) = ? AND empresa_id = ?
+          )
+          OR (usuario_id = ? AND ? IS NOT NULL)
+        )
+    `, [
+      req.params.id, 
+      context.empresa_id, 
+      context.customer_email, 
+      context.customer_email, 
+      context.empresa_id, 
+      context.usuario_id, 
+      context.usuario_id
+    ]);
+
+    if (!ticketRows.length) return sendError(res, 'Chamado não encontrado', 404);
+
     const messageId = await ticketsService.addMessage({
       ticket_id: Number(req.params.id),
-      usuario_id: req.user.id,
+      usuario_id: context.usuario_id,
       mensagem,
       interno: false
-    }, req.user);
+    }, context.mode === 'user' ? req.user : {
+      id: context.usuario_id || 0,
+      email: context.customer_email,
+      empresa_id: context.empresa_id,
+      perfil: 'cliente'
+    });
 
     res.status(201).json({ success: true, message: 'Mensagem enviada com sucesso', messageId });
   } catch (error: any) {
@@ -115,6 +261,9 @@ router.post('/tickets/:id/messages', async (req: any, res: any) => {
 });
 
 router.get('/knowledge', async (req: any, res: any) => {
+  const context = getPortalContext(req);
+  if (!context) return sendError(res, 'Não autorizado', 401);
+
   try {
     const { category } = req.query;
     let query = `
@@ -122,7 +271,7 @@ router.get('/knowledge', async (req: any, res: any) => {
       FROM knowledge_articles
       WHERE ativo = 1 AND publico = 1 AND empresa_id = ?
     `;
-    const params: any[] = [req.user.empresa_id];
+    const params: any[] = [context.empresa_id];
 
     if (category) {
       query += ' AND categoria = ?';
@@ -139,13 +288,16 @@ router.get('/knowledge', async (req: any, res: any) => {
 });
 
 router.get('/knowledge/categories', async (req: any, res: any) => {
+  const context = getPortalContext(req);
+  if (!context) return sendError(res, 'Não autorizado', 401);
+
   try {
     const [rows]: any = await pool.query(`
       SELECT DISTINCT categoria
       FROM knowledge_articles
       WHERE ativo = 1 AND publico = 1 AND empresa_id = ? AND categoria IS NOT NULL
       ORDER BY categoria ASC
-    `, [req.user.empresa_id]);
+    `, [context.empresa_id]);
     res.json(rows.map((row: any) => row.categoria));
   } catch (error) {
     sendError(res, 'Erro ao buscar categorias', 500);
@@ -153,12 +305,15 @@ router.get('/knowledge/categories', async (req: any, res: any) => {
 });
 
 router.get('/knowledge/article/:id', async (req: any, res: any) => {
+  const context = getPortalContext(req);
+  if (!context) return sendError(res, 'Não autorizado', 401);
+
   try {
     const [rows]: any = await pool.query(`
       SELECT *
       FROM knowledge_articles
       WHERE id = ? AND ativo = 1 AND publico = 1 AND empresa_id = ?
-    `, [req.params.id, req.user.empresa_id]);
+    `, [req.params.id, context.empresa_id]);
 
     if (!rows.length) return sendError(res, 'Artigo não encontrado', 404);
     res.json(rows[0]);
@@ -168,6 +323,9 @@ router.get('/knowledge/article/:id', async (req: any, res: any) => {
 });
 
 router.get('/knowledge/search', async (req: any, res: any) => {
+  const context = getPortalContext(req);
+  if (!context) return sendError(res, 'Não autorizado', 401);
+
   try {
     const { q } = req.query;
     if (!q) return res.json([]);
@@ -182,7 +340,7 @@ router.get('/knowledge/search', async (req: any, res: any) => {
         CASE WHEN titulo LIKE ? THEN 1 ELSE 2 END,
         created_at DESC
       LIMIT 10
-    `, [req.user.empresa_id, searchTerms, searchTerms, searchTerms, searchTerms]);
+    `, [context.empresa_id, searchTerms, searchTerms, searchTerms, searchTerms]);
     
     res.json(rows);
   } catch (error) {
