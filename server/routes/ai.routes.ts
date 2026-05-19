@@ -1,9 +1,88 @@
 import { Router } from 'express';
-import { GoogleGenAI } from '@google/genai';
+import { AIService } from '../services/ai.service.js';
+import ticketsService from '../services/tickets.service.js';
 import { authMiddleware } from '../middlewares/auth.js';
 import { sendError, sendSuccess } from '../utils/response.js';
 
 const router = Router();
+
+router.get('/status', authMiddleware, (req, res) => {
+  return sendSuccess(res, { available: AIService.isAvailable() });
+});
+
+router.get('/tickets/:id/summary', authMiddleware, async (req: any, res) => {
+  const ticketId = Number(req.params.id);
+  const user = req.user;
+  
+  if (!AIService.isAvailable()) {
+    return sendError(res, 'Serviço de IA indisponível', 503);
+  }
+
+  try {
+    const ticket = await ticketsService.getByIdForUser(ticketId, user);
+    if (!ticket || ticket.error === 'forbidden') {
+      return sendError(res, 'Ticket não encontrado', 404);
+    }
+    
+    // As per requirement: public messages only
+    const mensagensResult = await ticketsService.getMessages(ticketId, false) as any[];
+    const timeline = mensagensResult.map((m: any) => ({
+      role: m.usuario_id === ticket.usuario_id ? 'user' : 'model',
+      text: m.mensagem
+    }));
+
+    if (timeline.length === 0) {
+      timeline.push({
+         role: 'user',
+         text: ticket.descricao || ticket.titulo
+      });
+    }
+
+    const summary = await AIService.summarizeTimeline(timeline);
+    
+    return sendSuccess(res, { summary });
+  } catch (error: any) {
+    console.error('Error generating summary:', error);
+    return sendError(res, 'Erro ao gerar resumo da conversa', 500);
+  }
+});
+
+router.post('/tickets/:id/suggest-reply', authMiddleware, async (req: any, res) => {
+  const ticketId = Number(req.params.id);
+  const { agentDraft } = req.body;
+  const user = req.user;
+  
+  if (!AIService.isAvailable()) {
+    return sendError(res, 'Serviço de IA indisponível', 503);
+  }
+
+  try {
+    const ticket = await ticketsService.getByIdForUser(ticketId, user);
+    if (!ticket || ticket.error === 'forbidden') {
+      return sendError(res, 'Ticket não encontrado', 404);
+    }
+
+    const mensagensResult = await ticketsService.getMessages(ticketId, false) as any[];
+    const timeline = mensagensResult.map((m: any) => ({
+      role: m.usuario_id === ticket.usuario_id ? 'user' : 'model',
+      text: m.mensagem
+    }));
+
+    if (timeline.length === 0) {
+      timeline.push({
+         role: 'user',
+         text: ticket.descricao || ticket.titulo
+      });
+    }
+
+    const suggestion = await AIService.suggestResponse(ticket.titulo, timeline, agentDraft);
+    
+    return sendSuccess(res, { suggestion });
+  } catch (error: any) {
+    console.error('Error suggesting reply:', error);
+    return sendError(res, 'Erro ao sugerir resposta', 500);
+  }
+});
 
 router.post('/chat', authMiddleware, async (req: any, res) => {
   const { prompt, history } = req.body;
@@ -12,60 +91,43 @@ router.post('/chat', authMiddleware, async (req: any, res) => {
     return sendError(res, 'Prompt is required', 400);
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  
-  if (!apiKey) {
-    return sendError(res, 'Chave da API do Gemini não configurada no servidor. Configure a variável de ambiente GEMINI_API_KEY no painel Secrets.', 500);
+  if (!AIService.isAvailable()) {
+    return sendError(res, 'Chave da API do Gemini não configurada no servidor.', 500);
   }
 
   try {
-    const ai = new GoogleGenAI({ 
-      apiKey,
-      httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
-    });
+    const ai = AIService.getClient();
 
-    const chat = ai.chats.create({
-      model: "gemini-3.5-flash",
-      config: {
-        systemInstruction: "Você é um assistente útil focado em ajudar o usuário do sistema Gestifique, pode responder dúvidas gerais, auxiliar na escrita de tickets ou base de conhecimento e ser um chatbot amigável para testes. Fale português.",
-        temperature: 0.7,
-      },
-    });
-
-    // Se history foi passado, poderíamos restaurar o contexto, 
-    // mas o SDK 1.29 da API Node lida com histórico diferentemente,
-    // o construtor do chat create aceita `history` mas vamos tentar um loop de envio se necessário
-    // ou apenas enviar o prompt de uma vez se for stateless
-    
-    // Simplificação: apenas usa o histórico recebido para passar as trocas caso seja possível.
     if (history && Array.isArray(history) && history.length > 0) {
-      // O SDK permite repassar history no create, embora não documentem ativamente as vezes o chat object se encarrega disso...
-      // Vamos tentar um push simples pro chat só com a nova mensagem se não for complexo.
-      // O modo mais seguro e stateless é usar ai.models.generateContent com arranjo de mensagens.
-      
       const contents = history.map((msg: any) => ({
         role: msg.role === 'user' ? 'user' : 'model',
         parts: [{ text: msg.text }]
       }));
       contents.push({ role: 'user', parts: [{ text: prompt }] });
       
-       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+      const response = await ai.models.generateContent({
+        model: "gemini-1.5-flash",
         contents,
         config: {
-          systemInstruction: "Você é um assistente criativo e útil do sistema Gestifique.",
+          systemInstruction: "Você é um assistente criativo e prestativo do sistema Gestifique3.",
           temperature: 0.7
         }
       });
       return sendSuccess(res, { response: response.text });
     }
 
-    // Se não tem hisórico, só manda o chat simles 
-    const response = await chat.sendMessage({ message: prompt });
+    const response = await ai.models.generateContent({
+      model: "gemini-1.5-flash",
+      contents: prompt,
+      config: {
+        systemInstruction: "Você é um assistente criativo e prestativo do sistema Gestifique3.",
+        temperature: 0.7
+      }
+    });
     
     return sendSuccess(res, { response: response.text });
   } catch (error: any) {
-    console.error('Error calling Gemini:', error);
+    console.error('Error calling Gemini chat:', error);
     return sendError(res, error.message || 'Erro ao comunicar com a IA', 500);
   }
 });
