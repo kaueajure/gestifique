@@ -97,7 +97,7 @@ router.get('/tickets', async (req: any, res: any) => {
       context.usuario_id,
       safeLimit
     ]);
-    res.json(rows);
+    sendSuccess(res, rows);
   } catch (error) {
     console.error('[Portal] Erro ao buscar chamados:', error);
     sendError(res, 'Erro ao buscar chamados', 500);
@@ -131,7 +131,7 @@ router.get('/tickets/:id', async (req: any, res: any) => {
     ]);
 
     if (!rows.length) return sendError(res, 'Chamado não encontrado', 404);
-    res.json(rows[0]);
+    sendSuccess(res, rows[0]);
   } catch (error) {
     sendError(res, 'Erro ao buscar chamado', 500);
   }
@@ -173,7 +173,7 @@ router.get('/tickets/:id/messages', async (req: any, res: any) => {
       ORDER BY m.created_at ASC
     `, [req.params.id]);
     
-    res.json(rows);
+    sendSuccess(res, rows);
   } catch (error) {
     sendError(res, 'Erro ao buscar mensagens', 500);
   }
@@ -203,7 +203,11 @@ router.post('/tickets', async (req: any, res: any) => {
       origem: 'portal'
     });
 
-    res.status(201).json({ message: 'Chamado criado com sucesso', ticketId });
+    res.status(201).json({
+      success: true,
+      message: 'Chamado criado com sucesso',
+      data: { ticketId }
+    });
   } catch (error) {
     console.error('[Portal] Erro ao criar ticket:', error);
     sendError(res, 'Erro ao criar chamado', 500);
@@ -253,7 +257,11 @@ router.post('/tickets/:id/messages', async (req: any, res: any) => {
       perfil: 'cliente'
     });
 
-    res.status(201).json({ success: true, message: 'Mensagem enviada com sucesso', messageId });
+    res.status(201).json({
+      success: true,
+      message: 'Mensagem enviada com sucesso',
+      data: { messageId }
+    });
   } catch (error: any) {
     console.error('[Portal] Erro ao enviar mensagem:', error);
     sendError(res, error.message || 'Erro ao enviar mensagem', 500);
@@ -281,7 +289,7 @@ router.get('/knowledge', async (req: any, res: any) => {
     query += ' ORDER BY created_at DESC';
 
     const [rows] = await pool.query(query, params);
-    res.json(rows);
+    sendSuccess(res, rows);
   } catch (error) {
     sendError(res, 'Erro ao buscar artigos', 500);
   }
@@ -298,7 +306,7 @@ router.get('/knowledge/categories', async (req: any, res: any) => {
       WHERE ativo = 1 AND publico = 1 AND empresa_id = ? AND categoria IS NOT NULL
       ORDER BY categoria ASC
     `, [context.empresa_id]);
-    res.json(rows.map((row: any) => row.categoria));
+    sendSuccess(res, rows.map((row: any) => row.categoria));
   } catch (error) {
     sendError(res, 'Erro ao buscar categorias', 500);
   }
@@ -316,7 +324,7 @@ router.get('/knowledge/article/:id', async (req: any, res: any) => {
     `, [req.params.id, context.empresa_id]);
 
     if (!rows.length) return sendError(res, 'Artigo não encontrado', 404);
-    res.json(rows[0]);
+    sendSuccess(res, rows[0]);
   } catch (error) {
     sendError(res, 'Erro ao buscar artigo', 500);
   }
@@ -328,7 +336,7 @@ router.get('/knowledge/search', async (req: any, res: any) => {
 
   try {
     const { q } = req.query;
-    if (!q) return res.json([]);
+    if (!q) return sendSuccess(res, []);
     
     const searchTerms = `%${q}%`;
     const [rows] = await pool.query(`
@@ -342,7 +350,7 @@ router.get('/knowledge/search', async (req: any, res: any) => {
       LIMIT 10
     `, [context.empresa_id, searchTerms, searchTerms, searchTerms, searchTerms]);
     
-    res.json(rows);
+    sendSuccess(res, rows);
   } catch (error) {
     sendError(res, 'Erro ao pesquisar artigos', 500);
   }
