@@ -18,7 +18,8 @@ import {
   MessageSquare,
   HelpCircle,
   Zap,
-  ArrowRight
+  ArrowRight,
+  CreditCard
 } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -96,6 +97,23 @@ export const PricingSettingsManager: React.FC = () => {
     });
   };
 
+  const updateBilling = (field: keyof NonNullable<PricingSettings['billing']>, value: any) => {
+    if (!settings) return;
+    setSettings({
+      ...settings,
+      billing: { 
+        ...settings.billing || {
+          annualDiscountPercent: 20,
+          showBillingToggle: true,
+          monthlyLabel: "Mensal",
+          annualLabel: "Anual",
+          annualEconomyText: "Economize {discount}% no plano anual"
+        }, 
+        [field]: value 
+      }
+    });
+  };
+
   const updateCTA = (field: keyof PricingSettings['cta'], value: string) => {
     if (!settings) return;
     setSettings({
@@ -119,6 +137,8 @@ export const PricingSettingsManager: React.FC = () => {
       target: 'Descrição do público-alvo',
       highlightText: 'Destaque',
       priceLabel: 'Sob consulta',
+      priceMode: 'consult',
+      priceMonthly: null,
       features: ['Nova funcionalidade'],
       highlight: false,
       active: true,
@@ -253,6 +273,61 @@ export const PricingSettingsManager: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-8 space-y-6">
+          {/* Billing Configuration Section */}
+          <Card className="overflow-hidden">
+            <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
+               <CreditCard size={18} className="text-emerald-600" />
+               <h4 className="text-sm font-bold text-slate-900">Cobrança e Descontos</h4>
+            </div>
+            <div className="p-5 space-y-5">
+               <div className="flex items-center gap-6">
+                  <label className="flex items-center gap-2 cursor-pointer group">
+                    <input 
+                      type="checkbox" 
+                      checked={settings.billing?.showBillingToggle}
+                      onChange={(e) => updateBilling('showBillingToggle', e.target.checked)}
+                      className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-xs font-bold text-slate-700 group-hover:text-slate-900">Mostrar seletor Mensal/Anual</span>
+                  </label>
+               </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input 
+                    type="number"
+                    label="Desconto Anual (%)"
+                    value={settings.billing?.annualDiscountPercent}
+                    onChange={(e) => updateBilling('annualDiscountPercent', Number(e.target.value))}
+                    min={0}
+                    max={90}
+                    placeholder="Ex: 20"
+                  />
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700">Texto de Economia</label>
+                    <Input 
+                      value={settings.billing?.annualEconomyText}
+                      onChange={(e) => updateBilling('annualEconomyText', e.target.value)}
+                      placeholder="Ex: Economize {discount}% no plano anual"
+                    />
+                    <p className="text-[10px] text-slate-500 italic">Use {"{discount}"} para inserir automaticamente o percentual.</p>
+                  </div>
+               </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input 
+                    label="Label do botão Mensal"
+                    value={settings.billing?.monthlyLabel}
+                    onChange={(e) => updateBilling('monthlyLabel', e.target.value)}
+                  />
+                  <Input 
+                    label="Label do botão Anual"
+                    value={settings.billing?.annualLabel}
+                    onChange={(e) => updateBilling('annualLabel', e.target.value)}
+                  />
+               </div>
+            </div>
+          </Card>
+
           {/* Header Section */}
           <Card className="overflow-hidden">
             <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
@@ -337,17 +412,57 @@ export const PricingSettingsManager: React.FC = () => {
                             onChange={(e) => updatePlan(planIdx, { target: e.target.value })}
                           />
                           <div className="grid grid-cols-2 gap-3">
-                            <Input 
-                              label="Texto de Destaque"
-                              value={plan.highlightText}
-                              onChange={(e) => updatePlan(planIdx, { highlightText: e.target.value })}
-                            />
-                            <Input 
-                              label="Label de Preço"
-                              value={plan.priceLabel}
-                              onChange={(e) => updatePlan(planIdx, { priceLabel: e.target.value })}
-                            />
+                            <div className="space-y-1.5">
+                               <label className="text-xs font-bold text-slate-700">Tipo de Preço</label>
+                               <select 
+                                 value={plan.priceMode || 'consult'}
+                                 onChange={(e) => updatePlan(planIdx, { priceMode: e.target.value as any })}
+                                 className="w-full h-10 bg-white border border-slate-200 rounded-lg px-3 text-sm focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                               >
+                                 <option value="consult">Sob consulta</option>
+                                 <option value="fixed">Preço fixo mensal</option>
+                               </select>
+                            </div>
+                            {plan.priceMode === 'fixed' ? (
+                              <Input 
+                                type="number"
+                                label="Preço Mensal (Base)"
+                                value={plan.priceMonthly || ''}
+                                onChange={(e) => updatePlan(planIdx, { priceMonthly: e.target.value === '' ? null : Number(e.target.value) })}
+                                placeholder="0,00"
+                              />
+                            ) : (
+                              <Input 
+                                label="Label de Preço"
+                                value={plan.priceLabel}
+                                onChange={(e) => updatePlan(planIdx, { priceLabel: e.target.value })}
+                                placeholder="Sob consulta"
+                              />
+                            )}
                           </div>
+
+                          {plan.priceMode === 'fixed' && typeof plan.priceMonthly === 'number' && (
+                            <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 space-y-1">
+                               <div className="flex justify-between text-[11px]">
+                                  <span className="text-slate-500">Normal:</span>
+                                  <span className="font-bold text-slate-700">R$ {plan.priceMonthly.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês</span>
+                               </div>
+                               <div className="flex justify-between text-[11px]">
+                                  <span className="text-emerald-600 font-medium">Anual (com {settings.billing?.annualDiscountPercent}% OFF):</span>
+                                  <span className="font-bold text-emerald-700">R$ {(plan.priceMonthly * (1 - (settings.billing?.annualDiscountPercent || 0) / 100)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês</span>
+                               </div>
+                               <div className="flex justify-between text-[11px] pt-1 border-t border-slate-200 mt-1">
+                                  <span className="text-slate-500">Total Anual:</span>
+                                  <span className="font-bold text-slate-900 font-mono">R$ {(plan.priceMonthly * 12 * (1 - (settings.billing?.annualDiscountPercent || 0) / 100)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/ano</span>
+                               </div>
+                            </div>
+                          )}
+
+                          <Input 
+                            label="Texto de Destaque"
+                            value={plan.highlightText}
+                            onChange={(e) => updatePlan(planIdx, { highlightText: e.target.value })}
+                          />
                           <div className="flex items-center gap-6 pt-2">
                              <label className="flex items-center gap-2 cursor-pointer group">
                                <input 

@@ -11,6 +11,13 @@ const DEFAULT_PRICING_SETTINGS = {
     title: "Planos para diferentes fases da sua operação.",
     subtitle: "O Gestifique pode ser adaptado ao tamanho da sua equipe, volume de tickets e necessidade de gestão de desempenho."
   },
+  billing: {
+    annualDiscountPercent: 20,
+    showBillingToggle: true,
+    monthlyLabel: "Mensal",
+    annualLabel: "Anual",
+    annualEconomyText: "Economize {discount}% no plano anual"
+  },
   plans: [
     {
       id: "inicial",
@@ -18,6 +25,8 @@ const DEFAULT_PRICING_SETTINGS = {
       target: "Equipes que estão organizando o fluxo.",
       highlightText: "Para sair da planilha",
       priceLabel: "Sob consulta",
+      priceMode: "consult",
+      priceMonthly: null,
       features: [
         "Atendentes limitados (até 5)",
         "Portal do cliente",
@@ -35,6 +44,8 @@ const DEFAULT_PRICING_SETTINGS = {
       target: "Operações B2B que precisam de controle.",
       highlightText: "Mais escolhido",
       priceLabel: "Sob consulta",
+      priceMode: "consult",
+      priceMonthly: null,
       features: [
         "Faixa de atendentes personalizada",
         "SLA Estrito (1ª resposta e resolução)",
@@ -52,6 +63,8 @@ const DEFAULT_PRICING_SETTINGS = {
       target: "Múltiplas áreas com alta complexidade.",
       highlightText: "Para operações complexas",
       priceLabel: "Sob consulta",
+      priceMode: "consult",
+      priceMonthly: null,
       features: [
         "Gestão Multi-empresa (Multi-tenant)",
         "Auditoria e Logs refinados",
@@ -122,6 +135,20 @@ router.get('/pricing', async (req, res) => {
       }
     }
 
+    // Compatibilidade e sanitização
+    if (!settings.billing) {
+      settings.billing = DEFAULT_PRICING_SETTINGS.billing;
+    }
+
+    if (Array.isArray(settings.plans)) {
+      settings.plans = settings.plans.map((plan: any) => ({
+        ...plan,
+        priceMode: plan.priceMode || (typeof plan.priceMonthly === 'number' ? 'fixed' : 'consult'),
+        priceMonthly: typeof plan.priceMonthly === 'number' ? plan.priceMonthly : null,
+        priceLabel: plan.priceLabel || 'Sob consulta'
+      }));
+    }
+
     sendSuccess(res, settings);
   } catch (error) {
     console.error('[PublicSettings] Error fetching pricing settings:', error);
@@ -131,7 +158,7 @@ router.get('/pricing', async (req, res) => {
 
 // PUT /api/public-settings/pricing - DEV ONLY
 router.put('/pricing', authMiddleware, requireDeveloper, async (req: any, res) => {
-  const { header, plans, proposalFactors, faq, cta } = req.body;
+  const { header, billing, plans, proposalFactors, faq, cta } = req.body;
 
   if (!header || !header.title || !header.subtitle) {
     return sendError(res, 'Título e subtítulo do cabeçalho são obrigatórios.');
@@ -146,12 +173,51 @@ router.put('/pricing', authMiddleware, requireDeveloper, async (req: any, res) =
   }
 
   try {
+    // Validar e sanitizar billing
+    const finalBilling = {
+      annualDiscountPercent: Math.min(90, Math.max(0, Number(billing?.annualDiscountPercent) || 0)),
+      showBillingToggle: Boolean(billing?.showBillingToggle),
+      monthlyLabel: (billing?.monthlyLabel || 'Mensal').trim(),
+      annualLabel: (billing?.annualLabel || 'Anual').trim(),
+      annualEconomyText: (billing?.annualEconomyText || 'Economize {discount}% no plano anual').trim()
+    };
+
+    // Validar e sanitizar planos
+    const sanitizedPlans = plans.map((plan: any) => {
+      const mode = plan.priceMode === 'fixed' ? 'fixed' : 'consult';
+      return {
+        ...plan,
+        id: (plan.id || `plan-${Date.now()}-${Math.random()}`).toString(),
+        name: (plan.name || 'Sem nome').trim(),
+        target: (plan.target || '').trim(),
+        highlightText: (plan.highlightText || '').trim(),
+        priceMode: mode,
+        priceMonthly: mode === 'fixed' ? Math.max(0, Number(plan.priceMonthly) || 0) : null,
+        priceLabel: (plan.priceLabel || 'Sob consulta').trim(),
+        features: Array.isArray(plan.features) ? plan.features.map((f: string) => f.trim()).filter(Boolean) : [],
+        highlight: Boolean(plan.highlight),
+        active: Boolean(plan.active),
+        order: Number(plan.order) || 0
+      };
+    });
+
     const settingsJson = JSON.stringify({
-      header,
-      plans,
-      proposalFactors: Array.isArray(proposalFactors) ? proposalFactors : [],
-      faq: Array.isArray(faq) ? faq : [],
-      cta
+      header: {
+        title: header.title.trim(),
+        subtitle: header.subtitle.trim()
+      },
+      billing: finalBilling,
+      plans: sanitizedPlans,
+      proposalFactors: Array.isArray(proposalFactors) ? proposalFactors.map((f: string) => f.trim()).filter(Boolean) : [],
+      faq: Array.isArray(faq) ? faq.map((f: any) => ({
+        question: (f.question || '').trim(),
+        answer: (f.answer || '').trim()
+      })).filter((f: any) => f.question && f.answer) : [],
+      cta: {
+        title: cta.title.trim(),
+        subtitle: (cta.subtitle || '').trim(),
+        buttonText: cta.buttonText.trim()
+      }
     });
 
     await pool.query(`

@@ -293,7 +293,9 @@ export interface PricingPlan {
   name: string;
   target: string;
   highlightText: string;
-  priceLabel: string;
+  priceLabel?: string;
+  priceMonthly?: number | null;
+  priceMode?: 'fixed' | 'consult';
   features: string[];
   highlight: boolean;
   active: boolean;
@@ -304,6 +306,13 @@ export interface PricingSettings {
   header: {
     title: string;
     subtitle: string;
+  };
+  billing?: {
+    annualDiscountPercent: number;
+    showBillingToggle: boolean;
+    monthlyLabel: string;
+    annualLabel: string;
+    annualEconomyText: string;
   };
   plans: PricingPlan[];
   proposalFactors: string[];

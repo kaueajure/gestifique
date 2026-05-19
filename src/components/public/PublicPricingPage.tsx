@@ -105,6 +105,7 @@ const DEFAULT_PRICING_SETTINGS: PricingSettings = {
 export const PublicPricingPage = ({ onNavigate }: PublicPricingPageProps) => {
   const [settings, setSettings] = useState<PricingSettings>(DEFAULT_PRICING_SETTINGS);
   const [loading, setLoading] = useState(true);
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -134,6 +135,30 @@ export const PublicPricingPage = ({ onNavigate }: PublicPricingPageProps) => {
     .filter(p => p.active)
     .sort((a, b) => a.order - b.order);
 
+  const formatCurrency = (value: number) => {
+    return value.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    });
+  };
+
+  const getPlanMode = (plan: any) => {
+    return plan.priceMode || (typeof plan.priceMonthly === 'number' ? 'fixed' : 'consult');
+  };
+
+  const getMonthlyPrice = (plan: any) => {
+    const mode = getPlanMode(plan);
+    if (mode === 'consult' || typeof plan.priceMonthly !== 'number') return null;
+
+    if (billingCycle === 'monthly') return plan.priceMonthly;
+
+    const discount = settings.billing?.annualDiscountPercent || 0;
+    return plan.priceMonthly * (1 - discount / 100);
+  };
+
+  const hasFixedPricePlan = activePlans.some(plan => getPlanMode(plan) === 'fixed');
+  const shouldShowBillingToggle = settings.billing?.showBillingToggle && hasFixedPricePlan;
+
   return (
     <div className="flex flex-col bg-white">
       {/* Header */}
@@ -145,6 +170,39 @@ export const PublicPricingPage = ({ onNavigate }: PublicPricingPageProps) => {
           <p className="text-lg font-medium text-slate-500 leading-relaxed max-w-xl mx-auto">
             {settings.header.subtitle}
           </p>
+
+          {shouldShowBillingToggle && (
+            <div className="pt-8 flex flex-col items-center gap-4">
+              <div className="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200">
+                <button
+                  onClick={() => setBillingCycle('monthly')}
+                  className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${
+                    billingCycle === 'monthly'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {settings.billing?.monthlyLabel || 'Mensal'}
+                </button>
+                <button
+                  onClick={() => setBillingCycle('annual')}
+                  className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${
+                    billingCycle === 'annual'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {settings.billing?.annualLabel || 'Anual'}
+                </button>
+              </div>
+              
+              {billingCycle === 'annual' && settings.billing?.annualDiscountPercent && (
+                <div className="text-emerald-600 text-[13px] font-bold bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100 animate-in fade-in zoom-in-95">
+                  {settings.billing.annualEconomyText.replace('{discount}', settings.billing.annualDiscountPercent.toString())}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </section>
 
@@ -152,24 +210,55 @@ export const PublicPricingPage = ({ onNavigate }: PublicPricingPageProps) => {
       <section className="py-16 px-6 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-3 gap-6 items-stretch">
-             {activePlans.map((plan, i) => (
-                <div key={plan.id || i} className={`relative p-6 rounded-xl border flex flex-col ${plan.highlight ? 'bg-white border-blue-600 shadow-md z-10' : 'bg-white border-slate-200 shadow-sm mt-0 md:mt-2'}`}>
-                  
-                  {plan.highlight && (
-                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full">
-                       {plan.highlightText}
-                    </div>
-                  )}
+             {activePlans.map((plan, i) => {
+                const mode = getPlanMode(plan);
+                const displayPrice = getMonthlyPrice(plan);
+                
+                return (
+                  <div key={plan.id || i} className={`relative p-6 rounded-xl border flex flex-col ${plan.highlight ? 'bg-white border-blue-600 shadow-xl z-10 scale-[1.02]' : 'bg-white border-slate-200 shadow-sm mt-0 md:mt-2'}`}>
+                    
+                    {plan.highlight && (
+                      <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full">
+                         {plan.highlightText}
+                      </div>
+                    )}
 
-                  <div className="space-y-2 mb-6">
-                    {!plan.highlight && <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{plan.highlightText}</div>}
-                    <h3 className="text-xl font-bold text-slate-900">{plan.name}</h3>
-                    <p className="text-[13px] font-medium text-slate-500 leading-snug">{plan.target}</p>
-                  </div>
-                  
-                  <div className="mb-6">
-                     <span className="text-2xl font-bold tracking-tight text-slate-900">{plan.priceLabel}</span>
-                  </div>
+                    <div className="space-y-2 mb-6">
+                      {!plan.highlight && <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{plan.highlightText}</div>}
+                      <h3 className="text-xl font-bold text-slate-900">{plan.name}</h3>
+                      <p className="text-[13px] font-medium text-slate-500 leading-snug">{plan.target}</p>
+                    </div>
+                    
+                    <div className="mb-6 min-h-[60px]">
+                       {mode === 'consult' ? (
+                         <span className="text-2xl font-bold tracking-tight text-slate-900">
+                           {plan.priceLabel || 'Sob consulta'}
+                         </span>
+                       ) : (
+                         <div className="space-y-1">
+                           <div className="flex items-baseline gap-1">
+                             <span className="text-3xl font-bold tracking-tight text-slate-900">
+                               {displayPrice !== null ? formatCurrency(displayPrice) : '---'}
+                             </span>
+                             <span className="text-sm font-semibold text-slate-400">/mês</span>
+                           </div>
+
+                           {billingCycle === 'annual' && displayPrice !== null && (
+                             <p className="text-xs font-bold text-emerald-600">
+                               Cobrado anualmente: {formatCurrency(displayPrice * 12)}/ano
+                             </p>
+                           )}
+                           
+                           {billingCycle === 'annual' && settings.billing?.annualDiscountPercent && (
+                             <div className="mt-1">
+                               <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                 {settings.billing.annualDiscountPercent}% OFF
+                               </span>
+                             </div>
+                           )}
+                         </div>
+                       )}
+                    </div>
 
                   <ul className="space-y-3 mb-8 flex-1">
                     {plan.features.map((feature, j) => (
@@ -193,7 +282,8 @@ export const PublicPricingPage = ({ onNavigate }: PublicPricingPageProps) => {
                     Solicitar Proposta
                   </button>
                 </div>
-             ))}
+              );
+            })}
           </div>
         </div>
       </section>
