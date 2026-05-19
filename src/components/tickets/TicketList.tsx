@@ -282,9 +282,9 @@ export const TicketList = ({
                         <span className="text-[9px] font-medium text-amber-700 bg-amber-100 px-1 rounded-sm">Novo</span>
                       )}
                       
-                      {ticket.tags && ticket.tags.length > 0 && (
+                      {ticket.tags && ticket.tags.filter(tag => !tag.startsWith('ia-')).length > 0 && (
                         <div className="flex gap-1">
-                          {ticket.tags.slice(0, 2).map(tag => (
+                          {ticket.tags.filter(tag => !tag.startsWith('ia-')).slice(0, 2).map(tag => (
                              <span key={tag} className="text-[9px] font-medium text-slate-500 bg-slate-100 border border-slate-200 rounded-sm px-1.5">{tag}</span>
                           ))}
                         </div>

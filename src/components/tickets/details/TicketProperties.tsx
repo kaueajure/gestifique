@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Ticket, TicketAttachment, TicketStatus } from '../../../types';
 import { Badge } from '../../ui/Badge';
 import { Button } from '../../ui/Button';
 import { Select } from '../../ui/Select';
+import { api } from '../../../lib/api';
 import { cn, formatRelativeTime, getSlaInfo, getFirstResponseSlaInfo } from '../../../lib/utils';
 import { 
   User as UserIcon, 
@@ -18,7 +19,11 @@ import {
   Briefcase,
   Paperclip,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Bot,
+  Sparkles,
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { AttachmentList } from '../../ui/AttachmentList';
@@ -76,6 +81,50 @@ export const TicketProperties = ({
   onUpdateCustomFields
 }: TicketPropertiesProps) => {
   const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
+  const [summary, setSummary] = useState<string | null>(null);
+  const [loadingSummary, setLoadingSummary] = useState(false);
+  const [aiAvailable, setAiAvailable] = useState(false);
+
+  const fetchSummaryAndStatus = async () => {
+    try {
+      const statusRes = await api.get<{ available: boolean }>('/ai/status');
+      setAiAvailable(statusRes.available);
+      
+      if (statusRes.available) {
+        setLoadingSummary(true);
+        const res = await api.get<{ summary: string | null }>(`/ai/tickets/${ticket.id}/summary`);
+        setSummary(res.summary);
+      }
+    } catch (err) {
+      console.error('Erro ao buscar resumo/status da IA:', err);
+    } finally {
+      setLoadingSummary(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSummaryAndStatus();
+  }, [ticket.id]);
+
+  const handleRefreshSummary = async () => {
+    if (!aiAvailable) return;
+    setLoadingSummary(true);
+    try {
+      const res = await api.get<{ summary: string | null }>(`/ai/tickets/${ticket.id}/summary`);
+      setSummary(res.summary);
+    } catch (err) {
+      console.error('Erro ao atualizar resumo da timeline:', err);
+    } finally {
+      setLoadingSummary(false);
+    }
+  };
+
+  const aiSentimentoTag = ticket.tags?.find(t => t.startsWith('ia-sentimento:'));
+  const aiCategoriaTag = ticket.tags?.find(t => t.startsWith('ia-categoria:'));
+
+  const sentimento = aiSentimentoTag ? aiSentimentoTag.split(':')[1] : null;
+  const categoriaSugerida = aiCategoriaTag ? aiCategoriaTag.split(':')[1] : null;
+
   const companyId = ticket.empresa_id ? String(ticket.empresa_id) : undefined;
   const { activeCategories, activeServices } = useTicketOptions(companyId);
 
@@ -138,6 +187,39 @@ export const TicketProperties = ({
         variant="danger"
       />
 
+      {/* Resumo IA Section */}
+      {aiAvailable && (
+        <Section 
+          title="Resumo da Conversa (IA)" 
+          icon={Sparkles}
+          badge={
+            <button
+              onClick={handleRefreshSummary}
+              disabled={loadingSummary}
+              className="p-1 hover:bg-slate-200/60 text-slate-500 rounded transition-colors disabled:opacity-50"
+              title="Atualizar Resumo"
+            >
+              <RefreshCw size={11} className={cn(loadingSummary && "animate-spin text-indigo-600")} />
+            </button>
+          }
+        >
+          <div className="p-1 text-slate-700 leading-relaxed text-xs">
+            {loadingSummary ? (
+              <div className="flex items-center gap-2 py-3 text-slate-500 font-medium">
+                <Loader2 size={12} className="animate-spin text-indigo-600" />
+                <span>Analisando conversas...</span>
+              </div>
+            ) : summary ? (
+              <p className="font-semibold bg-indigo-50/40 border border-indigo-100/30 p-2.5 rounded-lg italic text-slate-600">
+                {summary}
+              </p>
+            ) : (
+              <p className="text-slate-400 font-medium italic">Histórico insuficiente para gerar resumo.</p>
+            )}
+          </div>
+        </Section>
+      )}
+
       {/* Seção 1: Atendimento Central */}
       <Section title="Propriedades" icon={ShieldCheck}>
         <PropertyRow label="Status" icon={Clock}>
@@ -184,6 +266,62 @@ export const TicketProperties = ({
            />
         </PropertyRow>
       </Section>
+
+      {/* Triagem Inteligente (IA) */}
+      {aiAvailable && (sentimento || categoriaSugerida) && (
+        <Section title="Triagem Inteligente (IA)" icon={Bot}>
+          {sentimento && (
+            <PropertyRow label="Sentimento Detectado" icon={Bot}>
+              <div className={cn(
+                "inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold border uppercase tracking-wide shadow-sm mt-0.5",
+                sentimento === 'frustrado' && "bg-rose-50 border-rose-100 text-rose-700",
+                sentimento === 'negativo' && "bg-rose-50 border-rose-100 text-rose-600",
+                sentimento === 'neutro' && "bg-slate-50 border-slate-200 text-slate-600",
+                sentimento === 'positivo' && "bg-emerald-50 border-emerald-100 text-emerald-700"
+              )}>
+                {sentimento === 'frustrado' && "😡 Frustrado"}
+                {sentimento === 'negativo' && "⚠️ Negativo"}
+                {sentimento === 'neutro' && "😐 Neutro"}
+                {sentimento === 'positivo' && "😊 Positivo"}
+                {!['frustrado', 'negativo', 'neutro', 'positivo'].includes(sentimento) && `✨ ${sentimento}`}
+              </div>
+            </PropertyRow>
+          )}
+
+          {categoriaSugerida && (
+            <PropertyRow label="Categoria Sugerida" icon={Layers}>
+              <div className="flex items-center justify-between gap-2 bg-slate-50 border border-slate-200 px-2 py-1 bg-indigo-50/20 border-indigo-100/40 rounded-md mt-0.5">
+                <span className="text-xs font-semibold text-slate-700">{categoriaSugerida}</span>
+                {ticket.categoria !== categoriaSugerida.toLowerCase() && !['financeiro', 'suporte_tecnico', 'comercial', 'outros'].filter(catValue => {
+                   const matchingLabelMap: Record<string, string> = {
+                     financeiro: 'Financeiro',
+                     suporte_tecnico: 'Suporte Técnico',
+                     comercial: 'Comercial'
+                   };
+                   return ticket.categoria === catValue && matchingLabelMap[catValue] === categoriaSugerida;
+                }).length && (
+                  <Button 
+                    size="xs" 
+                    variant="outline" 
+                    className="h-5 px-1.5 text-[9px] font-bold text-indigo-600 bg-white hover:text-white hover:bg-indigo-600 border-indigo-200 rounded transition-all shadow-sm"
+                    onClick={() => {
+                      const valueMap: Record<string, string> = {
+                        'Financeiro': 'financeiro',
+                        'Suporte Técnico': 'suporte_tecnico',
+                        'Comercial': 'comercial'
+                      };
+                      const val = valueMap[categoriaSugerida] || 'outros';
+                      onUpdate({ categoria: val });
+                    }}
+                  >
+                    Aplicar
+                  </Button>
+                )}
+              </div>
+            </PropertyRow>
+          )}
+        </Section>
+      )}
 
       {/* Seção 2: SLA & Prazos */}
       <Section 
@@ -294,7 +432,7 @@ export const TicketProperties = ({
 
         <PropertyRow label="Tags / Etiquetas" icon={TagIcon}>
            <TicketTags 
-              tags={ticket.tags || []}
+              tags={(ticket.tags || []).filter(tag => !tag.startsWith('ia-'))}
               onAdd={(tag) => onUpdateTags?.([...(ticket.tags || []), tag])}
               onRemove={(tag) => onUpdateTags?.((ticket.tags || []).filter(t => t !== tag))}
               readOnly={!canManage}

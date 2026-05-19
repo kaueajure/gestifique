@@ -10,8 +10,11 @@ import {
   Paperclip, 
   X,
   Zap,
-  EyeOff
+  EyeOff,
+  Bot,
+  Sparkles
 } from 'lucide-react';
+import { api } from '../../../lib/api';
 import { cn } from '../../../lib/utils';
 import { Button } from '../../ui/Button';
 import { FileUpload } from '../../ui/FileUpload';
@@ -42,6 +45,24 @@ export const TicketReplyBox = ({
   const [isInternal, setIsInternal] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [showMacros, setShowMacros] = useState(false);
+  const [suggestedReply, setSuggestedReply] = useState<string | null>(null);
+  const [loadingSuggestion, setLoadingSuggestion] = useState(false);
+
+  const handleSuggestReply = async () => {
+    setLoadingSuggestion(true);
+    setSuggestedReply(null);
+    try {
+      const res = await api.post<{ suggestion: string }>(`/ai/tickets/${ticket.id}/suggest-reply`, {
+        agentDraft: newMessage.trim() || undefined
+      });
+      setSuggestedReply(res.suggestion);
+    } catch (err: any) {
+      console.error('Erro ao gerar sugestão de resposta:', err);
+      alert(err.message || 'Erro ao gerar sugestão de resposta com IA.');
+    } finally {
+      setLoadingSuggestion(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,6 +122,20 @@ export const TicketReplyBox = ({
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={loadingSuggestion}
+              onClick={handleSuggestReply}
+              className="flex items-center gap-1.5 h-7 px-2.5 rounded-md border text-xs font-semibold transition-all shadow-sm bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50"
+            >
+              {loadingSuggestion ? (
+                <Loader2 size={12} className="animate-spin text-indigo-600" />
+              ) : (
+                <Bot size={12} className="text-indigo-600" />
+              )}
+              Sugerir Resposta
+            </button>
+
             <div className="relative">
               <button
                 type="button"
@@ -184,6 +219,39 @@ export const TicketReplyBox = ({
              </AnimatePresence>
           </div>
         </div>
+
+        {/* Suggested Response Panel */}
+        {suggestedReply && (
+          <div className="mx-3 my-2.5 p-3 px-3.5 bg-indigo-50 border border-indigo-100 rounded-lg relative shadow-inner">
+            <div className="flex justify-between items-center mb-1.5">
+               <span className="text-[10px] font-bold text-indigo-700 flex items-center gap-1.5 uppercase tracking-wider">
+                 <Sparkles size={11} className="text-indigo-600 animate-pulse" /> Resposta Sugerida por IA
+               </span>
+               <button 
+                 type="button"
+                 onClick={() => setSuggestedReply(null)}
+                 className="text-slate-400 hover:text-slate-600 text-xs font-semibold hover:bg-slate-200/50 p-1 rounded transition-colors"
+               >
+                 <X size={12} />
+               </button>
+            </div>
+            <p className="text-xs text-slate-700 italic leading-relaxed whitespace-pre-wrap mb-2.5 bg-white/80 p-2 border border-indigo-100/40 rounded-md font-sans">
+               {suggestedReply}
+            </p>
+            <div className="flex gap-2 justify-end">
+               <button
+                 type="button"
+                 onClick={() => {
+                   setNewMessage(suggestedReply);
+                   setSuggestedReply(null);
+                 }}
+                 className="px-3 py-1.5 text-[10px] font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded transition-all shadow-sm"
+               >
+                 Usar Resposta
+               </button>
+            </div>
+          </div>
+        )}
 
         {/* Footer / Actions */}
         <div className="flex flex-wrap items-center justify-between p-2 bg-slate-50/50 border-t border-slate-100 gap-2">
