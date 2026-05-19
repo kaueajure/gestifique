@@ -18,6 +18,7 @@ import { SatisfactionPage } from "./components/public/SatisfactionPage";
 import { LoginPage } from "./components/auth/LoginPage";
 import { ForgotPasswordPage } from "./components/auth/ForgotPasswordPage";
 import { ResetPasswordPage } from "./components/auth/ResetPasswordPage";
+import { PortalAccessPage } from "./components/portal/PortalAccessPage";
 import { hasPermission } from "./lib/permissions";
 import { User } from "./types";
 import { api } from "./lib/api";
@@ -32,6 +33,7 @@ type ViewState =
   | "forgot-password"
   | "reset-password"
   | "dashboard"
+  | "portal-access"
   | "portal";
 type ActiveTab =
   | "dashboard"
@@ -49,6 +51,7 @@ export default function App() {
     if (pathname === '/login') return 'login';
     if (pathname === '/esqueci-senha') return 'forgot-password';
     if (pathname === '/reset-password') return 'reset-password';
+    if (pathname === '/portal') return 'portal-access';
     return 'landing';
   };
 
@@ -240,6 +243,38 @@ export default function App() {
     }
   };
 
+  const handlePortalAuthenticated = (data: {
+    token: string;
+    customer: {
+      email: string;
+      empresa_id: number;
+      nome?: string;
+      empresa_nome?: string;
+    };
+  }) => {
+    localStorage.setItem("portal_token", data.token);
+    
+    const portalUser: User = {
+      id: 0,
+      nome: data.customer.nome || data.customer.email,
+      email: data.customer.email,
+      empresa_id: data.customer.empresa_id,
+      perfil: "cliente",
+      administrador: false,
+      desenvolvedor: false,
+      ativo: true,
+      cargo: '',
+      telefone: undefined,
+      foto: undefined,
+      ultimo_login: undefined,
+      created_at: new Date().toISOString()
+    };
+    
+    setCurrentUser(portalUser);
+    setView("portal");
+    window.history.pushState({}, "", "/portal");
+  };
+
   if (isBooting) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -272,6 +307,12 @@ export default function App() {
         onBackToSite={() => {
           setView("landing");
           window.history.pushState({}, '', '/');
+        }}
+        onOpenCustomerPortal={() => {
+          setAuthError(null);
+          setAuthSuccess(null);
+          setView("portal-access");
+          window.history.pushState({}, "", "/portal");
         }}
       />
     );
@@ -315,6 +356,20 @@ export default function App() {
         onBackToSite={() => {
           setView("landing");
           window.history.pushState({}, '', '/');
+        }}
+      />
+    );
+  }
+
+  if (view === "portal-access") {
+    return (
+      <PortalAccessPage
+        onAuthenticated={handlePortalAuthenticated}
+        onBackToLogin={() => {
+          setView("login");
+          setAuthError(null);
+          setAuthSuccess(null);
+          window.history.pushState({}, "", "/login");
         }}
       />
     );

@@ -13,9 +13,10 @@ interface LoginPageProps {
   onForgotPassword: () => void;
   onBackToSite: () => void;
   loading: boolean;
+  onOpenCustomerPortal?: () => void;
 }
 
-export const LoginPage = ({ onSubmit, authError, onForgotPassword, onBackToSite, loading }: LoginPageProps) => {
+export const LoginPage = ({ onSubmit, authError, onForgotPassword, onBackToSite, loading, onOpenCustomerPortal }: LoginPageProps) => {
   const [showPassword, setShowPassword] = useState(false);
 
   return (
@@ -98,6 +99,19 @@ export const LoginPage = ({ onSubmit, authError, onForgotPassword, onBackToSite,
       </Card>
 
       <div className="mt-8 text-center space-y-4">
+        {onOpenCustomerPortal && (
+          <div className="pb-4 border-b border-slate-200">
+            <button
+              type="button"
+              onClick={onOpenCustomerPortal}
+              className="text-[14px] font-bold text-blue-600 hover:text-blue-700 transition-colors w-full h-11 rounded-lg bg-blue-50 hover:bg-blue-100/80 outline-none"
+              disabled={loading}
+            >
+              Acessar portal do cliente
+            </button>
+          </div>
+        )}
+
         <button
           onClick={onBackToSite}
           className="text-[13px] font-semibold text-slate-500 hover:text-slate-800 transition-colors outline-none inline-flex items-center gap-1.5"
