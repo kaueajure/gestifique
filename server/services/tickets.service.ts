@@ -6,6 +6,7 @@ import { recordTicketEvent } from './ticket-events.service.js';
 import ticketMessagesService from './ticket-messages.service.js';
 import slaService from './sla.service.js';
 import { AIService } from './ai.service.js';
+import { getTicketScope } from '../utils/ticket-permissions.js';
 
 export function toPositiveInt(value: unknown): number | undefined {
   if (value === undefined || value === null || value === '') return undefined;
@@ -169,12 +170,30 @@ class TicketsService {
       // Enforce ticket view scopes
       const [userRows]: any = await pool.query('SELECT * FROM usuarios WHERE id = ?', [usuario_id]);
       const userObj = userRows[0];
-      const permissions = userObj ? await permissionsService.getEffectivePermissions(userObj) : [];
-      const hasVerTodos = permissions.includes('*') || permissions.includes('tickets.ver_todos');
-      if (!hasVerTodos) {
-        baseWhere += ' AND (t.responsavel_id = ? OR t.usuario_id = ?)';
-        summaryWhere += ' AND (t.responsavel_id = ? OR t.usuario_id = ?)';
-        params.push(usuario_id, usuario_id);
+      const scope = userObj ? await getTicketScope(userObj) : { canViewAll: false, canViewOwn: false, canViewUnassigned: false };
+      
+      if (!scope.canViewAll) {
+        const scopeConditions: string[] = [];
+        const scopeParams: any[] = [];
+
+        if (scope.canViewOwn) {
+          scopeConditions.push('(t.responsavel_id = ? OR t.usuario_id = ?)');
+          scopeParams.push(usuario_id, usuario_id);
+        }
+
+        if (scope.canViewUnassigned) {
+          scopeConditions.push('t.responsavel_id IS NULL');
+        }
+
+        if (scopeConditions.length > 0) {
+          const conditionSQL = ` AND (${scopeConditions.join(' OR ')})`;
+          baseWhere += conditionSQL;
+          summaryWhere += conditionSQL;
+          params.push(...scopeParams);
+        } else {
+          baseWhere += ' AND 1=0';
+          summaryWhere += ' AND 1=0';
+        }
       }
     } else {
       const empresaIdFilter = toPositiveInt(filters.empresa_id_filter);
@@ -446,6 +465,35 @@ class TicketsService {
       baseWhere += ' AND t.empresa_id = ?';
       summaryWhere += ' AND t.empresa_id = ?';
       params.push(empresa_id);
+
+      // Enforce ticket view scopes
+      const [userRows]: any = await pool.query('SELECT * FROM usuarios WHERE id = ?', [usuario_id]);
+      const userObj = userRows[0];
+      const scope = userObj ? await getTicketScope(userObj) : { canViewAll: false, canViewOwn: false, canViewUnassigned: false };
+      
+      if (!scope.canViewAll) {
+        const scopeConditions: string[] = [];
+        const scopeParams: any[] = [];
+
+        if (scope.canViewOwn) {
+          scopeConditions.push('(t.responsavel_id = ? OR t.usuario_id = ?)');
+          scopeParams.push(usuario_id, usuario_id);
+        }
+
+        if (scope.canViewUnassigned) {
+          scopeConditions.push('t.responsavel_id IS NULL');
+        }
+
+        if (scopeConditions.length > 0) {
+          const conditionSQL = ` AND (${scopeConditions.join(' OR ')})`;
+          baseWhere += conditionSQL;
+          summaryWhere += conditionSQL;
+          params.push(...scopeParams);
+        } else {
+          baseWhere += ' AND 1=0';
+          summaryWhere += ' AND 1=0';
+        }
+      }
     } else {
       const empresaIdFilter = toPositiveInt(filters.empresa_id_filter);
       if (empresaIdFilter) {
@@ -850,19 +898,36 @@ class TicketsService {
     const ticket = await this.getById(id);
     if (!ticket) return null;
 
-    if (!currentUser.desenvolvedor) {
+    const isSuperUser = 
+      currentUser.desenvolvedor === 1 || 
+      currentUser.desenvolvedor === true || 
+      currentUser.perfil === 'desenvolvedor' ||
+      currentUser.administrador === 1 || 
+      currentUser.administrador === true || 
+      currentUser.perfil === 'administrador';
+
+    if (!isSuperUser) {
       if (ticket.empresa_id !== currentUser.empresa_id) return { error: 'forbidden' };
 
       // Enforce ticket view scopes
-      let permissions = currentUser.permissions;
-      if (!permissions) {
-        permissions = await permissionsService.getEffectivePermissions(currentUser);
-      }
-      const hasVerTodos = permissions.includes('*') || permissions.includes('tickets.ver_todos');
-      if (!hasVerTodos) {
-        const isAuthor = ticket.usuario_id === currentUser.id;
-        const isAssignee = ticket.responsavel_id === currentUser.id;
-        if (!isAuthor && !isAssignee) {
+      const scope = await getTicketScope(currentUser);
+      if (!scope.canViewAll) {
+        let isAllowedAndOwned = false;
+        if (scope.canViewOwn) {
+          const isAuthor = Number(ticket.usuario_id) === Number(currentUser.id);
+          const isAssignee = Number(ticket.responsavel_id) === Number(currentUser.id);
+          if (isAuthor || isAssignee) {
+            isAllowedAndOwned = true;
+          }
+        }
+        let isAllowedAndUnassigned = false;
+        if (scope.canViewUnassigned) {
+          if (ticket.responsavel_id === null || ticket.responsavel_id === undefined) {
+             isAllowedAndUnassigned = true;
+          }
+        }
+
+        if (!isAllowedAndOwned && !isAllowedAndUnassigned) {
           return { error: 'forbidden' };
         }
       }

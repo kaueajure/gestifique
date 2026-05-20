@@ -250,6 +250,21 @@ router.post('/users/:id/bulk', requirePermission('usuarios.gerenciar_permissoes'
       }
     }
 
+    // Validate permission_keys exist in permissions_catalog
+    const [validRows]: any = await pool.query(
+      'SELECT permission_key FROM permissions_catalog WHERE permission_key IN (?) AND ativo = 1',
+      [permission_keys]
+    );
+    const validKeys = validRows.map((r: any) => r.permission_key);
+    const invalidKeys = permission_keys.filter(k => !validKeys.includes(k));
+    if (invalidKeys.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Algumas permissões fornecidas não existem no catálogo ou estão inativas.', 
+        data: { invalid_keys: invalidKeys } 
+      });
+    }
+
     await permissionsService.setUserPermissionOverridesBulk({
       usuarioId: targetUserId,
       permissionKeys: permission_keys,
@@ -304,6 +319,21 @@ router.post('/users/:id/bulk-reset', requirePermission('usuarios.gerenciar_permi
 
     if (caller.perfil === 'gestor' && (targetUser.desenvolvedor || targetUser.administrador || targetUser.perfil === 'administrador')) {
       return res.status(403).json({ success: false, message: 'Gestores não podem alterar permissões de administradores ou desenvolvedores.' });
+    }
+
+    // Validate permission_keys exist in permissions_catalog
+    const [validRowsReset]: any = await pool.query(
+      'SELECT permission_key FROM permissions_catalog WHERE permission_key IN (?) AND ativo = 1',
+      [permission_keys]
+    );
+    const validKeysReset = validRowsReset.map((r: any) => r.permission_key);
+    const invalidKeysReset = permission_keys.filter(k => !validKeysReset.includes(k));
+    if (invalidKeysReset.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Algumas permissões fornecidas não existem no catálogo ou estão inativas para serem redefinidas.', 
+        data: { invalid_keys: invalidKeysReset } 
+      });
     }
 
     await permissionsService.removeUserPermissionOverridesBulk({

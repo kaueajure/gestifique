@@ -374,7 +374,7 @@ router.patch('/:id/reopen', async (req: AuthRequest, res) => {
   }
 });
 
-router.get('/:id', async (req: AuthRequest, res) => {
+router.get('/:id', requirePermission('tickets.ver_detalhes'), async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
@@ -642,12 +642,15 @@ router.get('/:id/messages', async (req: AuthRequest, res) => {
     if (!result) return sendError(res, 'Ticket não encontrado', 404);
     if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
-    const isAgent = isAgentUser(currentUser);
-    const messages = await ticketsService.getMessages(id, isAgent);
+    const canView = await permissionsService.hasPermission(currentUser, 'ticket_mensagens.visualizar');
+    if (!canView) return sendError(res, 'Acesso proibido: Sem permissão para visualizar mensagens (ticket_mensagens.visualizar).', 403);
+
+    const hasVerInternos = await permissionsService.hasPermission(currentUser, 'ticket_mensagens.ver_internos');
+    const messages = await ticketsService.getMessages(id, hasVerInternos);
     
     // Fetch attachments for each message
     const messagesWithAttachments = await Promise.all((messages as any[]).map(async (msg: any) => {
-      const attachments = await attachmentsService.getByMessage(msg.id, isAgent);
+      const attachments = await attachmentsService.getByMessage(msg.id, hasVerInternos);
       return { ...msg, attachments };
     }));
 
@@ -669,9 +672,12 @@ router.get('/:id/timeline', async (req: AuthRequest, res) => {
     if (!result) return sendError(res, 'Ticket não encontrado', 404);
     if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
-    const isAgent = isAgentUser(currentUser);
+    const canView = await permissionsService.hasPermission(currentUser, 'ticket_mensagens.visualizar');
+    if (!canView) return sendError(res, 'Acesso proibido: Sem permissão para visualizar timeline (ticket_mensagens.visualizar).', 403);
+
+    const hasVerInternos = await permissionsService.hasPermission(currentUser, 'ticket_mensagens.ver_internos');
     
-    const timeline = await ticketsService.getTimeline(id, isAgent);
+    const timeline = await ticketsService.getTimeline(id, hasVerInternos);
     if (!timeline) return sendError(res, 'Ticket não encontrado', 404);
 
     sendSuccess(res, timeline);

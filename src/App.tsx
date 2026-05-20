@@ -478,7 +478,7 @@ export default function App() {
     };
 
     return (
-      <div className="min-h-screen bg-[#FDFDFF] flex">
+      <div className="relative h-screen w-screen overflow-hidden bg-[#FDFDFF]">
         <Sidebar
           currentUser={currentUser}
           activeTab={activeTab}
@@ -492,10 +492,10 @@ export default function App() {
           onNavigate={handleNotificationNavigate}
         />
 
-        <div className="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">
+        <div className="relative z-0 flex h-full w-full min-w-0 flex-col overflow-hidden">
           <Topbar
             title={getPageTitle()}
-            onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            onMenuClick={() => setIsSidebarOpen(true)}
             showSearch={!(activeTab === "tickets" && selectedTicketId)}
           />
 
@@ -591,9 +591,12 @@ export default function App() {
                       <AccessDenied />
                     ))}
 
-                  {activeTab === "ai" && (
-                     <AITesterPage currentUser={currentUser} />
-                  )}
+                  {activeTab === "ai" &&
+                    (hasPermission(currentUser, "ia.visualizar") ? (
+                      <AITesterPage currentUser={currentUser} />
+                    ) : (
+                      <AccessDenied />
+                    ))}
 
                   {activeTab === "profile" && (
                     <ProfilePage

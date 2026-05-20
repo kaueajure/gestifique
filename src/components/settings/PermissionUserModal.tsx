@@ -648,11 +648,60 @@ export const PermissionUserModal = ({ userId, isOpen, onClose, currentUser }: Pe
                         {/* List Groups in module */}
                         {Object.keys(groupedAndFiltered[modulo]).map(grupo => {
                           const items = groupedAndFiltered[modulo][grupo];
+                          const groupKeys = items.map(i => i.key);
+                          const actionPrefix = `${modulo}-${grupo}`;
+
                           return (
                             <div key={grupo} className="space-y-2.5">
-                              <div className="flex items-center gap-2 pl-1 mb-1">
-                                <span className="w-1 h-3.5 bg-indigo-505 bg-indigo-500 rounded" />
-                                <h5 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{grupo}</h5>
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pl-1 mb-1.5 pb-1 border-b border-dashed border-slate-100">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-1 h-3.5 bg-indigo-500 rounded" />
+                                  <h5 className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">{grupo}</h5>
+                                </div>
+                                {matrix && !matrix.user.desenvolvedor && !matrix.user.administrador && (
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mr-1 px-1">Grupo:</span>
+                                    
+                                    <button 
+                                      onClick={() => handleBulkAllowModule(actionPrefix, groupKeys)}
+                                      disabled={bulkActionLoading !== null}
+                                      className="h-5.5 px-1.5 text-[9px] font-bold rounded-md bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-0.5 disabled:opacity-50"
+                                    >
+                                      {bulkActionLoading === actionPrefix + '-allow' ? (
+                                        <Loader2 size={8} className="animate-spin" />
+                                      ) : (
+                                        <CheckCircle2 size={9} />
+                                      )}
+                                      Aplicar todos
+                                    </button>
+
+                                    <button 
+                                      onClick={() => handleBulkDenyModule(actionPrefix, groupKeys)}
+                                      disabled={bulkActionLoading !== null}
+                                      className="h-5.5 px-1.5 text-[9px] font-bold rounded-md bg-red-50 text-red-700 border border-red-100 hover:bg-red-600 hover:text-white transition-all flex items-center gap-0.5 disabled:opacity-50"
+                                    >
+                                      {bulkActionLoading === actionPrefix + '-deny' ? (
+                                        <Loader2 size={8} className="animate-spin" />
+                                      ) : (
+                                        <XCircle size={9} />
+                                      )}
+                                      Remover todos
+                                    </button>
+
+                                    <button 
+                                      onClick={() => handleBulkResetModule(actionPrefix, groupKeys)}
+                                      disabled={bulkActionLoading !== null}
+                                      className="h-5.5 px-1.5 text-[9px] font-bold rounded-md bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-700 hover:text-white transition-all flex items-center gap-0.5 disabled:opacity-50"
+                                    >
+                                      {bulkActionLoading === actionPrefix + '-reset' ? (
+                                        <Loader2 size={8} className="animate-spin" />
+                                      ) : (
+                                        <RotateCcw size={9} />
+                                      )}
+                                      Restaurar padrão
+                                    </button>
+                                  </div>
+                                )}
                               </div>
                               
                               <div className="grid gap-2.5">

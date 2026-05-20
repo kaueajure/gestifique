@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   LayoutDashboard,
   Ticket,
@@ -38,6 +38,19 @@ export const Sidebar = ({
   onLogout,
   onNavigate,
 }: SidebarProps) => {
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   const sections = [
     {
       title: "Operação",
@@ -87,7 +100,7 @@ export const Sidebar = ({
           id: "ai",
           icon: Bot,
           label: "Assistente IA",
-          access: true, // Everyone can see it, or restrict to dev
+          access: hasPermission(currentUser, "ia.visualizar"),
         },
         {
           id: "settings",
@@ -113,23 +126,27 @@ export const Sidebar = ({
 
   const handleNav = (id: string) => {
     setActiveTab(id);
-    if (window.innerWidth < 1024) onClose();
+    onClose();
   };
 
   return (
     <>
-      {/* Mobile Overlay */}
+      {/* Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-40 lg:hidden"
+          className="fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-[1px] transition-opacity duration-300"
           onClick={onClose}
+          aria-hidden="true"
         />
       )}
 
       <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menu principal"
         className={cn(
-          "fixed lg:static inset-y-0 left-0 w-52 xl:w-56 bg-white border-r border-slate-200/60 z-50 flex flex-col transition-transform duration-300 ease-in-out",
-          isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-[82vw] max-w-[320px] sm:w-80 lg:w-72 xl:w-80 flex-col bg-white border-r border-slate-200/70 shadow-2xl shadow-slate-900/20 transition-transform duration-300 ease-out will-change-transform",
+          isOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
         <div className="h-12 flex items-center justify-between px-4 border-b border-slate-100 shrink-0">
@@ -141,7 +158,8 @@ export const Sidebar = ({
           </div>
           <button
             onClick={onClose}
-            className="lg:hidden p-1.5 text-slate-500 hover:bg-slate-100 rounded-md"
+            aria-label="Fechar menu"
+            className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-md"
           >
             <X size={16} />
           </button>

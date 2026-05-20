@@ -17,7 +17,7 @@ export const Topbar = ({
       <div className="flex items-center gap-2 sm:gap-4 overflow-hidden">
         <button
           onClick={onMenuClick}
-          className="lg:hidden p-1.5 text-slate-500 hover:bg-slate-50 rounded-md transition-colors shrink-0"
+          className="p-1.5 text-slate-500 hover:bg-slate-50 rounded-md transition-colors shrink-0"
         >
           <Menu size={16} />
         </button>
