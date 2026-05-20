@@ -50,14 +50,16 @@ type ActiveTab =
 
 export default function App() {
   const getViewFromPath = (pathname: string): ViewState => {
-    if (pathname === '/login') return 'login';
-    if (pathname === '/esqueci-senha') return 'forgot-password';
-    if (pathname === '/reset-password') return 'reset-password';
-    if (pathname === '/portal') return 'portal-access';
-    return 'landing';
+    if (pathname === "/login") return "login";
+    if (pathname === "/esqueci-senha") return "forgot-password";
+    if (pathname === "/reset-password") return "reset-password";
+    if (pathname === "/portal") return "portal-access";
+    return "landing";
   };
 
-  const [view, setView] = useState<ViewState>(() => getViewFromPath(window.location.pathname));
+  const [view, setView] = useState<ViewState>(() =>
+    getViewFromPath(window.location.pathname),
+  );
   const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard");
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -100,7 +102,7 @@ export default function App() {
         telefone: undefined,
         foto: undefined,
         ultimo_login: undefined,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       };
 
       setCurrentUser(portalUser);
@@ -117,28 +119,28 @@ export default function App() {
       // Sync browser history with the app state for public routes
       const path = window.location.pathname;
       const parsedView = getViewFromPath(path);
-      
+
       // If user is logged in, do not kick them to landing just because of popstate
       // unless specifically intended. We'll handle basic public state syncing here.
       setView((currentView) => {
         // If they are on dashboard/portal, don't break their session on back button
         // They would explicitly logout
-        if (currentView === 'dashboard' || currentView === 'portal') {
+        if (currentView === "dashboard" || currentView === "portal") {
           return currentView;
         }
         return parsedView;
       });
     };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
   useEffect(() => {
     // Check session on load
     const checkAuth = async () => {
       const pathname = window.location.pathname;
-      
-      if (pathname === '/portal') {
+
+      if (pathname === "/portal") {
         const restored = await restorePortalSession();
         if (restored) {
           setIsBooting(false);
@@ -177,7 +179,7 @@ export default function App() {
 
       setCurrentUser(null);
       setView("login");
-      window.history.pushState({}, '', '/login');
+      window.history.pushState({}, "", "/login");
       setAuthError("Sessão expirada. Faça login novamente.");
     };
 
@@ -240,7 +242,9 @@ export default function App() {
       }
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "Não foi possível autenticar. Verifique seus dados e tente novamente.";
+        err instanceof Error
+          ? err.message
+          : "Não foi possível autenticar. Verifique seus dados e tente novamente.";
       setAuthError(message);
     } finally {
       setAuthLoading(false);
@@ -254,7 +258,7 @@ export default function App() {
     localStorage.removeItem("portal_token");
     setCurrentUser(null);
     setView("landing");
-    window.history.pushState({}, '', '/');
+    window.history.pushState({}, "", "/");
   };
 
   const handleForgotPassword = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -274,18 +278,24 @@ export default function App() {
       setResetEmail(email);
       setTimeout(() => {
         setView("reset-password");
-        window.history.pushState({}, '', '/reset-password');
+        window.history.pushState({}, "", "/reset-password");
       }, 2000);
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "Não foi possível enviar o código agora. Tente novamente em alguns instantes.";
+        err instanceof Error
+          ? err.message
+          : "Não foi possível enviar o código agora. Tente novamente em alguns instantes.";
       setAuthError(message);
     } finally {
       setAuthLoading(false);
     }
   };
 
-  const handleResetPassword = async (email: string, token: string, newPassword: string) => {
+  const handleResetPassword = async (
+    email: string,
+    token: string,
+    newPassword: string,
+  ) => {
     setAuthError(null);
     setAuthSuccess(null);
     setAuthLoading(true);
@@ -299,12 +309,14 @@ export default function App() {
       setAuthSuccess(data.message);
       setTimeout(() => {
         setView("login");
-        window.history.pushState({}, '', '/login');
+        window.history.pushState({}, "", "/login");
         setAuthSuccess(null);
       }, 2000);
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "Código ou senha inválidos. Confira as informações e tente novamente.";
+        err instanceof Error
+          ? err.message
+          : "Código ou senha inválidos. Confira as informações e tente novamente.";
       setAuthError(message);
     } finally {
       setAuthLoading(false);
@@ -321,7 +333,7 @@ export default function App() {
     };
   }) => {
     localStorage.setItem("portal_token", data.token);
-    
+
     const portalUser: User = {
       id: 0,
       nome: data.customer.nome || data.customer.email,
@@ -331,13 +343,13 @@ export default function App() {
       administrador: false,
       desenvolvedor: false,
       ativo: true,
-      cargo: '',
+      cargo: "",
       telefone: undefined,
       foto: undefined,
       ultimo_login: undefined,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
     };
-    
+
     setCurrentUser(portalUser);
     setView("portal");
     window.history.pushState({}, "", "/portal");
@@ -354,10 +366,14 @@ export default function App() {
   // --- RENDERING VIEWS ---
 
   if (view === "landing") {
-    return <PublicSite onLogin={() => {
-      setView("login");
-      window.history.pushState({}, '', '/login');
-    }} />;
+    return (
+      <PublicSite
+        onLogin={() => {
+          setView("login");
+          window.history.pushState({}, "", "/login");
+        }}
+      />
+    );
   }
 
   if (view === "login") {
@@ -370,11 +386,11 @@ export default function App() {
           setView("forgot-password");
           setAuthError(null);
           setAuthSuccess(null);
-          window.history.pushState({}, '', '/esqueci-senha');
+          window.history.pushState({}, "", "/esqueci-senha");
         }}
         onBackToSite={() => {
           setView("landing");
-          window.history.pushState({}, '', '/');
+          window.history.pushState({}, "", "/");
         }}
         onOpenCustomerPortal={() => {
           setAuthError(null);
@@ -397,11 +413,11 @@ export default function App() {
           setView("login");
           setAuthError(null);
           setAuthSuccess(null);
-          window.history.pushState({}, '', '/login');
+          window.history.pushState({}, "", "/login");
         }}
         onBackToSite={() => {
           setView("landing");
-          window.history.pushState({}, '', '/');
+          window.history.pushState({}, "", "/");
         }}
       />
     );
@@ -419,11 +435,11 @@ export default function App() {
           setView("login");
           setAuthError(null);
           setAuthSuccess(null);
-          window.history.pushState({}, '', '/login');
+          window.history.pushState({}, "", "/login");
         }}
         onBackToSite={() => {
           setView("landing");
-          window.history.pushState({}, '', '/');
+          window.history.pushState({}, "", "/");
         }}
       />
     );
@@ -499,20 +515,13 @@ export default function App() {
             showSearch={!(activeTab === "tickets" && selectedTicketId)}
           />
 
-          <main
-            className={cn(
-              "flex-1 custom-scrollbar min-h-0 bg-slate-50",
-              activeTab === "tickets" && selectedTicketId
-                ? "overflow-hidden"
-                : "overflow-y-auto",
-            )}
-          >
+          <main className="flex-1 min-h-0 bg-slate-50 overflow-hidden">
             <div
               className={cn(
-                "w-full transition-all duration-300",
+                "h-full w-full min-h-0 transition-all duration-300",
                 activeTab === "tickets" && selectedTicketId
-                  ? "h-full p-0 sm:p-3 lg:p-4"
-                  : "p-3 sm:p-4 lg:p-6 lg:pb-10",
+                  ? "p-0 sm:p-3 lg:p-4"
+                  : "p-3 sm:p-4 lg:p-5",
               )}
             >
               <AnimatePresence mode="wait">
@@ -522,9 +531,7 @@ export default function App() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
-                  className={cn(
-                    activeTab === "tickets" && selectedTicketId && "h-full",
-                  )}
+                  className="h-full min-h-0"
                 >
                   {activeTab === "dashboard" && (
                     <DashboardPage
