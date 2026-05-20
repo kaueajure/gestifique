@@ -34,15 +34,15 @@ export function PageShell({
       )}
     >
       {(title || subtitle || actions) && (
-        <header className="shrink-0 flex flex-col gap-4 border-b border-slate-200/70 px-5 py-4 sm:flex-row sm:items-start sm:justify-between bg-white">
+        <header className="shrink-0 flex flex-col gap-4 border-b border-slate-200/70 px-4 py-3.5 sm:px-5 sm:py-4 sm:flex-row sm:items-start sm:justify-between bg-white">
           <div>
             {title && (
-              <h1 className="text-xl font-bold tracking-tight text-slate-950">
+              <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-950">
                 {title}
               </h1>
             )}
             {subtitle && (
-              <p className="mt-1 text-sm font-medium text-slate-500">
+              <p className="mt-1 text-sm leading-snug font-medium text-slate-500">
                 {subtitle}
               </p>
             )}
@@ -64,7 +64,7 @@ export function PageShell({
         className={cn(
           "min-h-0",
           fixedHeight && "flex-1 overflow-y-auto custom-scrollbar",
-          flush ? "p-0" : "p-4 sm:p-5",
+          flush ? "p-0" : "p-4",
           "bg-white",
           contentClassName,
         )}
