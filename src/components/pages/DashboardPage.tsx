@@ -12,7 +12,7 @@ import {
   Plus,
   Building,
 } from 'lucide-react';
-import { PageHeader } from '../ui/PageHeader';
+import { PageShell } from '../layout/PageShell';
 import { SectionHeader } from '../ui/SectionHeader';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
@@ -72,13 +72,13 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <PageHeader 
-        title="Dashboard" 
-        description="Visão geral da operação de atendimento" 
-        className="mb-0"
-      />
-
+    <PageShell
+      title="Visão Geral"
+      subtitle="Acompanhe o volume de chamados, atendimentos ativos e produtividade."
+      flush
+      className="bg-transparent border-none shadow-none sm:bg-white sm:border-slate-200/80 sm:shadow-sm"
+    >
+      <div className="space-y-4 sm:space-y-6 w-full max-w-none p-0 sm:p-5">
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 lg:gap-4">
         <MetricCard compact label="Ativos" value={chamadosAtivos} icon={<TicketIcon size={16} />} color="blue" loading={loading} />
         <MetricCard compact label="SLA Vencido" value={slaAtrasados} icon={<AlertCircle size={16} />} color="red" loading={loading} />
@@ -166,6 +166,7 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
           </div>
         </Card>
       </div>
-    </div>
+      </div>
+    </PageShell>
   );
 };

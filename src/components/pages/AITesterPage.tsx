@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Bot, Send, User as UserIcon, Loader2, Sparkles, MessageSquare, Flame, HelpCircle, Zap } from 'lucide-react';
 import { Card } from '../ui/Card';
+import { PageShell } from '../layout/PageShell';
 import { Button } from '../ui/Button';
 import { api } from '../../lib/api';
 import { cn } from '../../lib/utils';
@@ -68,33 +69,19 @@ export const AITesterPage: React.FC<AITesterPageProps> = ({ currentUser }) => {
 
   return (
     <div className="max-w-5xl mx-auto h-[calc(100vh-140px)] flex flex-col pt-4">
-      {/* Page Header */}
-      <div className="flex items-center justify-between mb-5 shrink-0 px-1">
-        <div className="flex items-center gap-3.5">
-          <div className="relative">
-            <div className="w-12 h-12 bg-linear-to-tr from-indigo-500 to-violet-600 text-white rounded-2xl flex items-center justify-center shadow-md shadow-indigo-100">
-              <Bot size={26} className="animate-pulse" />
-            </div>
-            <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full" />
+      <PageShell
+        title="Falar com o Tique"
+        subtitle="O seu assistente inteligente integrado do Gestifique"
+        actions={
+          <div className="hidden sm:flex items-center gap-2 text-slate-400 text-xs px-2 py-1 bg-slate-50 rounded-lg">
+            <HelpCircle size={14} />
+            <span>Equipado com Google Gemini</span>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold text-slate-900 tracking-tight">Falar com o Tique</h2>
-              <span className="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider border border-indigo-150">Copiloto IA</span>
-            </div>
-            <p className="text-xs text-slate-500 font-medium">O seu assistente inteligente integrado do Gestifique</p>
-          </div>
-        </div>
-
-        <div className="hidden sm:flex items-center gap-2 text-slate-400 text-xs">
-          <HelpCircle size={14} />
-          <span>Equipado com Google Gemini</span>
-        </div>
-      </div>
-
-      {/* Main Container */}
-      <Card className="flex-1 flex flex-col md:flex-row overflow-hidden shadow-md border-slate-100/80 rounded-2xl">
-        
+        }
+        className="flex-1 flex flex-col overflow-hidden shadow-md border-slate-100/80 rounded-2xl"
+        contentClassName="flex-1 overflow-hidden p-0 flex flex-col md:flex-row"
+        flush
+      >
         {/* Chat Messages Section */}
         <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/40">
           
@@ -218,7 +205,7 @@ export const AITesterPage: React.FC<AITesterPageProps> = ({ currentUser }) => {
           </div>
         </div>
 
-      </Card>
+      </PageShell>
     </div>
   );
 };

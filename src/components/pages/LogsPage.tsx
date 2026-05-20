@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { Search, Calendar, Loader2, AlertCircle, ChevronLeft, ChevronRight, RefreshCw, FilterX, Building2 } from 'lucide-react';
-import { PageHeader } from '../ui/PageHeader';
+import { PageShell } from '../layout/PageShell';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Select } from '../ui/Select';
@@ -102,9 +102,10 @@ export const LogsPage = () => {
 
   return (
     <div className="space-y-4">
-      <PageHeader 
+      <PageShell 
         title="Logs do Sistema"
-        action={
+        subtitle="Acompanhe todas as atividades e operações realizadas na plataforma."
+        actions={
           <Button 
             variant="outline"
             size="sm"
@@ -114,10 +115,10 @@ export const LogsPage = () => {
             <RefreshCw size={14} className={cn("mr-1.5", loading ? "animate-spin" : "")} /> Sincronizar
           </Button>
         }
-      />
-
-      <Card className="p-3">
-        <form onSubmit={handleSearch} className="space-y-3">
+        flush
+      >
+        <div className="p-3 bg-slate-50 border-b border-slate-100">
+          <form onSubmit={handleSearch} className="space-y-3">
           <div className="flex flex-col md:flex-row gap-2">
             <div className="relative flex-1 group">
                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={14} />
@@ -177,9 +178,9 @@ export const LogsPage = () => {
              </button>
           </div>
         </form>
-      </Card>
+        </div>
 
-      <Card className="overflow-hidden">
+        <div className="overflow-hidden">
         {loading && logs.length === 0 ? (
           <div className="p-12 flex flex-col items-center justify-center space-y-3">
              <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
@@ -293,7 +294,8 @@ export const LogsPage = () => {
             )}
           </>
         )}
-      </Card>
+      </div>
+      </PageShell>
     </div>
   );
 };

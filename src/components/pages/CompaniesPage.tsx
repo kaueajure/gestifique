@@ -22,6 +22,7 @@ import { Modal } from '../ui/Modal';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { MetricCard } from '../ui/MetricCard';
 import { Card } from '../ui/Card';
+import { PageShell } from '../layout/PageShell';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
@@ -200,47 +201,49 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
 
   return (
     <div className="space-y-4">
-      <PageHeader
-        title="Empresas"
-        action={
+      <PageShell
+        title="Empresas Contratantes"
+        subtitle="Gerencie as organizações que utilizam a plataforma e seus limites."
+        actions={
           <Button size="sm" onClick={() => { setSelectedCompany(null); setSaveError(null); setIsModalOpen(true); }}>
             <Plus size={14} className="mr-1.5" /> Nova Empresa
           </Button>
         }
-      />
+        flush
+      >
+        <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+             <MetricCard 
+              label="Total de Empresas"
+              value={stats.total.toString()}
+              icon={<Building2 size={16} />}
+              loading={loading && companies.length === 0}
+              className="border-slate-50 shadow-none bg-white"
+             />
+             <MetricCard 
+              label="Empresas Ativas"
+              value={stats.ativas.toString()}
+              icon={<CheckCircle2 size={16} />}
+              loading={loading && companies.length === 0}
+              className="border-slate-50 shadow-none bg-white"
+             />
+             <MetricCard 
+              label="Empresas Inativas"
+              value={stats.inativas.toString()}
+              icon={<AlertCircle size={16} />}
+              loading={loading && companies.length === 0}
+              className="border-slate-50 shadow-none bg-white"
+             />
+             <MetricCard 
+              label="Total de Usuários"
+              value={stats.usuarios.toString()}
+              icon={<Users size={16} />}
+              loading={loading && companies.length === 0}
+              className="border-slate-50 shadow-none bg-white"
+             />
+          </div>
+        </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-         <MetricCard 
-          label="Total de Empresas"
-          value={stats.total.toString()}
-          icon={<Building2 size={16} />}
-          loading={loading && companies.length === 0}
-          className="border-slate-50"
-         />
-         <MetricCard 
-          label="Empresas Ativas"
-          value={stats.ativas.toString()}
-          icon={<CheckCircle2 size={16} />}
-          loading={loading && companies.length === 0}
-          className="border-slate-50"
-         />
-         <MetricCard 
-          label="Empresas Inativas"
-          value={stats.inativas.toString()}
-          icon={<AlertCircle size={16} />}
-          loading={loading && companies.length === 0}
-          className="border-slate-50"
-         />
-         <MetricCard 
-          label="Total de Usuários"
-          value={stats.usuarios.toString()}
-          icon={<Users size={16} />}
-          loading={loading && companies.length === 0}
-          className="border-slate-50"
-         />
-      </div>
-
-      <Card>
         <div className="p-2 sm:p-3 border-b border-slate-100 flex flex-col sm:flex-row items-center gap-3">
           <div className="relative flex-1 w-full group">
              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={14} />
@@ -387,7 +390,7 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
              </table>
           </div>
         )}
-      </Card>
+      </PageShell>
 
       <Modal
         isOpen={isModalOpen}

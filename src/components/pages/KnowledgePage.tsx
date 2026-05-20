@@ -7,7 +7,7 @@ import { User } from '../../types';
 import MDEditor from '@uiw/react-md-editor';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
-import { PageHeader } from '../ui/PageHeader';
+import { PageShell } from '../layout/PageShell';
 
 interface KnowledgeManagerProps {
   currentUser: User;
@@ -154,18 +154,19 @@ export const KnowledgePage = ({ currentUser }: KnowledgeManagerProps) => {
   });
 
   return (
-    <div className="space-y-4 w-full max-w-none">
-      <PageHeader
-        title="Base de Conhecimento"
-        description="Documentação técnica para equipe e autoatendimento para clientes"
-        action={
-          <Button onClick={openNew} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm">
-            <Plus size={16} className="mr-2" /> Novo Artigo
-          </Button>
-        }
-      />
-
-      {/* Toolbar compacta de filtros */}
+    <>
+    <PageShell
+      title="Base de Conhecimento"
+      subtitle="Documentação técnica para equipe e autoatendimento para clientes"
+      actions={
+        <Button onClick={openNew} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm">
+          <Plus size={16} className="mr-2" /> Novo Artigo
+        </Button>
+      }
+      flush
+    >
+      <div className="space-y-4 w-full max-w-none p-4 sm:p-5 pb-8 bg-slate-50">
+        {/* Toolbar compacta de filtros */}
       <div className="bg-white p-2 sm:p-3 rounded-lg border border-slate-200 shadow-sm flex flex-col lg:flex-row items-center gap-3">
         <div className="relative flex-1 w-full group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={14} />
@@ -297,6 +298,8 @@ export const KnowledgePage = ({ currentUser }: KnowledgeManagerProps) => {
           </div>
         )}
       </div>
+      </div>
+      </PageShell>
 
       {/* Editor Modal */}
       <AnimatePresence>
@@ -431,6 +434,6 @@ export const KnowledgePage = ({ currentUser }: KnowledgeManagerProps) => {
           </div>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 };

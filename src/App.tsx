@@ -478,31 +478,30 @@ export default function App() {
     };
 
     return (
-      <div className="h-screen w-screen overflow-hidden bg-slate-100 p-0 sm:p-2 md:p-3">
-        <div className="relative h-full w-full overflow-hidden bg-[#FDFDFF] sm:rounded-2xl sm:border sm:border-slate-200/80 sm:shadow-sm">
-          <Sidebar
-            currentUser={currentUser}
-            activeTab={activeTab}
-            setActiveTab={(tab) => {
-              setActiveTab(tab as ActiveTab);
-              setSelectedTicketId(null);
-            }}
-            isOpen={isSidebarOpen}
-            onClose={() => setIsSidebarOpen(false)}
-            onLogout={handleLogout}
-            onNavigate={handleNotificationNavigate}
-          />
+      <div className="relative h-screen w-screen overflow-hidden bg-slate-50">
+        <Sidebar
+          currentUser={currentUser}
+          activeTab={activeTab}
+          setActiveTab={(tab) => {
+            setActiveTab(tab as ActiveTab);
+            setSelectedTicketId(null);
+          }}
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          onLogout={handleLogout}
+          onNavigate={handleNotificationNavigate}
+        />
 
-          <div className="relative z-0 flex h-full w-full min-w-0 flex-col overflow-hidden">
-            <Topbar
-              title={getPageTitle()}
-              onMenuClick={() => setIsSidebarOpen(true)}
-              showSearch={!(activeTab === "tickets" && selectedTicketId)}
-            />
+        <div className="relative z-0 flex h-full w-full min-w-0 flex-col overflow-hidden">
+          <Topbar
+            title={getPageTitle()}
+            onMenuClick={() => setIsSidebarOpen(true)}
+            showSearch={!(activeTab === "tickets" && selectedTicketId)}
+          />
 
           <main
             className={cn(
-              "flex-1 custom-scrollbar min-h-0",
+              "flex-1 custom-scrollbar min-h-0 bg-slate-50",
               activeTab === "tickets" && selectedTicketId
                 ? "overflow-hidden"
                 : "overflow-y-auto",
@@ -510,7 +509,7 @@ export default function App() {
           >
             <div
               className={cn(
-                "max-w-[1600px] mx-auto w-full transition-all duration-300",
+                "w-full transition-all duration-300",
                 activeTab === "tickets" && selectedTicketId
                   ? "h-full p-0 sm:p-3 lg:p-4"
                   : "p-3 sm:p-4 lg:p-6 lg:pb-10",
@@ -619,7 +618,6 @@ export default function App() {
           </main>
         </div>
       </div>
-    </div>
     );
   }
 

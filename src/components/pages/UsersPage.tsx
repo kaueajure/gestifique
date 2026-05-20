@@ -20,6 +20,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Card } from '../ui/Card';
+import { PageShell } from '../layout/PageShell';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { cn } from '../../lib/utils';
 import { PermissionUserModal } from '../settings/PermissionUserModal';
@@ -188,16 +189,16 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
 
   return (
     <div className="space-y-4">
-      <PageHeader 
-        title="Usuários"
-        action={
+      <PageShell
+        title="Equipe"
+        subtitle="Gerencie usuários, perfis de acesso e permissões da operação."
+        actions={
           <Button size="sm" onClick={() => { setSelectedUser(null); setPerfil('atendente'); setSaveError(null); setIsModalOpen(true); }}>
             <Plus size={14} className="mr-2" /> Novo Usuário
           </Button>
         }
-      />
-
-      <Card>
+        flush
+      >
         <div className="p-2 sm:p-3 border-b border-slate-100 flex flex-col sm:flex-row items-center gap-3">
           <div className="relative flex-1 w-full group">
              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={14} />
@@ -356,7 +357,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
             </table>
           </div>
         )}
-      </Card>
+      </PageShell>
 
       <Modal
         isOpen={isModalOpen}

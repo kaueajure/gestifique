@@ -8,7 +8,7 @@ import {
   Clock, Inbox, Activity, FileText, Printer
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { PageHeader } from '../ui/PageHeader';
+import { PageShell } from '../layout/PageShell';
 import { SectionHeader } from '../ui/SectionHeader';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -201,12 +201,10 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
   }
 
   return (
-    <div className="space-y-5 pb-6">
-      {/* Header */}
-      <PageHeader
-        title="Relatórios Avançados"
-        className="mb-2 sm:mb-4"
-        action={
+    <PageShell
+      title="Relatórios Avançados"
+      subtitle="Analise métricas, SLAs e desempenho da operação."
+      actions={
           <div className="flex flex-wrap gap-2 lg:justify-end">
             <Button variant="secondary" size="sm" onClick={() => window.print()} className="print:hidden h-8 sm:h-9">
               <Printer size={16} className="mr-2" /> <span className="hidden sm:inline">Imprimir</span>
@@ -227,8 +225,9 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
               <RefreshCw size={16} className={`mr-2 ${loading ? 'animate-spin' : ''}`} /> Atualizar
             </Button>
           </div>
-        }
-      />
+      }
+    >
+      <div className="space-y-5 pb-6">
 
       {/* Filters Container */}
       <Card className="p-3 sm:p-4 bg-slate-50/50 border-slate-200 print:hidden shadow-sm">
@@ -705,7 +704,8 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </PageShell>
   );
 }
 

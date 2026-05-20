@@ -82,6 +82,8 @@ const EMPTY_QUEUES = {
   precisa_resposta: 0
 };
 
+import { PageShell } from '../layout/PageShell';
+
 export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) => {
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
 
@@ -508,8 +510,14 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
   const queueCounts = viewMode === 'list' ? ticketsResponse?.queues : kanbanResponse?.queues;
 
   return (
-    <div className="space-y-3">
-      {/* Toast System */}
+    <PageShell
+      title="Central de Chamados"
+      subtitle="Gerencie tickets, acompanhe prazos e organize a operação de atendimento."
+      flush
+      className="h-full flex flex-col border-none shadow-none bg-transparent sm:bg-white sm:border-slate-200/80 sm:shadow-sm"
+    >
+      <div className="space-y-3 h-full flex flex-col p-0 sm:p-5">
+        {/* Toast System */}
       <div className="fixed bottom-6 right-6 z-[10000] flex flex-col gap-2 pointer-events-none">
         <AnimatePresence>
           {toasts.map(toast => (
@@ -862,6 +870,7 @@ export const TicketsPage = ({ onSelectTicket, currentUser }: TicketsPageProps) =
            fetchData();
         }}
       />
-    </div>
+      </div>
+    </PageShell>
   );
 };

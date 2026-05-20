@@ -54,6 +54,8 @@ type HealthOverviewResponse = {
   };
 };
 
+import { PageShell } from '../layout/PageShell';
+
 export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: SettingsPageProps) => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
@@ -138,70 +140,74 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
 
   return (
     <div className="w-full max-w-none space-y-4">
-      <PageHeader title="Configurações" />
+      <PageShell
+        title="Configurações"
+        subtitle="Ajuste preferências, atendimento, empresa, telas e regras do sistema."
+        flush
+        tabs={
+          <div className="flex flex-wrap gap-1 py-3 bg-white w-fit">
+            <button 
+              onClick={() => setActiveSubTab('general')}
+              className={cn(
+                "h-8 px-3 rounded-md text-xs font-medium transition-all flex items-center gap-1.5",
+                activeSubTab === 'general' ? "bg-slate-100 text-slate-900 shadow-sm border border-slate-200/50" : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+              )}
+            >
+              <Palette size={14} /> Preferências
+            </button>
 
-      <div className="flex flex-wrap gap-1 p-1 bg-white border border-slate-200 rounded-lg w-fit shadow-sm">
-        <button 
-          onClick={() => setActiveSubTab('general')}
-          className={cn(
-            "h-8 px-3 rounded-md text-xs font-medium transition-all flex items-center gap-1.5",
-            activeSubTab === 'general' ? "bg-slate-100 text-slate-900 shadow-sm border border-slate-200/50" : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
-          )}
-        >
-          <Palette size={14} /> Preferências
-        </button>
-
-        {!!(currentUser.administrador || currentUser.desenvolvedor) && (
-          <button 
-            onClick={() => setActiveSubTab('company')}
-            className={cn(
-              "h-8 px-3 rounded-md text-xs font-medium transition-all flex items-center gap-1.5",
-              activeSubTab === 'company' ? "bg-slate-100 text-slate-900 shadow-sm border border-slate-200/50" : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+            {!!(currentUser.administrador || currentUser.desenvolvedor) && (
+              <button 
+                onClick={() => setActiveSubTab('company')}
+                className={cn(
+                  "h-8 px-3 rounded-md text-xs font-medium transition-all flex items-center gap-1.5",
+                  activeSubTab === 'company' ? "bg-slate-100 text-slate-900 shadow-sm border border-slate-200/50" : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+                )}
+              >
+                <Building2 size={14} /> Empresa
+              </button>
             )}
-          >
-            <Building2 size={14} /> Empresa
-          </button>
-        )}
 
-        {!!(currentUser.administrador || currentUser.desenvolvedor) && (
-          <button 
-            onClick={() => setActiveSubTab('tickets')}
-            className={cn(
-              "h-8 px-3 rounded-md text-xs font-medium transition-all flex items-center gap-1.5",
-              activeSubTab === 'tickets' ? "bg-slate-100 text-slate-900 shadow-sm border border-slate-200/50" : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+            {!!(currentUser.administrador || currentUser.desenvolvedor) && (
+              <button 
+                onClick={() => setActiveSubTab('tickets')}
+                className={cn(
+                  "h-8 px-3 rounded-md text-xs font-medium transition-all flex items-center gap-1.5",
+                  activeSubTab === 'tickets' ? "bg-slate-100 text-slate-900 shadow-sm border border-slate-200/50" : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+                )}
+              >
+                <Layout size={14} /> Atendimento
+              </button>
             )}
-          >
-            <Layout size={14} /> Atendimento
-          </button>
-        )}
 
-        {!!currentUser.desenvolvedor && (
-          <button 
-            onClick={() => setActiveSubTab('system')}
-            className={cn(
-              "h-8 px-3 rounded-md text-xs font-medium transition-all flex items-center gap-1.5",
-              activeSubTab === 'system' ? "bg-slate-100 text-slate-900 shadow-sm border border-slate-200/50" : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+            {!!currentUser.desenvolvedor && (
+              <button 
+                onClick={() => setActiveSubTab('system')}
+                className={cn(
+                  "h-8 px-3 rounded-md text-xs font-medium transition-all flex items-center gap-1.5",
+                  activeSubTab === 'system' ? "bg-slate-100 text-slate-900 shadow-sm border border-slate-200/50" : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+                )}
+              >
+                <Cpu size={14} /> Sistema
+              </button>
             )}
-          >
-            <Cpu size={14} /> Sistema
-          </button>
-        )}
-        
-        {!!currentUser.desenvolvedor && (
-          <button 
-            onClick={() => setActiveSubTab('screens')}
-            className={cn(
-              "h-8 px-3 rounded-md text-xs font-medium transition-all flex items-center gap-1.5",
-              activeSubTab === 'screens' ? "bg-slate-100 text-slate-900 shadow-sm border border-slate-200/50" : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+            
+            {!!currentUser.desenvolvedor && (
+              <button 
+                onClick={() => setActiveSubTab('screens')}
+                className={cn(
+                  "h-8 px-3 rounded-md text-xs font-medium transition-all flex items-center gap-1.5",
+                  activeSubTab === 'screens' ? "bg-slate-100 text-slate-900 shadow-sm border border-slate-200/50" : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+                )}
+              >
+                <Globe size={14} /> Telas
+              </button>
             )}
-          >
-            <Globe size={14} /> Telas
-          </button>
-        )}
-      </div>
-
-      <div className="min-h-[400px]">
-        <AnimatePresence mode="wait">
+          </div>
+        }
+      >
+        <div className="min-h-[400px] p-4 sm:p-5 bg-slate-50">
+          <AnimatePresence mode="wait">
           <motion.div
              key={activeSubTab}
              initial={{ opacity: 0, y: 5 }}
@@ -630,7 +636,8 @@ export const SettingsPage = ({ currentUser, onNavigate, onUpdateUser }: Settings
             )}
           </motion.div>
         </AnimatePresence>
-      </div>
+        </div>
+      </PageShell>
     </div>
   );
 };
