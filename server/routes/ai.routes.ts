@@ -2,15 +2,16 @@ import { Router } from 'express';
 import { AIService } from '../services/ai.service.js';
 import ticketsService from '../services/tickets.service.js';
 import { authMiddleware } from '../middlewares/auth.js';
+import { requirePermission } from '../middlewares/permissions.middleware.js';
 import { sendError, sendSuccess } from '../utils/response.js';
 
 const router = Router();
 
-router.get('/status', authMiddleware, (req, res) => {
+router.get('/status', authMiddleware, requirePermission('ia.visualizar'), (req, res) => {
   return sendSuccess(res, { available: AIService.isAvailable() });
 });
 
-router.get('/tickets/:id/summary', authMiddleware, async (req: any, res) => {
+router.get('/tickets/:id/summary', authMiddleware, requirePermission('ia.usar_resumo'), async (req: any, res) => {
   const ticketId = Number(req.params.id);
   const user = req.user;
   
@@ -47,7 +48,7 @@ router.get('/tickets/:id/summary', authMiddleware, async (req: any, res) => {
   }
 });
 
-router.post('/tickets/:id/suggest-reply', authMiddleware, async (req: any, res) => {
+router.post('/tickets/:id/suggest-reply', authMiddleware, requirePermission('ia.sugerir_resposta'), async (req: any, res) => {
   const ticketId = Number(req.params.id);
   const { agentDraft } = req.body;
   const user = req.user;
@@ -84,7 +85,7 @@ router.post('/tickets/:id/suggest-reply', authMiddleware, async (req: any, res) 
   }
 });
 
-router.post('/chat', authMiddleware, async (req: any, res) => {
+router.post('/chat', authMiddleware, requirePermission('ia.chat'), async (req: any, res) => {
   const { prompt, history } = req.body;
 
   if (!prompt) {

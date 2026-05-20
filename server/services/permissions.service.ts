@@ -269,6 +269,114 @@ export const permissionsService = {
     }
   },
 
+  async setUserPermissionOverridesBulk(params: {
+    usuarioId: number;
+    permissionKeys: string[];
+    effect: 'allow' | 'deny';
+    grantedBy: number | null;
+    motivo?: string;
+    ip?: string;
+    userAgent?: string;
+  }): Promise<void> {
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      for (const key of params.permissionKeys) {
+        // Get old override if exists
+        const [oldRows]: any = await connection.query(
+          'SELECT effect FROM user_permission_overrides WHERE usuario_id = ? AND permission_key = ?',
+          [params.usuarioId, key]
+        );
+        const oldEffect = oldRows.length > 0 ? oldRows[0].effect : null;
+
+        // Upsert override
+        await connection.query(`
+          INSERT INTO user_permission_overrides (usuario_id, permission_key, effect, granted_by, motivo)
+          VALUES (?, ?, ?, ?, ?)
+          ON DUPLICATE KEY UPDATE
+            effect = VALUES(effect),
+            granted_by = VALUES(granted_by),
+            motivo = VALUES(motivo)
+        `, [params.usuarioId, key, params.effect, params.grantedBy, params.motivo || null]);
+
+        // Audit Log
+        await connection.query(`
+          INSERT INTO permission_audit_logs (usuario_alvo_id, usuario_executor_id, action, permission_key, old_effect, new_effect, motivo, ip, user_agent)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          params.usuarioId,
+          params.grantedBy,
+          params.effect === 'allow' ? 'grant' : 'deny',
+          key,
+          oldEffect,
+          params.effect,
+          params.motivo || null,
+          params.ip || null,
+          params.userAgent || null
+        ]);
+      }
+
+      await connection.commit();
+      this.invalidateCache(params.usuarioId);
+    } catch (err) {
+      await connection.rollback();
+      throw err;
+    } finally {
+      connection.release();
+    }
+  },
+
+  async removeUserPermissionOverridesBulk(params: {
+    usuarioId: number;
+    permissionKeys: string[];
+    executorId: number | null;
+    ip?: string;
+    userAgent?: string;
+  }): Promise<void> {
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      for (const key of params.permissionKeys) {
+        // Get current override
+        const [oldRows]: any = await connection.query(
+          'SELECT effect FROM user_permission_overrides WHERE usuario_id = ? AND permission_key = ?',
+          [params.usuarioId, key]
+        );
+        if (oldRows.length === 0) continue;
+        const oldEffect = oldRows[0].effect;
+
+        // Delete override
+        await connection.query(
+          'DELETE FROM user_permission_overrides WHERE usuario_id = ? AND permission_key = ?',
+          [params.usuarioId, key]
+        );
+
+        // Audit Log
+        await connection.query(`
+          INSERT INTO permission_audit_logs (usuario_alvo_id, usuario_executor_id, action, permission_key, old_effect, new_effect, ip, user_agent)
+          VALUES (?, ?, 'remove_override', ?, ?, NULL, ?, ?)
+        `, [
+          params.usuarioId,
+          params.executorId,
+          key,
+          oldEffect,
+          params.ip || null,
+          params.userAgent || null
+        ]);
+      }
+
+      await connection.commit();
+      this.invalidateCache(params.usuarioId);
+    } catch (err) {
+      await connection.rollback();
+      throw err;
+    } finally {
+      connection.release();
+    }
+  },
+
   async getUserPermissionMatrix(usuarioId: number): Promise<any> {
     const [userRows]: any = await pool.query(
       'SELECT id, nome, email, perfil, administrador, desenvolvedor, empresa_id FROM usuarios WHERE id = ?',

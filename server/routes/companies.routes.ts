@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import  companiesService from  '../services/companies.service.js';
 import  { authMiddleware, AuthRequest } from  '../middlewares/auth.js';
-import { isDev, isAdmin } from  '../middlewares/permissions.js';
+import { requirePermission } from '../middlewares/permissions.middleware.js';
+import { permissionsService } from '../services/permissions.service.js';
 import  { sendSuccess, sendError } from  '../utils/response.js';
 import  { logSystemAction } from  '../utils/logger.js';
 import { isValidEmail, isValidHexColor } from '../utils/validators.js';
@@ -10,8 +11,8 @@ const router = Router();
 
 router.use(authMiddleware);
 
-// Listar e Criar empresas apenas para Devs
-router.get('/', isDev, async (req: AuthRequest, res) => {
+// Listar e Criar empresas
+router.get('/', requirePermission('empresas.visualizar'), async (req: AuthRequest, res) => {
   try {
     const { search, status } = req.query;
     const companies = await companiesService.list({ 
@@ -25,7 +26,7 @@ router.get('/', isDev, async (req: AuthRequest, res) => {
   }
 });
 
-router.post('/', isDev, async (req: AuthRequest, res) => {
+router.post('/', requirePermission('empresas.criar'), async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
@@ -47,7 +48,7 @@ router.post('/', isDev, async (req: AuthRequest, res) => {
   }
 });
 
-// Update company: Devs can update any, Admins only their own
+// Update company
 router.patch('/:id', async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
@@ -55,10 +56,13 @@ router.patch('/:id', async (req: AuthRequest, res) => {
 
     const id = parseInt(req.params.id);
     
-    if (!currentUser.desenvolvedor) {
-      if (!currentUser.administrador || currentUser.empresa_id !== id) {
-        return sendError(res, 'Acesso negado', 403);
-      }
+    const hasEditPerm = await permissionsService.hasPermission(currentUser, 'empresas.editar');
+    if (!hasEditPerm) {
+      return sendError(res, 'Acesso negado', 403);
+    }
+
+    if (!currentUser.desenvolvedor && currentUser.empresa_id !== id) {
+      return sendError(res, 'Acesso negado: Você só pode atualizar a sua própria empresa.', 403);
     }
 
     const { email, email_suporte, cor_principal } = req.body;
@@ -81,7 +85,7 @@ router.patch('/:id', async (req: AuthRequest, res) => {
 
 import  pool from  '../db/connection.js';
 
-router.patch('/:id/status', isDev, async (req: AuthRequest, res) => {
+router.patch('/:id/status', requirePermission('empresas.desativar'), async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
@@ -97,7 +101,7 @@ router.patch('/:id/status', isDev, async (req: AuthRequest, res) => {
   }
 });
 
-router.delete('/:id', isDev, async (req: AuthRequest, res) => {
+router.delete('/:id', requirePermission('empresas.excluir'), async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
@@ -136,7 +140,9 @@ router.post('/:id/ticket-categories', async (req: AuthRequest, res) => {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
     const id = parseInt(req.params.id);
-    if (!currentUser.desenvolvedor && (!currentUser.administrador || currentUser.empresa_id !== id)) return sendError(res, 'Acesso negado', 403);
+    const hasConfigPerm = await permissionsService.hasPermission(currentUser, 'empresas.gerenciar_configuracoes');
+    if (!hasConfigPerm) return sendError(res, 'Acesso negado', 403);
+    if (!currentUser.desenvolvedor && currentUser.empresa_id !== id) return sendError(res, 'Acesso negado', 403);
     
     const { nome, valor, ativo, ordem } = req.body;
     if (!nome || !valor) return sendError(res, 'Nome e valor são obrigatórios', 400);
@@ -157,7 +163,9 @@ router.patch('/:id/ticket-categories/:catId', async (req: AuthRequest, res) => {
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
     const id = parseInt(req.params.id);
     const catId = parseInt(req.params.catId);
-    if (!currentUser.desenvolvedor && (!currentUser.administrador || currentUser.empresa_id !== id)) return sendError(res, 'Acesso negado', 403);
+    const hasConfigPerm = await permissionsService.hasPermission(currentUser, 'empresas.gerenciar_configuracoes');
+    if (!hasConfigPerm) return sendError(res, 'Acesso negado', 403);
+    if (!currentUser.desenvolvedor && currentUser.empresa_id !== id) return sendError(res, 'Acesso negado', 403);
     
     const { nome, valor, ativo, ordem } = req.body;
     let updates = [];
@@ -183,7 +191,9 @@ router.delete('/:id/ticket-categories/:catId', async (req: AuthRequest, res) => 
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
     const id = parseInt(req.params.id);
     const catId = parseInt(req.params.catId);
-    if (!currentUser.desenvolvedor && (!currentUser.administrador || currentUser.empresa_id !== id)) return sendError(res, 'Acesso negado', 403);
+    const hasConfigPerm = await permissionsService.hasPermission(currentUser, 'empresas.gerenciar_configuracoes');
+    if (!hasConfigPerm) return sendError(res, 'Acesso negado', 403);
+    if (!currentUser.desenvolvedor && currentUser.empresa_id !== id) return sendError(res, 'Acesso negado', 403);
     
     await pool.query('DELETE FROM empresa_ticket_categorias WHERE empresa_id = ? AND id = ?', [id, catId]);
     sendSuccess(res, null);
@@ -213,7 +223,9 @@ router.post('/:id/ticket-services', async (req: AuthRequest, res) => {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
     const id = parseInt(req.params.id);
-    if (!currentUser.desenvolvedor && (!currentUser.administrador || currentUser.empresa_id !== id)) return sendError(res, 'Acesso negado', 403);
+    const hasConfigPerm = await permissionsService.hasPermission(currentUser, 'empresas.gerenciar_configuracoes');
+    if (!hasConfigPerm) return sendError(res, 'Acesso negado', 403);
+    if (!currentUser.desenvolvedor && currentUser.empresa_id !== id) return sendError(res, 'Acesso negado', 403);
     
     const { nome, valor, ativo, ordem } = req.body;
     if (!nome || !valor) return sendError(res, 'Nome e valor são obrigatórios', 400);
@@ -234,7 +246,9 @@ router.patch('/:id/ticket-services/:servId', async (req: AuthRequest, res) => {
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
     const id = parseInt(req.params.id);
     const servId = parseInt(req.params.servId);
-    if (!currentUser.desenvolvedor && (!currentUser.administrador || currentUser.empresa_id !== id)) return sendError(res, 'Acesso negado', 403);
+    const hasConfigPerm = await permissionsService.hasPermission(currentUser, 'empresas.gerenciar_configuracoes');
+    if (!hasConfigPerm) return sendError(res, 'Acesso negado', 403);
+    if (!currentUser.desenvolvedor && currentUser.empresa_id !== id) return sendError(res, 'Acesso negado', 403);
     
     const { nome, valor, ativo, ordem } = req.body;
     let updates = [];
@@ -260,7 +274,9 @@ router.delete('/:id/ticket-services/:servId', async (req: AuthRequest, res) => {
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
     const id = parseInt(req.params.id);
     const servId = parseInt(req.params.servId);
-    if (!currentUser.desenvolvedor && (!currentUser.administrador || currentUser.empresa_id !== id)) return sendError(res, 'Acesso negado', 403);
+    const hasConfigPerm = await permissionsService.hasPermission(currentUser, 'empresas.gerenciar_configuracoes');
+    if (!hasConfigPerm) return sendError(res, 'Acesso negado', 403);
+    if (!currentUser.desenvolvedor && currentUser.empresa_id !== id) return sendError(res, 'Acesso negado', 403);
     
     await pool.query('DELETE FROM empresa_ticket_servicos WHERE empresa_id = ? AND id = ?', [id, servId]);
     sendSuccess(res, null);
@@ -288,7 +304,9 @@ router.post('/:id/sla-policies', async (req: AuthRequest, res) => {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
     const id = parseInt(req.params.id);
-    if (!currentUser.desenvolvedor && (!currentUser.administrador || currentUser.empresa_id !== id)) return sendError(res, 'Acesso negado', 403);
+    const hasConfigPerm = await permissionsService.hasPermission(currentUser, 'empresas.gerenciar_configuracoes');
+    if (!hasConfigPerm) return sendError(res, 'Acesso negado', 403);
+    if (!currentUser.desenvolvedor && currentUser.empresa_id !== id) return sendError(res, 'Acesso negado', 403);
     
     const { nome, prioridade, categoria, servico, tempo_primeira_resposta_minutos, tempo_resolucao_minutos, ativo, ordem } = req.body;
     
@@ -308,7 +326,9 @@ router.patch('/:id/sla-policies/:policyId', async (req: AuthRequest, res) => {
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
     const id = parseInt(req.params.id);
     const policyId = parseInt(req.params.policyId);
-    if (!currentUser.desenvolvedor && (!currentUser.administrador || currentUser.empresa_id !== id)) return sendError(res, 'Acesso negado', 403);
+    const hasConfigPerm = await permissionsService.hasPermission(currentUser, 'empresas.gerenciar_configuracoes');
+    if (!hasConfigPerm) return sendError(res, 'Acesso negado', 403);
+    if (!currentUser.desenvolvedor && currentUser.empresa_id !== id) return sendError(res, 'Acesso negado', 403);
     
     const { nome, prioridade, categoria, servico, tempo_primeira_resposta_minutos, tempo_resolucao_minutos, ativo, ordem } = req.body;
     
@@ -328,7 +348,9 @@ router.delete('/:id/sla-policies/:policyId', async (req: AuthRequest, res) => {
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
     const id = parseInt(req.params.id);
     const policyId = parseInt(req.params.policyId);
-    if (!currentUser.desenvolvedor && (!currentUser.administrador || currentUser.empresa_id !== id)) return sendError(res, 'Acesso negado', 403);
+    const hasConfigPerm = await permissionsService.hasPermission(currentUser, 'empresas.gerenciar_configuracoes');
+    if (!hasConfigPerm) return sendError(res, 'Acesso negado', 403);
+    if (!currentUser.desenvolvedor && currentUser.empresa_id !== id) return sendError(res, 'Acesso negado', 403);
     
     await pool.query('DELETE FROM empresa_sla_politicas WHERE id = ? AND empresa_id = ?', [policyId, id]);
     sendSuccess(res, { success: true });

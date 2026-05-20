@@ -207,6 +207,126 @@ router.post('/users/:id/reset', requirePermission('usuarios.gerenciar_permissoes
   }
 });
 
+// 6b. POST /api/permissions/users/:id/bulk
+router.post('/users/:id/bulk', requirePermission('usuarios.gerenciar_permissoes'), async (req: AuthRequest, res) => {
+  try {
+    const targetUserId = Number(req.params.id);
+    const { permission_keys, effect, motivo } = req.body;
+
+    if (!permission_keys || !Array.isArray(permission_keys) || permission_keys.length === 0 || !['allow', 'deny'].includes(effect)) {
+      return res.status(400).json({ success: false, message: 'Campos chaves ausentes ou inválidos.' });
+    }
+
+    const caller = req.user!;
+
+    // Load target user's details
+    const [targetUserRows]: any = await pool.query(
+      'SELECT id, desenvolvedor, administrador, perfil FROM usuarios WHERE id = ?',
+      [targetUserId]
+    );
+
+    if (targetUserRows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Usuário alvo não encontrado.' });
+    }
+    const targetUser = targetUserRows[0];
+
+    // Hierarchy check: Only developer can edit developer
+    if ((targetUser.desenvolvedor || targetUser.perfil === 'desenvolvedor') && !caller.desenvolvedor) {
+      return res.status(403).json({ success: false, message: 'Apenas desenvolvedores podem alterar permissões de outro desenvolvedor.' });
+    }
+
+    // Gestor cannot edit admin/developer
+    if (caller.perfil === 'gestor' && (targetUser.desenvolvedor || targetUser.administrador || targetUser.perfil === 'administrador')) {
+      return res.status(403).json({ success: false, message: 'Gestores não podem alterar permissões de administradores ou desenvolvedores.' });
+    }
+
+    // Don't let oneself lock themselves out of critical permissions
+    if (targetUserId === caller.id && effect === 'deny') {
+      if (permission_keys.includes('usuarios.gerenciar_permissoes')) {
+        return res.status(400).json({ success: false, message: 'Você não pode revogar seu próprio acesso para gerenciar permissões.' });
+      }
+      if (permission_keys.includes('sistema.developer')) {
+        return res.status(400).json({ success: false, message: 'Você não pode revogar seu próprio acesso de desenvolvedor.' });
+      }
+    }
+
+    await permissionsService.setUserPermissionOverridesBulk({
+      usuarioId: targetUserId,
+      permissionKeys: permission_keys,
+      effect,
+      grantedBy: caller.id,
+      motivo,
+      ip: req.ip,
+      userAgent: req.get('user-agent')
+    });
+
+    return res.json({
+      success: true,
+      message: 'Permissões personalizadas atualizadas com sucesso.',
+      data: {
+        updated: permission_keys.length,
+        skipped: 0
+      }
+    });
+  } catch (err: any) {
+    console.error('Erro ao salvar permissões em massa:', err);
+    return res.status(500).json({ success: false, message: 'Erro ao salvar permissões em massa.' });
+  }
+});
+
+// 6c. POST /api/permissions/users/:id/bulk-reset
+router.post('/users/:id/bulk-reset', requirePermission('usuarios.gerenciar_permissoes'), async (req: AuthRequest, res) => {
+  try {
+    const targetUserId = Number(req.params.id);
+    const { permission_keys } = req.body;
+
+    if (!permission_keys || !Array.isArray(permission_keys) || permission_keys.length === 0) {
+      return res.status(400).json({ success: false, message: 'Campos chaves ausentes ou inválidos.' });
+    }
+
+    const caller = req.user!;
+
+    // Load target user's details
+    const [targetUserRows]: any = await pool.query(
+      'SELECT id, desenvolvedor, administrador, perfil FROM usuarios WHERE id = ?',
+      [targetUserId]
+    );
+
+    if (targetUserRows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Usuário alvo não encontrado.' });
+    }
+    const targetUser = targetUserRows[0];
+
+    // Hierarchy check
+    if ((targetUser.desenvolvedor || targetUser.perfil === 'desenvolvedor') && !caller.desenvolvedor) {
+      return res.status(403).json({ success: false, message: 'Apenas desenvolvedores podem alterar permissões de outro desenvolvedor.' });
+    }
+
+    if (caller.perfil === 'gestor' && (targetUser.desenvolvedor || targetUser.administrador || targetUser.perfil === 'administrador')) {
+      return res.status(403).json({ success: false, message: 'Gestores não podem alterar permissões de administradores ou desenvolvedores.' });
+    }
+
+    await permissionsService.removeUserPermissionOverridesBulk({
+      usuarioId: targetUserId,
+      permissionKeys: permission_keys,
+      executorId: caller.id,
+      ip: req.ip,
+      userAgent: req.get('user-agent')
+    });
+
+    return res.json({
+      success: true,
+      message: 'Permissões restauradas para o padrão.',
+      data: {
+        removed: permission_keys.length
+      }
+    });
+  } catch (err: any) {
+    console.error('Erro ao restaurar permissões em massa:', err);
+    return res.status(500).json({ success: false, message: 'Erro ao restaurar permissões em massa.' });
+  }
+});
+
 // 7. POST /api/permissions/sync
 router.post('/sync', requirePermission('sistema.developer'), async (req: AuthRequest, res) => {
   try {

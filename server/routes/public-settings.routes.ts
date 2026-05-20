@@ -1,7 +1,8 @@
 
 import { Router } from 'express';
 import pool from '../db/connection.js';
-import { authMiddleware, requireDeveloper } from '../middlewares/auth.js';
+import { authMiddleware } from '../middlewares/auth.js';
+import { requirePermission } from '../middlewares/permissions.middleware.js';
 import { sendSuccess, sendError } from '../utils/response.js';
 
 const router = Router();
@@ -156,8 +157,8 @@ router.get('/pricing', async (req, res) => {
   }
 });
 
-// PUT /api/public-settings/pricing - DEV ONLY
-router.put('/pricing', authMiddleware, requireDeveloper, async (req: any, res) => {
+// PUT /api/public-settings/pricing - GR_EDIT
+router.put('/pricing', authMiddleware, requirePermission('telas.precos.editar'), async (req: any, res) => {
   const { header, billing, plans, proposalFactors, faq, cta } = req.body;
 
   if (!header || !header.title || !header.subtitle) {
@@ -236,8 +237,8 @@ router.put('/pricing', authMiddleware, requireDeveloper, async (req: any, res) =
   }
 });
 
-// POST /api/public-settings/pricing/reset - DEV ONLY
-router.post('/pricing/reset', authMiddleware, requireDeveloper, async (req: any, res) => {
+// POST /api/public-settings/pricing/reset - ADMIN/DEV
+router.post('/pricing/reset', authMiddleware, requirePermission('telas.precos.resetar'), async (req: any, res) => {
   try {
     const settingsJson = JSON.stringify(DEFAULT_PRICING_SETTINGS);
 

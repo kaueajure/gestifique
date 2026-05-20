@@ -3,6 +3,7 @@ import  ticketsService, { toPositiveInt } from  '../services/tickets.service.js'
 import  attachmentsService from  '../services/attachments.service.js';
 import { authMiddleware, AuthRequest } from '../middlewares/auth.js';
 import { requirePermission } from '../middlewares/permissions.middleware.js';
+import { permissionsService } from '../services/permissions.service.js';
 import { sendSuccess, sendError } from '../utils/response.js';
 import  { logSystemAction } from  '../utils/logger.js';
 import { ticketUpload } from '../middlewares/upload.js';
@@ -113,7 +114,7 @@ router.get('/', requirePermission('tickets.visualizar'), async (req: AuthRequest
   }
 });
 
-router.get('/kanban', async (req: AuthRequest, res) => {
+router.get('/kanban', requirePermission('tickets.visualizar'), async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
@@ -196,9 +197,9 @@ router.patch('/bulk', async (req: AuthRequest, res) => {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
     
-    const canManage = canManageTickets(currentUser);
-    if (!canManage) {
-      return sendError(res, 'Apenas gestores e administradores podem realizar ações em massa', 403);
+    const hasBulkPerm = await permissionsService.hasPermission(currentUser, 'tickets.acoes_em_massa');
+    if (!hasBulkPerm) {
+      return sendError(res, 'Acesso proibido: Sem permissão para realizar ações em massa (tickets.acoes_em_massa).', 403);
     }
 
     const { ticket_ids, action, value } = req.body;
@@ -325,7 +326,13 @@ router.patch('/:id/resolve', async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
-    if (!isAgentUser(currentUser)) return sendError(res, 'Apenas atendentes podem finalizar chamados', 403);
+
+    const { status } = req.body;
+    const requiredPerm = status === 'fechado' ? 'tickets.fechar' : 'tickets.finalizar';
+    const hasResolvePerm = await permissionsService.hasPermission(currentUser, requiredPerm);
+    if (!hasResolvePerm) {
+      return sendError(res, `Acesso proibido: Você não possui permissão para ${status === 'fechado' ? 'fechar' : 'finalizar'} chamados (${requiredPerm}).`, 403);
+    }
 
     const id = parseInt(req.params.id);
     const ticket: any = await ticketsService.getByIdForUser(id, currentUser);
@@ -346,7 +353,11 @@ router.patch('/:id/reopen', async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
-    if (!isAgentUser(currentUser)) return sendError(res, 'Apenas atendentes podem reabrir chamados', 403);
+
+    const hasReopenPerm = await permissionsService.hasPermission(currentUser, 'tickets.reabrir');
+    if (!hasReopenPerm) {
+      return sendError(res, 'Acesso proibido: Sem permissão para reabrir chamados (tickets.reabrir).', 403);
+    }
 
     const id = parseInt(req.params.id);
     const ticket: any = await ticketsService.getByIdForUser(id, currentUser);
@@ -381,7 +392,7 @@ router.get('/:id', async (req: AuthRequest, res) => {
   }
 });
 
-router.post('/', async (req: AuthRequest, res) => {
+router.post('/', requirePermission('tickets.criar'), async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
@@ -454,9 +465,9 @@ router.patch('/:id/status', async (req: AuthRequest, res) => {
 
     const ticket = result;
 
-    const canManage = isAgentUser(currentUser);
-    if (!canManage) {
-        return sendError(res, 'Permissão negada', 403);
+    const hasStatusPerm = await permissionsService.hasPermission(currentUser, 'tickets.editar_status');
+    if (!hasStatusPerm) {
+        return sendError(res, 'Acesso proibido: Sem permissão para alterar status (tickets.editar_status).', 403);
     }
 
     const updateResult = await ticketsService.updateStatus(id, status, currentUser.id, req);
@@ -494,6 +505,50 @@ router.patch('/:id', async (req: AuthRequest, res) => {
     const canManage = isAgentUser(currentUser);
     if (!canManage && ticket.usuario_id !== currentUser.id) {
         return sendError(res, 'Permissão negada', 403);
+    }
+
+    // Validate edit permissions dynamically
+    if (req.body.prioridade && req.body.prioridade !== ticket.prioridade) {
+       const hasPrioPerm = await permissionsService.hasPermission(currentUser, 'tickets.editar_prioridade');
+       if (!hasPrioPerm) {
+          return sendError(res, 'Acesso proibido: Sem permissão para editar prioridade (tickets.editar_prioridade).', 403);
+       }
+    }
+
+    if (req.body.categoria && req.body.categoria !== ticket.categoria) {
+       const hasCatPerm = await permissionsService.hasPermission(currentUser, 'tickets.editar_categoria');
+       if (!hasCatPerm) {
+          return sendError(res, 'Acesso proibido: Sem permissão para editar categoria (tickets.editar_categoria).', 403);
+       }
+    }
+
+    if (req.body.servico && req.body.servico !== ticket.servico) {
+       const hasServPerm = await permissionsService.hasPermission(currentUser, 'tickets.editar_servico');
+       if (!hasServPerm) {
+          return sendError(res, 'Acesso proibido: Sem permissão para editar serviço (tickets.editar_servico).', 403);
+       }
+    }
+
+    if (req.body.responsavel_id !== undefined && req.body.responsavel_id !== ticket.responsavel_id) {
+       const newRespId = toPositiveInt(req.body.responsavel_id);
+       if (newRespId === null) {
+          const hasRemovePerm = await permissionsService.hasPermission(currentUser, 'tickets.remover_responsavel');
+          if (!hasRemovePerm) {
+             return sendError(res, 'Acesso proibido: Sem permissão para remover responsável (tickets.remover_responsavel).', 403);
+          }
+       } else if (newRespId === currentUser.id) {
+          const hasTakePerm = await permissionsService.hasPermission(currentUser, 'tickets.assumir');
+          if (!hasTakePerm) {
+             return sendError(res, 'Acesso proibido: Sem permissão para assumir chamados (tickets.assumir).', 403);
+          }
+       } else {
+          const isTransfer = ticket.responsavel_id !== null;
+          const requiredPerm = isTransfer ? 'tickets.transferir' : 'tickets.atribuir';
+          const hasAssignPerm = await permissionsService.hasPermission(currentUser, requiredPerm);
+          if (!hasAssignPerm) {
+             return sendError(res, `Acesso proibido: Sem permissão para ${isTransfer ? 'transferir' : 'atribuir'} chamados (${requiredPerm}).`, 403);
+          }
+       }
     }
 
     // Common users can't change status/priority/technician
@@ -635,13 +690,26 @@ router.post('/:id/messages', async (req: AuthRequest, res) => {
     const { mensagem, interno } = req.body;
     
     const isAgent = isAgentUser(currentUser);
+    const isInternalCom = isAgent ? !!interno : false;
+
+    if (isInternalCom) {
+       const hasComPerm = await permissionsService.hasPermission(currentUser, 'ticket_mensagens.comentar_interno');
+       if (!hasComPerm) {
+         return sendError(res, 'Acesso proibido: Sem permissão para enviar comentários internos (ticket_mensagens.comentar_interno).', 403);
+       }
+    } else {
+       const hasRespPerm = await permissionsService.hasPermission(currentUser, 'ticket_mensagens.responder');
+       if (!hasRespPerm) {
+         return sendError(res, 'Acesso proibido: Sem permissão para responder chamados (ticket_mensagens.responder).', 403);
+       }
+    }
     
     // Using TicketMessagesService via ticketsService (already updated)
     const messageId = await ticketsService.addMessage({
       ticket_id: id,
       usuario_id: currentUser.id,
       mensagem,
-      interno: isAgent ? !!interno : false
+      interno: isInternalCom
     }, currentUser);
 
     const [getInsertedMsg]: any = await pool.query('SELECT id, ticket_id, interno, mensagem FROM ticket_mensagens WHERE id = ?', [messageId]);
@@ -688,8 +756,18 @@ router.post('/:id/attachments', ticketUpload.array('files', 5), async (req: Auth
   try {
     const currentUser = req.user;
     if (!currentUser) {
-      await attachmentsService.deleteMultiple(files);
+      if (files && files.length > 0) {
+        await attachmentsService.deleteMultiple(files);
+      }
       return sendError(res, 'Não autenticado', 401);
+    }
+
+    const hasAttachPerm = await permissionsService.hasPermission(currentUser, 'ticket_mensagens.anexar');
+    if (!hasAttachPerm) {
+      if (files && files.length > 0) {
+        await attachmentsService.deleteMultiple(files);
+      }
+      return sendError(res, 'Acesso proibido: Você não possui a permissão ticket_mensagens.anexar.', 403);
     }
 
     const id = parseInt(req.params.id);
@@ -792,11 +870,10 @@ router.get('/:id/tags', async (req: AuthRequest, res) => {
   }
 });
 
-router.post('/:id/tags', async (req: AuthRequest, res) => {
+router.post('/:id/tags', requirePermission('tickets.gerenciar_tags'), async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
-    if (!isAgentUser(currentUser)) return sendError(res, 'Permissão negada', 403);
 
     const id = parseInt(req.params.id);
     const { tag } = req.body;
@@ -814,11 +891,10 @@ router.post('/:id/tags', async (req: AuthRequest, res) => {
   }
 });
 
-router.put('/:id/tags', async (req: AuthRequest, res) => {
+router.put('/:id/tags', requirePermission('tickets.gerenciar_tags'), async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
-    if (!isAgentUser(currentUser)) return sendError(res, 'Permissão negada', 403);
 
     const id = parseInt(req.params.id);
     const { tags } = req.body;
@@ -830,17 +906,16 @@ router.put('/:id/tags', async (req: AuthRequest, res) => {
 
     await ticketsService.setTags(id, tags);
     await logSystemAction(req, currentUser.id, result.empresa_id, 'TICKET_TAGS_UPDATE', `Tags do chamado #${id} atualizadas: ${tags.join(', ')}`);
-    sendSuccess(res, null, 'Tags atualizadas');
+    sendSuccess(res, null, 'Tags updated');
   } catch (error: unknown) {
     sendError(res, 'Erro ao atualizar tags');
   }
 });
 
-router.delete('/:id/tags/:tag', async (req: AuthRequest, res) => {
+router.delete('/:id/tags/:tag', requirePermission('tickets.gerenciar_tags'), async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
-    if (!isAgentUser(currentUser)) return sendError(res, 'Permissão negada', 403);
 
     const id = parseInt(req.params.id);
     const { tag } = req.params;
@@ -875,11 +950,10 @@ router.get('/:id/custom-fields', async (req: AuthRequest, res) => {
   }
 });
 
-router.put('/:id/custom-fields', async (req: AuthRequest, res) => {
+router.put('/:id/custom-fields', requirePermission('tickets.editar'), async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
-    if (!canManageTickets(currentUser)) return sendError(res, 'Permissão negada', 403);
 
     const id = parseInt(req.params.id);
     const { fields } = req.body;

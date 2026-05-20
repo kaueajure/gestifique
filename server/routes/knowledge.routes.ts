@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import pool from '../db/connection.js';
 import { authMiddleware, AuthRequest } from '../middlewares/auth.js';
-import { requirePermission } from '../middlewares/permissions.middleware.js';
+import { requirePermission, requireAnyPermission } from '../middlewares/permissions.middleware.js';
 
 const router = Router();
 
@@ -63,7 +63,7 @@ router.get('/', async (req: AuthRequest, res) => {
   }
 });
 
-router.post('/', requirePermission('base_conhecimento.gerenciar'), async (req: AuthRequest, res) => {
+router.post('/', requireAnyPermission(['base_conhecimento.criar', 'base_conhecimento.gerenciar']), async (req: AuthRequest, res) => {
   try {
     const { titulo, conteudo, categoria, publico, ativo } = req.body;
     
@@ -85,7 +85,7 @@ router.post('/', requirePermission('base_conhecimento.gerenciar'), async (req: A
   }
 });
 
-router.patch('/:id', requirePermission('base_conhecimento.gerenciar'), async (req: AuthRequest, res) => {
+router.patch('/:id', requireAnyPermission(['base_conhecimento.editar', 'base_conhecimento.gerenciar']), async (req: AuthRequest, res) => {
   try {
     const { titulo, conteudo, categoria, publico, ativo } = req.body;
     const id = parseInt(req.params.id);
@@ -116,7 +116,7 @@ router.patch('/:id', requirePermission('base_conhecimento.gerenciar'), async (re
   }
 });
 
-router.delete('/:id', requirePermission('base_conhecimento.gerenciar'), async (req: AuthRequest, res) => {
+router.delete('/:id', requireAnyPermission(['base_conhecimento.excluir', 'base_conhecimento.gerenciar']), async (req: AuthRequest, res) => {
   try {
     const id = parseInt(req.params.id);
     const empresaId = req.user!.empresa_id;

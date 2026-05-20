@@ -9,7 +9,7 @@ router.use(authMiddleware);
 const sendSuccess = (res: any, data: any) => res.json({ success: true, data });
 const sendError = (res: any, error: string, num = 500) => res.status(num).json({ success: false, error });
 
-router.get('/company/:companyId', async (req: AuthRequest, res) => {
+router.get('/company/:companyId', requirePermission('automacoes.gerenciar'), async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);

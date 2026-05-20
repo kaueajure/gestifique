@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import  usersService from  '../services/users.service.js';
 import  { authMiddleware, AuthRequest } from  '../middlewares/auth.js';
-import  { isAdmin, isDev } from  '../middlewares/permissions.js';
+import { requirePermission } from '../middlewares/permissions.middleware.js';
 import  { sendSuccess, sendError } from  '../utils/response.js';
 import  { logSystemAction } from  '../utils/logger.js';
 import  { isValidEmail } from  '../utils/validators.js';
@@ -47,7 +47,7 @@ router.get('/team', async (req: AuthRequest, res) => {
     }
 });
 
-router.get('/', isAdmin, async (req: AuthRequest, res) => {
+router.get('/', requirePermission('usuarios.visualizar'), async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
@@ -71,7 +71,7 @@ router.get('/', isAdmin, async (req: AuthRequest, res) => {
   }
 });
 
-router.post('/', isAdmin, async (req: AuthRequest, res) => {
+router.post('/', requirePermission('usuarios.criar'), async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
@@ -110,7 +110,7 @@ router.post('/', isAdmin, async (req: AuthRequest, res) => {
   }
 });
 
-router.patch('/:id', isAdmin, async (req: AuthRequest, res) => {
+router.patch('/:id', requirePermission('usuarios.editar'), async (req: AuthRequest, res) => {
     try {
         const currentUser = req.user;
         if (!currentUser) return sendError(res, 'Não autenticado', 401);
@@ -154,16 +154,22 @@ router.patch('/:id', isAdmin, async (req: AuthRequest, res) => {
     }
 });
 
-router.patch('/:id/status', isAdmin, async (req: AuthRequest, res) => {
+router.patch('/:id/status', async (req: AuthRequest, res) => {
     try {
         const currentUser = req.user;
         if (!currentUser) return sendError(res, 'Não autenticado', 401);
 
         const id = parseInt(req.params.id);
         const { ativo } = req.body;
+
         const targetUser = await usersService.getById(id);
-        
         if (!targetUser) return sendError(res, 'Usuário não encontrado', 404);
+
+        const requiredPerm = ativo ? 'usuarios.reativar' : 'usuarios.desativar';
+        const hasStatusPerm = await permissionsService.hasPermission(currentUser, requiredPerm);
+        if (!hasStatusPerm) {
+            return sendError(res, `Acesso proibido: Você não possui a permissão ${requiredPerm}.`, 403);
+        }
         
         if (!currentUser.desenvolvedor && (targetUser.empresa_id !== currentUser.empresa_id || targetUser.desenvolvedor)) {
             return sendError(res, 'Acesso proibido', 403);
@@ -194,7 +200,7 @@ router.patch('/:id/status', isAdmin, async (req: AuthRequest, res) => {
     }
 });
 
-router.patch('/:id/password', isAdmin, async (req: AuthRequest, res) => {
+router.patch('/:id/password', requirePermission('usuarios.resetar_senha'), async (req: AuthRequest, res) => {
     try {
         const currentUser = req.user;
         if (!currentUser) return sendError(res, 'Não autenticado', 401);

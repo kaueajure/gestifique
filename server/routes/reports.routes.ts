@@ -2,6 +2,7 @@ import { Router } from 'express';
 import reportsService, { ReportFilters } from '../services/reports.service.js';
 import { authMiddleware, AuthRequest } from '../middlewares/auth.js';
 import { requirePermission } from '../middlewares/permissions.middleware.js';
+import { permissionsService } from '../services/permissions.service.js';
 import { sendSuccess, sendError } from '../utils/response.js';
 
 const router = Router();
@@ -30,6 +31,16 @@ router.get('/summary', requirePermission('relatorios.visualizar'), async (req: A
       filters.empresa_id = parseInt(empresa_id as string);
     }
 
+    // Resolve reports scoping
+    const isSuperUser = !!(currentUser.desenvolvedor || currentUser.administrador);
+    if (!isSuperUser) {
+      const hasVerTodos = await permissionsService.hasPermission(currentUser, 'relatorios.ver_todos_usuarios');
+      if (!hasVerTodos) {
+        // Force scoping to own indicators
+        filters.responsavel_id = currentUser.id;
+      }
+    }
+
     const summary = await reportsService.getSummary(filters);
     sendSuccess(res, summary);
   } catch (error: unknown) {
@@ -43,11 +54,12 @@ router.post('/generate', requirePermission('relatorios.visualizar'), async (req:
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
 
-    const { start_date, end_date, empresa_id, status, prioridade } = req.body;
+    const { start_date, end_date, empresa_id, responsavel_id, status, prioridade } = req.body;
 
     const filters: ReportFilters = {
       start_date,
       end_date,
+      responsavel_id: responsavel_id ? parseInt(responsavel_id as string) : undefined,
       status,
       prioridade
     };
@@ -59,6 +71,16 @@ router.post('/generate', requirePermission('relatorios.visualizar'), async (req:
       filters.empresa_id = parseInt(empresa_id as string);
     }
 
+    // Resolve reports scoping
+    const isSuperUser = !!(currentUser.desenvolvedor || currentUser.administrador);
+    if (!isSuperUser) {
+      const hasVerTodos = await permissionsService.hasPermission(currentUser, 'relatorios.ver_todos_usuarios');
+      if (!hasVerTodos) {
+        // Force scoping to own indicators
+        filters.responsavel_id = currentUser.id;
+      }
+    }
+
     const reportData = await reportsService.getReportData(filters);
     sendSuccess(res, reportData);
   } catch (error: unknown) {
@@ -67,7 +89,7 @@ router.post('/generate', requirePermission('relatorios.visualizar'), async (req:
   }
 });
 
-router.get('/export', requirePermission('relatorios.visualizar'), async (req: AuthRequest, res) => {
+router.get('/export', requirePermission('relatorios.exportar'), async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
@@ -88,6 +110,16 @@ router.get('/export', requirePermission('relatorios.visualizar'), async (req: Au
       filters.empresa_id = currentUser.empresa_id;
     } else if (empresa_id) {
       filters.empresa_id = parseInt(empresa_id as string);
+    }
+
+    // Resolve reports scoping
+    const isSuperUser = !!(currentUser.desenvolvedor || currentUser.administrador);
+    if (!isSuperUser) {
+      const hasVerTodos = await permissionsService.hasPermission(currentUser, 'relatorios.ver_todos_usuarios');
+      if (!hasVerTodos) {
+        // Force scoping to own indicators
+        filters.responsavel_id = currentUser.id;
+      }
     }
 
     const csvData = await reportsService.exportCSV(filters, type as string || 'tickets');
