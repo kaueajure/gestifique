@@ -34,7 +34,7 @@ export function PageShell({
       )}
     >
       {(title || subtitle || actions) && (
-        <header className="shrink-0 flex flex-col gap-4 border-b border-slate-200/70 px-4 py-3.5 sm:px-5 sm:py-4 sm:flex-row sm:items-start sm:justify-between bg-white">
+        <header className="shrink-0 flex flex-col gap-4 border-b border-slate-200/70 px-4 py-3 sm:px-5 sm:py-3.5 sm:flex-row sm:items-start sm:justify-between bg-white">
           <div>
             {title && (
               <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-950">

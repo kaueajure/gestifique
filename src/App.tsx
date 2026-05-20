@@ -521,7 +521,7 @@ export default function App() {
                 "h-full w-full min-h-0 transition-all duration-300",
                 activeTab === "tickets" && selectedTicketId
                   ? "p-0 sm:p-3 lg:p-4"
-                  : "p-3 sm:p-5 lg:p-6 xl:p-7",
+                  : "flex items-center p-3 sm:p-4 lg:p-5 xl:p-6",
               )}
             >
               <AnimatePresence mode="wait">
@@ -532,10 +532,10 @@ export default function App() {
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
                   className={cn(
-                    "h-full min-h-0",
+                    "min-h-0",
                     activeTab === "tickets" && selectedTicketId
-                      ? "w-full"
-                      : "mx-auto w-full max-w-[1480px]"
+                      ? "h-full w-full"
+                      : "mx-auto h-[calc(100%-24px)] w-full max-w-[1560px]"
                   )}
                 >
                   {activeTab === "dashboard" && (
