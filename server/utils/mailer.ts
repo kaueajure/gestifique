@@ -246,7 +246,11 @@ export const sendTicketEmail = async (params: TicketEmailParams) => {
     replyTo: params.replyTo || env.IMAP.USER || env.SMTP.FROM,
     headers: {
       'X-Auto-Response-Suppress': 'OOF, AutoReply',
-      'X-Gestifique-Ticket-ID': params.ticketId.toString()
+      'X-Gestifique-Ticket-ID': params.ticketId.toString(),
+      'Auto-Submitted': 'no',
+      'X-Gestifique-System': 'true',
+      'X-Gestifique-Message-Type': params.type,
+      'X-Gestifique-Thread-Key': `ticket-${params.ticketId}`
     },
     html: template.html,
     text: template.text,

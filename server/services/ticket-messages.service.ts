@@ -189,13 +189,24 @@ class TicketMessagesService {
 
             if (smtpResult && smtpResult.success) {
               console.log(`[TicketMessagesService] External notification email sent to ${ticket.cliente_email} for ticket #${ticket_id} (Message-ID: ${smtpResult.messageId})`);
-              // Save to processed_emails so replies can be threaded to this ticket
-              if (smtpResult.messageId) {
-                await pool.query(
-                  'INSERT IGNORE INTO processed_emails (message_id, empresa_id, ticket_id) VALUES (?, ?, ?)',
-                  [smtpResult.messageId, ticket.empresa_id, ticket_id]
-                );
-                console.log(`[TicketMessagesService] Saved outbound Message-ID to processed_emails: ${smtpResult.messageId}`);
+              // Save all related message IDs to processed_emails so replies can be threaded to this ticket
+              const idsToTrack = [
+                outboundMessageId,
+                smtpResult.messageId,
+                smtpResult.providerMessageId
+              ].filter((id): id is string => typeof id === 'string' && id.trim().length > 0);
+
+              for (const idToTrack of new Set(idsToTrack)) {
+                try {
+                  const trimmedId = idToTrack.trim();
+                  await pool.query(
+                    'INSERT IGNORE INTO processed_emails (message_id, empresa_id, ticket_id) VALUES (?, ?, ?)',
+                    [trimmedId, ticket.empresa_id, ticket_id]
+                  );
+                  console.log(`[TicketMessagesService] Saved Message-ID to processed_emails: ${trimmedId}`);
+                } catch (dbErr: any) {
+                  console.error('[TicketMessagesService] Error storing tracked message ID to processed_emails:', dbErr);
+                }
               }
             } else if (smtpResult && !smtpResult.success) {
                console.error('[TicketMessagesService] Mail failed:', smtpResult.error);

@@ -878,12 +878,25 @@ class TicketsService {
           inReplyTo: message_id,           // Reply to the original email if applicable
           references: message_id ? [message_id] : undefined
         }).then(async (smtpResult) => {
-          if (smtpResult && smtpResult.success && smtpResult.messageId) {
+          if (smtpResult && smtpResult.success) {
              console.log(`[TicketsService] External notification email sent to ${authorEmail} for ticket #${ticketId} (Message-ID: ${smtpResult.messageId})`);
-             await pool.query(
-               'INSERT IGNORE INTO processed_emails (message_id, empresa_id, ticket_id) VALUES (?, ?, ?)',
-               [smtpResult.messageId, empresa_id, ticketId]
-             ).catch((err: any) => console.error('[TicketsService] Failed to save outbound message to processed_emails:', err));
+             const idsToTrack = [
+               outboundMessageId,
+               smtpResult.messageId,
+               smtpResult.providerMessageId
+             ].filter((id): id is string => typeof id === 'string' && id.trim().length > 0);
+
+             for (const idToTrack of new Set(idsToTrack)) {
+               try {
+                 const trimmedId = idToTrack.trim();
+                 await pool.query(
+                   'INSERT IGNORE INTO processed_emails (message_id, empresa_id, ticket_id) VALUES (?, ?, ?)',
+                   [trimmedId, empresa_id, ticketId]
+                 );
+               } catch (dbErr: any) {
+                 console.error('[TicketsService] Failed to save outbound message to processed_emails:', dbErr);
+               }
+             }
           }
         }).catch((err: any) => console.error('[TicketsService] Email error:', err));
       }
@@ -1201,12 +1214,25 @@ class TicketsService {
             inReplyTo: oldTicket.message_id,
             references: oldTicket.message_id ? [oldTicket.message_id] : undefined
           }).then(async (smtpResult) => {
-             if (smtpResult && smtpResult.success && smtpResult.messageId) {
+             if (smtpResult && smtpResult.success) {
                 console.log(`[TicketsService] External notification email sent to ${oldTicket.cliente_email} for ticket #${id} (Status: ${data.status})`);
-                await pool.query(
-                  'INSERT IGNORE INTO processed_emails (message_id, empresa_id, ticket_id) VALUES (?, ?, ?)',
-                  [smtpResult.messageId, oldTicket.empresa_id, id]
-                ).catch((err: any) => console.error('[TicketsService] Failed to save outbound message to processed_emails:', err));
+                const idsToTrack = [
+                  outboundMessageId,
+                  smtpResult.messageId,
+                  smtpResult.providerMessageId
+                ].filter((trackingId): trackingId is string => typeof trackingId === 'string' && trackingId.trim().length > 0);
+
+                for (const trackingId of new Set(idsToTrack)) {
+                  try {
+                    const trimmedId = trackingId.trim();
+                    await pool.query(
+                      'INSERT IGNORE INTO processed_emails (message_id, empresa_id, ticket_id) VALUES (?, ?, ?)',
+                      [trimmedId, oldTicket.empresa_id, id]
+                    );
+                  } catch (dbErr: any) {
+                    console.error('[TicketsService] Failed to save outbound message to processed_emails:', dbErr);
+                  }
+                }
              }
           }).catch((err: any) => console.error('[TicketsService] Email error:', err));
         }

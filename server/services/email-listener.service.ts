@@ -9,6 +9,47 @@ import { env } from '../config/env.js';
 import { io } from '../server.js';
 import path from 'path';
 
+function normalizeEmailAddress(value?: string | null): string | null {
+  if (!value) return null;
+  const lowered = value.toLowerCase().trim();
+  const match = lowered.match(/<([^>]+)>/);
+  return (match ? match[1] : lowered).trim();
+}
+
+function extractTicketIdFromGestifiqueMessageId(value?: unknown): number | null {
+  if (!value) return null;
+
+  const raw = Array.isArray(value) ? value.join(' ') : String(value);
+  const match = raw.match(/ticket-(\d+)(?:-|@)/i);
+
+  if (!match) return null;
+
+  const id = Number(match[1]);
+  return Number.isInteger(id) && id > 0 ? id : null;
+}
+
+function looksLikeGestifiqueTicketThread(subject: string, parsed: ParsedMail): boolean {
+  const normalizedSubject = subject || '';
+
+  const hasTicketSubject =
+    /\[Ticket\s*#\d+\]/i.test(normalizedSubject) ||
+    /Chamado\s*#\d+/i.test(normalizedSubject) ||
+    /Ticket\s*#\d+/i.test(normalizedSubject);
+
+  const hasGestifiqueHeader =
+    !!parsed.headers.get('x-gestifique-ticket-id');
+
+  const refs = [
+    parsed.messageId,
+    parsed.inReplyTo,
+    ...(Array.isArray(parsed.references) ? parsed.references : parsed.references ? [parsed.references] : [])
+  ].filter(Boolean).join(' ');
+
+  const hasGestifiqueMessageId = /ticket-\d+(?:-|@)/i.test(refs);
+
+  return hasTicketSubject || hasGestifiqueHeader || hasGestifiqueMessageId;
+}
+
 export class EmailListenerService {
   private static connection: any = null;
   private static isProcessing = false;
@@ -161,51 +202,95 @@ export class EmailListenerService {
           
           console.log(`[Email Listener] [UID:${uid}] Processing message from ${senderEmail}: "${subject}" (MessageID: ${messageId})`);
 
-          const identifyTicket = async () => {
+          const identifyTicket = async (): Promise<{ ticketId: number | null; companyId: number | null; hadExplicitTicketReference: boolean; invalidTicketId?: number }> => {
              // A) By X-Gestifique-Ticket-ID in headers
              const headerTicketIdStr = parsed.headers.get('x-gestifique-ticket-id');
              if (headerTicketIdStr && typeof headerTicketIdStr === 'string' && !isNaN(parseInt(headerTicketIdStr))) {
-                console.log(`[Email Listener] Identified existing ticket #${parseInt(headerTicketIdStr)} via X-Gestifique-Ticket-ID header.`);
-                return parseInt(headerTicketIdStr);
+                const id = parseInt(headerTicketIdStr);
+                const [rows]: any = await pool.query('SELECT id, empresa_id FROM tickets WHERE id = ? LIMIT 1', [id]);
+                if (rows.length > 0) {
+                   console.log(`[Email Listener] Identified existing ticket #${id} via X-Gestifique-Ticket-ID header.`);
+                   return { ticketId: id, companyId: rows[0].empresa_id, hadExplicitTicketReference: true };
+                } else {
+                   console.warn(`[Email Listener] X-Gestifique-Ticket-ID header indicated ticket #${id} but it does not exist.`);
+                   return { ticketId: null, companyId: null, hadExplicitTicketReference: true, invalidTicketId: id };
+                }
              }
 
              // B) By [Ticket #ID], Chamado #ID, etc in subject
              const subjectMatch = subject.match(/(?:\[Ticket\s*#(\d+)\]|Chamado\s*#(\d+)|Ticket\s*#(\d+))/i);
              if (subjectMatch) {
-               const id = parseInt(subjectMatch[1] || subjectMatch[2] || subjectMatch[3]);
-               console.log(`[Email Listener] Identified existing ticket #${id} via Subject.`);
-               return id;
+                const id = parseInt(subjectMatch[1] || subjectMatch[2] || subjectMatch[3]);
+                const [rows]: any = await pool.query('SELECT id, empresa_id FROM tickets WHERE id = ? LIMIT 1', [id]);
+                if (rows.length > 0) {
+                   console.log(`[Email Listener] Identified existing ticket #${id} via Subject.`);
+                   return { ticketId: id, companyId: rows[0].empresa_id, hadExplicitTicketReference: true };
+                } else {
+                   console.warn(`[Email Listener] Subject indicated ticket #${id} but it does not exist.`);
+                   return { ticketId: null, companyId: null, hadExplicitTicketReference: true, invalidTicketId: id };
+                }
              }
 
-             // C) By In-Reply-To or References headers
+             // C) Try pattern-based extraction on messageId / inReplyTo / references before falling back to processed_emails table
              const inReplyTo = parsed.inReplyTo;
              const references = Array.isArray(parsed.references) ? parsed.references : (parsed.references ? [parsed.references] : []);
-             const allRefs = [inReplyTo, ...references].filter(r => !!r);
-             
-             if (allRefs.length > 0) {
-               const [refMatch]: any = await pool.query(
-                 `SELECT ticket_id FROM processed_emails WHERE message_id IN (?) ORDER BY created_at DESC LIMIT 1`,
-                 [allRefs]
-               );
-               if (refMatch.length > 0) {
-                  console.log(`[Email Listener] Identified existing ticket #${refMatch[0].ticket_id} via headers (References).`);
-                  return refMatch[0].ticket_id;
+             const candidates = [
+               parsed.messageId,
+               inReplyTo,
+               ...references
+             ].filter(Boolean);
+
+             for (const candidate of candidates) {
+               const extractedTicketId = extractTicketIdFromGestifiqueMessageId(candidate);
+               if (extractedTicketId) {
+                 const [rows]: any = await pool.query('SELECT id, empresa_id FROM tickets WHERE id = ? LIMIT 1', [extractedTicketId]);
+                 if (rows.length > 0) {
+                   console.log(`[Email Listener] Identified existing ticket #${extractedTicketId} via Gestifique Message-ID pattern.`);
+                   return { ticketId: extractedTicketId, companyId: rows[0].empresa_id, hadExplicitTicketReference: true };
+                 } else {
+                   console.warn(`[Email Listener] Gestifique Message-ID pattern indicated ticket #${extractedTicketId} but it does not exist.`);
+                   return { ticketId: null, companyId: null, hadExplicitTicketReference: true, invalidTicketId: extractedTicketId };
+                 }
                }
              }
-             return null;
+
+             // D) By In-Reply-To or References headers inside processed_emails table
+             const allRefs = [inReplyTo, ...references].filter(r => !!r);
+             if (allRefs.length > 0) {
+                const [refMatch]: any = await pool.query(
+                  `SELECT ticket_id FROM processed_emails WHERE message_id IN (?) ORDER BY created_at DESC LIMIT 1`,
+                  [allRefs]
+                );
+                if (refMatch.length > 0) {
+                   const dbTicketId = refMatch[0].ticket_id;
+                   const [rows]: any = await pool.query('SELECT id, empresa_id FROM tickets WHERE id = ? LIMIT 1', [dbTicketId]);
+                   if (rows.length > 0) {
+                     console.log(`[Email Listener] Identified existing ticket #${dbTicketId} via headers (References DB).`);
+                     return { ticketId: dbTicketId, companyId: rows[0].empresa_id, hadExplicitTicketReference: false };
+                   } else {
+                     console.warn(`[Email Listener] DB references indicated ticket #${dbTicketId} but it does not exist.`);
+                     return { ticketId: null, companyId: null, hadExplicitTicketReference: true, invalidTicketId: dbTicketId };
+                   }
+                }
+             }
+
+             return { ticketId: null, companyId: null, hadExplicitTicketReference: false };
           };
 
-          targetTicketId = await identifyTicket();
+          const identificationResult = await identifyTicket();
+          targetTicketId = identificationResult.ticketId;
+          targetEmpresaId = identificationResult.companyId;
 
-          if (targetTicketId) {
-             const [ticketCheck]: any = await pool.query('SELECT id, empresa_id, status FROM tickets WHERE id = ?', [targetTicketId]);
-             if (ticketCheck.length > 0) {
-                 targetEmpresaId = ticketCheck[0].empresa_id;
-                 console.log(`[Email Listener] Setting targetEmpresaId to ${targetEmpresaId} based on identified Ticket #${targetTicketId}`);
-             } else {
-                 console.warn(`[Email Listener] Identified ticket ${targetTicketId} does not exist. Proceeding with normal routing.`);
-                 targetTicketId = null;
-             }
+          if (identificationResult.hadExplicitTicketReference && !targetTicketId) {
+             const invalidId = identificationResult.invalidTicketId || 'Desconhecido';
+             console.warn(`[Email Listener] [UID:${uid}] Email had explicit reference to non-existent ticket #${invalidId}. Skipping processing to prevent duplicate tickets.`);
+             await this.logSystem(
+               null, 
+               'EMAIL_TICKET_REFERENCE_NOT_FOUND', 
+               `E-mail de ${senderEmail} com referência explícita para o ticket inválido/inexistente #${invalidId}. Ignorado para prevenção de duplicidade.`
+             );
+             await this.connection.addFlags(uid, '\\Seen');
+             continue;
           }
 
           // 3. Identify Recipient Company/Channel if not already found via ticket
@@ -282,35 +367,54 @@ export class EmailListenerService {
           if (!targetEmpresaId) {
              console.warn(`[Email Listener] [UID:${uid}] No company found for recipients: ${potentialRecipients.join(', ')}. From: ${senderEmail}.`);
              await this.logSystem(null, 'EMAIL_WITHOUT_COMPANY', `Falha ao identificar empresa para email de ${senderEmail} (Para: ${potentialRecipients.join(', ')}).`);
-             // We don't mark as seen if we can't route it, unless we want to ignore unknown recipients
-             // If we mark as seen, it won't be tried again. 
-             // Requirement says: "Não marcar como lido se não encontrou empresa/canal"
              continue; 
           }
 
           // 4. Anti-Loop & System Prevention
           const precedence = (parsed.headers.get('precedence') as string || '').toLowerCase();
           const autoSubmitted = (parsed.headers.get('auto-submitted') as string || '').toLowerCase();
-          const isAutoMsg = precedence === 'bulk' || precedence === 'junk' || precedence === 'list' || (autoSubmitted && autoSubmitted !== 'no');
-          
-          const systemEmails = [
-            env.IMAP.USER?.toLowerCase(),
-            env.SMTP.USER?.toLowerCase(),
+          const isSystemHeader = parsed.headers.get('x-gestifique-system') === 'true';
+
+          // Better checks for system emails using normalized helpers
+          const systemEmailsNormalized = [
+            normalizeEmailAddress(env.IMAP.USER),
+            normalizeEmailAddress(env.SMTP.USER),
             'mailer-daemon',
             'postmaster',
             'noreply',
             'no-reply'
-          ].filter(Boolean);
+          ].filter(Boolean) as string[];
 
-          const isSystem = systemEmails.some(sys => senderEmail?.includes(sys!));
-          
-          if (isSystem || isAutoMsg) {
-             console.warn(`[Email Listener] [UID:${uid}] Anti-Loop triggered for ${senderEmail} (isSystem: ${isSystem}, isAuto: ${isAutoMsg})`);
-             await this.logSystem(targetEmpresaId, 'EMAIL_LOOP_PREVENTED', `Email de ${senderEmail} ignorado (Precedence: ${precedence}, Auto-Submitted: ${autoSubmitted}).`);
+          const senderNormalized = normalizeEmailAddress(senderEmail);
+          const isSystemSender = senderNormalized ? systemEmailsNormalized.some(sys => senderNormalized.includes(sys)) : false;
+          const isAutoMsg = precedence === 'bulk' || precedence === 'junk' || precedence === 'list' || (autoSubmitted && autoSubmitted !== 'no');
+
+          if (isSystemSender || isAutoMsg || isSystemHeader) {
+             console.warn(`[Email Listener] [UID:${uid}] Anti-Loop triggered for ${senderEmail} (isSystemSender: ${isSystemSender}, isAuto: ${isAutoMsg}, isSystemHeader: ${isSystemHeader})`);
+             await this.logSystem(targetEmpresaId, 'EMAIL_LOOP_PREVENTED', `Email de ${senderEmail} ignorado via anti-loop (Precedence: ${precedence}, Auto-Submitted: ${autoSubmitted}, HeaderSistema: ${isSystemHeader}).`);
              await this.connection.addFlags(uid, '\\Seen');
              continue;
           }
 
+          // Thread duplication prevention check for responses that look like Gestifique thread and have system indicators but no valid DB match
+          if (!targetTicketId && looksLikeGestifiqueTicketThread(subject, parsed)) {
+             console.warn(`[Email Listener] [UID:${uid}] Ignored email from ${senderEmail} because it looks like a Gestifique ticket thread fallback replica without active matching ticket.`);
+             await this.logSystem(targetEmpresaId, 'EMAIL_THREAD_REPLICA_IGNORED', `Email de ${senderEmail} (Assunto: "${subject}") ignorado pois aparenta ser uma réplica antiga/inválida de thread sem ticket correspondente ativo.`);
+             await this.connection.addFlags(uid, '\\Seen');
+             continue;
+          }
+
+          // Pre-register message ID in processed_emails now that we have targetEmpresaId, to prevent race conditions
+          if (messageId && targetEmpresaId) {
+             try {
+                await pool.query(
+                  'INSERT IGNORE INTO processed_emails (message_id, empresa_id, ticket_id) VALUES (?, ?, ?)',
+                  [messageId, targetEmpresaId, targetTicketId]
+                );
+             } catch (dbLockErr) {
+                console.error('[Email Listener] Race lock pre-registration insert failed:', dbLockErr);
+             }
+          }
 
           // 5. Resolve Sender Context
           const { userId } = await this.resolveSenderContext(senderEmail!, targetEmpresaId);
@@ -337,10 +441,26 @@ export class EmailListenerService {
              if (dupRows.length > 0) {
                 console.log(`[Email Listener] Identified duplicate ticket #${dupRows[0].id} via subject/sender matching.`);
                 targetTicketId = dupRows[0].id;
+
+                // Update race pre-registration lock with the resolved ticketId
+                if (messageId && targetEmpresaId) {
+                   await pool.query(
+                     'UPDATE processed_emails SET ticket_id = ? WHERE message_id = ?',
+                     [targetTicketId, messageId]
+                   ).catch(e => console.error('[Email Listener] Failed updating lock ticket_id:', e));
+                }
              }
           }
 
           if (targetTicketId) {
+             // Update lock ticket_id if previously set to null
+             if (messageId && targetEmpresaId) {
+                await pool.query(
+                  'UPDATE processed_emails SET ticket_id = ? WHERE message_id = ?',
+                  [targetTicketId, messageId]
+                ).catch(e => console.error('[Email Listener] Failed updating lock ticket_id:', e));
+             }
+
              const msgId = await ticketsService.addMessage({
                ticket_id: targetTicketId,
                usuario_id: userId || null, // Allow system fallback down line if needed
@@ -373,6 +493,14 @@ export class EmailListenerService {
               message_id: messageId
             });
 
+            // Update lock ticket_id if previously set to null
+            if (messageId && targetEmpresaId) {
+               await pool.query(
+                 'UPDATE processed_emails SET ticket_id = ? WHERE message_id = ?',
+                 [newTicketId, messageId]
+               ).catch(e => console.error('[Email Listener] Failed updating lock new ticket_id:', e));
+            }
+
             await this.logSystem(targetEmpresaId, 'EMAIL_TICKET_CREATED', `Ticket #${newTicketId} criado via e-mail de ${senderEmail}.`);
             
             const newTicket = await ticketsService.getById(newTicketId);
@@ -389,8 +517,6 @@ export class EmailListenerService {
 
         } catch (itemError: any) {
           console.error(`[Email Listener] [UID:${uid}] Error processing item:`, itemError);
-          // If it's a specific error we know we should mark as read (like invalid format), we could.
-          // But generally, we don't mark as seen if it failed, so it can be retried or inspected.
           await this.logSystem(null, 'EMAIL_PROCESS_ERROR', `Erro ao processar e-mail UID ${uid} de ${senderEmailStr}: ${itemError.message}`);
         }
       }
