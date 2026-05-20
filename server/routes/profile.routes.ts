@@ -3,6 +3,7 @@ import  usersService from  '../services/users.service.js';
 import  { authMiddleware, AuthRequest } from  '../middlewares/auth.js';
 import  { sendSuccess, sendError } from  '../utils/response.js';
 import  { logSystemAction } from  '../utils/logger.js';
+import { permissionsService } from '../services/permissions.service.js';
 
 const router = Router();
 
@@ -14,7 +15,14 @@ router.get('/', async (req: AuthRequest, res) => {
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
 
     const profile = await usersService.getById(currentUser.id);
-    sendSuccess(res, profile);
+    const permissions = await permissionsService.getEffectivePermissions(profile);
+    const isSuperUser = !!(profile.desenvolvedor || profile.administrador);
+
+    sendSuccess(res, {
+      ...profile,
+      permissions,
+      isSuperUser
+    });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erro ao buscar perfil';
     sendError(res, message);

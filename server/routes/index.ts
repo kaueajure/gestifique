@@ -20,6 +20,7 @@ import { emailChannelsRoutes } from './email-channels.routes.js';
 import emailTestRoutes from './email-test.routes.js';
 import healthRoutes from './health.routes.js';
 import aiRoutes from './ai.routes.js';
+import permissionsRoutes from './permissions.routes.js';
 
 const router = Router();
 
@@ -43,6 +44,7 @@ router.use('/portal', portalRoutes);
 router.use('/health', healthRoutes);
 router.use('/email-test', emailTestRoutes);
 router.use('/ai', aiRoutes);
+router.use('/permissions', permissionsRoutes);
 router.use('/', emailChannelsRoutes); // mounted at /api/companies/:companyId/email-channels
 
 export default router;

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import  ticketsService, { toPositiveInt } from  '../services/tickets.service.js';
 import  attachmentsService from  '../services/attachments.service.js';
 import { authMiddleware, AuthRequest } from '../middlewares/auth.js';
+import { requirePermission } from '../middlewares/permissions.middleware.js';
 import { sendSuccess, sendError } from '../utils/response.js';
 import  { logSystemAction } from  '../utils/logger.js';
 import { ticketUpload } from '../middlewares/upload.js';
@@ -57,7 +58,7 @@ router.delete('/cleanup-spam', async (req: AuthRequest, res) => {
   }
 });
 
-router.get('/', async (req: AuthRequest, res) => {
+router.get('/', requirePermission('tickets.visualizar'), async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);

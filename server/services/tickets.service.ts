@@ -1,4 +1,5 @@
 import pool from '../db/connection.js';
+import { permissionsService } from './permissions.service.js';
 import notificationsService from './notifications.service.js';
 import { sendTicketEmail } from '../utils/mailer.js';
 import { recordTicketEvent } from './ticket-events.service.js';
@@ -164,6 +165,17 @@ class TicketsService {
       baseWhere += ' AND t.empresa_id = ?';
       summaryWhere += ' AND t.empresa_id = ?';
       params.push(empresa_id);
+
+      // Enforce ticket view scopes
+      const [userRows]: any = await pool.query('SELECT * FROM usuarios WHERE id = ?', [usuario_id]);
+      const userObj = userRows[0];
+      const permissions = userObj ? await permissionsService.getEffectivePermissions(userObj) : [];
+      const hasVerTodos = permissions.includes('*') || permissions.includes('tickets.ver_todos');
+      if (!hasVerTodos) {
+        baseWhere += ' AND (t.responsavel_id = ? OR t.usuario_id = ?)';
+        summaryWhere += ' AND (t.responsavel_id = ? OR t.usuario_id = ?)';
+        params.push(usuario_id, usuario_id);
+      }
     } else {
       const empresaIdFilter = toPositiveInt(filters.empresa_id_filter);
       if (empresaIdFilter) {
@@ -840,6 +852,20 @@ class TicketsService {
 
     if (!currentUser.desenvolvedor) {
       if (ticket.empresa_id !== currentUser.empresa_id) return { error: 'forbidden' };
+
+      // Enforce ticket view scopes
+      let permissions = currentUser.permissions;
+      if (!permissions) {
+        permissions = await permissionsService.getEffectivePermissions(currentUser);
+      }
+      const hasVerTodos = permissions.includes('*') || permissions.includes('tickets.ver_todos');
+      if (!hasVerTodos) {
+        const isAuthor = ticket.usuario_id === currentUser.id;
+        const isAssignee = ticket.responsavel_id === currentUser.id;
+        if (!isAuthor && !isAssignee) {
+          return { error: 'forbidden' };
+        }
+      }
     }
     return ticket;
   }

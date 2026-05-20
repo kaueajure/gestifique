@@ -22,6 +22,7 @@ import { Select } from '../ui/Select';
 import { Card } from '../ui/Card';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { cn } from '../../lib/utils';
+import { PermissionUserModal } from '../settings/PermissionUserModal';
 
 type UserPayload = {
   nome: string;
@@ -53,6 +54,8 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
   const [loadingSave, setLoadingSave] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false);
+  const [permissionUserId, setPermissionUserId] = useState<number | null>(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
@@ -313,6 +316,13 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
                                    <Key size={14} />
                                 </button>
                                 <button 
+                                  onClick={() => { setPermissionUserId(user.id); setIsPermissionModalOpen(true); }}
+                                  className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 transition-all"
+                                  title="Gerenciar Permissões"
+                                >
+                                   <Shield size={14} />
+                                </button>
+                                <button 
                                   onClick={() => { setSelectedUser(user); setPerfil(user.perfil || (user.desenvolvedor ? 'desenvolvedor' : user.administrador ? 'administrador' : 'atendente')); setSaveError(null); setIsModalOpen(true); }}
                                   className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-all"
                                   title="Editar"
@@ -535,6 +545,15 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
         confirmLabel={selectedUser?.ativo ? 'Desativar' : 'Ativar'}
         variant={selectedUser?.ativo ? 'danger' : 'info'}
       />
+
+      {permissionUserId && (
+        <PermissionUserModal 
+          userId={permissionUserId} 
+          isOpen={isPermissionModalOpen} 
+          onClose={() => { setIsPermissionModalOpen(false); setPermissionUserId(null); }} 
+          currentUser={currentUser}
+        />
+      )}
     </div>
   );
 };
