@@ -478,26 +478,27 @@ export default function App() {
     };
 
     return (
-      <div className="relative h-screen w-screen overflow-hidden bg-[#FDFDFF]">
-        <Sidebar
-          currentUser={currentUser}
-          activeTab={activeTab}
-          setActiveTab={(tab) => {
-            setActiveTab(tab as ActiveTab);
-            setSelectedTicketId(null);
-          }}
-          isOpen={isSidebarOpen}
-          onClose={() => setIsSidebarOpen(false)}
-          onLogout={handleLogout}
-          onNavigate={handleNotificationNavigate}
-        />
-
-        <div className="relative z-0 flex h-full w-full min-w-0 flex-col overflow-hidden">
-          <Topbar
-            title={getPageTitle()}
-            onMenuClick={() => setIsSidebarOpen(true)}
-            showSearch={!(activeTab === "tickets" && selectedTicketId)}
+      <div className="h-screen w-screen overflow-hidden bg-slate-100 p-0 sm:p-2 md:p-3">
+        <div className="relative h-full w-full overflow-hidden bg-[#FDFDFF] sm:rounded-2xl sm:border sm:border-slate-200/80 sm:shadow-sm">
+          <Sidebar
+            currentUser={currentUser}
+            activeTab={activeTab}
+            setActiveTab={(tab) => {
+              setActiveTab(tab as ActiveTab);
+              setSelectedTicketId(null);
+            }}
+            isOpen={isSidebarOpen}
+            onClose={() => setIsSidebarOpen(false)}
+            onLogout={handleLogout}
+            onNavigate={handleNotificationNavigate}
           />
+
+          <div className="relative z-0 flex h-full w-full min-w-0 flex-col overflow-hidden">
+            <Topbar
+              title={getPageTitle()}
+              onMenuClick={() => setIsSidebarOpen(true)}
+              showSearch={!(activeTab === "tickets" && selectedTicketId)}
+            />
 
           <main
             className={cn(
@@ -618,6 +619,7 @@ export default function App() {
           </main>
         </div>
       </div>
+    </div>
     );
   }
 

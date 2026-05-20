@@ -134,7 +134,7 @@ export const Sidebar = ({
       {/* Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-[1px] transition-opacity duration-300"
+          className="absolute inset-0 z-40 bg-slate-950/40 backdrop-blur-[1px] transition-opacity duration-300"
           onClick={onClose}
           aria-hidden="true"
         />
@@ -145,7 +145,7 @@ export const Sidebar = ({
         aria-modal="true"
         aria-label="Menu principal"
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-[82vw] max-w-[320px] sm:w-80 lg:w-72 xl:w-80 flex-col bg-white border-r border-slate-200/70 shadow-2xl shadow-slate-900/20 transition-transform duration-300 ease-out will-change-transform",
+          "absolute inset-y-0 left-0 z-50 flex w-[82vw] max-w-[320px] sm:w-80 lg:w-72 xl:w-80 flex-col bg-white border-r border-slate-200/70 shadow-2xl shadow-slate-900/20 transition-transform duration-300 ease-out will-change-transform",
           isOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
