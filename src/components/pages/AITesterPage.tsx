@@ -103,7 +103,7 @@ export const AITesterPage: React.FC<AITesterPageProps> = ({ currentUser }) => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto h-full flex flex-col pt-0 sm:pt-4 pb-0 sm:pb-4 min-h-0">
+    <div className="flex h-full min-h-0 w-full flex-col">
       <PageShell
         title="Falar com o Tique"
         subtitle="O seu assistente inteligente integrado do Gestifique"
@@ -113,8 +113,8 @@ export const AITesterPage: React.FC<AITesterPageProps> = ({ currentUser }) => {
             <span>Equipado com Google Gemini</span>
           </div>
         }
-        className="flex-1 shadow-md"
-        contentClassName="flex-1 overflow-hidden p-0 flex flex-col md:flex-row"
+        className="h-full"
+        contentClassName="flex h-full min-h-0 flex-col overflow-hidden p-0"
         flush
       >
         {/* Chat Messages Section */}
