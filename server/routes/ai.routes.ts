@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { AIService } from '../services/ai.service.js';
+import { AIService, sanitizeAIText } from '../services/ai.service.js';
 import ticketsService from '../services/tickets.service.js';
 import { authMiddleware } from '../middlewares/auth.js';
 import { requirePermission } from '../middlewares/permissions.middleware.js';
@@ -99,6 +99,19 @@ router.post('/chat', authMiddleware, requirePermission('ia.chat'), async (req: a
   try {
     const ai = AIService.getClient();
 
+    const systemInstruction = `Você é o Tique, assistente de IA do Gestifique.
+Ajude o usuário com dúvidas sobre atendimento, tickets, SLA, organização de suporte, produtividade e uso do sistema.
+
+Regras:
+- Responda em português do Brasil.
+- Seja direto e útil.
+- Pode usar tópicos simples quando ajudar.
+- Evite Markdown pesado.
+- Não use negrito com asteriscos.
+- Não use blocos de código, a menos que o usuário peça código.
+- Não invente funcionalidades do sistema.
+- Quando não souber se algo existe no Gestifique, diga que precisa verificar a implementação.`;
+
     if (history && Array.isArray(history) && history.length > 0) {
       const contents = history.map((msg: any) => ({
         role: msg.role === 'user' ? 'user' : 'model',
@@ -110,23 +123,23 @@ router.post('/chat', authMiddleware, requirePermission('ia.chat'), async (req: a
         model: "gemini-3.5-flash",
         contents,
         config: {
-          systemInstruction: "Você é um assistente criativo e prestativo do sistema Gestifique3.",
-          temperature: 0.7
+          systemInstruction,
+          temperature: 0.6
         }
       });
-      return sendSuccess(res, { response: response.text });
+      return sendSuccess(res, { response: sanitizeAIText(response.text) });
     }
 
     const response = await ai.models.generateContent({
       model: "gemini-3.5-flash",
       contents: prompt,
       config: {
-        systemInstruction: "Você é um assistente criativo e prestativo do sistema Gestifique3.",
-        temperature: 0.7
+        systemInstruction,
+        temperature: 0.6
       }
     });
     
-    return sendSuccess(res, { response: response.text });
+    return sendSuccess(res, { response: sanitizeAIText(response.text) });
   } catch (error: any) {
     console.error('Error calling Gemini chat:', error);
     return sendError(res, error.message || 'Erro ao comunicar com a IA', 500);

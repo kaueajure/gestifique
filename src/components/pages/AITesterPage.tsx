@@ -54,7 +54,9 @@ export const AITesterPage: React.FC<AITesterPageProps> = ({ currentUser }) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "model",
-      text: `Olá, ${currentUser.nome}! Eu sou o **Tique**, seu assistente de Inteligência Artificial no **Gestifique**. 🤖✨\n\nEstou aqui para ajudar você a responder clientes, otimizar processos, esclarecer dúvidas de suporte ou criar automações inteligentes. Como posso te apoiar hoje?`,
+      text: `Olá, ${currentUser.nome}! Eu sou o Tique, seu assistente de Inteligência Artificial no Gestifique.
+
+Posso ajudar você a responder clientes, resumir tickets, organizar fluxos de atendimento, revisar mensagens ou pensar em automações. Como posso te apoiar hoje?`,
     },
   ]);
   const [input, setInput] = useState("");
