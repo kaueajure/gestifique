@@ -16,8 +16,10 @@ router.get('/me', async (req: AuthRequest, res) => {
     const isSuperUser = !!(req.user?.desenvolvedor || req.user?.administrador);
     return res.json({
       success: true,
-      permissions,
-      isSuperUser
+      data: {
+        permissions,
+        isSuperUser
+      }
     });
   } catch (err: any) {
     console.error('Erro ao buscar permissões do usuário atual:', err);
@@ -29,7 +31,12 @@ router.get('/me', async (req: AuthRequest, res) => {
 router.get('/catalog', requirePermission('usuarios.ver_permissoes'), async (req: AuthRequest, res) => {
   try {
     const catalog = await permissionsService.getCatalog();
-    return res.json({ success: true, catalog });
+    return res.json({
+      success: true,
+      data: {
+        catalog
+      }
+    });
   } catch (err: any) {
     console.error('Erro ao buscar catálogo de permissões:', err);
     return res.status(500).json({ success: false, message: 'Erro interno ao buscar catálogo.' });
@@ -41,7 +48,10 @@ router.get('/users/:id', requirePermission('usuarios.ver_permissoes'), async (re
   try {
     const userId = Number(req.params.id);
     const matrix = await permissionsService.getUserPermissionMatrix(userId);
-    return res.json({ success: true, ...matrix });
+    return res.json({
+      success: true,
+      data: matrix
+    });
   } catch (err: any) {
     console.error('Erro ao carregar matriz de permissões:', err);
     return res.status(500).json({ success: false, message: err.message || 'Erro ao carregar matriz.' });
@@ -87,6 +97,10 @@ router.put('/users/:id/override', requirePermission('usuarios.gerenciar_permisso
       return res.status(400).json({ success: false, message: 'Você não pode revogar seu próprio acesso para gerenciar permissões.' });
     }
 
+    if (targetUserId === caller.id && permission_key === 'sistema.developer' && effect === 'deny') {
+      return res.status(400).json({ success: false, message: 'Você não pode revogar seu próprio acesso de desenvolvedor.' });
+    }
+
     await permissionsService.setUserPermissionOverride({
       usuarioId: targetUserId,
       permissionKey: permission_key,
@@ -97,7 +111,11 @@ router.put('/users/:id/override', requirePermission('usuarios.gerenciar_permisso
       userAgent: req.get('user-agent')
     });
 
-    return res.json({ success: true, message: 'Permissão personalizada atualizada com sucesso.' });
+    return res.json({
+      success: true,
+      message: 'Permissão personalizada atualizada com sucesso.',
+      data: null
+    });
   } catch (err: any) {
     console.error('Erro ao salvar override de permissão:', err);
     return res.status(500).json({ success: false, message: 'Erro ao salvar override.' });
@@ -139,7 +157,11 @@ router.delete('/users/:id/override/:permissionKey', requirePermission('usuarios.
       userAgent: req.get('user-agent')
     });
 
-    return res.json({ success: true, message: 'Override de permissão removido, redefinindo para o padrão.' });
+    return res.json({
+      success: true,
+      message: 'Override de permissão removido, redefinindo para o padrão.',
+      data: null
+    });
   } catch (err: any) {
     console.error('Erro ao remover override de permissão:', err);
     return res.status(500).json({ success: false, message: 'Erro ao remover override de permissão.' });
@@ -174,7 +196,11 @@ router.post('/users/:id/reset', requirePermission('usuarios.gerenciar_permissoes
 
     await permissionsService.resetUserPermissions(targetUserId, caller.id, req.ip, req.get('user-agent'));
 
-    return res.json({ success: true, message: 'Todas as permissões personalizadas foram removidas.' });
+    return res.json({
+      success: true,
+      message: 'Todas as permissões personalizadas foram removidas.',
+      data: null
+    });
   } catch (err: any) {
     console.error('Erro ao resetar permissões do usuário:', err);
     return res.status(500).json({ success: false, message: 'Erro ao resetar permissões.' });
@@ -185,7 +211,11 @@ router.post('/users/:id/reset', requirePermission('usuarios.gerenciar_permissoes
 router.post('/sync', requirePermission('sistema.developer'), async (req: AuthRequest, res) => {
   try {
     await permissionsService.syncCatalog();
-    return res.json({ success: true, message: 'Catálogo de permissões e perfis sincronizados com sucesso!' });
+    return res.json({
+      success: true,
+      message: 'Catálogo de permissões e perfis sincronizados com sucesso!',
+      data: null
+    });
   } catch (err: any) {
     console.error('Erro ao sincronizar permissões:', err);
     return res.status(500).json({ success: false, message: 'Erro interno ao sincronizar permissões.' });

@@ -121,6 +121,18 @@ async function startServer() {
   try {
      console.log('[BOOT] Initializing database...');
      await initDB();
+
+     // Base schema is ready, synchronize catalog permissions
+     if (process.env.AUTO_SYNC_PERMISSIONS !== 'false') {
+       try {
+         const { permissionsService } = await import('./services/permissions.service.js');
+         console.log('[BOOT] Auto-synchronizing permissions catalog...');
+         await permissionsService.syncCatalog();
+         console.log('[BOOT] Permissions catalog synchronized.');
+       } catch (err) {
+         console.error('[BOOT] ⚠️ Erro ao sincronizar catálogo de permissões:', err);
+       }
+     }
   } catch (err) {
      console.error("❌ CRITICAL: Database initialization failed.");
      if (env.IS_PROD) {

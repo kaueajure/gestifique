@@ -15,7 +15,12 @@ router.get('/', async (req: AuthRequest, res) => {
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
 
     const profile = await usersService.getById(currentUser.id);
-    const permissions = await permissionsService.getEffectivePermissions(profile);
+    let permissions: string[] = [];
+    try {
+      permissions = await permissionsService.getEffectivePermissions(profile);
+    } catch (permError) {
+      console.error('Erro ao carregar permissões do perfil do usuário:', permError);
+    }
     const isSuperUser = !!(profile.desenvolvedor || profile.administrador);
 
     sendSuccess(res, {

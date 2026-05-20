@@ -6,6 +6,7 @@ import  { sendSuccess, sendError } from  '../utils/response.js';
 import  { logSystemAction } from  '../utils/logger.js';
 import  { isValidEmail } from  '../utils/validators.js';
 import pool from '../db/connection.js';
+import { permissionsService } from '../services/permissions.service.js';
 
 const router = Router();
 
@@ -143,6 +144,7 @@ router.patch('/:id', isAdmin, async (req: AuthRequest, res) => {
         }
 
         await usersService.update(id, req.body);
+        permissionsService.invalidateCache(id);
         await logSystemAction(req, currentUser.id, currentUser.empresa_id, 'USER_UPDATE', `Atualizou usuário ID ${id}`);
         
         sendSuccess(res, null, 'Usuário atualizado com sucesso');
@@ -168,6 +170,7 @@ router.patch('/:id/status', isAdmin, async (req: AuthRequest, res) => {
         }
 
         await usersService.update(id, { ativo });
+        permissionsService.invalidateCache(id);
         
         if (!ativo) {
             // Unassign tickets and flag them for review

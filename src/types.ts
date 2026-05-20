@@ -19,6 +19,8 @@ export interface User {
   empresa_cor_principal?: string;
   empresa_endereco?: string;
   created_at: string;
+  permissions?: string[];
+  isSuperUser?: boolean;
 }
 
 export interface Empresa {
