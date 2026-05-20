@@ -29,12 +29,14 @@ router.get('/tickets/:id/summary', authMiddleware, requirePermission('ia.usar_re
     const mensagensResult = await ticketsService.getMessages(ticketId, false) as any[];
     const timeline = mensagensResult.map((m: any) => ({
       role: m.usuario_id === ticket.usuario_id ? 'user' : 'model',
+      content: m.mensagem,
       text: m.mensagem
     }));
 
     if (timeline.length === 0) {
       timeline.push({
          role: 'user',
+         content: ticket.descricao || ticket.titulo,
          text: ticket.descricao || ticket.titulo
       });
     }
@@ -66,12 +68,14 @@ router.post('/tickets/:id/suggest-reply', authMiddleware, requirePermission('ia.
     const mensagensResult = await ticketsService.getMessages(ticketId, false) as any[];
     const timeline = mensagensResult.map((m: any) => ({
       role: m.usuario_id === ticket.usuario_id ? 'user' : 'model',
+      content: m.mensagem,
       text: m.mensagem
     }));
 
     if (timeline.length === 0) {
       timeline.push({
          role: 'user',
+         content: ticket.descricao || ticket.titulo,
          text: ticket.descricao || ticket.titulo
       });
     }

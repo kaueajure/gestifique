@@ -124,7 +124,7 @@ ${messageContent}
     if (!this.isAvailable() || !messages || messages.length === 0) return null;
     try {
       const ai = this.getClient();
-      const timelineText = messages.map(m => `${m.role === 'user' ? 'Cliente' : 'Atendente'}: ${m.text}`).join('\n\n');
+      const timelineText = messages.map(m => `${m.role === 'user' ? 'Cliente' : 'Atendente'}: ${m.content || m.text}`).join('\n\n');
       
       const prompt = `
 ${AI_STYLE_RULES}
@@ -161,7 +161,7 @@ Retorne apenas o resumo, sem título e sem Markdown.
     if (!this.isAvailable()) return null;
     try {
       const ai = this.getClient();
-      const timelineText = messages.map(m => `${m.role === 'user' ? 'Cliente' : 'Atendente'}: ${m.text}`).join('\n\n');
+      const timelineText = messages.map(m => `${m.role === 'user' ? 'Cliente' : 'Atendente'}: ${m.content || m.text}`).join('\n\n');
       
       const prompt = `
 ${AI_STYLE_RULES}

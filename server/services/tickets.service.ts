@@ -688,23 +688,6 @@ class TicketsService {
     
     let prioridade = data.prioridade || 'media';
 
-    // AI Triage
-    let aiTriage: any = null;
-    if (AIService.isAvailable()) {
-      try {
-        const content = `Título: ${titulo}\nDescrição: ${descricao || ''}`;
-        aiTriage = await AIService.analyzeTicketSentiment(content);
-        
-        if (aiTriage) {
-          if (['alta', 'urgente'].includes(aiTriage.urgencia) && prioridade === 'media') {
-            prioridade = aiTriage.urgencia;
-          }
-        }
-      } catch (e) {
-        console.warn('Erro na triagem de IA:', e);
-      }
-    }
-
     // Check SLA policy
     let minutosSla = 24 * 60; // media padrão
     let minutosPrimeiraResposta = 60; // 1 hora padrão
@@ -772,26 +755,6 @@ class TicketsService {
       ]
     );
     const ticketId = result.insertId;
-
-    if (aiTriage) {
-      try {
-        if (aiTriage.sentimento) {
-          await pool.query('INSERT IGNORE INTO ticket_tags (ticket_id, tag) VALUES (?, ?)', [ticketId, `ia-sentimento:${aiTriage.sentimento}`]);
-        }
-        if (aiTriage.categoria) {
-          await pool.query('INSERT IGNORE INTO ticket_tags (ticket_id, tag) VALUES (?, ?)', [ticketId, `ia-categoria:${aiTriage.categoria}`]);
-        }
-        await recordTicketEvent({
-          ticket_id: ticketId,
-          empresa_id,
-          usuario_id: usuario_id || null,
-          tipo: 'ia_triagem',
-          descricao: `Triagem IA: Sentimento ${aiTriage.sentimento?.toUpperCase()}, Urgência sugerida: ${aiTriage.urgencia?.toUpperCase()}. Categoria sugerida: ${aiTriage.categoria}. Resumo: ${aiTriage.resumo}`
-        });
-      } catch (err) {
-        console.warn('Erro ao salvar dados da triagem IA:', err);
-      }
-    }
 
     // Initialize SLA Status Operacional
     await slaService.updateOperationalStatus(ticketId);
