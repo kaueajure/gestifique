@@ -1,75 +1,938 @@
 import pool from '../db/connection.js';
+import notificationsService from './notifications.service.js';
+import { emailOutboundService, trackTicketEmailMessageIds } from './email-outbound.service.js';
+import { recordTicketEvent } from './ticket-events.service.js';
+import ticketMessagesService from './ticket-messages.service.js';
+import slaService from './sla.service.js';
+import { getTicketScope } from '../utils/ticket-permissions.js';
+export function toPositiveInt(value) {
+    if (value === undefined || value === null || value === '')
+        return undefined;
+    if (Array.isArray(value))
+        value = value[0];
+    const str = String(value).trim();
+    if (str === '' ||
+        str === 'undefined' ||
+        str === 'null' ||
+        str === 'NaN' ||
+        str === 'todos' ||
+        str === 'todas') {
+        return undefined;
+    }
+    const n = Number(str);
+    return Number.isInteger(n) && n > 0 ? n : undefined;
+}
 class TicketsService {
+    isValidDateOnly(value) {
+        return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+    }
+    applyAdvancedFilters(baseWhere, summaryWhere, params, filters) {
+        const { tag, origem, email_channel_id, created_from, created_to, updated_from, updated_to, sla_status, custom_field_search } = filters;
+        if (tag) {
+            const normalizedTag = this.normalizeTag(tag);
+            if (normalizedTag) {
+                const tagParts = ' AND EXISTS (SELECT 1 FROM ticket_tags tt WHERE tt.ticket_id = t.id AND tt.tag = ?)';
+                baseWhere += tagParts;
+                summaryWhere += tagParts;
+                params.push(normalizedTag);
+            }
+        }
+        if (origem) {
+            baseWhere += ' AND t.origem = ?';
+            summaryWhere += ' AND t.origem = ?';
+            params.push(origem);
+        }
+        if (email_channel_id) {
+            baseWhere += ' AND t.email_channel_id = ?';
+            summaryWhere += ' AND t.email_channel_id = ?';
+            params.push(email_channel_id);
+        }
+        if (this.isValidDateOnly(created_from)) {
+            baseWhere += ' AND t.created_at >= ?';
+            summaryWhere += ' AND t.created_at >= ?';
+            params.push(`${created_from} 00:00:00`);
+        }
+        if (this.isValidDateOnly(created_to)) {
+            baseWhere += ' AND t.created_at <= ?';
+            summaryWhere += ' AND t.created_at <= ?';
+            params.push(`${created_to} 23:59:59`);
+        }
+        if (this.isValidDateOnly(updated_from)) {
+            baseWhere += ' AND t.updated_at >= ?';
+            summaryWhere += ' AND t.updated_at >= ?';
+            params.push(`${updated_from} 00:00:00`);
+        }
+        if (this.isValidDateOnly(updated_to)) {
+            baseWhere += ' AND t.updated_at <= ?';
+            summaryWhere += ' AND t.updated_at <= ?';
+            params.push(`${updated_to} 23:59:59`);
+        }
+        if (sla_status && sla_status !== 'todos') {
+            let slaPart = '';
+            switch (sla_status) {
+                case 'dentro_sla':
+                    slaPart = " AND t.prazo_sla > DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado')";
+                    break;
+                case 'vencendo':
+                    slaPart = " AND t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado')";
+                    break;
+                case 'vencido':
+                    slaPart = " AND t.prazo_sla < NOW() AND t.status NOT IN ('resolvido', 'fechado')";
+                    break;
+                case 'sem_sla':
+                    slaPart = " AND t.prazo_sla IS NULL";
+                    break;
+            }
+            if (slaPart) {
+                baseWhere += slaPart;
+                summaryWhere += slaPart;
+            }
+        }
+        if (custom_field_search) {
+            const cfSearchPattern = `%${custom_field_search}%`;
+            const cfPart = ' AND EXISTS (SELECT 1 FROM ticket_custom_fields tcf WHERE tcf.ticket_id = t.id AND (tcf.field_value LIKE ? OR tcf.field_label LIKE ?))';
+            baseWhere += cfPart;
+            summaryWhere += cfPart;
+            params.push(cfSearchPattern, cfSearchPattern);
+        }
+        return { baseWhere, summaryWhere, params };
+    }
+    async cleanupSpam() {
+        // Delete tickets created in the last 12 hours that might be spam (too many from same user/subject)
+        const [spamUsers] = await pool.query(`
+      SELECT usuario_id, titulo, COUNT(*) as cnt 
+      FROM tickets 
+      WHERE created_at > (NOW() - INTERVAL 12 HOUR)
+      GROUP BY usuario_id, titulo
+      HAVING cnt > 5 
+    `);
+        let deletedCount = 0;
+        for (const spam of spamUsers) {
+            const [result] = await pool.query('DELETE FROM tickets WHERE usuario_id = ? AND titulo = ? AND created_at > (NOW() - INTERVAL 12 HOUR)', [spam.usuario_id, spam.titulo]);
+            deletedCount += result.affectedRows;
+        }
+        return { deletedCount };
+    }
     async list(filters) {
-        const { empresa_id, usuario_id, is_dev, is_admin, status, prioridade, categoria, search, busca, page = 1, limit = 20 } = filters;
-        const searchTerm = search || busca;
-        let query = `
-      SELECT t.*, u.nome as cliente_nome, r.nome as responsavel_nome, e.nome as empresa_nome
-      FROM tickets t
-      JOIN usuarios u ON t.usuario_id = u.id
-      JOIN empresas e ON t.empresa_id = e.id
-      LEFT JOIN usuarios r ON t.responsavel_id = r.id
-      WHERE 1=1
-    `;
+        const { empresa_id, usuario_id, is_dev, is_admin, status, prioridade, categoria, servico, search, responsavel_id, fila, page = 1, limit = 20, 
+        // Advanced Filters
+        tag, origem, created_from, created_to, updated_from, updated_to, sla_status, custom_field_search } = filters;
+        const searchTerm = search;
+        let baseWhere = 'WHERE 1=1';
+        let summaryWhere = 'WHERE 1=1';
         const params = [];
-        // ACL
+        // Regra de Negócio: Se não for desenvolvedor, só vê chamados da própria empresa
         if (!is_dev) {
-            if (is_admin) {
-                query += ' AND t.empresa_id = ?';
-                params.push(empresa_id);
-            }
-            else {
-                query += ' AND t.usuario_id = ?';
-                params.push(usuario_id);
+            baseWhere += ' AND t.empresa_id = ?';
+            summaryWhere += ' AND t.empresa_id = ?';
+            params.push(empresa_id);
+            // Enforce ticket view scopes
+            const [userRows] = await pool.query('SELECT * FROM usuarios WHERE id = ?', [usuario_id]);
+            const userObj = userRows[0];
+            const scope = userObj ? await getTicketScope(userObj) : { canViewAll: false, canViewOwn: false, canViewUnassigned: false };
+            if (!scope.canViewAll) {
+                const scopeConditions = [];
+                const scopeParams = [];
+                if (scope.canViewOwn) {
+                    scopeConditions.push('(t.responsavel_id = ? OR t.usuario_id = ?)');
+                    scopeParams.push(usuario_id, usuario_id);
+                }
+                if (scope.canViewUnassigned) {
+                    scopeConditions.push('t.responsavel_id IS NULL');
+                }
+                if (scopeConditions.length > 0) {
+                    const conditionSQL = ` AND (${scopeConditions.join(' OR ')})`;
+                    baseWhere += conditionSQL;
+                    summaryWhere += conditionSQL;
+                    params.push(...scopeParams);
+                }
+                else {
+                    baseWhere += ' AND 1=0';
+                    summaryWhere += ' AND 1=0';
+                }
             }
         }
-        // Filters
-        if (status) {
-            query += ' AND t.status = ?';
-            params.push(status);
+        else {
+            const empresaIdFilter = toPositiveInt(filters.empresa_id_filter);
+            if (empresaIdFilter) {
+                baseWhere += ' AND t.empresa_id = ?';
+                summaryWhere += ' AND t.empresa_id = ?';
+                params.push(empresaIdFilter);
+            }
         }
-        if (prioridade) {
-            query += ' AND t.prioridade = ?';
+        // Smart Queues (Filas Inteligentes)
+        if (fila && fila !== 'todos') {
+            switch (fila) {
+                case 'meus':
+                    baseWhere += ' AND t.responsavel_id = ?';
+                    summaryWhere += ' AND t.responsavel_id = ?';
+                    params.push(usuario_id);
+                    break;
+                case 'sem_responsavel':
+                    baseWhere += ' AND t.responsavel_id IS NULL';
+                    summaryWhere += ' AND t.responsavel_id IS NULL';
+                    break;
+                case 'urgentes':
+                    baseWhere += " AND t.prioridade IN ('alta', 'urgente')";
+                    summaryWhere += " AND t.prioridade IN ('alta', 'urgente')";
+                    break;
+                case 'sla_vencido':
+                    baseWhere += " AND t.prazo_sla < NOW() AND t.status NOT IN ('resolvido', 'fechado')";
+                    summaryWhere += " AND t.prazo_sla < NOW() AND t.status NOT IN ('resolvido', 'fechado')";
+                    break;
+                case 'vence_em_breve':
+                    baseWhere += " AND t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado')";
+                    summaryWhere += " AND t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado')";
+                    break;
+                case 'aguardando_cliente':
+                    baseWhere += " AND t.status = 'aguardando_cliente'";
+                    summaryWhere += " AND t.status = 'aguardando_cliente'";
+                    break;
+                case 'precisa_resposta':
+                    const prSQL = ` AND t.status NOT IN ('resolvido', 'fechado') AND (
+            NOT EXISTS (SELECT 1 FROM ticket_mensagens m_pr WHERE m_pr.ticket_id = t.id AND m_pr.interno = 0)
+            OR EXISTS (
+              SELECT 1 FROM ticket_mensagens m_pr 
+              WHERE m_pr.ticket_id = t.id AND m_pr.interno = 0 
+              AND m_pr.usuario_id = t.usuario_id
+              AND m_pr.id = (SELECT MAX(id) FROM ticket_mensagens WHERE ticket_id = t.id AND interno = 0)
+            )
+          )`;
+                    baseWhere += prSQL;
+                    summaryWhere += prSQL;
+                    break;
+            }
+        }
+        if (prioridade && prioridade !== 'todas') {
+            baseWhere += ' AND t.prioridade = ?';
+            summaryWhere += ' AND t.prioridade = ?';
             params.push(prioridade);
         }
-        if (categoria) {
-            query += ' AND t.categoria = ?';
+        if (categoria && categoria !== 'todas') {
+            baseWhere += ' AND t.categoria = ?';
+            summaryWhere += ' AND t.categoria = ?';
             params.push(categoria);
         }
-        if (searchTerm) {
-            query += ' AND (t.titulo LIKE ? OR t.descricao LIKE ? OR CAST(t.id AS CHAR) = ?)';
-            params.push(`%${searchTerm}%`, `%${searchTerm}%`, searchTerm);
+        if (servico && servico !== 'todos') {
+            baseWhere += ' AND t.servico = ?';
+            summaryWhere += ' AND t.servico = ?';
+            params.push(servico);
         }
-        query += ' ORDER BY t.created_at DESC';
-        const offset = (page - 1) * limit;
-        query += ' LIMIT ? OFFSET ?';
-        params.push(parseInt(limit.toString()), offset);
-        const [rows] = await pool.query(query, params);
-        return rows;
+        const safeResponsavelId = toPositiveInt(responsavel_id);
+        if (safeResponsavelId) {
+            baseWhere += ' AND t.responsavel_id = ?';
+            summaryWhere += ' AND t.responsavel_id = ?';
+            params.push(safeResponsavelId);
+        }
+        if (searchTerm) {
+            const searchPattern = `%${searchTerm}%`;
+            const searchParts = ' AND (t.titulo LIKE ? OR t.descricao LIKE ? OR CAST(t.id AS CHAR) = ? OR u.nome LIKE ?)';
+            baseWhere += searchParts;
+            summaryWhere += searchParts;
+            params.push(searchPattern, searchPattern, searchTerm, searchPattern);
+        }
+        // Apply Advanced Filters
+        const advanced = this.applyAdvancedFilters(baseWhere, summaryWhere, params, filters);
+        baseWhere = advanced.baseWhere;
+        summaryWhere = advanced.summaryWhere;
+        const finalParams = advanced.params;
+        // Status is only for items in list view
+        const summaryParams = [...finalParams]; // copy params for summary
+        if (status && status !== 'todos') {
+            baseWhere += ' AND t.status = ?';
+            finalParams.push(status);
+        }
+        // Summary calculation
+        const [summaryRows] = await pool.query(`
+      SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN t.status = 'aberto' THEN 1 ELSE 0 END) as aberto,
+        SUM(CASE WHEN t.status = 'em_andamento' THEN 1 ELSE 0 END) as em_andamento,
+        SUM(CASE WHEN t.status = 'aguardando_cliente' THEN 1 ELSE 0 END) as aguardando_cliente,
+        SUM(CASE WHEN t.status = 'resolvido' THEN 1 ELSE 0 END) as resolvido,
+        SUM(CASE WHEN t.status = 'fechado' THEN 1 ELSE 0 END) as fechado
+      FROM tickets t
+      LEFT JOIN usuarios u ON t.usuario_id = u.id
+      ${summaryWhere}
+    `, summaryParams);
+        const summary = summaryRows[0] || { total: 0, aberto: 0, em_andamento: 0, aguardando_cliente: 0, resolvido: 0, fechado: 0 };
+        const total = Number(summary.total || 0);
+        // Fetch items
+        const safePage = toPositiveInt(page) ?? 1;
+        const safeLimit = toPositiveInt(limit) ?? 20;
+        const offset = (safePage - 1) * safeLimit;
+        // Prioridade operacional: 
+        // 1. Precisa resposta
+        // 2. SLA vencido
+        // 3. Vence breve
+        // 4. Urgente
+        // 5. Sem responsável
+        const orderBy = `
+      (CASE WHEN t.status NOT IN ('resolvido', 'fechado') AND (
+        NOT EXISTS (SELECT 1 FROM ticket_mensagens m_pr WHERE m_pr.ticket_id = t.id AND m_pr.interno = 0)
+        OR EXISTS (
+          SELECT 1 FROM ticket_mensagens m_pr 
+          WHERE m_pr.ticket_id = t.id AND m_pr.interno = 0 
+          AND m_pr.usuario_id = t.usuario_id
+          AND m_pr.id = (SELECT MAX(id) FROM ticket_mensagens WHERE ticket_id = t.id AND interno = 0)
+        )
+      ) THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.prazo_sla < NOW() AND t.status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.prioridade = 'urgente' THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.prioridade = 'alta' THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.responsavel_id IS NULL THEN 1 ELSE 0 END) DESC,
+      t.updated_at DESC
+    `;
+        const [items] = await pool.query(`
+      SELECT t.*, 
+             COALESCE(t.solicitante_nome, u.nome, 'Usuário Removido') as cliente_nome, 
+             COALESCE(t.solicitante_email, u.email, 'Usuário Removido') as cliente_email, 
+             COALESCE(r.nome, 'Não Atribuído') as responsavel_nome, 
+             e.nome as empresa_nome
+      FROM tickets t
+      LEFT JOIN usuarios u ON t.usuario_id = u.id
+      LEFT JOIN empresas e ON t.empresa_id = e.id
+      LEFT JOIN usuarios r ON t.responsavel_id = r.id
+      ${baseWhere}
+      ORDER BY ${orderBy}
+      LIMIT ? OFFSET ?
+    `, [...finalParams, safeLimit, offset]);
+        // Enriquecer com tags
+        if (items.length > 0) {
+            const ticketIds = items.map((t) => t.id);
+            const tagsMap = await this.getTagsForTickets(ticketIds);
+            items.forEach((t) => {
+                t.tags = tagsMap[t.id] || [];
+            });
+        }
+        // Enriquecer com produtividade
+        await this.enrichTicketsWithProductivity(items, filters.usuario_id);
+        return {
+            data: items,
+            meta: {
+                page: safePage,
+                limit: safeLimit,
+                total,
+                totalPages: Math.ceil(total / safeLimit)
+            },
+            summary: {
+                total: Number(summary.total || 0),
+                aberto: Number(summary.aberto || 0),
+                em_andamento: Number(summary.em_andamento || 0),
+                aguardando_cliente: Number(summary.aguardando_cliente || 0),
+                resolvido: Number(summary.resolvido || 0),
+                fechado: Number(summary.fechado || 0)
+            },
+            queues: await this.getQueuesCounts(filters)
+        };
+    }
+    async getQueuesCounts(filters) {
+        const { empresa_id, usuario_id, is_dev } = filters;
+        let baseWhere = 'WHERE 1=1';
+        const params = [];
+        if (!is_dev) {
+            baseWhere += ' AND empresa_id = ?';
+            params.push(empresa_id);
+        }
+        else {
+            const empresaIdFilter = toPositiveInt(filters.empresa_id_filter);
+            if (empresaIdFilter) {
+                baseWhere += ' AND empresa_id = ?';
+                params.push(empresaIdFilter);
+            }
+            else {
+                // If dev hasn't selected a company, we might want to return 0s or total across all companies
+                // But usually dev selects a company. If not, this might be called without empresa_id.
+                // Let's assume dev needs a company filter for these queues to be meaningful.
+                return {
+                    todos: 0, meus: 0, sem_responsavel: 0, urgentes: 0, sla_vencido: 0, vence_em_breve: 0, aguardando_cliente: 0
+                };
+            }
+        }
+        const [rows] = await pool.query(`
+      SELECT 
+        COUNT(*) as todos,
+        SUM(CASE WHEN responsavel_id = ? THEN 1 ELSE 0 END) as meus,
+        SUM(CASE WHEN responsavel_id IS NULL THEN 1 ELSE 0 END) as sem_responsavel,
+        SUM(CASE WHEN prioridade IN ('alta', 'urgente') THEN 1 ELSE 0 END) as urgentes,
+        SUM(CASE WHEN prazo_sla < NOW() AND status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) as sla_vencido,
+        SUM(CASE WHEN prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) as vence_em_breve,
+        SUM(CASE WHEN status = 'aguardando_cliente' THEN 1 ELSE 0 END) as aguardando_cliente,
+        SUM(CASE WHEN status NOT IN ('resolvido', 'fechado') AND (
+          -- Nunca respondeu (apenas descrição inicial)
+          NOT EXISTS (SELECT 1 FROM ticket_mensagens m WHERE m.ticket_id = tickets.id AND m.interno = 0)
+          OR 
+          -- Última mensagem pública é do cliente
+          EXISTS (
+            SELECT 1 FROM ticket_mensagens m 
+            WHERE m.ticket_id = tickets.id AND m.interno = 0 
+            AND m.usuario_id = tickets.usuario_id
+            AND m.id = (SELECT MAX(id) FROM ticket_mensagens WHERE ticket_id = tickets.id AND interno = 0)
+          )
+        ) THEN 1 ELSE 0 END) as precisa_resposta
+      FROM tickets
+      ${baseWhere}
+    `, [usuario_id, ...params]);
+        const res = rows[0] || {};
+        return {
+            todos: Number(res.todos || 0),
+            meus: Number(res.meus || 0),
+            sem_responsavel: Number(res.sem_responsavel || 0),
+            urgentes: Number(res.urgentes || 0),
+            sla_vencido: Number(res.sla_vencido || 0),
+            vence_em_breve: Number(res.vence_em_breve || 0),
+            aguardando_cliente: Number(res.aguardando_cliente || 0),
+            precisa_resposta: Number(res.precisa_resposta || 0)
+        };
+    }
+    async getKanban(filters) {
+        const { empresa_id, usuario_id, is_dev, is_admin, responsavel_id, search, prioridade, categoria, servico, status, fila, 
+        // Advanced Filters
+        tag, origem, created_from, created_to, updated_from, updated_to, sla_status, custom_field_search } = filters;
+        const searchTerm = search;
+        let baseWhere = 'WHERE 1=1';
+        let summaryWhere = 'WHERE 1=1';
+        const params = [];
+        // Regra de Negócio: Se não for desenvolvedor, só vê chamados da própria empresa
+        if (!is_dev) {
+            baseWhere += ' AND t.empresa_id = ?';
+            summaryWhere += ' AND t.empresa_id = ?';
+            params.push(empresa_id);
+            // Enforce ticket view scopes
+            const [userRows] = await pool.query('SELECT * FROM usuarios WHERE id = ?', [usuario_id]);
+            const userObj = userRows[0];
+            const scope = userObj ? await getTicketScope(userObj) : { canViewAll: false, canViewOwn: false, canViewUnassigned: false };
+            if (!scope.canViewAll) {
+                const scopeConditions = [];
+                const scopeParams = [];
+                if (scope.canViewOwn) {
+                    scopeConditions.push('(t.responsavel_id = ? OR t.usuario_id = ?)');
+                    scopeParams.push(usuario_id, usuario_id);
+                }
+                if (scope.canViewUnassigned) {
+                    scopeConditions.push('t.responsavel_id IS NULL');
+                }
+                if (scopeConditions.length > 0) {
+                    const conditionSQL = ` AND (${scopeConditions.join(' OR ')})`;
+                    baseWhere += conditionSQL;
+                    summaryWhere += conditionSQL;
+                    params.push(...scopeParams);
+                }
+                else {
+                    baseWhere += ' AND 1=0';
+                    summaryWhere += ' AND 1=0';
+                }
+            }
+        }
+        else {
+            const empresaIdFilter = toPositiveInt(filters.empresa_id_filter);
+            if (empresaIdFilter) {
+                baseWhere += ' AND t.empresa_id = ?';
+                summaryWhere += ' AND t.empresa_id = ?';
+                params.push(empresaIdFilter);
+            }
+        }
+        // Smart Queues (Filas Inteligentes)
+        if (fila && fila !== 'todos') {
+            switch (fila) {
+                case 'meus':
+                    baseWhere += ' AND t.responsavel_id = ?';
+                    summaryWhere += ' AND t.responsavel_id = ?';
+                    params.push(usuario_id);
+                    break;
+                case 'sem_responsavel':
+                    baseWhere += ' AND t.responsavel_id IS NULL';
+                    summaryWhere += ' AND t.responsavel_id IS NULL';
+                    break;
+                case 'urgentes':
+                    baseWhere += " AND t.prioridade IN ('alta', 'urgente')";
+                    summaryWhere += " AND t.prioridade IN ('alta', 'urgente')";
+                    break;
+                case 'sla_vencido':
+                    baseWhere += " AND t.prazo_sla < NOW() AND t.status NOT IN ('resolvido', 'fechado')";
+                    summaryWhere += " AND t.prazo_sla < NOW() AND t.status NOT IN ('resolvido', 'fechado')";
+                    break;
+                case 'vence_em_breve':
+                    baseWhere += " AND t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado')";
+                    summaryWhere += " AND t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado')";
+                    break;
+                case 'aguardando_cliente':
+                    baseWhere += " AND t.status = 'aguardando_cliente'";
+                    summaryWhere += " AND t.status = 'aguardando_cliente'";
+                    break;
+                case 'precisa_resposta':
+                    const prSQL_K = ` AND t.status NOT IN ('resolvido', 'fechado') AND (
+             NOT EXISTS (SELECT 1 FROM ticket_mensagens m_pr WHERE m_pr.ticket_id = t.id AND m_pr.interno = 0)
+             OR EXISTS (
+               SELECT 1 FROM ticket_mensagens m_pr 
+               WHERE m_pr.ticket_id = t.id AND m_pr.interno = 0 
+               AND m_pr.usuario_id = t.usuario_id
+               AND m_pr.id = (SELECT MAX(id) FROM ticket_mensagens WHERE ticket_id = t.id AND interno = 0)
+             )
+           )`;
+                    baseWhere += prSQL_K;
+                    summaryWhere += prSQL_K;
+                    break;
+            }
+        }
+        // Common Filters
+        const safeResponsavelId = toPositiveInt(responsavel_id);
+        if (safeResponsavelId) {
+            baseWhere += ' AND t.responsavel_id = ?';
+            summaryWhere += ' AND t.responsavel_id = ?';
+            params.push(safeResponsavelId);
+        }
+        if (prioridade && prioridade !== 'todas') {
+            baseWhere += ' AND t.prioridade = ?';
+            summaryWhere += ' AND t.prioridade = ?';
+            params.push(prioridade);
+        }
+        if (categoria && categoria !== 'todas') {
+            baseWhere += ' AND t.categoria = ?';
+            summaryWhere += ' AND t.categoria = ?';
+            params.push(categoria);
+        }
+        if (servico && servico !== 'todos') {
+            baseWhere += ' AND t.servico = ?';
+            summaryWhere += ' AND t.servico = ?';
+            params.push(servico);
+        }
+        if (searchTerm) {
+            const searchPattern = `%${searchTerm}%`;
+            baseWhere += ' AND (t.titulo LIKE ? OR t.descricao LIKE ? OR CAST(t.id AS CHAR) = ? OR u.nome LIKE ?)';
+            summaryWhere += ' AND (t.titulo LIKE ? OR t.descricao LIKE ? OR CAST(t.id AS CHAR) = ? OR u.nome LIKE ?)';
+            params.push(searchPattern, searchPattern, searchTerm, searchPattern);
+        }
+        // Apply Advanced Filters
+        const advanced = this.applyAdvancedFilters(baseWhere, summaryWhere, params, filters);
+        baseWhere = advanced.baseWhere;
+        summaryWhere = advanced.summaryWhere;
+        const finalParams = advanced.params;
+        if (status && status !== 'todos') {
+            baseWhere += ' AND t.status = ?';
+            summaryWhere += ' AND t.status = ?';
+            finalParams.push(status);
+        }
+        const summaryParams = [...finalParams];
+        // Prioridade operacional
+        const orderBy_K = `
+      (CASE WHEN t.status NOT IN ('resolvido', 'fechado') AND (
+        NOT EXISTS (SELECT 1 FROM ticket_mensagens m_pr WHERE m_pr.ticket_id = t.id AND m_pr.interno = 0)
+        OR EXISTS (
+          SELECT 1 FROM ticket_mensagens m_pr 
+          WHERE m_pr.ticket_id = t.id AND m_pr.interno = 0 
+          AND m_pr.usuario_id = t.usuario_id
+          AND m_pr.id = (SELECT MAX(id) FROM ticket_mensagens WHERE ticket_id = t.id AND interno = 0)
+        )
+      ) THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.prazo_sla < NOW() AND t.status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.prioridade = 'urgente' THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.prioridade = 'alta' THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.responsavel_id IS NULL THEN 1 ELSE 0 END) DESC,
+      t.updated_at DESC
+    `;
+        const [tickets] = await pool.query(`
+      SELECT t.id, t.titulo, t.status, t.prioridade, t.categoria, t.servico, t.created_at, t.updated_at, t.prazo_sla, t.responsavel_id, t.empresa_id,
+             t.sla_status_operacional, t.sla_pausado_em,
+             COALESCE(t.solicitante_nome, u.nome, 'Usuário Removido') as cliente_nome, 
+             COALESCE(t.solicitante_email, u.email, 'Usuário Removido') as cliente_email, 
+             COALESCE(r.nome, 'Não Atribuído') as responsavel_nome, 
+             e.nome as empresa_nome
+      FROM tickets t
+      LEFT JOIN usuarios u ON t.usuario_id = u.id
+      LEFT JOIN empresas e ON t.empresa_id = e.id
+      LEFT JOIN usuarios r ON t.responsavel_id = r.id
+      ${baseWhere}
+      ORDER BY ${orderBy_K}
+    `, params);
+        // Enriquecer com tags
+        if (tickets.length > 0) {
+            const ticketIds = tickets.map((t) => t.id);
+            const tagsMap = await this.getTagsForTickets(ticketIds);
+            tickets.forEach((t) => {
+                t.tags = tagsMap[t.id] || [];
+            });
+        }
+        const [summaryRows] = await pool.query(`
+      SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN t.status = 'aberto' THEN 1 ELSE 0 END) as aberto,
+        SUM(CASE WHEN t.status = 'em_andamento' THEN 1 ELSE 0 END) as em_andamento,
+        SUM(CASE WHEN t.status = 'aguardando_cliente' THEN 1 ELSE 0 END) as aguardando_cliente,
+        SUM(CASE WHEN t.status = 'resolvido' THEN 1 ELSE 0 END) as resolvido,
+        SUM(CASE WHEN t.status = 'fechado' THEN 1 ELSE 0 END) as fechado
+      FROM tickets t
+      LEFT JOIN usuarios u ON t.usuario_id = u.id
+      ${summaryWhere}
+    `, summaryParams);
+        const summary = summaryRows[0] || { total: 0, aberto: 0, em_andamento: 0, aguardando_cliente: 0, resolvido: 0, fechado: 0 };
+        // Enriquecer com produtividade
+        await this.enrichTicketsWithProductivity(tickets, filters.usuario_id);
+        const columnsConfig = [
+            { id: 'aberto', title: 'Aberto' },
+            { id: 'em_andamento', title: 'Em andamento' },
+            { id: 'aguardando_cliente', title: 'Aguardando resposta' },
+            { id: 'resolvido', title: 'Finalizado' }
+        ];
+        const columns = columnsConfig.map(c => {
+            const colTickets = tickets.filter((t) => t.status === c.id);
+            return {
+                id: c.id,
+                title: c.title,
+                count: Number(summary[c.id] || 0),
+                tickets: colTickets
+            };
+        });
+        const totals = {
+            total: Number(summary.total || 0),
+            aberto: Number(summary.aberto || 0),
+            em_andamento: Number(summary.em_andamento || 0),
+            aguardando_cliente: Number(summary.aguardando_cliente || 0),
+            resolvido: Number(summary.resolvido || 0),
+            fechado: Number(summary.fechado || 0)
+        };
+        return { columns, totals, queues: await this.getQueuesCounts(filters) };
     }
     async create(data) {
-        const { empresa_id, usuario_id, titulo, descricao, prioridade, categoria } = data;
-        const [result] = await pool.query('INSERT INTO tickets (empresa_id, usuario_id, titulo, descricao, prioridade, categoria) VALUES (?, ?, ?, ?, ?, ?)', [empresa_id, usuario_id, titulo, descricao, prioridade || 'media', categoria || 'suporte']);
-        return result.insertId;
+        const { empresa_id, usuario_id, solicitante_nome, solicitante_email, titulo, descricao, categoria, servico, origem, email_channel_id, message_id } = data;
+        let prioridade = data.prioridade || 'media';
+        // Check SLA policy
+        let minutosSla = 24 * 60; // media padrão
+        let minutosPrimeiraResposta = 60; // 1 hora padrão
+        try {
+            const [politicas] = await pool.query('SELECT * FROM empresa_sla_politicas WHERE empresa_id = ? AND ativo = 1 ORDER BY ordem ASC', [empresa_id]);
+            let politicaEncontrada = null;
+            for (const pol of politicas) {
+                let matches = true;
+                if (pol.prioridade && pol.prioridade !== prioridade)
+                    matches = false;
+                if (pol.categoria && pol.categoria !== categoria)
+                    matches = false;
+                if (pol.servico && pol.servico !== servico)
+                    matches = false;
+                if (matches) {
+                    politicaEncontrada = pol;
+                    break;
+                }
+            }
+            if (politicaEncontrada) {
+                minutosSla = politicaEncontrada.tempo_resolucao_minutos;
+                minutosPrimeiraResposta = politicaEncontrada.tempo_primeira_resposta_minutos || 60;
+            }
+            else {
+                if (prioridade === 'urgente') {
+                    minutosSla = 4 * 60;
+                    minutosPrimeiraResposta = 30;
+                }
+                else if (prioridade === 'alta') {
+                    minutosSla = 12 * 60;
+                    minutosPrimeiraResposta = 60;
+                }
+                else if (prioridade === 'baixa') {
+                    minutosSla = 48 * 60;
+                    minutosPrimeiraResposta = 4 * 60;
+                }
+            }
+        }
+        catch (err) {
+            console.warn('Erro ao buscar SLA', err);
+        }
+        const agora = new Date();
+        const prazoSla = new Date(agora);
+        prazoSla.setMinutes(prazoSla.getMinutes() + minutosSla);
+        const prazoSlaFormatado = prazoSla.toISOString().slice(0, 19).replace('T', ' ');
+        const prazoPR = new Date(agora);
+        prazoPR.setMinutes(prazoPR.getMinutes() + minutosPrimeiraResposta);
+        const prazoPRFormatado = prazoPR.toISOString().slice(0, 19).replace('T', ' ');
+        let responsavel_id = data.responsavel_id || null;
+        const [result] = await pool.query(`INSERT INTO tickets (
+        empresa_id, usuario_id, solicitante_nome, solicitante_email, 
+        titulo, descricao, prioridade, categoria, servico, 
+        origem, email_channel_id, message_id,
+        prazo_sla, prazo_primeira_resposta, sla_primeira_resposta_status, responsavel_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+            empresa_id, usuario_id || null, solicitante_nome || null, solicitante_email || null,
+            titulo, descricao, prioridade || 'media', categoria || 'suporte', servico || null,
+            origem || 'sistema', email_channel_id || null, message_id || null,
+            prazoSlaFormatado, prazoPRFormatado, 'aguardando', responsavel_id
+        ]);
+        const ticketId = result.insertId;
+        // Initialize SLA Status Operacional
+        await slaService.updateOperationalStatus(ticketId);
+        // Track processed email to avoid duplicates
+        if (message_id) {
+            await pool.query('INSERT IGNORE INTO processed_emails (message_id, empresa_id, ticket_id) VALUES (?, ?, ?)', [message_id, empresa_id, ticketId]);
+        }
+        try {
+            if (!responsavel_id) {
+                const { distributeTicket } = await import('./distribution.service.js');
+                const distributedAgentId = await distributeTicket({ id: ticketId, empresa_id, categoria, servico });
+                if (distributedAgentId)
+                    responsavel_id = distributedAgentId;
+            }
+        }
+        catch (e) { }
+        try {
+            const { runAutomations } = await import('./automations.service.js');
+            // Pass the fully assembled ticket object
+            await runAutomations('ticket_criado', { id: ticketId, empresa_id, status: 'aberto', prioridade: prioridade || 'media', categoria, servico, responsavel_id }, { usuario_id });
+        }
+        catch (err) {
+            console.warn('Erro ao rodar automações', err);
+        }
+        try {
+            await recordTicketEvent({
+                ticket_id: ticketId,
+                empresa_id,
+                usuario_id,
+                tipo: 'ticket_criado',
+                descricao: 'Abertura do chamado'
+            });
+        }
+        catch (e) { }
+        // Notificações: Admins
+        try {
+            const [admins] = await pool.query('SELECT id FROM usuarios WHERE empresa_id = ? AND administrador = 1', [empresa_id]);
+            const adminIds = admins
+                .filter((a) => a.id !== usuario_id)
+                .map((a) => a.id);
+            let authorName = solicitante_nome || 'Cliente Externo';
+            let authorEmail = solicitante_email || '';
+            if (usuario_id) {
+                const [author] = await pool.query('SELECT nome, email FROM usuarios WHERE id = ?', [usuario_id]);
+                if (author[0]) {
+                    authorName = author[0].nome;
+                    authorEmail = author[0].email;
+                }
+            }
+            if (adminIds.length > 0) {
+                await notificationsService.createMany(adminIds, {
+                    empresa_id,
+                    tipo: 'TICKET_CREATED',
+                    titulo: 'Novo atendimento criado',
+                    mensagem: `${authorName} abriu o chamado #${ticketId}: ${titulo}`,
+                    link: `ticket:${ticketId}`,
+                    metadata: { ticketId }
+                });
+            }
+            if (authorEmail) {
+                const outboundMessageId = `<ticket-${ticketId}-msg-created-${Date.now()}@gestifique.com.br>`;
+                emailOutboundService.sendTicketEmail({
+                    to: authorEmail,
+                    ticketId,
+                    empresaId: empresa_id,
+                    emailChannelId: email_channel_id,
+                    type: 'ticket_created',
+                    title: titulo,
+                    customerName: authorName,
+                    message: descricao,
+                    status: 'Aberto',
+                    priority: prioridade,
+                    category: categoria,
+                    messageId: outboundMessageId,
+                    inReplyTo: message_id,
+                    references: message_id ? [message_id] : undefined,
+                }).then(async (sendResult) => {
+                    if (sendResult.success) {
+                        console.log(`[TicketsService] External notification email sent to ${authorEmail} for ticket #${ticketId} via ${sendResult.provider} (Message-ID: ${sendResult.messageId})`);
+                        await trackTicketEmailMessageIds(empresa_id, ticketId, outboundMessageId, sendResult);
+                    }
+                }).catch((err) => console.error('[TicketsService] Email error:', err));
+            }
+        }
+        catch (e) {
+            console.error('Erro ao notificar criação de ticket:', e);
+        }
+        return ticketId;
     }
-    async getById(id) {
+    async getByIdForUser(id, currentUser) {
+        const ticket = await this.getById(id);
+        if (!ticket)
+            return null;
+        const isSuperUser = currentUser.desenvolvedor === 1 ||
+            currentUser.desenvolvedor === true ||
+            currentUser.perfil === 'desenvolvedor' ||
+            currentUser.administrador === 1 ||
+            currentUser.administrador === true ||
+            currentUser.perfil === 'administrador';
+        if (!isSuperUser) {
+            if (ticket.empresa_id !== currentUser.empresa_id)
+                return { error: 'forbidden' };
+            // Enforce ticket view scopes
+            const scope = await getTicketScope(currentUser);
+            if (!scope.canViewAll) {
+                let isAllowedAndOwned = false;
+                if (scope.canViewOwn) {
+                    const isAuthor = Number(ticket.usuario_id) === Number(currentUser.id);
+                    const isAssignee = Number(ticket.responsavel_id) === Number(currentUser.id);
+                    if (isAuthor || isAssignee) {
+                        isAllowedAndOwned = true;
+                    }
+                }
+                let isAllowedAndUnassigned = false;
+                if (scope.canViewUnassigned) {
+                    if (ticket.responsavel_id === null || ticket.responsavel_id === undefined) {
+                        isAllowedAndUnassigned = true;
+                    }
+                }
+                if (!isAllowedAndOwned && !isAllowedAndUnassigned) {
+                    return { error: 'forbidden' };
+                }
+            }
+        }
+        return ticket;
+    }
+    async getById(id, currentUserId) {
         const [rows] = await pool.query(`SELECT 
         t.id, t.empresa_id, t.usuario_id, t.responsavel_id, t.titulo, t.descricao, 
-        t.status, t.prioridade, t.categoria, t.origem, t.prazo_sla, t.finalizado_em,
+        t.status, t.prioridade, t.categoria, t.servico, t.origem, t.email_channel_id, t.message_id, 
+        t.prazo_sla, t.finalizado_em,
+        t.prazo_primeira_resposta, t.primeira_resposta_em, t.sla_primeira_resposta_status, t.sla_resolucao_status,
+        t.sla_pausado_em, t.sla_pausado_total_minutos, t.sla_status_operacional,
+        t.resolucao_motivo, t.resolucao_observacao, t.reaberto_em, t.reaberto_por,
         t.created_at, t.updated_at,
-        u.nome as cliente_nome, u.email as cliente_email, 
-        r.nome as responsavel_nome, 
+        COALESCE(t.solicitante_nome, u.nome, 'Usuário Removido') as cliente_nome, 
+        COALESCE(t.solicitante_email, u.email, 'removido@sistema.com') as cliente_email, 
+        COALESCE(r.nome, 'Não Atribuído') as responsavel_nome, 
         e.nome as empresa_nome
        FROM tickets t 
-       JOIN usuarios u ON t.usuario_id = u.id 
+       LEFT JOIN usuarios u ON t.usuario_id = u.id 
        JOIN empresas e ON t.empresa_id = e.id
        LEFT JOIN usuarios r ON t.responsavel_id = r.id 
        WHERE t.id = ?`, [id]);
-        return rows[0] || null;
+        if (!rows[0])
+            return null;
+        const ticket = rows[0];
+        ticket.tags = await this.getTags(id);
+        ticket.custom_fields = await this.getCustomFields(id);
+        // Buscar satisfação se houver
+        const [csatRows] = await pool.query('SELECT id, nota, comentario, token, respondido_em FROM ticket_satisfacao WHERE ticket_id = ? ORDER BY created_at DESC LIMIT 1', [id]);
+        if (!csatRows[0]) {
+            ticket.satisfacao = { status: 'nao_enviada' };
+        }
+        else if (!csatRows[0].respondido_em) {
+            ticket.satisfacao = {
+                id: csatRows[0].id,
+                token: csatRows[0].token,
+                status: 'aguardando_resposta'
+            };
+        }
+        else {
+            ticket.satisfacao = {
+                id: csatRows[0].id,
+                token: csatRows[0].token,
+                nota: csatRows[0].nota,
+                comentario: csatRows[0].comentario,
+                respondido_em: csatRows[0].respondido_em,
+                status: 'respondida'
+            };
+        }
+        // Enriquecer com produtividade
+        const enriched = await this.enrichTicketsWithProductivity([ticket], currentUserId);
+        return enriched[0];
     }
-    async update(id, data) {
+    async updateStatus(id, status, changedByUserId, req) {
+        const validStatuses = ['aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado'];
+        if (!validStatuses.includes(status)) {
+            throw new Error(`Status inválido: ${status}`);
+        }
+        const oldTicket = await this.getById(id, changedByUserId);
+        if (!oldTicket) {
+            throw new Error('Chamado não encontrado');
+        }
+        if (oldTicket.status === status)
+            return;
+        let finalizado_em = null;
+        let sla_resolucao_status = oldTicket.sla_resolucao_status;
+        if (['resolvido', 'fechado'].includes(status)) {
+            finalizado_em = new Date().toISOString().slice(0, 19).replace('T', ' ');
+            if (oldTicket.prazo_sla) {
+                const finalData = new Date();
+                const prazoData = new Date(oldTicket.prazo_sla);
+                sla_resolucao_status = finalData <= prazoData ? 'cumprido' : 'violado';
+            }
+        }
+        await pool.query(`UPDATE tickets SET status = ?, finalizado_em = ${finalizado_em ? '?' : 'NULL'}, sla_resolucao_status = ?, updated_at = NOW() WHERE id = ?`, finalizado_em ? [status, finalizado_em, sla_resolucao_status, id] : [status, sla_resolucao_status, id]);
+        // Sprint 2: SLA Pause/Resume logic
+        if (status === 'aguardando_cliente') {
+            await slaService.pauseSla(id, changedByUserId);
+        }
+        else if (oldTicket.status === 'aguardando_cliente' && status !== 'aguardando_cliente') {
+            await slaService.resumeSla(id, changedByUserId);
+        }
+        else {
+            await slaService.updateOperationalStatus(id);
+        }
+        if (['resolvido', 'fechado'].includes(status) && !['resolvido', 'fechado'].includes(oldTicket.status)) {
+            await this.ensureSatisfactionSurvey(id, oldTicket.empresa_id, changedByUserId);
+            try {
+                await recordTicketEvent({
+                    ticket_id: id,
+                    empresa_id: oldTicket.empresa_id,
+                    usuario_id: changedByUserId,
+                    tipo: 'ticket_finalizado',
+                    descricao: `Chamado ${status}`
+                });
+            }
+            catch (err) { }
+        }
+        // Notificações de Status
+        // ... (rest of the code seems fine)
+        try {
+            const translateStatus = { aberto: 'Aberto', em_andamento: 'Em Andamento', aguardando_cliente: 'Aguardando Cliente', resolvido: 'Resolvido', fechado: 'Fechado' };
+            const newStatusText = translateStatus[status] || status;
+            // Notificar cliente
+            if (oldTicket.usuario_id && oldTicket.usuario_id !== changedByUserId) {
+                await notificationsService.create({
+                    usuario_id: oldTicket.usuario_id,
+                    empresa_id: oldTicket.empresa_id,
+                    tipo: 'TICKET_STATUS_CHANGED',
+                    titulo: 'Status atualizado',
+                    mensagem: `O status do seu chamado #${id} mudou para: ${newStatusText}`,
+                    link: `ticket:${id}`
+                });
+            }
+            // Notificar responsável (se existir e for diferente do cliente e de quem mudou)
+            const currentRespId = oldTicket.responsavel_id;
+            if (currentRespId && currentRespId !== oldTicket.usuario_id && currentRespId !== changedByUserId) {
+                await notificationsService.create({
+                    usuario_id: Number(currentRespId),
+                    empresa_id: oldTicket.empresa_id,
+                    tipo: 'TICKET_STATUS_CHANGED',
+                    titulo: 'Status atualizado',
+                    mensagem: `O chamado #${id} sob sua responsabilidade mudou para: ${newStatusText}`,
+                    link: `ticket:${id}`
+                });
+            }
+        }
+        catch (e) {
+            console.error('Erro ao notificar atualização de status do ticket:', e);
+        }
+        try {
+            await recordTicketEvent({
+                ticket_id: id,
+                empresa_id: oldTicket.empresa_id,
+                usuario_id: changedByUserId,
+                tipo: 'status_alterado',
+                descricao: `Status alterado de "${oldTicket.status}" para "${status}"`
+            });
+        }
+        catch (e) { }
+        try {
+            const { runAutomations } = await import('./automations.service.js');
+            await runAutomations('status_alterado', { ...oldTicket, status }, {});
+        }
+        catch (err) { }
+        return { oldStatus: oldTicket.status, newStatus: status, empresa_id: oldTicket.empresa_id };
+    }
+    async update(id, data, currentUser) {
+        const oldTicket = await this.getById(id);
+        if (!oldTicket)
+            return;
         const fields = [];
-        const params = [];
+        const paramsList = [];
         // Finalizado_em logic
         if (data.status) {
             if (['resolvido', 'fechado'].includes(data.status)) {
@@ -80,22 +943,217 @@ class TicketsService {
             }
         }
         Object.keys(data).forEach(key => {
-            if (['titulo', 'descricao', 'status', 'prioridade', 'responsavel_id', 'categoria', 'origem', 'prazo_sla'].includes(key)) {
+            if (['titulo', 'descricao', 'status', 'prioridade', 'responsavel_id', 'categoria', 'servico', 'origem', 'prazo_sla'].includes(key)) {
                 fields.push(`${key} = ?`);
-                params.push(data[key]);
+                paramsList.push(data[key]);
             }
         });
         if (fields.length === 0)
             return;
-        params.push(id);
-        await pool.query(`UPDATE tickets SET ${fields.join(', ')} WHERE id = ?`, params);
+        paramsList.push(id);
+        await pool.query(`UPDATE tickets SET ${fields.join(', ')} WHERE id = ?`, paramsList);
+        // Sprint 2: Handle SLA status Operational and Pause/Resume if status changed
+        if (data.status && data.status !== oldTicket.status) {
+            if (data.status === 'aguardando_cliente') {
+                await slaService.pauseSla(id, currentUser?.id || null);
+            }
+            else if (oldTicket.status === 'aguardando_cliente' && data.status !== 'aguardando_cliente') {
+                await slaService.resumeSla(id, currentUser?.id || null);
+            }
+            else {
+                await slaService.updateOperationalStatus(id);
+            }
+        }
+        else {
+            // For any other update, ensure status is still correct
+            await slaService.updateOperationalStatus(id);
+        }
+        // Notificações de Status ou Responsável
+        try {
+            if (data.responsavel_id && data.responsavel_id !== oldTicket.responsavel_id) {
+                await notificationsService.create({
+                    usuario_id: Number(data.responsavel_id),
+                    empresa_id: oldTicket.empresa_id,
+                    tipo: 'TICKET_ASSIGNED',
+                    titulo: 'Chamado atribuído a você',
+                    mensagem: `Você é o novo responsável pelo chamado #${id}: ${oldTicket.titulo}`,
+                    link: `ticket:${id}`
+                });
+            }
+            if (data.status && data.status !== oldTicket.status) {
+                const translateStatus = { aberto: 'Aberto', em_andamento: 'Em Andamento', aguardando_cliente: 'Aguardando Cliente', resolvido: 'Resolvido', fechado: 'Fechado' };
+                const newStatusText = translateStatus[data.status] || data.status;
+                // Notificar cliente
+                if (oldTicket.usuario_id) {
+                    await notificationsService.create({
+                        usuario_id: oldTicket.usuario_id,
+                        empresa_id: oldTicket.empresa_id,
+                        tipo: 'TICKET_STATUS_CHANGED',
+                        titulo: 'Status atualizado',
+                        mensagem: `O status do seu chamado #${id} mudou para: ${newStatusText}`,
+                        link: `ticket:${id}`
+                    });
+                }
+                // Notificar responsável (se existir e for diferente do cliente)
+                const currentRespId = data.responsavel_id || oldTicket.responsavel_id;
+                if (currentRespId && currentRespId !== oldTicket.usuario_id) {
+                    await notificationsService.create({
+                        usuario_id: Number(currentRespId),
+                        empresa_id: oldTicket.empresa_id,
+                        tipo: 'TICKET_STATUS_CHANGED',
+                        titulo: 'Status atualizado',
+                        mensagem: `O chamado #${id} sob sua responsabilidade mudou para: ${newStatusText}`,
+                        link: `ticket:${id}`
+                    });
+                }
+                // Disparar e-mail externo para cliente se resolvido ou fechado
+                if ((data.status === 'resolvido' || data.status === 'fechado') && oldTicket.cliente_email && oldTicket.cliente_email !== 'removido@sistema.com') {
+                    // Determine reason if available (it might be in 'data' object being updated now)
+                    const motivo = data.resolucao_motivo || oldTicket.resolucao_motivo;
+                    const observacao = data.resolucao_observacao || oldTicket.resolucao_observacao;
+                    const outboundMessageId = `<ticket-${id}-msg-${data.status}-${Date.now()}@gestifique.com.br>`;
+                    emailOutboundService.sendTicketEmail({
+                        to: oldTicket.cliente_email,
+                        ticketId: id,
+                        empresaId: oldTicket.empresa_id,
+                        emailChannelId: oldTicket.email_channel_id,
+                        type: data.status === 'resolvido' ? 'ticket_resolved' : 'ticket_closed',
+                        title: oldTicket.titulo,
+                        customerName: oldTicket.cliente_nome,
+                        status: newStatusText,
+                        resolutionReason: motivo,
+                        resolutionObservation: observacao,
+                        messageId: outboundMessageId,
+                        inReplyTo: oldTicket.message_id,
+                        references: oldTicket.message_id ? [oldTicket.message_id] : undefined,
+                    }).then(async (sendResult) => {
+                        if (sendResult.success) {
+                            console.log(`[TicketsService] External notification email sent to ${oldTicket.cliente_email} for ticket #${id} via ${sendResult.provider} (Status: ${data.status})`);
+                            await trackTicketEmailMessageIds(oldTicket.empresa_id, id, outboundMessageId, sendResult);
+                        }
+                    }).catch((err) => console.error('[TicketsService] Email error:', err));
+                }
+            }
+        }
+        catch (e) {
+            console.error('Erro ao notificar atualização de ticket:', e);
+        }
+        // Automations & CSAT
+        try {
+            if (data.status && ['resolvido', 'fechado'].includes(data.status) && !['resolvido', 'fechado'].includes(oldTicket.status)) {
+                await this.ensureSatisfactionSurvey(id, oldTicket.empresa_id, currentUser?.id || null);
+                await recordTicketEvent({
+                    ticket_id: id,
+                    empresa_id: oldTicket.empresa_id,
+                    usuario_id: currentUser?.id || null,
+                    tipo: 'ticket_finalizado',
+                    descricao: `Chamado ${data.status}`
+                });
+            }
+            if (data.status && data.status !== oldTicket.status) {
+                const { runAutomations } = await import('./automations.service.js');
+                await runAutomations('status_alterado', { ...oldTicket, ...data }, {});
+            }
+            if (data.categoria && data.categoria !== oldTicket.categoria) {
+                try {
+                    await recordTicketEvent({
+                        ticket_id: id,
+                        empresa_id: oldTicket.empresa_id,
+                        usuario_id: currentUser ? currentUser.id : null,
+                        tipo: 'categoria_alterada',
+                        descricao: `Categoria alterada de "${oldTicket.categoria || 'Nenhuma'}" para "${data.categoria || 'Nenhuma'}"`
+                    });
+                }
+                catch (err) { }
+            }
+            if (data.servico && data.servico !== oldTicket.servico) {
+                try {
+                    await recordTicketEvent({
+                        ticket_id: id,
+                        empresa_id: oldTicket.empresa_id,
+                        usuario_id: currentUser ? currentUser.id : null,
+                        tipo: 'servico_alterado',
+                        descricao: `Serviço alterado de "${oldTicket.servico || 'Nenhum'}" para "${data.servico || 'Nenhum'}"`
+                    });
+                }
+                catch (err) { }
+            }
+            if (data.origem && data.origem !== oldTicket.origem) {
+                try {
+                    await recordTicketEvent({
+                        ticket_id: id,
+                        empresa_id: oldTicket.empresa_id,
+                        usuario_id: currentUser ? currentUser.id : null,
+                        tipo: 'origem_alterada',
+                        descricao: `Origem alterada de "${oldTicket.origem || 'Não informada'}" para "${data.origem || 'Não informada'}"`
+                    });
+                }
+                catch (err) { }
+            }
+            if (data.prazo_sla && String(data.prazo_sla) !== String(oldTicket.prazo_sla)) {
+                try {
+                    await recordTicketEvent({
+                        ticket_id: id,
+                        empresa_id: oldTicket.empresa_id,
+                        usuario_id: currentUser ? currentUser.id : null,
+                        tipo: 'sla_recalculado',
+                        descricao: `Prazo SLA alterado`
+                    });
+                }
+                catch (err) { }
+            }
+            if (data.prioridade && data.prioridade !== oldTicket.prioridade) {
+                try {
+                    await recordTicketEvent({
+                        ticket_id: id,
+                        empresa_id: oldTicket.empresa_id,
+                        usuario_id: currentUser ? currentUser.id : null,
+                        tipo: 'prioridade_alterada',
+                        descricao: `Prioridade alterada de "${oldTicket.prioridade}" para "${data.prioridade}"`
+                    });
+                }
+                catch (err) { }
+                const { runAutomations } = await import('./automations.service.js');
+                await runAutomations('prioridade_alterada', { ...oldTicket, ...data }, {});
+            }
+            if (data.responsavel_id !== undefined && data.responsavel_id !== oldTicket.responsavel_id) {
+                try {
+                    let oldName = 'Nenhum';
+                    let newName = 'Nenhum';
+                    if (oldTicket.responsavel_id) {
+                        const [o] = await pool.query('SELECT nome FROM usuarios WHERE id = ?', [oldTicket.responsavel_id]);
+                        if (o[0])
+                            oldName = o[0].nome;
+                    }
+                    if (data.responsavel_id) {
+                        const [n] = await pool.query('SELECT nome FROM usuarios WHERE id = ?', [data.responsavel_id]);
+                        if (n[0])
+                            newName = n[0].nome;
+                    }
+                    await recordTicketEvent({
+                        ticket_id: id,
+                        empresa_id: oldTicket.empresa_id,
+                        usuario_id: currentUser ? currentUser.id : null,
+                        tipo: 'responsavel_alterado',
+                        descricao: `Responsável alterado de "${oldName}" para "${newName}"`
+                    });
+                }
+                catch (err) { }
+                const { runAutomations } = await import('./automations.service.js');
+                await runAutomations('responsavel_alterado', { ...oldTicket, ...data }, {});
+            }
+        }
+        catch (err) {
+            console.warn('Erro rodar automacoes update', err);
+        }
     }
     async getMessages(ticketId, includeInternal) {
         let query = `
-      SELECT m.id, m.ticket_id, m.usuario_id, m.mensagem, m.interno, m.anexo, m.created_at,
-             u.nome as usuario_nome 
+      SELECT m.id, m.ticket_id, m.usuario_id, m.mensagem, m.interno, m.anexo, m.message_id, m.created_at,
+             COALESCE(u.nome, t.solicitante_nome, 'Cliente') as usuario_nome 
       FROM ticket_mensagens m
-      JOIN usuarios u ON m.usuario_id = u.id
+      LEFT JOIN usuarios u ON m.usuario_id = u.id
+      LEFT JOIN tickets t ON m.ticket_id = t.id
       WHERE m.ticket_id = ?
     `;
         if (!includeInternal)
@@ -104,10 +1162,535 @@ class TicketsService {
         const [rows] = await pool.query(query, [ticketId]);
         return rows;
     }
-    async addMessage(data) {
-        const { ticket_id, usuario_id, mensagem, interno } = data;
-        await pool.query('INSERT INTO ticket_mensagens (ticket_id, usuario_id, mensagem, interno) VALUES (?, ?, ?, ?)', [ticket_id, usuario_id, mensagem, interno ? 1 : 0]);
-        await pool.query('UPDATE tickets SET updated_at = NOW() WHERE id = ?', [ticket_id]);
+    async addMessage(data, currentUser) {
+        return ticketMessagesService.addMessage(data, currentUser);
+    }
+    async ensureSatisfactionSurvey(ticketId, empresaId, usuarioId) {
+        try {
+            const [existingCsat] = await pool.query('SELECT id FROM ticket_satisfacao WHERE ticket_id = ? LIMIT 1', [ticketId]);
+            if (existingCsat.length === 0) {
+                const { randomUUID } = await import('crypto');
+                const token = randomUUID();
+                await pool.query('INSERT INTO ticket_satisfacao (ticket_id, empresa_id, token) VALUES (?, ?, ?)', [ticketId, empresaId, token]);
+                await recordTicketEvent({
+                    ticket_id: ticketId,
+                    empresa_id: empresaId,
+                    usuario_id: usuarioId,
+                    tipo: 'satisfacao_enviada',
+                    descricao: 'Pesquisa de satisfação gerada para o atendimento'
+                });
+            }
+        }
+        catch (error) {
+            console.warn('Erro ao gerar pesquisa de satisfação:', error);
+        }
+    }
+    async resolveTicket(id, data, currentUser) {
+        const { status, resolucao_motivo, resolucao_observacao } = data;
+        if (!['resolvido', 'fechado'].includes(status))
+            throw new Error('Status inválido para resolução');
+        if (!resolucao_motivo)
+            throw new Error('Motivo de resolução é obrigatório');
+        const validMotivos = [
+            'duvida_sanada', 'problema_corrigido', 'solicitacao_atendida',
+            'cancelamento_realizado', 'duplicado', 'sem_retorno_cliente',
+            'improcedente', 'encaminhado', 'outros',
+            'resolvido', 'cancelado', 'outro' // Compatibilidade
+        ];
+        if (!validMotivos.includes(resolucao_motivo)) {
+            throw new Error('Motivo de resolução inválido');
+        }
+        const oldTicket = await this.getById(id);
+        if (!oldTicket)
+            throw new Error('Ticket não encontrado');
+        const observacao = resolucao_observacao ? String(resolucao_observacao).substring(0, 2000) : null;
+        let sla_resolucao_status = oldTicket.sla_resolucao_status;
+        if (oldTicket.prazo_sla) {
+            const finalData = new Date();
+            const prazoData = new Date(oldTicket.prazo_sla);
+            sla_resolucao_status = finalData <= prazoData ? 'cumprido' : 'violado';
+        }
+        await pool.query('UPDATE tickets SET status = ?, resolucao_motivo = ?, resolucao_observacao = ?, finalizado_em = NOW(), sla_resolucao_status = ?, updated_at = NOW() WHERE id = ?', [status, resolucao_motivo, observacao, sla_resolucao_status, id]);
+        // Sprint 2: Sync SLA Status
+        if (oldTicket.status === 'aguardando_cliente') {
+            await slaService.resumeSla(id, currentUser?.id || null);
+        }
+        else {
+            await slaService.updateOperationalStatus(id);
+        }
+        if (!['resolvido', 'fechado'].includes(oldTicket.status)) {
+            await this.ensureSatisfactionSurvey(id, oldTicket.empresa_id, currentUser?.id || null);
+            await recordTicketEvent({
+                ticket_id: id,
+                empresa_id: oldTicket.empresa_id,
+                usuario_id: currentUser?.id || null,
+                tipo: 'ticket_finalizado',
+                descricao: `Chamado ${status}`
+            });
+        }
+        return { success: true };
+    }
+    async reopenTicket(id, currentUser) {
+        const ticket = await this.getById(id);
+        if (!ticket)
+            throw new Error('Ticket não encontrado');
+        if (!['resolvido', 'fechado'].includes(ticket.status))
+            throw new Error('Apenas tickets resolvidos ou fechados podem ser reabertos');
+        await pool.query('UPDATE tickets SET status = "aberto", finalizado_em = NULL, reaberto_em = NOW(), reaberto_por = ?, updated_at = NOW() WHERE id = ?', [currentUser.id, id]);
+        // Sprint 2: Sync SLA Status
+        if (ticket.status === 'aguardando_cliente') {
+            await slaService.resumeSla(id, currentUser.id);
+        }
+        else {
+            await slaService.updateOperationalStatus(id);
+        }
+        return { success: true };
+    }
+    // VIEWS
+    async getViews(usuarioId, empresaId) {
+        const [rows] = await pool.query('SELECT * FROM ticket_views WHERE usuario_id = ? AND empresa_id = ? ORDER BY nome ASC', [usuarioId, empresaId]);
+        return rows.map((r) => ({
+            ...r,
+            filtros_json: typeof r.filtros_json === 'string' ? JSON.parse(r.filtros_json) : r.filtros_json
+        }));
+    }
+    async createView(data) {
+        const { empresa_id, usuario_id, nome, filtros_json } = data;
+        const [result] = await pool.query('INSERT INTO ticket_views (empresa_id, usuario_id, nome, filtros_json) VALUES (?, ?, ?, ?)', [empresa_id, usuario_id, nome, JSON.stringify(filtros_json)]);
+        return result.insertId;
+    }
+    async updateView(id, data, usuarioId) {
+        const { nome, filtros_json } = data;
+        await pool.query('UPDATE ticket_views SET nome = ?, filtros_json = ? WHERE id = ? AND usuario_id = ?', [nome, JSON.stringify(filtros_json), id, usuarioId]);
+    }
+    async deleteView(id, usuarioId) {
+        await pool.query('DELETE FROM ticket_views WHERE id = ? AND usuario_id = ?', [id, usuarioId]);
+    }
+    async getTimeline(ticketId, includeInternal) {
+        const ticket = await this.getById(ticketId);
+        if (!ticket)
+            return null;
+        const timeline = [];
+        // 1. Initial Creation
+        timeline.push({
+            type: 'creation',
+            date: ticket.created_at,
+            author: ticket.cliente_nome || 'Cliente',
+            description: 'Chamado aberto no sistema',
+            icon: 'plus-circle'
+        });
+        // 2. Messages
+        let msgQuery = `
+      SELECT m.*, u.nome as usuario_nome 
+      FROM ticket_mensagens m
+      LEFT JOIN usuarios u ON m.usuario_id = u.id
+      WHERE m.ticket_id = ?
+    `;
+        if (!includeInternal)
+            msgQuery += ' AND m.interno = 0';
+        const [messages] = await pool.query(msgQuery, [ticketId]);
+        messages.forEach((m) => {
+            timeline.push({
+                type: m.interno ? 'internal_note' : 'response',
+                date: m.created_at,
+                author: m.usuario_nome || 'Usuário',
+                description: m.mensagem.length > 200 ? m.mensagem.substring(0, 197) + '...' : m.mensagem,
+                id: m.id,
+                is_internal: !!m.interno,
+                icon: m.interno ? 'lock' : 'message-circle'
+            });
+        });
+        // 3. System Logs (Tracking status, assignment, etc)
+        const [logs] = await pool.query(`
+      SELECT l.*, u.nome as usuario_nome 
+      FROM logs_sistema l
+      LEFT JOIN usuarios u ON l.usuario_id = u.id
+      WHERE (l.descricao LIKE ? OR l.descricao LIKE ?)
+      ORDER BY l.created_at ASC
+    `, [`%#${ticketId} %`, `%#${ticketId}`]);
+        logs.forEach((l) => {
+            // Basic filtering: common users don't see internal logs (if we had a way to tag them)
+            if (!includeInternal && (l.acao === 'INTERNAL_NOTE' || l.descricao.toLowerCase().includes('interno') || l.acao === 'TICKET_BULK_ACTION')) {
+                return;
+            }
+            let type = 'system';
+            let icon = 'activity';
+            if (l.acao === 'TICKET_STATUS_CHANGE' || l.acao === 'TICKET_STATUS_CHANGED')
+                icon = 'refresh-cw';
+            if (l.acao === 'TICKET_UPDATE' && l.descricao.includes('responsável'))
+                icon = 'user-check';
+            if (l.acao === 'ATTACHMENT_UPLOAD')
+                icon = 'paperclip';
+            if (l.acao.includes('TAG')) {
+                icon = 'tag';
+                type = 'tag_change';
+            }
+            if (l.acao.includes('CUSTOM_FIELD')) {
+                icon = 'edit-3';
+                type = 'custom_field';
+            }
+            timeline.push({
+                type,
+                date: l.created_at,
+                author: l.usuario_nome || 'Sistema',
+                action: l.acao,
+                description: l.descricao,
+                icon
+            });
+        });
+        // 4. Finalization (if any)
+        if (ticket.finalizado_em) {
+            timeline.push({
+                type: 'completion',
+                date: ticket.finalizado_em,
+                author: 'Sistema',
+                description: `Chamado ${ticket.status === 'resolvido' ? 'Resolvido' : 'Fechado'}${ticket.resolucao_motivo ? ` (Motivo: ${ticket.resolucao_motivo})` : ''}`,
+                icon: 'check-circle'
+            });
+        }
+        // 5. Reopening (if any)
+        if (ticket.reaberto_em) {
+            timeline.push({
+                type: 'reopen',
+                date: ticket.reaberto_em,
+                author: 'Sistema',
+                description: 'Chamado reaberto para atendimento',
+                icon: 'rotate-ccw'
+            });
+        }
+        // 6. Ticket Eventos
+        const [eventos] = await pool.query(`
+      SELECT te.*, u.nome as usuario_nome
+      FROM ticket_eventos te
+      LEFT JOIN usuarios u ON te.usuario_id = u.id
+      WHERE te.ticket_id = ?
+    `, [ticketId]);
+        const mapEventIcon = (tipo) => {
+            switch (tipo) {
+                case 'automacao_executada': return 'zap';
+                case 'distribuicao_automatica': return 'user-check';
+                case 'sla_recalculado': return 'clock';
+                case 'satisfacao_enviada': return 'star';
+                case 'satisfacao_respondida': return 'star';
+                case 'macro_usada': return 'message-square';
+                case 'status_alterado': return 'refresh-cw';
+                case 'prioridade_alterada': return 'alert-circle';
+                case 'responsavel_alterado': return 'user-check';
+                case 'categoria_alterada': return 'tag';
+                case 'servico_alterado': return 'briefcase';
+                default: return 'activity';
+            }
+        };
+        eventos.forEach((e) => {
+            let parsedMetadata = {};
+            if (typeof e.metadata_json === 'string') {
+                try {
+                    parsedMetadata = JSON.parse(e.metadata_json);
+                }
+                catch (_) { }
+            }
+            else if (e.metadata_json) {
+                parsedMetadata = e.metadata_json;
+            }
+            timeline.push({
+                type: 'event',
+                date: e.created_at,
+                author: e.usuario_nome || 'Sistema',
+                action: e.tipo,
+                description: e.descricao,
+                metadata: parsedMetadata,
+                icon: mapEventIcon(e.tipo)
+            });
+        });
+        // Sort by date ascending (oldest first)
+        timeline.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        return timeline;
+    }
+    // TAGS
+    async getTags(ticketId) {
+        const [rows] = await pool.query('SELECT tag FROM ticket_tags WHERE ticket_id = ? ORDER BY tag ASC', [ticketId]);
+        return rows.map((r) => r.tag);
+    }
+    async getTagsForTickets(ticketIds) {
+        if (!ticketIds || ticketIds.length === 0)
+            return {};
+        const placeholders = ticketIds.map(() => '?').join(',');
+        const [rows] = await pool.query(`SELECT ticket_id, tag FROM ticket_tags WHERE ticket_id IN (${placeholders}) ORDER BY tag ASC`, ticketIds);
+        const map = {};
+        rows.forEach((r) => {
+            if (!map[r.ticket_id])
+                map[r.ticket_id] = [];
+            map[r.ticket_id].push(r.tag);
+        });
+        return map;
+    }
+    normalizeTag(tag) {
+        return String(tag || '')
+            .trim()
+            .toLowerCase()
+            .replace(/^#+/, '')
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9-_]/g, '')
+            .slice(0, 50);
+    }
+    async addTag(ticketId, tag) {
+        const normalized = this.normalizeTag(tag);
+        if (!normalized)
+            return;
+        try {
+            await pool.query('INSERT IGNORE INTO ticket_tags (ticket_id, tag) VALUES (?, ?)', [ticketId, normalized]);
+        }
+        catch (e) {
+            console.error('Error adding tag:', e);
+        }
+    }
+    async removeTag(ticketId, tag) {
+        await pool.query('DELETE FROM ticket_tags WHERE ticket_id = ? AND tag = ?', [ticketId, tag]);
+    }
+    async setTags(ticketId, tags) {
+        await pool.query('DELETE FROM ticket_tags WHERE ticket_id = ?', [ticketId]);
+        for (const tag of tags) {
+            await this.addTag(ticketId, tag);
+        }
+    }
+    // CUSTOM FIELDS
+    async getCustomFields(ticketId) {
+        const [rows] = await pool.query('SELECT * FROM ticket_custom_fields WHERE ticket_id = ? ORDER BY field_label ASC', [ticketId]);
+        return rows;
+    }
+    normalizeFieldKey(labelOrKey) {
+        return String(labelOrKey || '')
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, '_')
+            .replace(/[^a-z0-9_]/g, '')
+            .substring(0, 80);
+    }
+    async updateCustomField(ticketId, field) {
+        const key = this.normalizeFieldKey(field.field_key || field.field_label);
+        if (!key)
+            return;
+        const label = String(field.field_label || key).substring(0, 120);
+        const value = String(field.field_value || '').substring(0, 1000);
+        await pool.query(`INSERT INTO ticket_custom_fields (ticket_id, field_key, field_label, field_value) 
+       VALUES (?, ?, ?, ?) 
+       ON DUPLICATE KEY UPDATE field_label = VALUES(field_label), field_value = VALUES(field_value)`, [ticketId, key, label, value]);
+    }
+    async setCustomFields(ticketId, fields) {
+        if (!Array.isArray(fields))
+            return;
+        // Se fields vier vazio, limpa tudo (ou podemos manter e só atualizar os que vierem)
+        // O requisito diz: se fields vier vazio, remover todos campos do ticket.
+        if (fields.length === 0) {
+            await pool.query('DELETE FROM ticket_custom_fields WHERE ticket_id = ?', [ticketId]);
+            return;
+        }
+        // Para um 'set' completo, poderíamos deletar e inserir, mas ON DUPLICATE KEY funciona se quisermos apenas sincronizar.
+        // Mas para remover quem não está no array, precisamos de uma lógica extra ou deletar antes.
+        await pool.query('DELETE FROM ticket_custom_fields WHERE ticket_id = ?', [ticketId]);
+        const processedKeys = new Set();
+        for (const field of fields) {
+            const key = this.normalizeFieldKey(field.field_key || field.field_label);
+            if (key && !processedKeys.has(key)) {
+                await this.updateCustomField(ticketId, field);
+                processedKeys.add(key);
+            }
+        }
+    }
+    async removeCustomField(ticketId, fieldKey) {
+        await pool.query('DELETE FROM ticket_custom_fields WHERE ticket_id = ? AND field_key = ?', [ticketId, fieldKey]);
+    }
+    // BULK ACTIONS
+    async bulkUpdate(params) {
+        const { ticketIds, action, value, currentUser } = params;
+        if (!Array.isArray(ticketIds) || ticketIds.length === 0) {
+            return { updated: 0, skipped: 0, errors: ['Nenhum ticket informado'] };
+        }
+        // Limitar a 100 e remover duplicados
+        const uniqueIds = Array.from(new Set(ticketIds.slice(0, 100))).map(id => Number(id)).filter(id => id > 0);
+        if (uniqueIds.length === 0) {
+            return { updated: 0, skipped: 0, errors: ['IDs inválidos'] };
+        }
+        let updated = 0;
+        let skipped = 0;
+        const errors = [];
+        for (const id of uniqueIds) {
+            try {
+                const ticket = await this.getByIdForUser(id, currentUser);
+                if (!ticket || ticket.error) {
+                    skipped++;
+                    errors.push(`Ticket #${id}: Acesso negado ou não encontrado.`);
+                    continue;
+                }
+                switch (action) {
+                    case 'status':
+                        const validStatus = ['aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado'];
+                        if (validStatus.includes(value)) {
+                            await this.updateStatus(id, value, currentUser.id);
+                            updated++;
+                        }
+                        else {
+                            skipped++;
+                        }
+                        break;
+                    case 'prioridade':
+                        const validPriorities = ['baixa', 'media', 'alta', 'urgente'];
+                        if (validPriorities.includes(value)) {
+                            await this.update(id, { prioridade: value });
+                            updated++;
+                        }
+                        else {
+                            skipped++;
+                        }
+                        break;
+                    case 'responsavel':
+                        // Se value for informado, verificar se o usuário existe e pertence à mesma empresa
+                        if (value !== null) {
+                            const [agent] = await pool.query('SELECT id, empresa_id FROM usuarios WHERE id = ? AND ativo = 1', [value]);
+                            if (!agent[0] || (!currentUser.desenvolvedor && agent[0].empresa_id !== ticket.empresa_id)) {
+                                skipped++;
+                                errors.push(`Ticket #${id}: Responsável inválido para esta empresa.`);
+                                continue;
+                            }
+                            // Verificar se o ticket pertence à empresa do agente (no caso de dev alterando múltiplos)
+                            if (agent[0].empresa_id !== ticket.empresa_id) {
+                                skipped++;
+                                errors.push(`Ticket #${id}: Responsável não pertence à empresa do ticket.`);
+                                continue;
+                            }
+                        }
+                        await this.update(id, { responsavel_id: value });
+                        updated++;
+                        break;
+                    case 'add_tag':
+                        if (value) {
+                            await this.addTag(id, String(value));
+                            updated++;
+                        }
+                        else {
+                            skipped++;
+                        }
+                        break;
+                    case 'fechar':
+                        await this.updateStatus(id, 'fechado', currentUser.id);
+                        updated++;
+                        break;
+                    default:
+                        skipped++;
+                }
+            }
+            catch (err) {
+                skipped++;
+                errors.push(`Erro no ticket #${id}: ${err.message || 'Erro desconhecido'}`);
+            }
+        }
+        return { updated, skipped, errors };
+    }
+    async markAsRead(ticketId, usuarioId) {
+        await pool.query(`INSERT INTO ticket_leituras (ticket_id, usuario_id, last_read_at) 
+       VALUES (?, ?, NOW()) 
+       ON DUPLICATE KEY UPDATE last_read_at = NOW()`, [ticketId, usuarioId]);
+        return true;
+    }
+    async enrichTicketsWithProductivity(tickets, currentUserId) {
+        if (tickets.length === 0)
+            return tickets;
+        const ticketIds = tickets.map(t => t.id);
+        // 1. Fetch last public message for each ticket (for state calculation)
+        const [publicMessages] = await pool.query(`
+      SELECT m.ticket_id, m.id, m.usuario_id, m.created_at
+      FROM ticket_mensagens m
+      WHERE m.id IN (
+        SELECT MAX(id) FROM ticket_mensagens WHERE ticket_id IN (?) AND (interno = 0) GROUP BY ticket_id
+      )
+    `, [ticketIds]);
+        // 2. Fetch last overall message for each ticket (for "last message in list")
+        const [lastMessages] = await pool.query(`
+      SELECT m.ticket_id, m.id as mensagem_id, m.usuario_id as mensagem_usuario_id, m.created_at as ultima_mensagem_em, 
+             COALESCE(u.nome, t.solicitante_nome, 'Cliente') as ultima_mensagem_por_nome, m.interno as ultima_mensagem_interna
+      FROM ticket_mensagens m
+      LEFT JOIN usuarios u ON m.usuario_id = u.id
+      LEFT JOIN tickets t ON m.ticket_id = t.id
+      WHERE m.id IN (
+        SELECT MAX(id) FROM ticket_mensagens WHERE ticket_id IN (?) GROUP BY ticket_id
+      )
+    `, [ticketIds]);
+        // 3. Fetch read receipts if currentUserId is provided
+        let readReceiptsMap = {};
+        if (currentUserId) {
+            const [readRows] = await pool.query('SELECT ticket_id, last_read_at FROM ticket_leituras WHERE usuario_id = ? AND ticket_id IN (?)', [currentUserId, ticketIds]);
+            readReceiptsMap = readRows.reduce((acc, r) => {
+                acc[r.ticket_id] = r.last_read_at;
+                return acc;
+            }, {});
+        }
+        const publicMsgMap = publicMessages.reduce((acc, m) => {
+            acc[m.ticket_id] = m;
+            return acc;
+        }, {});
+        const lastMsgMap = lastMessages.reduce((acc, m) => {
+            acc[m.ticket_id] = m;
+            return acc;
+        }, {});
+        tickets.forEach(t => {
+            const lmPub = publicMsgMap[t.id];
+            const lmAll = lastMsgMap[t.id];
+            const lastRead = readReceiptsMap[t.id];
+            // Calculate estado_atendimento
+            let estado = 'sem_resposta';
+            if (['resolvido', 'fechado'].includes(t.status)) {
+                estado = 'finalizado';
+            }
+            else if (t.status === 'aguardando_cliente') {
+                estado = 'aguardando_cliente';
+            }
+            else if (!lmPub) {
+                estado = 'sem_resposta';
+            }
+            else if (Number(lmPub.usuario_id) === Number(t.usuario_id)) {
+                estado = 'cliente_respondeu';
+            }
+            else {
+                estado = 'atendente_respondeu';
+            }
+            t.estado_atendimento = estado;
+            t.precisa_resposta = (estado === 'cliente_respondeu' || estado === 'sem_resposta') && !['resolvido', 'fechado'].includes(t.status);
+            if (lmAll) {
+                t.ultima_mensagem_em = lmAll.ultima_mensagem_em;
+                t.ultima_mensagem_por_nome = lmAll.ultima_mensagem_por_nome;
+                t.ultima_mensagem_interna = Number(lmAll.ultima_mensagem_interna) === 1;
+                // "Unread" Logic
+                if (currentUserId) {
+                    const isOwnMessage = Number(lmAll.mensagem_usuario_id) === Number(currentUserId);
+                    if (isOwnMessage) {
+                        t.nao_lido = false;
+                    }
+                    else {
+                        const lastMsgDate = new Date(lmAll.ultima_mensagem_em).getTime();
+                        const lastReadDate = lastRead ? new Date(lastRead).getTime() : 0;
+                        t.nao_lido = lastMsgDate > lastReadDate;
+                    }
+                }
+            }
+            else {
+                // Se sem mensagens, a última movimentação foi a criação
+                t.ultima_mensagem_em = t.created_at;
+                t.ultima_mensagem_por_nome = t.cliente_nome || 'Solicitante';
+                t.ultima_mensagem_interna = false;
+                if (currentUserId) {
+                    const isOwnTicket = Number(t.usuario_id) === Number(currentUserId);
+                    if (isOwnTicket) {
+                        t.nao_lido = false;
+                    }
+                    else {
+                        const creationDate = new Date(t.created_at).getTime();
+                        const lastReadDate = lastRead ? new Date(lastRead).getTime() : 0;
+                        t.nao_lido = creationDate > lastReadDate;
+                    }
+                }
+            }
+        });
+        return tickets;
     }
 }
 export default new TicketsService();

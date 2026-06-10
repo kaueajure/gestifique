@@ -3,8 +3,8 @@ import bcrypt from 'bcryptjs';
 class UsersService {
     async list(filters) {
         let query = `
-      SELECT u.id, u.nome, u.email, u.telefone, u.cargo, u.administrador, u.desenvolvedor, 
-             u.ativo, u.ultimo_login, u.created_at, u.empresa_id, e.nome as empresa_nome 
+      SELECT u.id, u.nome, u.email, u.cargo, u.administrador, u.desenvolvedor, 
+             u.ativo, u.empresa_id, u.perfil, e.nome as empresa_nome 
       FROM usuarios u
       LEFT JOIN empresas e ON u.empresa_id = e.id
       WHERE 1=1
@@ -24,21 +24,19 @@ class UsersService {
         else if (filters.status === 'inativo') {
             query += ' AND u.ativo = 0';
         }
-        if (filters.permission === 'desenvolvedor') {
-            query += ' AND u.desenvolvedor = 1';
-        }
-        else if (filters.permission === 'administrador') {
-            query += ' AND u.administrador = 1 AND u.desenvolvedor = 0';
-        }
-        else if (filters.permission === 'usuario') {
-            query += ' AND u.administrador = 0 AND u.desenvolvedor = 0';
-        }
         query += ' ORDER BY u.nome ASC';
         const [rows] = await pool.query(query, params);
         return rows;
     }
     async getById(id) {
-        const [rows] = await pool.query(`SELECT u.*, e.nome as empresa_nome 
+        const [rows] = await pool.query(`SELECT u.*, 
+              e.nome as empresa_nome,
+              e.email as empresa_email,
+              e.telefone as empresa_telefone,
+              e.cnpj as empresa_cnpj,
+              e.logo as empresa_logo,
+              e.cor_principal as empresa_cor_principal,
+              e.endereco as empresa_endereco
        FROM usuarios u 
        LEFT JOIN empresas e ON u.empresa_id = e.id 
        WHERE u.id = ?`, [id]);
@@ -48,16 +46,17 @@ class UsersService {
         return user;
     }
     async create(data) {
-        const { nome, email, password, empresa_id, cargo, telefone, administrador, desenvolvedor } = data;
+        const { nome, email, password, empresa_id, cargo, telefone, administrador, desenvolvedor, perfil } = data;
         const hash = await bcrypt.hash(password, 10);
-        const [result] = await pool.query('INSERT INTO usuarios (nome, email, senha_hash, empresa_id, cargo, telefone, administrador, desenvolvedor, ativo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)', [nome, email, hash, empresa_id, cargo, telefone, administrador ? 1 : 0, desenvolvedor ? 1 : 0]);
+        const perfilFinal = perfil || (desenvolvedor ? 'desenvolvedor' : administrador ? 'administrador' : 'atendente');
+        const [result] = await pool.query('INSERT INTO usuarios (nome, email, senha_hash, empresa_id, cargo, telefone, administrador, desenvolvedor, ativo, perfil) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)', [nome, email, hash, empresa_id, cargo, telefone, administrador ? 1 : 0, desenvolvedor ? 1 : 0, perfilFinal]);
         return { id: result.insertId, nome, email };
     }
     async update(id, data) {
         const fields = [];
         const params = [];
         Object.keys(data).forEach(key => {
-            if (['nome', 'email', 'cargo', 'administrador', 'desenvolvedor', 'ativo', 'telefone', 'foto', 'empresa_id'].includes(key)) {
+            if (['nome', 'email', 'cargo', 'administrador', 'desenvolvedor', 'ativo', 'telefone', 'foto', 'empresa_id', 'perfil'].includes(key)) {
                 fields.push(`${key} = ?`);
                 params.push(data[key]);
             }
@@ -70,6 +69,23 @@ class UsersService {
             return;
         params.push(id);
         await pool.query(`UPDATE usuarios SET ${fields.join(', ')} WHERE id = ?`, params);
+    }
+    async updatePassword(id, currentPassword, newPassword) {
+        const [rows] = await pool.query('SELECT senha_hash FROM usuarios WHERE id = ?', [id]);
+        if (rows.length === 0)
+            throw new Error('Usuário não encontrado');
+        const isValid = await bcrypt.compare(currentPassword, rows[0].senha_hash);
+        if (!isValid)
+            throw new Error('Senha atual incorreta');
+        const hash = await bcrypt.hash(newPassword, 10);
+        await pool.query('UPDATE usuarios SET senha_hash = ? WHERE id = ?', [hash, id]);
+    }
+    async deleteUser(id) {
+        // 1. First ensure tickets are de-referenced (orphan recovery)
+        await pool.query('UPDATE tickets SET usuario_id = NULL WHERE usuario_id = ?', [id]);
+        await pool.query('UPDATE tickets SET responsavel_id = NULL WHERE responsavel_id = ?', [id]);
+        // 2. Perform Soft Delete by setting active to 0
+        await pool.query('UPDATE usuarios SET ativo = 0 WHERE id = ?', [id]);
     }
 }
 export default new UsersService();

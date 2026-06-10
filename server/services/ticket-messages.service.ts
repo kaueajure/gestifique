@@ -1,7 +1,7 @@
 import pool from '../db/connection.js';
 import { recordTicketEvent } from './ticket-events.service.js';
 import notificationsService from './notifications.service.js';
-import { sendTicketEmail } from '../utils/mailer.js';
+import { emailOutboundService, trackTicketEmailMessageIds } from './email-outbound.service.js';
 import { io } from '../server.js';
 import slaService from './sla.service.js';
 
@@ -173,9 +173,11 @@ class TicketMessagesService {
           console.log(`[TicketMessagesService] Generated outboundMessageId: ${outboundMessageId}`);
           
           try {
-            const smtpResult = await sendTicketEmail({
+            const sendResult = await emailOutboundService.sendTicketEmail({
               to: ticket.cliente_email,
               ticketId: ticket_id,
+              empresaId: ticket.empresa_id,
+              emailChannelId: ticket.email_channel_id,
               type: 'agent_reply',
               title: ticket.titulo,
               customerName: ticket.cliente_nome,
@@ -184,32 +186,21 @@ class TicketMessagesService {
               status: ticket.status || 'Aberto',
               messageId: outboundMessageId,
               inReplyTo: replyToId,
-              references: replyToId ? [replyToId] : undefined
+              references: replyToId ? [replyToId] : undefined,
             });
 
-            if (smtpResult && smtpResult.success) {
-              console.log(`[TicketMessagesService] External notification email sent to ${ticket.cliente_email} for ticket #${ticket_id} (Message-ID: ${smtpResult.messageId})`);
-              // Save all related message IDs to processed_emails so replies can be threaded to this ticket
-              const idsToTrack = [
+            if (sendResult.success) {
+              console.log(
+                `[TicketMessagesService] External notification email sent to ${ticket.cliente_email} for ticket #${ticket_id} via ${sendResult.provider} (Message-ID: ${sendResult.messageId})`
+              );
+              await trackTicketEmailMessageIds(
+                ticket.empresa_id,
+                ticket_id,
                 outboundMessageId,
-                smtpResult.messageId,
-                smtpResult.providerMessageId
-              ].filter((id): id is string => typeof id === 'string' && id.trim().length > 0);
-
-              for (const idToTrack of new Set(idsToTrack)) {
-                try {
-                  const trimmedId = idToTrack.trim();
-                  await pool.query(
-                    'INSERT IGNORE INTO processed_emails (message_id, empresa_id, ticket_id) VALUES (?, ?, ?)',
-                    [trimmedId, ticket.empresa_id, ticket_id]
-                  );
-                  console.log(`[TicketMessagesService] Saved Message-ID to processed_emails: ${trimmedId}`);
-                } catch (dbErr: any) {
-                  console.error('[TicketMessagesService] Error storing tracked message ID to processed_emails:', dbErr);
-                }
-              }
-            } else if (smtpResult && !smtpResult.success) {
-               console.error('[TicketMessagesService] Mail failed:', smtpResult.error);
+                sendResult
+              );
+            } else {
+              console.error('[TicketMessagesService] Mail failed:', sendResult.error);
             }
           } catch (err) {
             console.error('[Notification Error] Mail failed:', err);

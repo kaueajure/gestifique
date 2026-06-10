@@ -8,16 +8,21 @@ router.use(authMiddleware);
 router.use(isAdmin);
 router.get('/', async (req, res) => {
     try {
+        const currentUser = req.user;
+        if (!currentUser)
+            return sendError(res, 'Não autenticado', 401);
         const filters = {
             ...req.query,
-            empresa_id: req.user.empresa_id,
-            is_dev: req.user.desenvolvedor
+            empresa_id: currentUser.empresa_id,
+            user_id: currentUser.id,
+            is_dev: currentUser.desenvolvedor
         };
         const logs = await logsService.list(filters);
         sendSuccess(res, logs);
     }
     catch (error) {
-        sendError(res, error.message);
+        const message = error instanceof Error ? error.message : 'Erro ao carregar logs';
+        sendError(res, message);
     }
 });
 export default router;

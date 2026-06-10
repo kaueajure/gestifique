@@ -1,110 +1,33 @@
 import pool from './connection.js';
 import bcrypt from 'bcryptjs';
 import { env } from '../config/env.js';
+import { runMigrations } from './migration-runner.js';
 async function initDB() {
     let connection;
     try {
         console.log(`[BOOT] 🔌 Tentando conectar ao banco em: ${env.DB.HOST}...`);
         connection = await pool.getConnection();
-        console.log('[BOOT] ✅ Conexão estabelecida. Verificando estrutura das tabelas...');
-        // Empresas
+        console.log('[BOOT] ✅ Conexão estabelecida.');
+        // 1. Executar Migrations (Garante estrutura atualizada)
+        await runMigrations();
+        // 2. Ajustes pós-migração e Limpezas (Opcional, mas mantido para integridade)
+        console.log('[BOOT] 🛠️ Realizando ajustes de integridade pós-migração...');
+        // Fallback de perfis
         await connection.query(`
-      CREATE TABLE IF NOT EXISTS empresas (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        nome VARCHAR(255) NOT NULL,
-        cnpj VARCHAR(20) UNIQUE,
-        email VARCHAR(255),
-        telefone VARCHAR(20),
-        logo VARCHAR(255),
-        cor_principal VARCHAR(7) DEFAULT '#2563eb',
-        ativo TINYINT(1) DEFAULT 1,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      UPDATE usuarios
+      SET perfil = CASE
+        WHEN desenvolvedor = 1 THEN 'desenvolvedor'
+        WHEN administrador = 1 THEN 'administrador'
+        WHEN perfil IS NULL OR perfil = '' THEN 'atendente'
+        ELSE perfil
+      END
+      WHERE perfil IS NULL OR perfil = '' OR desenvolvedor = 1 OR administrador = 1
     `);
-        // Usuarios
-        await connection.query(`
-      CREATE TABLE IF NOT EXISTS usuarios (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        empresa_id INT,
-        nome VARCHAR(255) NOT NULL,
-        email VARCHAR(255) NOT NULL,
-        senha_hash VARCHAR(255) NOT NULL,
-        telefone VARCHAR(20),
-        foto VARCHAR(255),
-        cargo VARCHAR(100),
-        administrador TINYINT(1) DEFAULT 0,
-        desenvolvedor TINYINT(1) DEFAULT 0,
-        ativo TINYINT(1) DEFAULT 1,
-        ultimo_login DATETIME,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        UNIQUE KEY unique_email (email),
-        KEY idx_emp_id (empresa_id),
-        FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE SET NULL
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-    `);
-        // Tickets
-        await connection.query(`
-      CREATE TABLE IF NOT EXISTS tickets (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        empresa_id INT NOT NULL,
-        usuario_id INT NOT NULL,
-        responsavel_id INT,
-        titulo VARCHAR(255) NOT NULL,
-        descricao TEXT,
-        status ENUM('aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado') DEFAULT 'aberto',
-        prioridade ENUM('baixa', 'media', 'alta', 'urgente') DEFAULT 'media',
-        categoria VARCHAR(100),
-        origem VARCHAR(50),
-        prazo_sla DATETIME,
-        finalizado_em DATETIME,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        KEY idx_tickets_empresa (empresa_id),
-        KEY idx_tickets_usuario (usuario_id),
-        KEY idx_tickets_responsavel (responsavel_id),
-        KEY idx_tickets_status (status),
-        KEY idx_tickets_prioridade (prioridade),
-        FOREIGN KEY (empresa_id) REFERENCES empresas(id),
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
-        FOREIGN KEY (responsavel_id) REFERENCES usuarios(id)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-    `);
-        // Ticket Mensagens
-        await connection.query(`
-      CREATE TABLE IF NOT EXISTS ticket_mensagens (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        ticket_id INT NOT NULL,
-        usuario_id INT NOT NULL,
-        mensagem TEXT NOT NULL,
-        interno TINYINT(1) DEFAULT 0,
-        anexo VARCHAR(255),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        KEY idx_mensagens_ticket (ticket_id),
-        FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-    `);
-        // Logs Sistema
-        await connection.query(`
-      CREATE TABLE IF NOT EXISTS logs_sistema (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        usuario_id INT,
-        empresa_id INT,
-        acao VARCHAR(255) NOT NULL,
-        descricao TEXT,
-        ip VARCHAR(45),
-        user_agent TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        KEY idx_logs_usuario (usuario_id),
-        KEY idx_logs_empresa (empresa_id),
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL,
-        FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE SET NULL
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-    `);
-        console.log('[BOOT] 📚 Tabelas validadas com sucesso.');
-        // Seed Initial Developer
+        // Ajuste de nulidade em tickets (Foreign Keys)
+        await connection.query('ALTER TABLE tickets MODIFY COLUMN usuario_id INT NULL');
+        await connection.query('ALTER TABLE tickets MODIFY COLUMN responsavel_id INT NULL');
+        await connection.query('ALTER TABLE ticket_mensagens MODIFY COLUMN usuario_id INT NULL');
+        // 3. Seed Initial Developer
         const [devs] = await connection.query('SELECT id FROM usuarios WHERE desenvolvedor = 1 LIMIT 1');
         if (devs.length === 0) {
             if (env.DEV_EMAIL && env.DEV_PASSWORD) {
@@ -117,6 +40,7 @@ async function initDB() {
                 console.warn('[BOOT] ⚠️ DEV_EMAIL ou DEV_PASSWORD não definidos. Pulei o seed do desenvolvedor.');
             }
         }
+        console.log('[BOOT] ✨ Inicialização do banco concluída com sucesso.');
     }
     catch (error) {
         console.error('[BOOT] ❌ Erro ao inicializar banco de dados:', error);

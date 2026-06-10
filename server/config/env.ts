@@ -69,5 +69,14 @@ export const env = {
     BUCKET_NAME: process.env.STORAGE_BUCKET_NAME,
     REGION: process.env.STORAGE_REGION,
     ENDPOINT: process.env.STORAGE_ENDPOINT,
-  }
+  },
+
+  // Gmail OAuth send (Fase 1) — optional until OAuth routes are enabled
+  FRONTEND_URL: process.env.FRONTEND_URL,
+  GOOGLE_OAUTH: {
+    CLIENT_ID: process.env.GOOGLE_OAUTH_CLIENT_ID,
+    CLIENT_SECRET: process.env.GOOGLE_OAUTH_CLIENT_SECRET,
+    REDIRECT_URI: process.env.GOOGLE_OAUTH_REDIRECT_URI,
+  },
+  TOKEN_ENCRYPTION_KEY: process.env.TOKEN_ENCRYPTION_KEY,
 };

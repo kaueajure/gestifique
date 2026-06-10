@@ -2,7 +2,7 @@
 
 Sistema profissional de atendimento ao cliente com suporte Omnichannel, SLA, Portal do Cliente e Base de Conhecimento.
 
-## 🚀 Guia de Deploy para Hostinger (VPS ou Compartilhada)
+## 🚀 Guia de Deploy para Hostinger (Business Web Hosting)
 
 ### 1. Preparação do Ambiente
 - Certifique-se de que o Node.js v18+ está instalado.
