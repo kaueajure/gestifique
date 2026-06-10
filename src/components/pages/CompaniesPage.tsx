@@ -88,6 +88,21 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
     return () => clearTimeout(timer);
   }, [searchTerm, statusFilter]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has("gmail_oauth")) return;
+
+    const oauthEmpresaId = Number(params.get("empresa_id"));
+    if (!oauthEmpresaId || companies.length === 0) return;
+
+    const oauthCompany = companies.find((company) => company.id === oauthEmpresaId);
+    if (!oauthCompany) return;
+
+    setSelectedCompany(oauthCompany);
+    setSaveError(null);
+    setIsModalOpen(true);
+  }, [companies]);
+
   const showSuccess = (msg: string) => {
     setSuccessMsg(msg);
     setTimeout(() => setSuccessMsg(null), 3000);

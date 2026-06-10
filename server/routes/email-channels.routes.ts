@@ -35,9 +35,14 @@ router.post('/companies/:companyId/email-channels', async (req: any, res) => {
              return sendError(res, 'Permissão negada', 403);
         }
         
-        const { email_publico, nome } = req.body;
+        const { email_publico, nome, connection_method } = req.body;
         if (!email_publico || !isValidEmail(email_publico)) {
             return sendError(res, 'E-mail público inválido', 400);
+        }
+
+        const connectionMethod = connection_method === 'gmail_oauth' ? 'gmail_oauth' : 'forwarding';
+        if (connectionMethod === 'gmail_oauth' && !gmailOAuthService.isConfigured()) {
+            return sendError(res, 'Google OAuth não está configurado no servidor', 503);
         }
 
         const id = await emailChannelsService.createChannel({
@@ -45,7 +50,13 @@ router.post('/companies/:companyId/email-channels', async (req: any, res) => {
             email_publico,
             nome
         });
-        return sendSuccess(res, { id }, 'Canal criado com sucesso');
+
+        const data: { id: number; oauth_start_url?: string } = { id };
+        if (connectionMethod === 'gmail_oauth') {
+            data.oauth_start_url = gmailOAuthService.getAuthUrl(id, companyId, req.user.id);
+        }
+
+        return sendSuccess(res, data, 'Canal criado com sucesso');
     } catch(err: any) {
         return sendError(res, err.message, 500);
     }

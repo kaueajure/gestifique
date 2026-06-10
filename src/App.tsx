@@ -57,6 +57,9 @@ export default function App() {
     return "landing";
   };
 
+  const hasGmailOAuthResult = () =>
+    new URLSearchParams(window.location.search).has("gmail_oauth");
+
   const [view, setView] = useState<ViewState>(() =>
     getViewFromPath(window.location.pathname),
   );
@@ -158,6 +161,9 @@ export default function App() {
           setView("portal");
         } else {
           setView("dashboard");
+          if (hasGmailOAuthResult()) {
+            setActiveTab(user.desenvolvedor ? "companies" : "settings");
+          }
         }
       } catch (err) {
         setView(getViewFromPath(window.location.pathname));

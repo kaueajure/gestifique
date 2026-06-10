@@ -93,7 +93,13 @@ export const SettingsPage = ({
   const [error, setError] = useState<string | null>(null);
   const [activeSubTab, setActiveSubTab] = useState<
     "general" | "company" | "system" | "tickets" | "screens"
-  >("general");
+  >(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("gmail_oauth") && (currentUser.administrador || currentUser.desenvolvedor)) {
+      return "company";
+    }
+    return "general";
+  });
   const [loadingHealth, setLoadingHealth] = useState(false);
   const [healthError, setHealthError] = useState<string | null>(null);
   const [healthData, setHealthData] = useState<HealthOverviewResponse | null>(

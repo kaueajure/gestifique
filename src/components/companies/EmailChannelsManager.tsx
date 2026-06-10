@@ -35,6 +35,13 @@ interface EmailChannelsManagerProps {
   empresaId: number;
 }
 
+type ConnectionMethod = 'forwarding' | 'gmail_oauth';
+
+interface CreateEmailChannelResponse {
+  id: number;
+  oauth_start_url?: string;
+}
+
 const sendStatusLabel: Record<string, string> = {
   disconnected: 'Envio não configurado',
   connected: 'Gmail conectado',
@@ -57,6 +64,8 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
   const [isCreating, setIsCreating] = useState(false);
   const [newEmail, setNewEmail] = useState('');
   const [newNome, setNewNome] = useState('');
+  const [connectionMethod, setConnectionMethod] = useState<ConnectionMethod>('forwarding');
+  const [createError, setCreateError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [actionChannelId, setActionChannelId] = useState<number | null>(null);
   
@@ -118,21 +127,48 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
     return () => clearTimeout(timer);
   }, [feedback]);
 
+  const openCreateModal = () => {
+    setConnectionMethod('forwarding');
+    setCreateError(null);
+    setIsCreating(true);
+  };
+
+  const closeCreateModal = () => {
+    if (submitting) return;
+    setCreateError(null);
+    setIsCreating(false);
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newEmail) return;
     try {
       setSubmitting(true);
-      await api.post(`/companies/${empresaId}/email-channels`, {
-        email_publico: newEmail,
-        nome: newNome
+      setCreateError(null);
+
+      const result = await api.post<CreateEmailChannelResponse>(`/companies/${empresaId}/email-channels`, {
+        email_publico: newEmail.trim(),
+        nome: newNome.trim(),
+        connection_method: connectionMethod,
       });
+
+      if (connectionMethod === 'gmail_oauth') {
+        const oauthUrl = result.oauth_start_url || `/api/companies/${empresaId}/email-channels/${result.id}/oauth/google/start`;
+        window.sessionStorage.setItem(
+          'gestifique:pending-gmail-oauth',
+          JSON.stringify({ empresaId, channelId: result.id, startedAt: Date.now() })
+        );
+        window.location.href = oauthUrl;
+        return;
+      }
+
       setNewEmail('');
       setNewNome('');
+      setConnectionMethod('forwarding');
       setIsCreating(false);
       fetchChannels();
     } catch (err: any) {
-      alert(err.message || 'Erro ao criar canal');
+      setCreateError(err.message || 'Erro ao criar canal');
     } finally {
       setSubmitting(false);
     }
@@ -202,7 +238,7 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
           <h4 className="text-sm font-semibold text-slate-800">Canais de E-mail</h4>
           <p className="text-xs text-slate-500 max-w-md">Receba tickets por encaminhamento e responda com o e-mail da sua empresa.</p>
         </div>
-        <Button size="sm" onClick={() => setIsCreating(true)} className="h-8 text-xs shrink-0 bg-blue-600 hover:bg-blue-700">
+        <Button size="sm" onClick={openCreateModal} className="h-8 text-xs shrink-0 bg-blue-600 hover:bg-blue-700">
           <Plus size={14} className="mr-1" /> Adicionar Canal
         </Button>
       </div>
@@ -239,7 +275,7 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
              <p className="text-sm font-semibold text-slate-700">Nenhum canal configurado</p>
              <p className="text-xs text-slate-500 max-w-xs mx-auto">Transforme e-mails em chamados no Gestifique.</p>
            </div>
-           <Button size="sm" onClick={() => setIsCreating(true)} variant="outline" className="h-8 text-xs">Configurar</Button>
+           <Button size="sm" onClick={openCreateModal} variant="outline" className="h-8 text-xs">Configurar</Button>
         </div>
       ) : (
         <div className="grid gap-3">
@@ -427,11 +463,80 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
 
       <Modal 
         isOpen={isCreating} 
-        onClose={() => !submitting && setIsCreating(false)} 
-        title="Novo Canal de E-mail"
-        size="sm"
+        onClose={closeCreateModal}
+        title="Adicionar Canal de E-mail"
+        size="md"
       >
         <form onSubmit={handleCreate} className="space-y-4 p-1">
+          {createError && (
+            <div className="p-3 bg-red-50 border border-red-100 rounded-md flex gap-2 items-start text-red-700">
+              <AlertCircle size={16} className="shrink-0 mt-0.5" />
+              <p className="text-xs font-medium">{createError}</p>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-slate-700">Forma de conexão</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2" role="radiogroup" aria-label="Forma de conexão do e-mail">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={connectionMethod === 'forwarding'}
+                disabled={submitting}
+                onClick={() => setConnectionMethod('forwarding')}
+                className={cn(
+                  'min-h-[104px] rounded-md border p-3 text-left transition-all disabled:opacity-60',
+                  connectionMethod === 'forwarding'
+                    ? 'border-blue-300 bg-blue-50 shadow-sm'
+                    : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                )}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-md bg-white border border-slate-200 flex items-center justify-center text-blue-600">
+                      <Mail size={15} />
+                    </span>
+                    <span className="text-xs font-semibold text-slate-800">Encaminhamento</span>
+                  </div>
+                  {connectionMethod === 'forwarding' && <Check size={14} className="text-blue-600 shrink-0" />}
+                </div>
+                <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
+                  Cria um endereço técnico para receber tickets por regra de encaminhamento.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                role="radio"
+                aria-checked={connectionMethod === 'gmail_oauth'}
+                disabled={submitting}
+                onClick={() => setConnectionMethod('gmail_oauth')}
+                className={cn(
+                  'min-h-[104px] rounded-md border p-3 text-left transition-all disabled:opacity-60',
+                  connectionMethod === 'gmail_oauth'
+                    ? 'border-blue-300 bg-blue-50 shadow-sm'
+                    : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                )}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-7 h-7 rounded-md bg-white border border-slate-200 flex items-center justify-center text-blue-600 shrink-0">
+                      <ShieldCheck size={15} />
+                    </span>
+                    <span className="text-xs font-semibold text-slate-800 truncate">Gmail OAuth</span>
+                    <span className="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[9px] font-semibold text-amber-700 shrink-0">
+                      beta
+                    </span>
+                  </div>
+                  {connectionMethod === 'gmail_oauth' && <Check size={14} className="text-blue-600 shrink-0" />}
+                </div>
+                <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
+                  Cria o canal e abre a autorização do Google para enviar respostas pelo e-mail da empresa.
+                </p>
+              </button>
+            </div>
+          </div>
+
           <div className="p-3 bg-blue-50 border border-blue-100 rounded-md flex gap-2 items-start">
              <Info size={16} className="text-blue-600 shrink-0 mt-0.5" />
              <div className="space-y-1">
@@ -450,6 +555,7 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
               value={newEmail}
               onChange={e => setNewEmail(e.target.value)}
               className="h-8 text-sm"
+              disabled={submitting}
               required
             />
           </div>
@@ -460,15 +566,16 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
               value={newNome}
               onChange={e => setNewNome(e.target.value)}
               className="h-8 text-sm"
+              disabled={submitting}
             />
           </div>
 
           <div className="pt-2 flex justify-end gap-2">
-            <Button size="sm" type="button" variant="ghost" onClick={() => setIsCreating(false)} disabled={submitting}>
+            <Button size="sm" type="button" variant="ghost" onClick={closeCreateModal} disabled={submitting}>
               Cancelar
             </Button>
             <Button size="sm" type="submit" loading={submitting}>
-              Criar canal
+              {connectionMethod === 'gmail_oauth' ? 'Criar e conectar OAuth' : 'Criar canal'}
             </Button>
           </div>
         </form>
