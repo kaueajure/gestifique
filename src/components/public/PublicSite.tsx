@@ -5,6 +5,7 @@ import { PublicFeaturesPage } from './PublicFeaturesPage';
 import { PublicPricingPage } from './PublicPricingPage';
 import { PublicContactPage } from './PublicContactPage';
 import { PublicPreviewPage } from './PublicPreviewPage';
+import { PublicPrivacyPolicyPage, PublicTermsOfUsePage } from './PublicLegalPages';
 
 interface PublicSiteProps {
   onLogin: () => void;
@@ -41,13 +42,17 @@ export const PublicSite = ({ onLogin }: PublicSiteProps) => {
       case '/demonstracao':
       case '/preview':
         return <PublicPreviewPage onNavigate={navigate} />;
+      case '/politica-de-privacidade':
+        return <PublicPrivacyPolicyPage />;
+      case '/termos-de-uso':
+        return <PublicTermsOfUsePage />;
       default:
         return <PublicHomePage onNavigate={navigate} />;
     }
   };
 
   useEffect(() => {
-    const validPaths = ['/', '/funcionalidades', '/precos', '/contato', '/demonstracao', '/preview'];
+    const validPaths = ['/', '/funcionalidades', '/precos', '/contato', '/demonstracao', '/preview', '/politica-de-privacidade', '/termos-de-uso'];
     if (!validPaths.includes(currentPath)) {
       window.history.replaceState({}, '', '/');
       setCurrentPath('/');
@@ -62,7 +67,9 @@ export const PublicSite = ({ onLogin }: PublicSiteProps) => {
       '/precos': 'Preços | Gestifique',
       '/contato': 'Contato | Gestifique',
       '/demonstracao': 'Demonstração | Gestifique',
-      '/preview': 'Demonstração | Gestifique'
+      '/preview': 'Demonstração | Gestifique',
+      '/politica-de-privacidade': 'Política de Privacidade | Gestifique',
+      '/termos-de-uso': 'Termos de Uso | Gestifique'
     };
     document.title = titles[currentPath] || 'Gestifique';
   }, [currentPath]);
