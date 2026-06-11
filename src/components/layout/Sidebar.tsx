@@ -233,6 +233,26 @@ export const Sidebar = ({
             <LogOut size={16} />
             Sair
           </button>
+
+          <div className="flex items-center justify-center gap-3 pt-1 text-[10px] font-semibold text-slate-400">
+            <a
+              href="/politica-de-privacidade"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-blue-600 transition-colors"
+            >
+              Privacidade
+            </a>
+            <span className="text-slate-300">•</span>
+            <a
+              href="/termos-de-uso"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-blue-600 transition-colors"
+            >
+              Termos
+            </a>
+          </div>
         </div>
       </aside>
     </>

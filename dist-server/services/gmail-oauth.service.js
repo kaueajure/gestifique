@@ -65,12 +65,17 @@ function toBase64Url(raw) {
         .replace(/\//g, '_')
         .replace(/=+$/, '');
 }
+function encodeMimeHeader(value) {
+    if (/^[\x00-\x7F]*$/.test(value))
+        return value;
+    return `=?UTF-8?B?${Buffer.from(value, 'utf8').toString('base64')}?=`;
+}
 function buildRfc822Message(params) {
     const from = params.from || 'me';
     const lines = [
         `From: ${from}`,
         `To: ${params.to}`,
-        `Subject: ${params.subject}`,
+        `Subject: ${encodeMimeHeader(params.subject)}`,
         'MIME-Version: 1.0',
         'Content-Type: text/html; charset=UTF-8',
     ];

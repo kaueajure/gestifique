@@ -177,6 +177,28 @@ export const PortalLayout = ({ currentUser, onLogout }: PortalLayoutProps) => {
           </motion.div>
         </AnimatePresence>
       </main>
+
+      <footer className="max-w-6xl w-full mx-auto px-4 pb-5 text-center">
+        <div className="inline-flex items-center gap-3 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-400 shadow-sm">
+          <a
+            href="/politica-de-privacidade"
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-blue-600 transition-colors"
+          >
+            Política de Privacidade
+          </a>
+          <span className="text-slate-300">•</span>
+          <a
+            href="/termos-de-uso"
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-blue-600 transition-colors"
+          >
+            Termos de Uso
+          </a>
+        </div>
+      </footer>
     </div>
   );
 };

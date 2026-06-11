@@ -101,12 +101,17 @@ function toBase64Url(raw: string): string {
     .replace(/=+$/, '');
 }
 
+function encodeMimeHeader(value: string): string {
+  if (/^[\x00-\x7F]*$/.test(value)) return value;
+  return `=?UTF-8?B?${Buffer.from(value, 'utf8').toString('base64')}?=`;
+}
+
 function buildRfc822Message(params: GmailSendParams): string {
   const from = params.from || 'me';
   const lines: string[] = [
     `From: ${from}`,
     `To: ${params.to}`,
-    `Subject: ${params.subject}`,
+    `Subject: ${encodeMimeHeader(params.subject)}`,
     'MIME-Version: 1.0',
     'Content-Type: text/html; charset=UTF-8',
   ];
