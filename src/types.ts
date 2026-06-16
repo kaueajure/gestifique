@@ -177,7 +177,7 @@ export interface TicketView {
     fila?: TicketQueue;
     search?: string;
     advanced?: TicketAdvancedFilters;
-    mode?: 'agents' | 'list' | 'kanban';
+    mode?: 'list' | 'kanban';
   };
   created_at: string;
   updated_at: string;

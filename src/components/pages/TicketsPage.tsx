@@ -13,7 +13,6 @@ import {
   Loader2,
   Kanban,
   List as ListIcon,
-  Users,
   RefreshCw,
   Building,
   Layers,
@@ -32,7 +31,6 @@ import { Button } from "../ui/Button";
 import { TicketSummaryCards } from "../tickets/TicketSummaryCards";
 import { TicketList } from "../tickets/TicketList";
 import { TicketKanban } from "../tickets/TicketKanban";
-import { AgentTicketBoard } from "../tickets/AgentTicketBoard";
 import { CreateTicketModal } from "../tickets/CreateTicketModal";
 import { TeamSidebar } from "../tickets/TeamSidebar";
 import { PageHeader } from "../ui/PageHeader";
@@ -127,7 +125,7 @@ export const TicketsPage = ({
   onSelectTicket,
   currentUser,
 }: TicketsPageProps) => {
-  const [viewMode, setViewMode] = useState<"agents" | "kanban" | "list">("agents");
+  const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
 
   const [ticketsResponse, setTicketsResponse] =
     useState<TicketListResponse | null>(null);
@@ -291,12 +289,6 @@ export const TicketsPage = ({
         queues: EMPTY_QUEUES,
       });
       setLoading(false);
-      return;
-    }
-
-    if (viewMode === "agents") {
-      setLoading(false);
-      setError(null);
       return;
     }
 
@@ -762,20 +754,6 @@ export const TicketsPage = ({
             <div className="flex items-center justify-between lg:justify-end gap-2 shrink-0">
               <div className="flex items-center p-0.5 bg-slate-100 rounded-md border border-slate-200/50">
                 <button
-                  onClick={() => setViewMode("agents")}
-                  className={cn(
-                    "px-2 py-1 rounded transition-all flex items-center gap-1",
-                    viewMode === "agents"
-                      ? "bg-white text-blue-600 shadow-sm border border-slate-200/60"
-                      : "text-slate-500 hover:text-slate-700",
-                  )}
-                >
-                  <Users size={14} />
-                  <span className="text-[11px] font-bold hidden sm:inline">
-                    Atendentes
-                  </span>
-                </button>
-                <button
                   onClick={() => setViewMode("list")}
                   className={cn(
                     "px-2 py-1 rounded transition-all flex items-center gap-1",
@@ -1052,19 +1030,6 @@ export const TicketsPage = ({
                 title="Seleção de Ambiente Necessária"
                 description="Você está no modo desenvolvedor. Escolha uma empresa para visualizar os atendimentos."
                 icon={<Building size={24} />}
-              />
-            ) : viewMode === "agents" ? (
-              <AgentTicketBoard
-                currentUser={currentUser}
-                devCompanyId={devCompanyId}
-                onSelectTicket={onSelectTicket}
-                filters={{
-                  searchTerm,
-                  status: statusFilter,
-                  prioridade: priorityFilter,
-                  categoria: categoryFilter,
-                  servico: serviceFilter,
-                }}
               />
             ) : loading && !kanbanResponse && !ticketsResponse ? (
               <LoadingState message="Organizando sua central de tickets..." />
