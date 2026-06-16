@@ -4,15 +4,14 @@ import {
   AlertCircle, 
   CheckCircle2, 
   Loader2, 
-  MessageSquare, 
   Lock, 
   User, 
-  Paperclip, 
   X,
   Zap,
   EyeOff,
   Bot,
-  Sparkles
+  Sparkles,
+  MessageSquareText
 } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { cn } from '../../../lib/utils';
@@ -87,53 +86,53 @@ export const TicketReplyBox = ({
   const isMessageEmpty = !newMessage.trim() && selectedFiles.length === 0;
 
   return (
-    <div className="flex flex-col gap-0 border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm transition-all focus-within:shadow-md focus-within:border-blue-300">
+    <div className="flex flex-col gap-0 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm transition-all focus-within:shadow-md focus-within:border-blue-300">
         {/* Composer Tabs */}
-        <div className="flex items-center justify-between px-3 bg-slate-50/50 border-b border-slate-100">
-          <div className="flex -mb-[1px]">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-3 py-2 bg-slate-50 border-b border-slate-200">
+          <div className="inline-flex w-full sm:w-auto rounded-lg border border-slate-200 bg-white p-1">
               <button
                 type="button"
                 onClick={() => setIsInternal(false)}
                 className={cn(
-                  "px-3 py-2 text-xs font-semibold transition-all border-b-2 flex items-center gap-1.5",
+                  "flex-1 sm:flex-none px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center justify-center gap-1.5",
                   !isInternal 
-                    ? "text-blue-600 border-blue-600 bg-white" 
-                    : "text-slate-500 border-transparent hover:text-slate-700"
+                    ? "text-blue-700 bg-blue-50 shadow-sm" 
+                    : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
                 )}
              >
                 <User size={12} />
-                Resposta Pública
+                Resposta publica
              </button>
              {canAddInternalNote && (
                <button
                   type="button"
                   onClick={() => setIsInternal(true)}
                   className={cn(
-                    "px-3 py-2 text-xs font-semibold transition-all border-b-2 flex items-center gap-1.5",
+                    "flex-1 sm:flex-none px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center justify-center gap-1.5",
                     isInternal 
-                      ? "text-amber-600 border-amber-600 bg-white" 
-                      : "text-slate-500 border-transparent hover:text-slate-700"
+                      ? "text-amber-700 bg-amber-50 shadow-sm" 
+                      : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
                   )}
                >
                   <Lock size={12} />
-                  Nota Interna
+                  Nota interna
                </button>
              )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-end gap-2">
             <button
               type="button"
               disabled={loadingSuggestion}
               onClick={handleSuggestReply}
-              className="flex items-center gap-1.5 h-7 px-2.5 rounded-md border text-xs font-semibold transition-all shadow-sm bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50"
+              className="flex items-center gap-1.5 h-8 px-2.5 rounded-md border text-xs font-semibold transition-all bg-white border-slate-200 text-slate-700 hover:border-indigo-300 hover:text-indigo-700 hover:bg-indigo-50 disabled:opacity-50"
             >
               {loadingSuggestion ? (
                 <Loader2 size={12} className="animate-spin text-indigo-600" />
               ) : (
                 <Bot size={12} className="text-indigo-600" />
               )}
-              Sugerir Resposta
+              Sugerir
             </button>
 
             <div className="relative">
@@ -141,7 +140,7 @@ export const TicketReplyBox = ({
                 type="button"
                 onClick={() => setShowMacros(!showMacros)}
                 className={cn(
-                  "flex items-center gap-1.5 h-7 px-2.5 rounded-md border text-xs font-semibold transition-all shadow-sm",
+                  "flex items-center gap-1.5 h-8 px-2.5 rounded-md border text-xs font-semibold transition-all",
                   showMacros 
                     ? "bg-blue-600 border-blue-600 text-white" 
                     : "bg-white border-slate-200 text-slate-600 hover:border-blue-400 hover:text-blue-600"
@@ -171,17 +170,21 @@ export const TicketReplyBox = ({
           isInternal ? "bg-amber-50/30" : "bg-white"
         )}>
           {isInternal && (
-             <div className="absolute top-2 right-2 z-10 flex items-center gap-1 text-[9px] font-semibold text-amber-600 bg-amber-100/50 px-1.5 py-0.5 rounded border border-amber-200/50 pointer-events-none">
+             <div className="absolute top-2 right-2 z-10 hidden sm:flex items-center gap-1 text-[9px] font-semibold text-amber-700 bg-amber-100/70 px-2 py-1 rounded-md border border-amber-200/70 pointer-events-none">
                 <EyeOff size={10} /> Visível apenas para agentes
              </div>
           )}
+
+          <div className="absolute top-3 left-3 text-slate-300 pointer-events-none">
+            <MessageSquareText size={16} />
+          </div>
 
           <textarea 
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder={isInternal ? "Escreva uma observação interna ou detalhe técnico..." : "Digite sua mensagem para o cliente..."}
             className={cn(
-              "w-full p-3 text-sm font-medium focus:ring-0 focus:outline-none transition-all resize-none border-0 min-h-[70px]",
+              "w-full pl-10 pr-3 py-3 text-sm font-medium focus:ring-0 focus:outline-none transition-all resize-none border-0 min-h-[96px]",
               isInternal 
                 ? "text-amber-900 placeholder:text-amber-400" 
                 : "text-slate-700 placeholder:text-slate-400"
@@ -222,7 +225,7 @@ export const TicketReplyBox = ({
 
         {/* Suggested Response Panel */}
         {suggestedReply && (
-          <div className="mx-3 my-2.5 p-3 px-3.5 bg-indigo-50 border border-indigo-100 rounded-lg relative shadow-inner">
+          <div className="mx-3 my-2.5 p-3 px-3.5 bg-indigo-50 border border-indigo-100 rounded-lg relative">
             <div className="flex justify-between items-center mb-1.5">
                <span className="text-[10px] font-bold text-indigo-700 flex items-center gap-1.5 uppercase tracking-wider">
                  <Sparkles size={11} className="text-indigo-600 animate-pulse" /> Resposta Sugerida por IA
@@ -254,7 +257,7 @@ export const TicketReplyBox = ({
         )}
 
         {/* Footer / Actions */}
-        <div className="flex flex-wrap items-center justify-between p-2 bg-slate-50/50 border-t border-slate-100 gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between p-3 bg-slate-50 border-t border-slate-200 gap-3">
           <div className="flex flex-1 min-w-0">
              <FileUpload 
                onFilesChange={setSelectedFiles}
@@ -263,7 +266,7 @@ export const TicketReplyBox = ({
              />
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between sm:justify-end gap-3">
              <span className="hidden sm:inline-block text-[10px] font-medium text-slate-400">
                CTRL + ENTER para enviar
              </span>
@@ -272,7 +275,7 @@ export const TicketReplyBox = ({
                 disabled={isMessageEmpty || loadingSend}
                 size="sm"
                 className={cn(
-                  "px-3 text-xs font-semibold shadow-sm h-8",
+                  "px-4 text-xs font-semibold shadow-sm h-9 rounded-lg",
                   isInternal 
                     ? "bg-amber-600 hover:bg-amber-500 text-white" 
                     : "bg-blue-600 hover:bg-blue-500 text-white",

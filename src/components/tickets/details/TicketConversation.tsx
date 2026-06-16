@@ -1,17 +1,15 @@
 import React, { useRef, useEffect } from 'react';
 import { Message, Ticket, User } from '../../../types';
 import { 
-  Clock, 
   MessageSquare, 
-  ShieldCheck, 
-  User as UserIcon, 
   Lock, 
-  EyeOff,
-  UserCheck,
-  Calendar
+  Calendar,
+  Megaphone,
+  ClipboardList,
+  UserRound,
+  Clock3
 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
-import { Badge } from '../../ui/Badge';
 import { AttachmentList } from '../../ui/AttachmentList';
 import { TicketReplyBox } from './TicketReplyBox';
 
@@ -30,7 +28,6 @@ interface TicketConversationProps {
 const MessageBubble = ({ 
   msg, 
   isCliente, 
-  isCurrentUser,
   isAbertura = false,
   onDeleteAttachment 
 }: { 
@@ -42,100 +39,105 @@ const MessageBubble = ({
 }) => {
   const isInternal = Number(msg.interno) === 1;
   const date = new Date(msg.created_at || msg.data_mensagem);
+  const interaction = isAbertura
+    ? {
+        label: 'Abertura do chamado',
+        icon: ClipboardList,
+        badge: 'bg-slate-100 text-slate-700 border-slate-200',
+        marker: 'bg-slate-700 ring-slate-100',
+        card: 'bg-white border-slate-200'
+      }
+    : isInternal
+      ? {
+          label: 'Nota interna',
+          icon: Lock,
+          badge: 'bg-amber-50 text-amber-700 border-amber-200',
+          marker: 'bg-amber-500 ring-amber-100',
+          card: 'bg-amber-50/60 border-amber-200'
+        }
+      : isCliente
+        ? {
+            label: 'Resposta do solicitante',
+            icon: UserRound,
+            badge: 'bg-blue-50 text-blue-700 border-blue-200',
+            marker: 'bg-blue-500 ring-blue-100',
+            card: 'bg-white border-slate-200'
+          }
+        : {
+            label: 'Acao publica',
+            icon: Megaphone,
+            badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+            marker: 'bg-emerald-500 ring-emerald-100',
+            card: 'bg-white border-slate-200'
+          };
+  const InteractionIcon = interaction.icon;
   
   return (
-    <div className={cn(
-      "flex flex-col gap-1 transition-all max-w-full group",
-      isInternal ? "my-3" : "my-2",
-      isCliente || isAbertura ? "items-start" : "items-end"
-    )}>
-      {/* Internal Note Banner */}
-      {isInternal && (
-         <div className="w-full flex items-center gap-3 mb-1">
-            <div className="h-px flex-1 bg-amber-100" />
-            <div className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-wider text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-               <Lock size={10} /> Nota Interna
-            </div>
-            <div className="h-px flex-1 bg-amber-100" />
-         </div>
-      )}
+    <article className="relative pl-9 sm:pl-11">
+      <div className={cn(
+        "absolute left-[7px] sm:left-[9px] top-5 w-3 h-3 rounded-full ring-4",
+        interaction.marker
+      )} />
 
       <div className={cn(
-        "flex gap-2 max-w-[90%] md:max-w-2xl",
-        isCliente || isAbertura ? "flex-row" : "flex-row-reverse"
+        "rounded-lg border shadow-sm transition-colors overflow-hidden",
+        interaction.card
       )}>
-        {/* Avatar */}
-        <div className={cn(
-          "shrink-0 w-7 h-7 rounded flex items-center justify-center text-[10px] font-bold shadow-sm border",
-          isAbertura || isCliente 
-            ? "bg-slate-50 border-slate-200 text-slate-600" 
-            : isInternal 
-              ? "bg-amber-50 border-amber-200 text-amber-700" 
-              : "bg-blue-600 border-blue-700 text-white"
-        )}>
-          {(msg.usuario_nome || (isAbertura ? 'S' : 'A')).charAt(0).toUpperCase()}
+        <div className="px-4 py-3 border-b border-slate-100/80 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={cn(
+              "w-9 h-9 rounded-lg flex items-center justify-center border shrink-0",
+              isInternal ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-slate-100 text-slate-600 border-slate-200"
+            )}>
+              <InteractionIcon size={16} />
+            </div>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-sm font-semibold text-slate-900 truncate">
+                  {msg.usuario_nome || (isAbertura ? 'Solicitante' : 'Atendente')}
+                </h3>
+                <span className={cn(
+                  "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                  interaction.badge
+                )}>
+                  <InteractionIcon size={10} />
+                  {interaction.label}
+                </span>
+              </div>
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] font-medium text-slate-500">
+                <span className="inline-flex items-center gap-1">
+                  <Calendar size={11} />
+                  {date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Clock3 size={11} />
+                  {date.toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Content */}
-        <div className={cn(
-          "flex flex-col gap-1 min-w-0",
-          isCliente || isAbertura ? "items-start" : "items-end"
-        )}>
-           {/* Meta */}
-           <div className={cn(
-             "flex items-center gap-1.5 text-[9px]",
-             isCliente || isAbertura ? "text-slate-500" : "flex-row-reverse text-blue-600"
-           )}>
-              <span className={cn(
-                "font-semibold",
-                isInternal ? "text-amber-700" : (isCliente || isAbertura ? "text-slate-700" : "text-blue-600")
-              )}>
-                {msg.usuario_nome || (isAbertura ? 'Solicitante' : 'Atendente')}
-              </span>
-              <span className="w-0.5 h-0.5 rounded-full bg-slate-300" />
-              <span className="flex items-center gap-1 font-medium">
-                 {date.toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-              </span>
-              {isAbertura && (
-                <span className="text-[8px] font-bold bg-slate-100 text-slate-500 px-1 py-0.5 rounded ml-1 uppercase tracking-wider">Abertura</span>
-              )}
-           </div>
+        <div className="px-4 py-4">
+          <div className="whitespace-pre-wrap text-sm leading-6 text-slate-700 break-words">
+            {msg.mensagem || msg.descricao}
+          </div>
 
-           {/* Bubble */}
-           <div className={cn(
-             "px-3 py-2 outline outline-1 outline-transparent rounded-lg text-[13px] leading-relaxed transition-all shadow-sm max-w-full",
-             isInternal 
-               ? "bg-amber-50 border border-amber-200 text-slate-800 rounded-tl-sm" 
-               : isCliente || isAbertura
-                 ? "bg-white border border-slate-200 text-slate-700 rounded-tl-sm"
-                 : "bg-blue-600 border border-blue-700 text-white rounded-tr-sm shadow-blue-200"
-           )}>
-             <div className="whitespace-pre-wrap font-medium break-words">
-               {msg.mensagem || msg.descricao}
-             </div>
-
-             {msg.attachments && msg.attachments.length > 0 && (
-               <div className={cn(
-                 "mt-3 pt-3 border-t",
-                 isCliente || isAbertura || isInternal ? "border-slate-100" : "border-blue-500/30"
-               )}>
-                  <AttachmentList 
-                    attachments={msg.attachments} 
-                    onRemove={onDeleteAttachment}
-                    compact
-                    className={!isCliente && !isAbertura && !isInternal ? "text-white" : ""}
-                  />
-               </div>
-             )}
-           </div>
-
-           {/* Full Date on Hover/Focus */}
-           <div className="text-[8px] font-semibold text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
-              {date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
-           </div>
+          {msg.attachments && msg.attachments.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-slate-200/70">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+                Anexos
+              </div>
+              <AttachmentList 
+                attachments={msg.attachments} 
+                onRemove={onDeleteAttachment}
+                compact
+              />
+            </div>
+          )}
         </div>
       </div>
-    </div>
+    </article>
   );
 };
 
@@ -173,55 +175,60 @@ export const TicketConversation = ({
   }, [messages]);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-slate-50/20">
-        <div className="flex-1 min-h-0 overflow-y-auto p-3 md:p-4 space-y-1 custom-scrollbar">
+    <div className="flex flex-col h-full overflow-hidden bg-slate-50">
+        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+          <div className="mx-auto w-full max-w-5xl px-3 sm:px-5 lg:px-7 py-5 sm:py-6">
           {/* Timeline Start Indication */}
-          <div className="flex flex-col items-center justify-center mb-4 mt-2">
-             <p className="text-[10px] font-semibold text-slate-400 bg-white border border-slate-200 px-2.5 py-1 rounded-full shadow-sm">
-                Iniciado em {new Date(ticket.created_at).toLocaleDateString()}
-             </p>
+          <div className="mb-5 flex items-center gap-3 pl-9 sm:pl-11">
+             <div className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-slate-500 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm">
+                <Calendar size={12} />
+                Historico iniciado em {new Date(ticket.created_at).toLocaleDateString('pt-BR')}
+             </div>
           </div>
 
-          {/* Abertura do Chamado - Apenas se não estiver nas mensagens iniciais */}
-          {ticket.descricao && !hasInitialMessageInMessages && (
-            <MessageBubble 
-              msg={{
-                ...ticket,
-                usuario_nome: ticket.cliente_nome,
-                created_at: ticket.created_at
-              }}
-              isCliente={true}
-              isAbertura={true}
-            />
-          )}
+          <div className="relative space-y-4 before:absolute before:left-3 sm:before:left-[15px] before:top-0 before:bottom-0 before:w-px before:bg-slate-200">
+            {/* Abertura do Chamado - Apenas se não estiver nas mensagens iniciais */}
+            {ticket.descricao && !hasInitialMessageInMessages && (
+              <MessageBubble 
+                msg={{
+                  ...ticket,
+                  usuario_nome: ticket.cliente_nome,
+                  created_at: ticket.created_at
+                }}
+                isCliente={true}
+                isAbertura={true}
+              />
+            )}
 
-          {messages.length === 0 && !ticket.descricao ? (
-            <div className="py-12 text-center flex flex-col items-center">
-                <div className="w-12 h-12 bg-white text-slate-300 rounded-2xl flex items-center justify-center mb-4 border border-slate-100 shadow-sm">
-                  <MessageSquare size={24} />
-                </div>
-                <h4 className="text-sm font-semibold text-slate-900 tracking-tight mb-1">Aguardando interações</h4>
-                <p className="text-xs font-medium text-slate-500 max-w-xs leading-relaxed">
-                  Não há mensagens registradas para este atendimento ainda.
-                </p>
-            </div>
-          ) : (
-            messages.map((msg) => (
-              <div key={msg.id}>
+            {messages.length === 0 && !ticket.descricao ? (
+              <div className="py-12 text-center flex flex-col items-center">
+                  <div className="w-12 h-12 bg-white text-slate-300 rounded-xl flex items-center justify-center mb-4 border border-slate-100 shadow-sm">
+                    <MessageSquare size={24} />
+                  </div>
+                  <h4 className="text-sm font-semibold text-slate-900 tracking-tight mb-1">Aguardando interações</h4>
+                  <p className="text-xs font-medium text-slate-500 max-w-xs leading-relaxed">
+                    Não há mensagens registradas para este atendimento ainda.
+                  </p>
+              </div>
+            ) : (
+              messages.map((msg) => (
                 <MessageBubble 
+                  key={msg.id}
                   msg={msg}
                   isCliente={msg.usuario_id === ticket.usuario_id || (!msg.usuario_id && !msg.interno)}
                   isCurrentUser={msg.usuario_id && msg.usuario_id === currentUser.id}
                   onDeleteAttachment={onDeleteAttachment}
                 />
-              </div>
-            ))
-          )}
-          <div ref={messagesEndRef} />
+              ))
+            )}
+            <div ref={messagesEndRef} />
+            </div>
+          </div>
         </div>
         
         {/* Campo de Resposta Wrapping Area */}
-        <div className="shrink-0 p-3 bg-white border-t border-slate-200 z-10">
+        <div className="shrink-0 bg-white border-t border-slate-200 z-10">
+          <div className="mx-auto w-full max-w-5xl p-3 sm:px-5 lg:px-7">
            {ticket.status === 'fechado' ? (
               <div className="flex flex-col items-center justify-center py-4 bg-slate-50 border border-slate-200 border-dashed rounded-xl">
                  <div className="w-8 h-8 rounded-lg bg-slate-200/50 flex items-center justify-center text-slate-400 mb-2">
@@ -243,6 +250,7 @@ export const TicketConversation = ({
                  canAddInternalNote={canAddInternalNote}
               />
            )}
+          </div>
         </div>
     </div>
   );

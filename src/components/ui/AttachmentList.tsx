@@ -1,7 +1,7 @@
 import React from "react";
 import { TicketAttachment } from "../../types";
 import { FileIcon } from "./FileIcon";
-import { Download, X, Eye } from "lucide-react";
+import { Download, X, ExternalLink } from "lucide-react";
 import { cn } from "../../lib/utils";
 
 interface AttachmentListProps {
@@ -39,17 +39,17 @@ export const AttachmentList = ({
         <div
           key={file.id}
           className={cn(
-            "flex items-center justify-between p-2 rounded-lg border border-slate-100 bg-white shadow-sm transition-all hover:border-slate-200",
-            file.interno && "bg-amber-50/30 border-amber-100",
+            "flex items-center justify-between gap-3 p-3 rounded-lg border border-slate-200 bg-white transition-all hover:border-slate-300 hover:shadow-sm",
+            file.interno && "bg-amber-50/60 border-amber-200",
           )}
         >
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
             <div
               className={cn(
-                "w-8 h-8 rounded flex items-center justify-center shrink-0",
+                "w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border",
                 file.interno
-                  ? "bg-amber-100 text-amber-600"
-                  : "bg-slate-100 text-slate-500",
+                  ? "bg-amber-100 text-amber-700 border-amber-200"
+                  : "bg-slate-50 text-slate-500 border-slate-200",
               )}
             >
               <FileIcon mimeType={file.mime_type} />
@@ -61,10 +61,12 @@ export const AttachmentList = ({
               >
                 {file.nome_original}
               </p>
-              <p className="text-[10px] font-medium text-slate-400">
-                {formatSize(file.tamanho_bytes)}
+              <p className="text-[10px] font-medium text-slate-500 flex flex-wrap items-center gap-1.5">
+                <span>{file.tipo || file.mime_type || "Arquivo"}</span>
+                <span className="text-slate-300">/</span>
+                <span>{formatSize(file.tamanho_bytes)}</span>
                 {Number(file.interno) === 1 && (
-                  <span className="ml-1.5 text-amber-600 font-bold uppercase tracking-wider">
+                  <span className="text-amber-700 font-bold uppercase tracking-wider">
                     Interno
                   </span>
                 )}
@@ -83,6 +85,17 @@ export const AttachmentList = ({
             >
               <Download size={14} />
             </a>
+            {file.url && (
+              <a
+                href={file.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
+                title="Abrir arquivo"
+              >
+                <ExternalLink size={14} />
+              </a>
+            )}
             {onRemove && (
               <button
                 onClick={() => onRemove(file.id)}

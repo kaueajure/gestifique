@@ -277,9 +277,9 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
   const canAddInternalNote = !!(currentUser.administrador || currentUser.desenvolvedor || currentUser.perfil === 'gestor' || currentUser.perfil === 'atendente');
 
   return (
-    <div className="h-full flex flex-col min-h-0 overflow-hidden bg-slate-50">
+    <div className="h-full flex flex-col min-h-0 overflow-hidden bg-slate-100">
       {/* Header Centralizado */}
-      <div className="shrink-0 z-20 bg-white border-b border-slate-200">
+      <div className="shrink-0 z-20">
          <TicketHeader 
            ticket={ticket}
            currentUser={currentUser}
@@ -296,7 +296,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
       {/* Main Workspace Grid */}
       <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
         {/* Left: Conversation Feed */}
-        <div className="flex-1 flex flex-col min-w-0 bg-white shadow-[1px_0_0_rgba(0,0,0,0.05)] z-10 overflow-hidden min-h-0">
+        <div className="flex-1 flex flex-col min-w-0 bg-slate-50 shadow-[1px_0_0_rgba(15,23,42,0.06)] z-10 overflow-hidden min-h-0">
           <TicketConversation 
             ticket={ticket}
             messages={messages}
@@ -311,7 +311,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
         </div>
 
         {/* Right Sidebar: Tabs for Props & Timeline */}
-        <div className="w-full md:w-[280px] lg:w-[320px] shrink-0 border-t md:border-t-0 md:border-l border-slate-200 bg-slate-50/30 flex flex-col h-full overflow-hidden">
+        <div className="w-full md:w-[300px] lg:w-[340px] shrink-0 border-t md:border-t-0 md:border-l border-slate-200 bg-slate-50 flex flex-col h-full overflow-hidden">
           <div className="flex bg-white border-b border-slate-100 shrink-0 sticky top-0 z-20">
              <button 
                onClick={() => setActiveTab('messages')}

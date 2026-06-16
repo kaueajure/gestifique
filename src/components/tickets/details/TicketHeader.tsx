@@ -7,7 +7,11 @@ import {
   RefreshCw,
   Clock,
   Mail,
-  ShieldAlert
+  ShieldAlert,
+  UserRound,
+  CalendarDays,
+  Hash,
+  Building2
 } from 'lucide-react';
 import { Ticket, TicketStatus, User } from '../../../types';
 import { cn, getSlaInfo } from '../../../lib/utils';
@@ -36,9 +40,11 @@ export const TicketHeader = ({
     prioridade, 
     origem, 
     cliente_nome,
+    empresa_nome,
     responsavel_nome,
     prazo_sla,
-    sla_status_operacional
+    sla_status_operacional,
+    created_at
   } = ticket;
 
   const showResolveButton = canManage && status !== 'resolvido' && status !== 'fechado';
@@ -56,104 +62,137 @@ export const TicketHeader = ({
     }
   };
   const priorityColor = getPriorityInfo(prioridade);
+  const openedAt = new Date(created_at).toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 
   return (
-    <div className="bg-white border-b border-slate-200 px-4 py-2.5 sticky top-0 z-40">
-      <div className="max-w-[1600px] mx-auto flex items-start sm:items-center justify-between gap-3">
+    <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-4 sticky top-0 z-40">
+      <div className="max-w-[1600px] mx-auto flex flex-col gap-4">
         
-        {/* Left Side: Back button + Title & Metadata */}
-        <div className="flex items-start gap-2.5 min-w-0 flex-1">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={onBack}
-            className="h-7 w-7 mt-0.5 sm:mt-0 p-0 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors shrink-0"
-          >
-            <ArrowLeft size={16} />
-          </Button>
-          
-          <div className="flex flex-col min-w-0 w-full gap-1">
-            <div className="flex items-center gap-2 relative">
-              <span className="text-[11px] font-medium text-slate-500 shrink-0">#{id}</span>
-              <h2 className="text-sm font-semibold text-slate-800 truncate leading-tight">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0 flex-1">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={onBack}
+              className="h-9 w-9 p-0 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors shrink-0"
+            >
+              <ArrowLeft size={18} />
+            </Button>
+            
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-500 bg-slate-100 border border-slate-200 rounded-md px-2 py-1">
+                  <Hash size={11} />
+                  {id}
+                </span>
+                {origem === 'email' && (
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 bg-white border border-slate-200 rounded-md px-2 py-1">
+                    <Mail size={11} />
+                    E-mail
+                  </span>
+                )}
+              </div>
+              <h2 className="text-lg sm:text-xl font-semibold text-slate-950 leading-snug">
                 {titulo || 'Sem título'}
               </h2>
             </div>
-            
-            <div className="flex flex-wrap items-center gap-1.5">
-              {/* Status */}
-              <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border border-slate-200 bg-slate-50 text-slate-700">
-                <div className={cn("w-1.5 h-1.5 rounded-full", ticketStatusColors[status as TicketStatus])} />
-                {status.replace('_', ' ')}
-              </div>
+          </div>
 
-              {/* Priority */}
-              <div className={cn("inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium", priorityColor.color)}>
-                <ShieldAlert size={10} />
-                {prioridade.charAt(0).toUpperCase() + prioridade.slice(1)}
-              </div>
+          <div className="flex items-center shrink-0">
+            {showResolveButton && (
+              <Button 
+                onClick={onResolve}
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-sm h-9 px-3 rounded-lg"
+              >
+                <CheckCircle2 size={14} className="mr-1.5" />
+                Finalizar
+              </Button>
+            )}
 
-              {/* Assignee */}
-              {responsavel_nome && (
-                <div className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border border-slate-200 bg-slate-50 text-slate-600">
-                  <span className="opacity-70 mr-1">R:</span>
-                  {responsavel_nome.split(' ')[0]}
-                </div>
-              )}
-
-              {/* Client */}
-              {cliente_nome && (
-                <div className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border border-slate-200 bg-slate-50 text-slate-600">
-                  <span className="opacity-70 mr-1">C:</span>
-                  <span className="truncate max-w-[100px] block">{cliente_nome.split(' ')[0]}</span>
-                </div>
-              )}
-
-              {/* SLA */}
-              <div className={cn("inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium", slaInfo.color)}>
-                <Clock size={10} />
-                {slaInfo.compactText || slaInfo.label}
-              </div>
-
-              {/* Origin */}
-              {origem === 'email' && (
-                <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-slate-500" title="Origem: E-Mail">
-                  <Mail size={10} />
-                </div>
-              )}
-            </div>
+            {showReopenButton && (
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={() => onUpdate({ status: 'aberto' })}
+                className="text-xs font-semibold border-blue-200 text-blue-600 hover:bg-blue-50 shadow-sm h-9 px-3 rounded-lg"
+              >
+                <RefreshCw size={14} className="mr-1.5" />
+                Reabrir
+              </Button>
+            )}
           </div>
         </div>
 
-        {/* Right Side: Actions */}
-        <div className="flex items-center shrink-0">
-          {showResolveButton && (
-            <Button 
-              onClick={onResolve}
-              size="sm"
-              className="bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-medium shadow-sm h-7 px-2.5 rounded-md"
-            >
-              <CheckCircle2 size={12} className="mr-1.5" />
-              Finalizar
-            </Button>
-          )}
-
-          {showReopenButton && (
-            <Button 
-              variant="outline"
-              size="sm"
-              onClick={() => onUpdate({ status: 'aberto' })}
-              className="text-[11px] font-medium border-blue-200 text-blue-600 hover:bg-blue-50 shadow-sm h-7 px-2.5 rounded-md"
-            >
-              <RefreshCw size={12} className="mr-1.5" />
-              Reabrir
-            </Button>
-          )}
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2">
+          <HeaderMeta
+            label="Status"
+            value={status.replace('_', ' ')}
+            icon={<span className={cn("w-2 h-2 rounded-full", ticketStatusColors[status as TicketStatus])} />}
+          />
+          <HeaderMeta
+            label="Prioridade"
+            value={prioridade.charAt(0).toUpperCase() + prioridade.slice(1)}
+            icon={<ShieldAlert size={14} />}
+            className={priorityColor.color}
+          />
+          <HeaderMeta
+            label="Solicitante"
+            value={cliente_nome || 'Nao informado'}
+            icon={<UserRound size={14} />}
+          />
+          <HeaderMeta
+            label="Responsavel"
+            value={responsavel_nome || 'Sem responsavel'}
+            icon={<UserRound size={14} />}
+          />
+          <HeaderMeta
+            label="Abertura"
+            value={openedAt}
+            icon={<CalendarDays size={14} />}
+          />
+          <HeaderMeta
+            label={empresa_nome ? 'Empresa' : 'SLA'}
+            value={empresa_nome || (slaInfo.compactText || slaInfo.label)}
+            icon={empresa_nome ? <Building2 size={14} /> : <Clock size={14} />}
+            className={!empresa_nome ? slaInfo.color : undefined}
+          />
         </div>
       </div>
     </div>
   );
 };
+
+const HeaderMeta = ({
+  label,
+  value,
+  icon,
+  className
+}: {
+  label: string;
+  value: string;
+  icon: React.ReactNode;
+  className?: string;
+}) => (
+  <div className={cn(
+    "min-w-0 rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2",
+    className
+  )}>
+    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+      {icon}
+      {label}
+    </div>
+    <div className="text-xs font-semibold text-slate-800 truncate capitalize" title={value}>
+      {value}
+    </div>
+  </div>
+);
 
 const ticketStatusColors: Record<TicketStatus, string> = {
   aberto: "bg-blue-500",

@@ -92,7 +92,7 @@ export const FileUpload = ({
 
   return (
     <div className={cn("space-y-2", className)}>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <input
           type="file"
           ref={fileInputRef}
@@ -105,7 +105,7 @@ export const FileUpload = ({
           variant="outline"
           size="sm"
           onClick={() => fileInputRef.current?.click()}
-          className="text-slate-600 gap-1.5 font-medium h-8"
+          className="text-slate-600 gap-1.5 font-semibold h-8 rounded-lg bg-white"
           disabled={selectedFiles.length >= maxFiles}
         >
           <Paperclip size={14} /> Anexar
@@ -123,18 +123,18 @@ export const FileUpload = ({
       )}
 
       {selectedFiles.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {selectedFiles.map((file, index) => (
             <div
               key={`${file.name}-${index}`}
-              className="flex items-center justify-between p-1.5 rounded bg-slate-50 border border-slate-200 group"
+              className="flex items-center justify-between gap-2 p-2 rounded-lg bg-white border border-slate-200 group"
             >
               <div className="flex items-center gap-2 min-w-0 flex-1">
-                <div className="w-6 h-6 rounded bg-white border border-slate-200 flex items-center justify-center text-slate-400 shrink-0">
+                <div className="w-7 h-7 rounded-md bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 shrink-0">
                   <FileIcon mimeType={file.type} size={12} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-medium text-slate-700 truncate leading-tight">
+                  <p className="text-[11px] font-semibold text-slate-700 truncate leading-tight">
                     {file.name}
                   </p>
                   <p className="text-[9px] font-medium text-slate-500 leading-none mt-0.5">
