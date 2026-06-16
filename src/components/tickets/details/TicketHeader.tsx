@@ -71,8 +71,8 @@ export const TicketHeader = ({
   });
 
   return (
-    <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-4 sticky top-0 z-40">
-      <div className="max-w-[1600px] mx-auto flex flex-col gap-4">
+    <div className="bg-white border-b border-slate-200 px-4 sm:px-5 py-4 sticky top-0 z-40">
+      <div className="flex flex-col gap-4">
         
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 min-w-0 flex-1">

@@ -12,6 +12,7 @@ import { Select } from '../ui/Select';
 import { cn } from '../../lib/utils';
 import { getSocket } from '../../lib/socket';
 import { motion, AnimatePresence } from 'motion/react';
+import { PageShell } from '../layout/PageShell';
 
 interface TicketDetailsPageProps {
   ticketId: number;
@@ -277,7 +278,10 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
   const canAddInternalNote = !!(currentUser.administrador || currentUser.desenvolvedor || currentUser.perfil === 'gestor' || currentUser.perfil === 'atendente');
 
   return (
-    <div className="h-full flex flex-col min-h-0 overflow-hidden bg-slate-100">
+    <PageShell
+      flush
+      contentClassName="!overflow-hidden flex flex-col"
+    >
       {/* Header Centralizado */}
       <div className="shrink-0 z-20">
          <TicketHeader 
@@ -291,7 +295,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
            onBack={onBack}
            canManage={canManage}
            agents={agents}
-         />
+          />
       </div>
 
       {/* Main Workspace Grid */}
@@ -455,6 +459,6 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
           </motion.div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 };

@@ -167,7 +167,6 @@ export const TicketConversation = ({
   loadingSend, actionError, actionSuccess, canAddInternalNote 
 }: TicketConversationProps) => {
 
-  const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
@@ -182,10 +181,6 @@ export const TicketConversation = ({
 
   const normalizedDesc = normalizeMessage(ticket.descricao);
   
-  // No point 4, pede para considerar as primeiras mensagens. 
-  // No point 2, deu a fórmula com messages.some.
-  // Vamos buscar a duplicata apenas entre as primeiras mensagens públicas para não esconder a abertura
-  // se houver uma mensagem idêntica muito depois na conversa.
   const hasInitialMessageInMessages = messages
     .filter(msg => !Number(msg.interno))
     .slice(0, 3)
@@ -211,7 +206,7 @@ export const TicketConversation = ({
   return (
     <div className="flex h-full flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.08),transparent_28%),linear-gradient(180deg,#f8fafc_0%,#eef2f7_100%)]">
         <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
-          <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-3 py-5 sm:px-5 sm:py-6 lg:px-7">
+          <div className="flex w-full flex-col gap-5 px-3 py-5 sm:px-5 sm:py-6">
           <div className="flex justify-center">
              <div className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/80 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 shadow-sm backdrop-blur">
                 <Calendar size={12} />
@@ -268,7 +263,7 @@ export const TicketConversation = ({
         </div>
         
         <div className="z-10 shrink-0 border-t border-slate-200/80 bg-white/85 shadow-[0_-18px_40px_rgba(15,23,42,0.08)] backdrop-blur">
-          <div className="mx-auto w-full max-w-5xl p-3 sm:px-5 lg:px-7">
+          <div className="w-full p-3 sm:px-5">
            {ticket.status === 'fechado' ? (
               <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-4">
                  <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-slate-200/50 text-slate-400">
