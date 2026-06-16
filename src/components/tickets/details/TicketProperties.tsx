@@ -45,8 +45,8 @@ const PropertyRow = ({ label, icon: Icon, children, className }: { label: string
 );
 
 const Section = ({ title, icon: Icon, children, badge }: { title: string, icon?: any, children: React.ReactNode, badge?: React.ReactNode }) => (
-  <div className="bg-white border text-sm border-slate-200 rounded-lg overflow-hidden shadow-sm">
-    <div className="px-2.5 py-1.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+  <div className="bg-white border text-sm border-slate-200 rounded-lg shadow-sm">
+    <div className="px-2.5 py-1.5 bg-slate-50 border-b border-slate-200 rounded-t-[7px] flex items-center justify-between">
       <h3 className="text-[11px] font-semibold text-slate-700 flex items-center gap-1.5">
         {Icon && <Icon size={12} className="text-slate-500" />}
         {title}
