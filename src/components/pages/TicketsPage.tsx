@@ -1045,6 +1045,7 @@ export const TicketsPage = ({
                 onSelectTicket={onSelectTicket}
                 currentUser={currentUser}
                 onStatusChange={() => fetchData()}
+                devCompanyId={devCompanyId}
               />
             ) : viewMode === "list" && ticketsResponse ? (
               <TicketList
