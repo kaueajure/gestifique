@@ -1,16 +1,14 @@
 import React from 'react';
-import { Badge } from '../../ui/Badge';
 import { Button } from '../../ui/Button';
+import { Select } from '../../ui/Select';
 import { 
   ArrowLeft, 
   CheckCircle2,
   RefreshCw,
   Clock,
   Mail,
-  ShieldAlert,
   UserRound,
   CalendarDays,
-  Hash,
   Building2
 } from 'lucide-react';
 import { Ticket, TicketStatus, User } from '../../../types';
@@ -23,6 +21,7 @@ interface TicketHeaderProps {
   onResolve: () => void;
   onBack: () => void;
   canManage: boolean;
+  agents: User[];
 }
 
 export const TicketHeader = ({ 
@@ -31,7 +30,8 @@ export const TicketHeader = ({
   onUpdate, 
   onResolve, 
   onBack,
-  canManage 
+  canManage,
+  agents
 }: TicketHeaderProps) => {
   const { 
     id, 
@@ -54,11 +54,11 @@ export const TicketHeader = ({
 
   const getPriorityInfo = (prio: string) => {
     switch (prio) {
-      case 'urgente': return { color: 'text-red-700 bg-red-100' };
-      case 'alta': return { color: 'text-orange-700 bg-orange-100' };
-      case 'media': return { color: 'text-amber-700 bg-amber-100' };
-      case 'baixa': return { color: 'text-blue-700 bg-blue-100' };
-      default: return { color: 'text-slate-700 bg-slate-100' };
+      case 'urgente': return { dot: 'bg-red-500' };
+      case 'alta': return { dot: 'bg-orange-500' };
+      case 'media': return { dot: 'bg-amber-500' };
+      case 'baixa': return { dot: 'bg-blue-500' };
+      default: return { dot: 'bg-slate-400' };
     }
   };
   const priorityColor = getPriorityInfo(prioridade);
@@ -88,8 +88,7 @@ export const TicketHeader = ({
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2 mb-1.5">
                 <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-500 bg-slate-100 border border-slate-200 rounded-md px-2 py-1">
-                  <Hash size={11} />
-                  {id}
+                  Ticket {id}
                 </span>
                 {origem === 'email' && (
                   <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 bg-white border border-slate-200 rounded-md px-2 py-1">
@@ -131,27 +130,67 @@ export const TicketHeader = ({
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2">
-          <HeaderMeta
+          <HeaderSelectMeta
             label="Status"
-            value={status.replace('_', ' ')}
             icon={<span className={cn("w-2 h-2 rounded-full", ticketStatusColors[status as TicketStatus])} />}
-          />
-          <HeaderMeta
+          >
+            <Select 
+              value={status || 'aberto'}
+              onChange={(value) => onUpdate({ status: value as TicketStatus })}
+              options={[
+                { value: 'aberto', label: 'Aberto' },
+                { value: 'em_andamento', label: 'Em andamento' },
+                { value: 'aguardando_cliente', label: 'Aguard. cliente' },
+                { value: 'resolvido', label: 'Resolvido' },
+                { value: 'fechado', label: 'Fechado' }
+              ]}
+              buttonClassName="h-7 rounded-md border-slate-200 bg-white text-xs font-semibold text-slate-800 capitalize"
+              dropdownClassName="min-w-[180px]"
+              disabled={!canManage}
+            />
+          </HeaderSelectMeta>
+          <HeaderSelectMeta
             label="Prioridade"
-            value={prioridade.charAt(0).toUpperCase() + prioridade.slice(1)}
-            icon={<ShieldAlert size={14} />}
-            className={priorityColor.color}
-          />
+            icon={<span className={cn("w-2 h-2 rounded-sm", priorityColor.dot)} />}
+          >
+            <div className="relative">
+              <span className={cn("absolute left-2 top-1/2 -translate-y-1/2 z-10 w-2 h-2 rounded-sm pointer-events-none", priorityColor.dot)} />
+              <Select 
+                value={prioridade || 'media'}
+                onChange={(value) => onUpdate({ prioridade: value as any })}
+                options={[
+                  { value: 'baixa', label: 'Baixa' },
+                  { value: 'media', label: 'Média' },
+                  { value: 'alta', label: 'Alta' },
+                  { value: 'urgente', label: 'Urgente' }
+                ]}
+                buttonClassName="h-7 rounded-md border-slate-200 bg-white pl-6 text-xs font-semibold text-slate-800"
+                dropdownClassName="min-w-[150px]"
+                disabled={!canManage}
+              />
+            </div>
+          </HeaderSelectMeta>
           <HeaderMeta
             label="Solicitante"
             value={cliente_nome || 'Nao informado'}
             icon={<UserRound size={14} />}
           />
-          <HeaderMeta
+          <HeaderSelectMeta
             label="Responsavel"
-            value={responsavel_nome || 'Sem responsavel'}
             icon={<UserRound size={14} />}
-          />
+          >
+            <Select 
+              value={ticket.responsavel_id ? String(ticket.responsavel_id) : ''}
+              onChange={(value) => onUpdate({ responsavel_id: value ? Number(value) : null })}
+              options={[
+                { value: '', label: 'Sem responsavel' },
+                ...agents.map(a => ({ value: String(a.id), label: a.nome }))
+              ]}
+              buttonClassName="h-7 rounded-md border-slate-200 bg-white text-xs font-semibold text-slate-800"
+              dropdownClassName="min-w-[220px]"
+              disabled={!canManage}
+            />
+          </HeaderSelectMeta>
           <HeaderMeta
             label="Abertura"
             value={openedAt}
@@ -191,6 +230,24 @@ const HeaderMeta = ({
     <div className="text-xs font-semibold text-slate-800 truncate capitalize" title={value}>
       {value}
     </div>
+  </div>
+);
+
+const HeaderSelectMeta = ({
+  label,
+  icon,
+  children
+}: {
+  label: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) => (
+  <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2">
+    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+      {icon}
+      {label}
+    </div>
+    {children}
   </div>
 );
 

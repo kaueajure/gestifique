@@ -290,6 +290,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
            }}
            onBack={onBack}
            canManage={canManage}
+           agents={agents}
          />
       </div>
 
@@ -346,7 +347,6 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                    <TicketProperties 
                      ticket={ticket}
                      currentUser={currentUser}
-                     agents={agents}
                      attachments={ticketAttachments}
                      onUpdate={handleUpdateTicket}
                      onArchive={handleArchiveTicket}

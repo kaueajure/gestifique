@@ -1,25 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { User, Ticket, TicketAttachment, TicketStatus } from '../../../types';
+import { User, Ticket, TicketAttachment } from '../../../types';
 import { Badge } from '../../ui/Badge';
 import { Button } from '../../ui/Button';
 import { Select } from '../../ui/Select';
 import { api } from '../../../lib/api';
-import { cn, formatRelativeTime, getSlaInfo, getFirstResponseSlaInfo } from '../../../lib/utils';
+import { cn, getSlaInfo, getFirstResponseSlaInfo } from '../../../lib/utils';
 import { 
-  User as UserIcon, 
   Building2, 
-  Calendar, 
   Trash2, 
   Clock, 
   Globe,
-  Zap,
   Layers,
-  ShieldCheck,
   Tag as TagIcon,
   Briefcase,
   Paperclip,
   CheckCircle2,
-  AlertCircle,
   Bot,
   Sparkles,
   RefreshCw,
@@ -62,7 +57,6 @@ const Section = ({ title, icon: Icon, children, badge }: { title: string, icon?:
 interface TicketPropertiesProps {
   ticket: Ticket;
   currentUser: User;
-  agents: User[];
   attachments: TicketAttachment[];
   onUpdate: (data: Partial<Ticket>) => void;
   onArchive: () => void;
@@ -73,7 +67,6 @@ interface TicketPropertiesProps {
 export const TicketProperties = ({ 
   ticket, 
   currentUser, 
-  agents,
   attachments,
   onUpdate,
   onArchive,
@@ -133,14 +126,6 @@ export const TicketProperties = ({
       day: '2-digit', month: '2-digit', year: 'numeric',
       hour: '2-digit', minute: '2-digit'
     });
-  };
-
-  const statusColors: Record<TicketStatus, string> = {
-    aberto: "bg-blue-600",
-    em_andamento: "bg-indigo-600",
-    aguardando_cliente: "bg-amber-600",
-    resolvido: "bg-emerald-600",
-    fechado: "bg-slate-600",
   };
 
   const canManage = hasPermission(currentUser, 'tickets.editar');
@@ -219,53 +204,6 @@ export const TicketProperties = ({
           </div>
         </Section>
       )}
-
-      {/* Seção 1: Atendimento Central */}
-      <Section title="Propriedades" icon={ShieldCheck}>
-        <PropertyRow label="Status" icon={Clock}>
-           <Select 
-             value={ticket.status || 'aberto'}
-             onChange={(value) => onUpdate({ status: value as any })}
-             options={[
-               { value: 'aberto', label: 'Aberto' },
-               { value: 'em_andamento', label: 'Em andamento' },
-               { value: 'aguardando_cliente', label: 'Aguard. cliente' },
-               { value: 'resolvido', label: 'Resolvido' },
-               { value: 'fechado', label: 'Fechado' }
-             ]}
-             buttonClassName="w-full h-7 text-[11px] font-semibold bg-white border-slate-200 rounded text-slate-700"
-             disabled={!canManage}
-           />
-        </PropertyRow>
-        
-        <PropertyRow label="Responsável" icon={UserIcon}>
-           <Select 
-             value={ticket.responsavel_id ? String(ticket.responsavel_id) : ''}
-             onChange={(value) => onUpdate({ responsavel_id: value ? Number(value) : null })}
-             options={[
-               { value: '', label: 'Nenhum Atribuído' },
-               ...agents.map(a => ({ value: String(a.id), label: a.nome }))
-             ]}
-             buttonClassName="w-full h-7 text-[11px] font-semibold bg-white border-slate-200 rounded text-slate-700"
-             disabled={!canManage}
-           />
-        </PropertyRow>
-
-        <PropertyRow label="Prioridade" icon={Zap}>
-           <Select 
-             value={ticket.prioridade || 'media'}
-             onChange={(value) => onUpdate({ prioridade: value as any })}
-             options={[
-               { value: 'baixa', label: 'Baixa' },
-               { value: 'media', label: 'Média' },
-               { value: 'alta', label: 'Alta' },
-               { value: 'urgente', label: 'Urgente' }
-             ]}
-             buttonClassName="w-full h-7 text-[11px] font-semibold bg-white border-slate-200 rounded text-slate-700"
-             disabled={!canManage}
-           />
-        </PropertyRow>
-      </Section>
 
       {/* Triagem Inteligente (IA) */}
       {aiAvailable && (sentimento || categoriaSugerida) && (
