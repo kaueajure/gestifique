@@ -62,7 +62,7 @@ export const TicketMacroList = ({ ticket, currentUser, onSelect, onClose }: Tick
   const canManage = currentUser.administrador || currentUser.desenvolvedor;
 
   return (
-    <div className="flex flex-col h-[400px] w-[340px] bg-white shadow-lg rounded-xl border border-slate-200 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
+    <div className="flex h-[400px] w-[min(340px,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl shadow-slate-900/15 animate-in fade-in slide-in-from-bottom-2 duration-200">
       <div className="p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
         <h3 className="text-xs font-semibold text-slate-700 flex items-center gap-2">
           <MessageSquare size={14} className="text-blue-500" /> Respostas Prontas

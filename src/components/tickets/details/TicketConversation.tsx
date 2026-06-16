@@ -81,9 +81,9 @@ const ThreadItem = ({
       ? {
           label: 'Nota interna',
           icon: Lock,
-          badge: 'bg-amber-50 text-amber-700 border-amber-200',
-          line: 'border-l-amber-400',
-          panel: 'bg-amber-50/50'
+          badge: 'bg-slate-100 text-slate-500 border-slate-200',
+          line: 'border-l-slate-300',
+          panel: 'bg-white opacity-70'
         }
       : isCliente
         ? {
@@ -116,7 +116,7 @@ const ThreadItem = ({
             className={cn(
               'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border',
               isInternal
-                ? 'border-amber-200 bg-amber-100 text-amber-700'
+                ? 'border-slate-200 bg-slate-100 text-slate-400'
                 : 'border-slate-200 bg-slate-50 text-slate-500'
             )}
           >
@@ -163,7 +163,7 @@ const ThreadItem = ({
         <div
           className={cn(
             'whitespace-pre-wrap break-words text-sm leading-6',
-            isInternal ? 'text-amber-950' : 'text-slate-700'
+            isInternal ? 'text-slate-500' : 'text-slate-700'
           )}
         >
           {messageText}

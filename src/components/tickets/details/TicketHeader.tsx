@@ -86,19 +86,16 @@ export const TicketHeader = ({
             </Button>
             
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-500 bg-slate-100 border border-slate-200 rounded-md px-2 py-1">
-                  Ticket {id}
-                </span>
-                {origem === 'email' && (
+              {origem === 'email' && (
+                <div className="flex flex-wrap items-center gap-2 mb-1.5">
                   <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 bg-white border border-slate-200 rounded-md px-2 py-1">
                     <Mail size={11} />
                     E-mail
                   </span>
-                )}
-              </div>
+                </div>
+              )}
               <h2 className="text-lg sm:text-xl font-semibold text-slate-950 leading-snug">
-                {titulo || 'Sem título'}
+                {titulo || 'Sem título'} <span className="font-medium text-slate-400">- #{id}</span>
               </h2>
             </div>
           </div>

@@ -87,12 +87,12 @@ export const TicketReplyBox = ({
 
   return (
     <form onSubmit={handleSubmit} className={cn(
-      "overflow-hidden rounded-lg border bg-white shadow-sm transition-all focus-within:border-blue-300 focus-within:ring-1 focus-within:ring-blue-100",
-      isInternal ? "border-amber-200" : "border-slate-200"
+      "relative overflow-visible rounded-lg border bg-white shadow-sm transition-all focus-within:border-blue-300 focus-within:ring-1 focus-within:ring-blue-100",
+      isInternal ? "border-slate-300 opacity-85" : "border-slate-200"
     )}>
         <div className={cn(
           "flex flex-col gap-2 border-b px-3 py-2 sm:flex-row sm:items-center sm:justify-between",
-          isInternal ? "border-amber-200 bg-amber-50/60" : "border-slate-200 bg-slate-50"
+          isInternal ? "border-slate-200 bg-slate-100/70" : "border-slate-200 bg-slate-50"
         )}>
           <div className="inline-flex w-full rounded-md border border-slate-200 bg-white p-0.5 sm:w-auto">
               <button
@@ -115,7 +115,7 @@ export const TicketReplyBox = ({
                   className={cn(
                     "flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5 text-xs font-semibold transition-all sm:flex-none",
                     isInternal 
-                      ? "bg-white text-amber-700 shadow-sm ring-1 ring-amber-200" 
+                      ? "bg-white text-slate-700 shadow-sm ring-1 ring-slate-200" 
                       : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
                   )}
                >
@@ -156,7 +156,7 @@ export const TicketReplyBox = ({
               </button>
 
               {showMacros && (
-                <div className="absolute bottom-full right-0 z-[60] mb-3">
+                <div className="absolute bottom-full right-0 z-[80] mb-2 max-w-[calc(100vw-2rem)]">
                   <TicketMacroList 
                     ticket={ticket}
                     currentUser={currentUser}
@@ -174,14 +174,14 @@ export const TicketReplyBox = ({
           isInternal ? "bg-amber-50/30" : "bg-white"
         )}>
           {isInternal && (
-             <div className="pointer-events-none absolute right-3 top-3 z-10 hidden items-center gap-1 rounded-full border border-amber-200/70 bg-amber-100/80 px-2.5 py-1 text-[9px] font-semibold text-amber-700 sm:flex">
+             <div className="pointer-events-none absolute right-3 top-3 z-10 hidden items-center gap-1 rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-[9px] font-semibold text-slate-500 sm:flex">
                 <EyeOff size={10} /> Visível apenas para agentes
              </div>
           )}
 
           <div className={cn(
             "pointer-events-none absolute left-4 top-4",
-            isInternal ? "text-amber-400" : "text-slate-300"
+            isInternal ? "text-slate-400" : "text-slate-300"
           )}>
             {isInternal ? <Lock size={17} /> : <MessageSquareText size={17} />}
           </div>
@@ -193,7 +193,7 @@ export const TicketReplyBox = ({
             className={cn(
               "min-h-[104px] w-full resize-none border-0 bg-transparent py-4 pl-11 pr-4 text-sm font-medium leading-6 transition-all focus:outline-none focus:ring-0 sm:pr-48",
               isInternal 
-                ? "text-amber-900 placeholder:text-amber-400" 
+                ? "text-slate-600 placeholder:text-slate-400" 
                 : "text-slate-700 placeholder:text-slate-400"
             )}
             onKeyDown={(e) => {
@@ -264,7 +264,7 @@ export const TicketReplyBox = ({
 
          <div className={cn(
           "flex flex-col gap-3 border-t p-3 sm:flex-row sm:items-end sm:justify-between",
-          isInternal ? "border-amber-200 bg-amber-50/40" : "border-slate-200 bg-slate-50"
+          isInternal ? "border-slate-200 bg-slate-100/70" : "border-slate-200 bg-slate-50"
         )}>
           <div className="flex min-w-0 flex-1">
              <FileUpload 
@@ -285,7 +285,7 @@ export const TicketReplyBox = ({
                 className={cn(
                   "h-9 rounded-md px-4 text-xs font-semibold shadow-sm",
                   isInternal 
-                    ? "bg-amber-600 hover:bg-amber-500 text-white" 
+                    ? "bg-slate-700 hover:bg-slate-600 text-white" 
                     : "bg-blue-600 hover:bg-blue-500 text-white",
                   isMessageEmpty && "opacity-50 grayscale"
                 )}
