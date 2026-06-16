@@ -10,10 +10,8 @@ import {
 } from "../../types";
 import {
   Plus,
-  Loader2,
   Kanban,
   List as ListIcon,
-  RefreshCw,
   Building,
   Layers,
   User as UserIcon,
@@ -22,19 +20,14 @@ import {
   Clock,
   History,
   MessageSquare,
-  Filter,
   Search,
-  Download,
   ChevronDown,
 } from "lucide-react";
 import { Button } from "../ui/Button";
-import { TicketSummaryCards } from "../tickets/TicketSummaryCards";
 import { TicketList } from "../tickets/TicketList";
 import { TicketKanban } from "../tickets/TicketKanban";
 import { CreateTicketModal } from "../tickets/CreateTicketModal";
 import { TeamSidebar } from "../tickets/TeamSidebar";
-import { PageHeader } from "../ui/PageHeader";
-import { SectionHeader } from "../ui/SectionHeader";
 import { LoadingState } from "../ui/LoadingState";
 import { ErrorState } from "../ui/ErrorState";
 import { EmptyState } from "../ui/EmptyState";
@@ -42,8 +35,6 @@ import {
   TicketAdvancedFilters as IAdvancedFilters,
   TicketView,
 } from "../../types";
-import { TicketFilterDrawer } from "../tickets/TicketFilterDrawer";
-import { TicketSavedViews } from "../tickets/TicketSavedViews";
 import { Select } from "../ui/Select";
 import { TicketQueue } from "../../types";
 import { cn } from "../../lib/utils";
@@ -697,8 +688,8 @@ export const TicketsPage = ({
       <div className="flex flex-col lg:flex-row gap-3 items-start h-full min-h-0 pt-0 sm:pt-4 px-0 sm:px-4 pb-0 sm:pb-4">
         <div className="flex-1 w-full space-y-3 min-w-0 flex flex-col h-full min-h-0">
           {/* Main Toolbar */}
-          <div className="flex flex-col md:flex-row xl:items-center justify-between gap-3 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
-            <div className="flex-1 w-full flex flex-col lg:flex-row items-center gap-2">
+          <div className="flex flex-col gap-3 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
               <div className="relative flex-1 w-full group">
                 <Search
                   className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"
@@ -713,77 +704,38 @@ export const TicketsPage = ({
                 />
               </div>
 
-              <div className="flex items-center gap-2 w-full lg:w-auto">
-                <TicketSavedViews
-                  views={savedViews}
-                  currentViewId={currentViewId}
-                  onSelectView={handleSelectView}
-                  onSaveCurrent={handleSaveView}
-                  onDeleteView={handleDeleteView}
-                />
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowAdvanced(true)}
-                  className={cn(
-                    "h-8 px-2.5 transition-all text-xs flex-1 lg:flex-none whitespace-nowrap",
-                    hasAnyFilters
-                      ? "bg-blue-50 text-blue-700 border-blue-200"
-                      : "",
-                  )}
-                >
-                  <Filter
-                    size={14}
+              <div className="flex items-center justify-between xl:justify-end gap-2 shrink-0">
+                <div className="flex items-center p-0.5 bg-slate-100 rounded-md border border-slate-200/50">
+                  <button
+                    onClick={() => setViewMode("list")}
                     className={cn(
-                      "mr-1.5",
-                      hasAnyFilters ? "text-blue-600" : "text-slate-400",
+                      "px-2 py-1 rounded transition-all flex items-center gap-1",
+                      viewMode === "list"
+                        ? "bg-white text-blue-600 shadow-sm border border-slate-200/60"
+                        : "text-slate-500 hover:text-slate-700",
                     )}
-                  />
-                  <span className="hidden xs:inline">Filtros</span>
-                  <span className="xs:hidden">Filtro</span>
-                  {hasAnyFilters && (
-                    <span className="ml-1.5 flex items-center justify-center min-w-[16px] h-4 px-1 rounded bg-blue-600 text-white text-[10px] font-bold">
-                      {getActiveFilterChips().length}
+                  >
+                    <ListIcon size={14} />
+                    <span className="text-[11px] font-bold hidden sm:inline">
+                      Lista
                     </span>
-                  )}
-                </Button>
-              </div>
-            </div>
+                  </button>
+                  <button
+                    onClick={() => setViewMode("kanban")}
+                    className={cn(
+                      "px-2 py-1 rounded transition-all flex items-center gap-1",
+                      viewMode === "kanban"
+                        ? "bg-white text-blue-600 shadow-sm border border-slate-200/60"
+                        : "text-slate-500 hover:text-slate-700",
+                    )}
+                  >
+                    <Kanban size={14} />
+                    <span className="text-[11px] font-bold hidden sm:inline">
+                      Kanban
+                    </span>
+                  </button>
+                </div>
 
-            <div className="flex items-center justify-between lg:justify-end gap-2 shrink-0">
-              <div className="flex items-center p-0.5 bg-slate-100 rounded-md border border-slate-200/50">
-                <button
-                  onClick={() => setViewMode("list")}
-                  className={cn(
-                    "px-2 py-1 rounded transition-all flex items-center gap-1",
-                    viewMode === "list"
-                      ? "bg-white text-blue-600 shadow-sm border border-slate-200/60"
-                      : "text-slate-500 hover:text-slate-700",
-                  )}
-                >
-                  <ListIcon size={14} />
-                  <span className="text-[11px] font-bold hidden sm:inline">
-                    Lista
-                  </span>
-                </button>
-                <button
-                  onClick={() => setViewMode("kanban")}
-                  className={cn(
-                    "px-2 py-1 rounded transition-all flex items-center gap-1",
-                    viewMode === "kanban"
-                      ? "bg-white text-blue-600 shadow-sm border border-slate-200/60"
-                      : "text-slate-500 hover:text-slate-700",
-                  )}
-                >
-                  <Kanban size={14} />
-                  <span className="text-[11px] font-bold hidden sm:inline">
-                    Kanban
-                  </span>
-                </button>
-              </div>
-
-              <div className="flex items-center gap-2">
                 {!!currentUser.desenvolvedor && (
                   <div className="relative w-28 sm:w-36">
                     <Building
@@ -809,11 +761,11 @@ export const TicketsPage = ({
 
                 <Button
                   size="sm"
-                  className="h-8 text-[11px] font-bold px-3"
+                  className="h-8 w-8 p-0 rounded-md text-[11px] font-bold"
                   onClick={() => setIsModalOpen(true)}
+                  title="Novo ticket"
                 >
-                  <Plus size={14} className="mr-1" />
-                  <span className="hidden xs:inline">Novo</span>
+                  <Plus size={16} />
                 </Button>
 
                 <Select
@@ -835,152 +787,133 @@ export const TicketsPage = ({
                 />
               </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-3 overflow-x-auto pb-2 no-scrollbar -mx-1 px-1 mt-1">
-            <div className="flex items-center gap-1.5 pr-2 border-r border-slate-200 my-1">
-              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                Filas
-              </span>
-            </div>
-
-            <div className="flex items-center gap-1">
-              {QUEUES.map((q) => {
-                const isActive = selectedQueue === q.id;
-                const count = queueCounts?.[q.id] || 0;
-
-                return (
-                  <button
-                    key={q.id}
-                    onClick={() => setSelectedQueue(q.id)}
-                    className={cn(
-                      "relative flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-md transition-all whitespace-nowrap",
-                      isActive
-                        ? "bg-slate-100 text-slate-900"
-                        : "bg-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50",
-                    )}
-                  >
-                    <q.icon
-                      size={14}
-                      className={cn(
-                        isActive ? "text-slate-800" : "text-slate-400",
-                      )}
-                    />
-                    <span>{q.label}</span>
-                    {(count > 0 || q.id === "todos") && (
-                      <span
-                        className={cn(
-                          "flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-sm text-[10px] font-semibold",
-                          isActive
-                            ? "bg-white text-slate-700 shadow-sm"
-                            : "bg-slate-100 text-slate-500",
-                        )}
-                      >
-                        {count > 99 ? "99+" : count}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="w-px h-5 bg-slate-200 mx-1" />
-
-            <div className="relative shrink-0">
-              <button
-                onClick={() => setShowMoreQueues((prev) => !prev)}
-                className={cn(
-                  "relative flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-md transition-all whitespace-nowrap",
-                  MORE_QUEUES.some((q) => q.id === selectedQueue)
-                    ? "bg-slate-100 text-slate-900"
-                    : "bg-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50",
-                )}
-              >
-                <span>
-                  {MORE_QUEUES.find((q) => q.id === selectedQueue)?.label ||
-                    "Mais Filas"}
+            <div className="flex items-center gap-3 overflow-x-auto no-scrollbar border-t border-slate-100 pt-2">
+              <div className="flex items-center gap-1.5 pr-2 border-r border-slate-200 my-1">
+                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                  Filas
                 </span>
-                {MORE_QUEUES.some((q) => q.id === selectedQueue) &&
-                  (queueCounts?.[selectedQueue] || 0) > 0 && (
-                    <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-sm text-[10px] font-semibold bg-white text-slate-700 shadow-sm">
-                      {(queueCounts?.[selectedQueue] || 0) > 99
-                        ? "99+"
-                        : queueCounts?.[selectedQueue] || 0}
-                    </span>
-                  )}
-                <ChevronDown
-                  size={14}
-                  className={cn(
-                    "transition-transform text-slate-400",
-                    showMoreQueues && "rotate-180",
-                  )}
-                />
-              </button>
+              </div>
 
-              {showMoreQueues && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowMoreQueues(false)}
-                  />
-                  <div className="absolute top-full right-0 lg:left-0 lg:right-auto mt-1 w-48 bg-white rounded-lg shadow-lg border border-slate-200 p-1.5 z-50">
-                    {MORE_QUEUES.map((q) => {
-                      const isActive = selectedQueue === q.id;
-                      const count = queueCounts?.[q.id] || 0;
-                      return (
-                        <button
-                          key={q.id}
-                          onClick={() => {
-                            setSelectedQueue(q.id);
-                            setShowMoreQueues(false);
-                          }}
+              <div className="flex items-center gap-1">
+                {QUEUES.map((q) => {
+                  const isActive = selectedQueue === q.id;
+                  const count = queueCounts?.[q.id] || 0;
+
+                  return (
+                    <button
+                      key={q.id}
+                      onClick={() => setSelectedQueue(q.id)}
+                      className={cn(
+                        "relative flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-md transition-all whitespace-nowrap",
+                        isActive
+                          ? "bg-slate-100 text-slate-900"
+                          : "bg-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50",
+                      )}
+                    >
+                      <q.icon
+                        size={14}
+                        className={cn(
+                          isActive ? "text-slate-800" : "text-slate-400",
+                        )}
+                      />
+                      <span>{q.label}</span>
+                      {(count > 0 || q.id === "todos") && (
+                        <span
                           className={cn(
-                            "w-full flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-md transition-colors",
+                            "flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-sm text-[10px] font-semibold",
                             isActive
-                              ? "bg-blue-50 text-blue-700"
-                              : "text-slate-600 hover:bg-slate-50",
+                              ? "bg-white text-slate-700 shadow-sm"
+                              : "bg-slate-100 text-slate-500",
                           )}
                         >
-                          <span>{q.label}</span>
-                          {count > 0 && (
-                            <span
-                              className={cn(
-                                "flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold tracking-tight",
-                                isActive
-                                  ? "bg-blue-100 text-blue-700"
-                                  : "bg-slate-100 text-slate-500",
-                              )}
-                            >
-                              {count > 99 ? "99+" : count}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
+                          {count > 99 ? "99+" : count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="w-px h-5 bg-slate-200 mx-1" />
+
+              <div className="relative shrink-0">
+                <button
+                  onClick={() => setShowMoreQueues((prev) => !prev)}
+                  className={cn(
+                    "relative flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-md transition-all whitespace-nowrap",
+                    MORE_QUEUES.some((q) => q.id === selectedQueue)
+                      ? "bg-slate-100 text-slate-900"
+                      : "bg-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50",
+                  )}
+                >
+                  <span>
+                    {MORE_QUEUES.find((q) => q.id === selectedQueue)?.label ||
+                      "Mais Filas"}
+                  </span>
+                  {MORE_QUEUES.some((q) => q.id === selectedQueue) &&
+                    (queueCounts?.[selectedQueue] || 0) > 0 && (
+                      <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-sm text-[10px] font-semibold bg-white text-slate-700 shadow-sm">
+                        {(queueCounts?.[selectedQueue] || 0) > 99
+                          ? "99+"
+                          : queueCounts?.[selectedQueue] || 0}
+                      </span>
+                    )}
+                  <ChevronDown
+                    size={14}
+                    className={cn(
+                      "transition-transform text-slate-400",
+                      showMoreQueues && "rotate-180",
+                    )}
+                  />
+                </button>
+
+                {showMoreQueues && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setShowMoreQueues(false)}
+                    />
+                    <div className="absolute top-full right-0 lg:left-0 lg:right-auto mt-1 w-48 bg-white rounded-lg shadow-lg border border-slate-200 p-1.5 z-50">
+                      {MORE_QUEUES.map((q) => {
+                        const isActive = selectedQueue === q.id;
+                        const count = queueCounts?.[q.id] || 0;
+                        return (
+                          <button
+                            key={q.id}
+                            onClick={() => {
+                              setSelectedQueue(q.id);
+                              setShowMoreQueues(false);
+                            }}
+                            className={cn(
+                              "w-full flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-md transition-colors",
+                              isActive
+                                ? "bg-blue-50 text-blue-700"
+                                : "text-slate-600 hover:bg-slate-50",
+                            )}
+                          >
+                            <span>{q.label}</span>
+                            {count > 0 && (
+                              <span
+                                className={cn(
+                                  "flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold tracking-tight",
+                                  isActive
+                                    ? "bg-blue-100 text-blue-700"
+                                    : "bg-slate-100 text-slate-500",
+                                )}
+                              >
+                                {count > 99 ? "99+" : count}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
-
-          <TicketFilterDrawer
-            isOpen={showAdvanced}
-            onClose={() => setShowAdvanced(false)}
-            statusFilter={statusFilter}
-            setStatusFilter={setStatusFilter}
-            priorityFilter={priorityFilter}
-            setPriorityFilter={setPriorityFilter}
-            categoryFilter={categoryFilter}
-            setCategoryFilter={setCategoryFilter}
-            serviceFilter={serviceFilter}
-            setServiceFilter={setServiceFilter}
-            filters={advancedFilters}
-            onFilterChange={setAdvancedFilters}
-            onClear={clearFilters}
-            agents={agents}
-            categoryOptions={categoryOptionsForFilter}
-            serviceOptions={serviceOptionsForFilter}
-          />
 
           <AnimatePresence>
             {hasAnyFilters && (
@@ -1012,13 +945,6 @@ export const TicketsPage = ({
               </motion.div>
             )}
           </AnimatePresence>
-
-          {viewMode === "list" && ticketsResponse && (
-            <TicketSummaryCards summary={ticketsResponse.summary} />
-          )}
-          {viewMode === "kanban" && kanbanResponse && (
-            <TicketSummaryCards summary={kanbanResponse.totals} />
-          )}
 
           <div
             className={cn(
