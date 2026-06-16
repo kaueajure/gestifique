@@ -86,36 +86,41 @@ export const TicketReplyBox = ({
   const isMessageEmpty = !newMessage.trim() && selectedFiles.length === 0;
 
   return (
-    <div className="flex flex-col gap-0 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm transition-all focus-within:shadow-md focus-within:border-blue-300">
-        {/* Composer Tabs */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-3 py-2 bg-slate-50 border-b border-slate-200">
-          <div className="inline-flex w-full sm:w-auto rounded-lg border border-slate-200 bg-white p-1">
+    <form onSubmit={handleSubmit} className={cn(
+      "overflow-hidden rounded-2xl border bg-white shadow-xl shadow-slate-900/5 transition-all focus-within:border-blue-300 focus-within:shadow-blue-900/10",
+      isInternal ? "border-amber-200 ring-1 ring-amber-100" : "border-slate-200"
+    )}>
+        <div className={cn(
+          "flex flex-col gap-2 border-b px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between",
+          isInternal ? "border-amber-200 bg-amber-50/70" : "border-slate-200 bg-slate-50/80"
+        )}>
+          <div className="inline-flex w-full rounded-xl border border-slate-200 bg-white p-1 shadow-sm sm:w-auto">
               <button
                 type="button"
                 onClick={() => setIsInternal(false)}
                 className={cn(
-                  "flex-1 sm:flex-none px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center justify-center gap-1.5",
+                  "flex-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all sm:flex-none flex items-center justify-center gap-1.5",
                   !isInternal 
-                    ? "text-blue-700 bg-blue-50 shadow-sm" 
+                    ? "bg-blue-600 text-white shadow-sm" 
                     : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
                 )}
              >
                 <User size={12} />
-                Resposta publica
+                Publica
              </button>
              {canAddInternalNote && (
                <button
                   type="button"
                   onClick={() => setIsInternal(true)}
                   className={cn(
-                    "flex-1 sm:flex-none px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center justify-center gap-1.5",
+                    "flex-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all sm:flex-none flex items-center justify-center gap-1.5",
                     isInternal 
-                      ? "text-amber-700 bg-amber-50 shadow-sm" 
+                      ? "bg-amber-500 text-white shadow-sm" 
                       : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
                   )}
                >
                   <Lock size={12} />
-                  Nota interna
+                  Interna
                </button>
              )}
           </div>
@@ -125,7 +130,7 @@ export const TicketReplyBox = ({
               type="button"
               disabled={loadingSuggestion}
               onClick={handleSuggestReply}
-              className="flex items-center gap-1.5 h-8 px-2.5 rounded-md border text-xs font-semibold transition-all bg-white border-slate-200 text-slate-700 hover:border-indigo-300 hover:text-indigo-700 hover:bg-indigo-50 disabled:opacity-50"
+              className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 disabled:opacity-50"
             >
               {loadingSuggestion ? (
                 <Loader2 size={12} className="animate-spin text-indigo-600" />
@@ -137,10 +142,10 @@ export const TicketReplyBox = ({
 
             <div className="relative">
               <button
-                type="button"
-                onClick={() => setShowMacros(!showMacros)}
-                className={cn(
-                  "flex items-center gap-1.5 h-8 px-2.5 rounded-md border text-xs font-semibold transition-all",
+              type="button"
+              onClick={() => setShowMacros(!showMacros)}
+              className={cn(
+                  "flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold shadow-sm transition-all",
                   showMacros 
                     ? "bg-blue-600 border-blue-600 text-white" 
                     : "bg-white border-slate-200 text-slate-600 hover:border-blue-400 hover:text-blue-600"
@@ -151,7 +156,7 @@ export const TicketReplyBox = ({
               </button>
 
               {showMacros && (
-                <div className="absolute bottom-full right-0 mb-3 z-[60]">
+                <div className="absolute bottom-full right-0 z-[60] mb-3">
                   <TicketMacroList 
                     ticket={ticket}
                     currentUser={currentUser}
@@ -164,19 +169,21 @@ export const TicketReplyBox = ({
           </div>
         </div>
 
-        {/* Text Area Content */}
         <div className={cn(
           "relative transition-colors",
           isInternal ? "bg-amber-50/30" : "bg-white"
         )}>
           {isInternal && (
-             <div className="absolute top-2 right-2 z-10 hidden sm:flex items-center gap-1 text-[9px] font-semibold text-amber-700 bg-amber-100/70 px-2 py-1 rounded-md border border-amber-200/70 pointer-events-none">
+             <div className="pointer-events-none absolute right-3 top-3 z-10 hidden items-center gap-1 rounded-full border border-amber-200/70 bg-amber-100/80 px-2.5 py-1 text-[9px] font-semibold text-amber-700 sm:flex">
                 <EyeOff size={10} /> Visível apenas para agentes
              </div>
           )}
 
-          <div className="absolute top-3 left-3 text-slate-300 pointer-events-none">
-            <MessageSquareText size={16} />
+          <div className={cn(
+            "pointer-events-none absolute left-4 top-4",
+            isInternal ? "text-amber-400" : "text-slate-300"
+          )}>
+            {isInternal ? <Lock size={17} /> : <MessageSquareText size={17} />}
           </div>
 
           <textarea 
@@ -184,7 +191,7 @@ export const TicketReplyBox = ({
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder={isInternal ? "Escreva uma observação interna ou detalhe técnico..." : "Digite sua mensagem para o cliente..."}
             className={cn(
-              "w-full pl-10 pr-3 py-3 text-sm font-medium focus:ring-0 focus:outline-none transition-all resize-none border-0 min-h-[96px]",
+              "min-h-[118px] w-full resize-none border-0 bg-transparent py-4 pl-11 pr-4 text-sm font-medium leading-6 transition-all focus:outline-none focus:ring-0 sm:pr-48",
               isInternal 
                 ? "text-amber-900 placeholder:text-amber-400" 
                 : "text-slate-700 placeholder:text-slate-400"
@@ -196,15 +203,14 @@ export const TicketReplyBox = ({
             }}
           />
 
-          {/* Feedback Area */}
-          <div className="absolute bottom-1 left-3 right-3">
+          <div className="absolute bottom-2 left-3 right-3">
              <AnimatePresence>
                 {actionError && (
                   <motion.div 
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className="p-1.5 mb-1 bg-rose-50 border border-rose-100 rounded-md flex items-center gap-1.5 text-rose-600 text-xs font-semibold"
+                    className="mb-1 flex items-center gap-1.5 rounded-lg border border-rose-100 bg-rose-50 p-2 text-xs font-semibold text-rose-600 shadow-sm"
                   >
                     <AlertCircle size={14} /> {actionError}
                   </motion.div>
@@ -214,7 +220,7 @@ export const TicketReplyBox = ({
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className="p-1.5 mb-1 bg-emerald-50 border border-emerald-100 rounded-md flex items-center gap-1.5 text-emerald-600 text-xs font-semibold"
+                    className="mb-1 flex items-center gap-1.5 rounded-lg border border-emerald-100 bg-emerald-50 p-2 text-xs font-semibold text-emerald-600 shadow-sm"
                   >
                     <CheckCircle2 size={14} /> {actionSuccess}
                   </motion.div>
@@ -225,30 +231,30 @@ export const TicketReplyBox = ({
 
         {/* Suggested Response Panel */}
         {suggestedReply && (
-          <div className="mx-3 my-2.5 p-3 px-3.5 bg-indigo-50 border border-indigo-100 rounded-lg relative">
-            <div className="flex justify-between items-center mb-1.5">
-               <span className="text-[10px] font-bold text-indigo-700 flex items-center gap-1.5 uppercase tracking-wider">
+          <div className="relative mx-3 my-2.5 rounded-xl border border-indigo-100 bg-indigo-50 p-3 px-3.5">
+            <div className="mb-1.5 flex items-center justify-between">
+               <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-indigo-700">
                  <Sparkles size={11} className="text-indigo-600 animate-pulse" /> Resposta Sugerida por IA
                </span>
                <button 
                  type="button"
                  onClick={() => setSuggestedReply(null)}
-                 className="text-slate-400 hover:text-slate-600 text-xs font-semibold hover:bg-slate-200/50 p-1 rounded transition-colors"
+                 className="rounded p-1 text-xs font-semibold text-slate-400 transition-colors hover:bg-slate-200/50 hover:text-slate-600"
                >
                  <X size={12} />
                </button>
             </div>
-            <p className="text-xs text-slate-700 italic leading-relaxed whitespace-pre-wrap mb-2.5 bg-white/80 p-2 border border-indigo-100/40 rounded-md font-sans">
+            <p className="mb-2.5 whitespace-pre-wrap rounded-lg border border-indigo-100/40 bg-white/80 p-2.5 font-sans text-xs italic leading-relaxed text-slate-700">
                {suggestedReply}
             </p>
-            <div className="flex gap-2 justify-end">
+            <div className="flex justify-end gap-2">
                <button
                  type="button"
                  onClick={() => {
                    setNewMessage(suggestedReply);
                    setSuggestedReply(null);
                  }}
-                 className="px-3 py-1.5 text-[10px] font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded transition-all shadow-sm"
+                 className="rounded-lg bg-indigo-600 px-3 py-1.5 text-[10px] font-bold text-white shadow-sm transition-all hover:bg-indigo-500"
                >
                  Usar Resposta
                </button>
@@ -256,9 +262,11 @@ export const TicketReplyBox = ({
           </div>
         )}
 
-        {/* Footer / Actions */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between p-3 bg-slate-50 border-t border-slate-200 gap-3">
-          <div className="flex flex-1 min-w-0">
+        <div className={cn(
+          "flex flex-col gap-3 border-t p-3 sm:flex-row sm:items-end sm:justify-between",
+          isInternal ? "border-amber-200 bg-amber-50/50" : "border-slate-200 bg-slate-50/80"
+        )}>
+          <div className="flex min-w-0 flex-1">
              <FileUpload 
                onFilesChange={setSelectedFiles}
                className="w-full"
@@ -266,16 +274,16 @@ export const TicketReplyBox = ({
              />
           </div>
 
-          <div className="flex items-center justify-between sm:justify-end gap-3">
-             <span className="hidden sm:inline-block text-[10px] font-medium text-slate-400">
+          <div className="flex items-center justify-between gap-3 sm:justify-end">
+             <span className="hidden text-[10px] font-medium text-slate-400 sm:inline-block">
                CTRL + ENTER para enviar
              </span>
              <Button 
-                onClick={handleSubmit}
+                type="submit"
                 disabled={isMessageEmpty || loadingSend}
                 size="sm"
                 className={cn(
-                  "px-4 text-xs font-semibold shadow-sm h-9 rounded-lg",
+                  "h-10 rounded-xl px-4 text-xs font-semibold shadow-sm",
                   isInternal 
                     ? "bg-amber-600 hover:bg-amber-500 text-white" 
                     : "bg-blue-600 hover:bg-blue-500 text-white",
@@ -291,6 +299,6 @@ export const TicketReplyBox = ({
               </Button>
           </div>
         </div>
-    </div>
+    </form>
   );
 };

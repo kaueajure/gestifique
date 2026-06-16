@@ -170,11 +170,6 @@ export const TicketHeader = ({
               />
             </div>
           </HeaderSelectMeta>
-          <HeaderMeta
-            label="Solicitante"
-            value={cliente_nome || 'Nao informado'}
-            icon={<UserRound size={14} />}
-          />
           <HeaderSelectMeta
             label="Responsavel"
             icon={<UserRound size={14} />}
@@ -191,6 +186,11 @@ export const TicketHeader = ({
               disabled={!canManage}
             />
           </HeaderSelectMeta>
+          <HeaderMeta
+            label="Solicitante"
+            value={cliente_nome || 'Nao informado'}
+            icon={<UserRound size={14} />}
+          />
           <HeaderMeta
             label="Abertura"
             value={openedAt}
