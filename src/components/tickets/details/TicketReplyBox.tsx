@@ -87,40 +87,40 @@ export const TicketReplyBox = ({
 
   return (
     <form onSubmit={handleSubmit} className={cn(
-      "overflow-hidden rounded-2xl border bg-white shadow-xl shadow-slate-900/5 transition-all focus-within:border-blue-300 focus-within:shadow-blue-900/10",
-      isInternal ? "border-amber-200 ring-1 ring-amber-100" : "border-slate-200"
+      "overflow-hidden rounded-lg border bg-white shadow-sm transition-all focus-within:border-blue-300 focus-within:ring-1 focus-within:ring-blue-100",
+      isInternal ? "border-amber-200" : "border-slate-200"
     )}>
         <div className={cn(
-          "flex flex-col gap-2 border-b px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between",
-          isInternal ? "border-amber-200 bg-amber-50/70" : "border-slate-200 bg-slate-50/80"
+          "flex flex-col gap-2 border-b px-3 py-2 sm:flex-row sm:items-center sm:justify-between",
+          isInternal ? "border-amber-200 bg-amber-50/60" : "border-slate-200 bg-slate-50"
         )}>
-          <div className="inline-flex w-full rounded-xl border border-slate-200 bg-white p-1 shadow-sm sm:w-auto">
+          <div className="inline-flex w-full rounded-md border border-slate-200 bg-white p-0.5 sm:w-auto">
               <button
                 type="button"
                 onClick={() => setIsInternal(false)}
                 className={cn(
-                  "flex-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all sm:flex-none flex items-center justify-center gap-1.5",
+                  "flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5 text-xs font-semibold transition-all sm:flex-none",
                   !isInternal 
-                    ? "bg-blue-600 text-white shadow-sm" 
+                    ? "bg-white text-blue-700 shadow-sm ring-1 ring-slate-200" 
                     : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
                 )}
              >
                 <User size={12} />
-                Publica
+                Resposta pública
              </button>
              {canAddInternalNote && (
                <button
                   type="button"
                   onClick={() => setIsInternal(true)}
                   className={cn(
-                    "flex-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all sm:flex-none flex items-center justify-center gap-1.5",
+                    "flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5 text-xs font-semibold transition-all sm:flex-none",
                     isInternal 
-                      ? "bg-amber-500 text-white shadow-sm" 
+                      ? "bg-white text-amber-700 shadow-sm ring-1 ring-amber-200" 
                       : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
                   )}
                >
                   <Lock size={12} />
-                  Interna
+                  Nota interna
                </button>
              )}
           </div>
@@ -130,7 +130,7 @@ export const TicketReplyBox = ({
               type="button"
               disabled={loadingSuggestion}
               onClick={handleSuggestReply}
-              className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 disabled:opacity-50"
+              className="flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 transition-all hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 disabled:opacity-50"
             >
               {loadingSuggestion ? (
                 <Loader2 size={12} className="animate-spin text-indigo-600" />
@@ -145,7 +145,7 @@ export const TicketReplyBox = ({
               type="button"
               onClick={() => setShowMacros(!showMacros)}
               className={cn(
-                  "flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold shadow-sm transition-all",
+                  "flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-all",
                   showMacros 
                     ? "bg-blue-600 border-blue-600 text-white" 
                     : "bg-white border-slate-200 text-slate-600 hover:border-blue-400 hover:text-blue-600"
@@ -189,9 +189,9 @@ export const TicketReplyBox = ({
           <textarea 
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            placeholder={isInternal ? "Escreva uma observação interna ou detalhe técnico..." : "Digite sua mensagem para o cliente..."}
+            placeholder={isInternal ? "Escreva uma nota interna..." : "Escreva a resposta do atendimento..."}
             className={cn(
-              "min-h-[118px] w-full resize-none border-0 bg-transparent py-4 pl-11 pr-4 text-sm font-medium leading-6 transition-all focus:outline-none focus:ring-0 sm:pr-48",
+              "min-h-[104px] w-full resize-none border-0 bg-transparent py-4 pl-11 pr-4 text-sm font-medium leading-6 transition-all focus:outline-none focus:ring-0 sm:pr-48",
               isInternal 
                 ? "text-amber-900 placeholder:text-amber-400" 
                 : "text-slate-700 placeholder:text-slate-400"
@@ -262,9 +262,9 @@ export const TicketReplyBox = ({
           </div>
         )}
 
-        <div className={cn(
+         <div className={cn(
           "flex flex-col gap-3 border-t p-3 sm:flex-row sm:items-end sm:justify-between",
-          isInternal ? "border-amber-200 bg-amber-50/50" : "border-slate-200 bg-slate-50/80"
+          isInternal ? "border-amber-200 bg-amber-50/40" : "border-slate-200 bg-slate-50"
         )}>
           <div className="flex min-w-0 flex-1">
              <FileUpload 
@@ -283,7 +283,7 @@ export const TicketReplyBox = ({
                 disabled={isMessageEmpty || loadingSend}
                 size="sm"
                 className={cn(
-                  "h-10 rounded-xl px-4 text-xs font-semibold shadow-sm",
+                  "h-9 rounded-md px-4 text-xs font-semibold shadow-sm",
                   isInternal 
                     ? "bg-amber-600 hover:bg-amber-500 text-white" 
                     : "bg-blue-600 hover:bg-blue-500 text-white",
