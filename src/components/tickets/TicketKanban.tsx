@@ -78,6 +78,8 @@ const rebuildCounts = (columns: TicketKanbanColumn[]) =>
 
 const rowColumnWidth = 220;
 const statusColumnWidth = 210;
+const boardGap = 8;
+const boardPadding = 16;
 
 export const TicketKanban = ({
   kanbanData,
@@ -98,7 +100,11 @@ export const TicketKanban = ({
   const boardGridStyle = {
     gridTemplateColumns: `${rowColumnWidth}px repeat(${boardColumns}, ${statusColumnWidth}px)`,
   };
-  const boardMinWidth = rowColumnWidth + boardColumns * statusColumnWidth;
+  const boardMinWidth =
+    rowColumnWidth +
+    boardColumns * statusColumnWidth +
+    boardColumns * boardGap +
+    boardPadding;
 
   useEffect(() => {
     setLocalData(kanbanData);
@@ -295,7 +301,7 @@ export const TicketKanban = ({
 
       <DragDropContextComp onDragEnd={onDragEnd}>
         <div className="h-full overflow-auto bg-gradient-to-b from-slate-50 to-white p-3 custom-scrollbar">
-          <div className="space-y-2" style={{ minWidth: `${boardMinWidth}px` }}>
+          <div className="space-y-2" style={{ width: `${boardMinWidth}px`, minWidth: `${boardMinWidth}px` }}>
             <div className="sticky top-0 z-20 grid gap-2 rounded-lg border border-slate-200 bg-white/95 p-2 shadow-sm backdrop-blur" style={boardGridStyle}>
               <div className="flex h-11 items-center px-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                 Atendente
