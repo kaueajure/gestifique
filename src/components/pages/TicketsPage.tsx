@@ -55,6 +55,7 @@ import {
   DEFAULT_TICKET_WORKFLOW,
   loadTicketWorkflow,
   saveTicketWorkflow,
+  SUPPORTED_TICKET_WORKFLOW,
   TicketWorkflowStatus,
 } from "../../lib/ticketWorkflow";
 
@@ -175,6 +176,7 @@ export const TicketsPage = ({
   const [showTeamSidebar, setShowTeamSidebar] = useState(false);
   const [showMoreQueues, setShowMoreQueues] = useState(false);
   const [showWorkflowSettings, setShowWorkflowSettings] = useState(false);
+  const [showAddWorkflowStatus, setShowAddWorkflowStatus] = useState(false);
   const [workflowStatuses, setWorkflowStatuses] = useState<TicketWorkflowStatus[]>(
     () => loadTicketWorkflow(currentUser.empresa_id),
   );
@@ -207,6 +209,7 @@ export const TicketsPage = ({
 
   useEffect(() => {
     setWorkflowStatuses(loadTicketWorkflow(workflowCompanyKey));
+    setShowAddWorkflowStatus(false);
     setNewWorkflowStatusId("");
     setNewWorkflowStatusLabel("");
   }, [workflowCompanyKey]);
@@ -242,6 +245,7 @@ export const TicketsPage = ({
         visible: true,
       },
     ]);
+    setShowAddWorkflowStatus(false);
     setNewWorkflowStatusId("");
     setNewWorkflowStatusLabel("");
   };
@@ -255,7 +259,7 @@ export const TicketsPage = ({
     ? applyTicketWorkflowToKanban(kanbanResponse, workflowStatuses)
     : null;
 
-  const availableWorkflowStatusOptions = DEFAULT_TICKET_WORKFLOW.filter(
+  const availableWorkflowStatusOptions = SUPPORTED_TICKET_WORKFLOW.filter(
     (status) => !workflowStatuses.some((item) => item.id === status.id),
   );
 
@@ -1185,15 +1189,41 @@ export const TicketsPage = ({
             ))}
           </div>
 
-          {availableWorkflowStatusOptions.length > 0 && (
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h4 className="text-sm font-semibold text-slate-900">
+                Adicionar tipo
+              </h4>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Inclua outro tipo de atendimento no fluxo da empresa.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAddWorkflowStatus((prev) => !prev)}
+              disabled={availableWorkflowStatusOptions.length === 0}
+            >
+              <Plus size={14} />
+              Adicionar
+            </Button>
+          </div>
+
+          {showAddWorkflowStatus && availableWorkflowStatusOptions.length > 0 && (
             <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50/70 p-3">
               <div className="grid gap-2 sm:grid-cols-[180px_1fr_auto] sm:items-end">
                 <Select
                   size="sm"
                   value={newWorkflowStatusId}
-                  onChange={(value) =>
-                    setNewWorkflowStatusId(value as TicketStatus)
-                  }
+                  onChange={(value) => {
+                    const nextId = value as TicketStatus;
+                    setNewWorkflowStatusId(nextId);
+                    const selectedStatus = SUPPORTED_TICKET_WORKFLOW.find(
+                      (status) => status.id === nextId,
+                    );
+                    setNewWorkflowStatusLabel(selectedStatus?.label || "");
+                  }}
                   placeholder="Status..."
                   options={[
                     { value: "", label: "Escolha o tipo" },
@@ -1219,9 +1249,15 @@ export const TicketsPage = ({
                   disabled={!newWorkflowStatusId || !newWorkflowStatusLabel.trim()}
                 >
                   <Plus size={14} />
-                  Criar
+                  Adicionar
                 </Button>
               </div>
+            </div>
+          )}
+
+          {availableWorkflowStatusOptions.length === 0 && (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs font-medium text-slate-500">
+              Todos os tipos disponíveis já foram adicionados.
             </div>
           )}
         </div>

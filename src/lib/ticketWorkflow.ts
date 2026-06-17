@@ -6,13 +6,16 @@ export interface TicketWorkflowStatus {
   visible: boolean;
 }
 
-export const DEFAULT_TICKET_WORKFLOW: TicketWorkflowStatus[] = [
+export const SUPPORTED_TICKET_WORKFLOW: TicketWorkflowStatus[] = [
   { id: "aberto", label: "Aberto", visible: true },
   { id: "em_andamento", label: "Em andamento", visible: true },
   { id: "aguardando_cliente", label: "Aguardando resposta", visible: true },
   { id: "resolvido", label: "Finalizado", visible: true },
   { id: "fechado", label: "Fechado", visible: false },
 ];
+
+export const DEFAULT_TICKET_WORKFLOW: TicketWorkflowStatus[] =
+  SUPPORTED_TICKET_WORKFLOW.filter((item) => item.id !== "fechado");
 
 const STORAGE_KEY_PREFIX = "gestifique.ticketWorkflow";
 
@@ -31,7 +34,7 @@ export const loadTicketWorkflow = (
     const parsed = JSON.parse(stored) as TicketWorkflowStatus[];
     if (!Array.isArray(parsed)) return DEFAULT_TICKET_WORKFLOW;
 
-    const validIds = new Set(DEFAULT_TICKET_WORKFLOW.map((item) => item.id));
+    const validIds = new Set(SUPPORTED_TICKET_WORKFLOW.map((item) => item.id));
     const sanitized = parsed.filter((item) => validIds.has(item.id));
     const missing = DEFAULT_TICKET_WORKFLOW.filter(
       (item) => !sanitized.some((storedItem) => storedItem.id === item.id),
