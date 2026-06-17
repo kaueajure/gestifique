@@ -1295,28 +1295,24 @@ export const TicketsPage = ({
                   {status.visible ? "Visível" : "Oculto"}
                 </Button>
                 {pendingRemoveWorkflowStatusId === status.id ? (
-                  <div className="flex w-full items-center gap-1 rounded-lg border border-rose-100 bg-rose-50 p-1 sm:w-auto">
-                    <Button
+                  <div className="flex h-8 w-full items-center justify-end gap-1 sm:w-auto">
+                    <button
                       type="button"
-                      variant="danger"
-                      size="sm"
                       onClick={() => confirmRemoveWorkflowStatus(status.id)}
-                      className="h-8 flex-1 px-2 text-[11px] sm:flex-none"
                       title="Confirmar remoção"
+                      className="inline-flex h-8 items-center gap-1.5 rounded-md border border-rose-200 bg-white px-2.5 text-[11px] font-semibold text-rose-700 shadow-sm transition-colors hover:bg-rose-50"
                     >
                       <Check size={13} />
-                      Confirmar
-                    </Button>
-                    <Button
+                      Remover
+                    </button>
+                    <button
                       type="button"
-                      variant="ghost"
-                      size="icon"
                       onClick={() => setPendingRemoveWorkflowStatusId(null)}
                       title="Cancelar remoção"
-                      className="h-8 w-8 text-slate-500 hover:bg-white hover:text-slate-700"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-400 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-700"
                     >
                       <X size={14} />
-                    </Button>
+                    </button>
                   </div>
                 ) : (
                   <Button

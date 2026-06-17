@@ -343,14 +343,28 @@ router.put('/:id/ticket-statuses', async (req: AuthRequest, res) => {
     await connection.beginTransaction();
     await connection.query('DELETE FROM empresa_ticket_status WHERE empresa_id = ?', [id]);
 
-    for (const status of sanitized) {
-      await connection.query(
-        'INSERT INTO empresa_ticket_status (empresa_id, nome, valor, ativo, ordem) VALUES (?, ?, ?, ?, ?)',
-        [id, status.nome, status.valor, status.ativo, status.ordem]
-      );
-    }
+	    for (const status of sanitized) {
+	      await connection.query(
+	        'INSERT INTO empresa_ticket_status (empresa_id, nome, valor, ativo, ordem) VALUES (?, ?, ?, ?, ?)',
+	        [id, status.nome, status.valor, status.ativo, status.ordem]
+	      );
+	    }
 
-    await connection.commit();
+	    if (sanitized.length > 0) {
+	      const configuredStatusValues = sanitized.map((status) => status.valor);
+	      const fallbackStatus = configuredStatusValues[0];
+	      const placeholders = configuredStatusValues.map(() => '?').join(', ');
+
+	      await connection.query(
+	        `UPDATE tickets
+	         SET status = ?, updated_at = NOW()
+	         WHERE empresa_id = ?
+	         AND status NOT IN (${placeholders})`,
+	        [fallbackStatus, id, ...configuredStatusValues]
+	      );
+	    }
+	
+	    await connection.commit();
 
     const [rows]: any = await pool.query(
       'SELECT id, nome, valor, ativo, ordem FROM empresa_ticket_status WHERE empresa_id = ? ORDER BY ordem ASC, id ASC',
