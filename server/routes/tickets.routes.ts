@@ -130,7 +130,8 @@ router.get('/kanban', requirePermission('tickets.visualizar'), async (req: AuthR
           { id: 'aberto', title: 'Aberto', count: 0, tickets: [] },
           { id: 'em_andamento', title: 'Em andamento', count: 0, tickets: [] },
           { id: 'aguardando_cliente', title: 'Aguardando resposta', count: 0, tickets: [] },
-          { id: 'resolvido', title: 'Finalizado', count: 0, tickets: [] }
+          { id: 'resolvido', title: 'Finalizado', count: 0, tickets: [] },
+          { id: 'fechado', title: 'Fechado', count: 0, tickets: [] }
         ],
         totals: { total: 0, aberto: 0, em_andamento: 0, aguardando_cliente: 0, resolvido: 0, fechado: 0 },
         queues: { todos: 0, meus: 0, sem_responsavel: 0, urgentes: 0, sla_vencido: 0, vence_em_breve: 0, aguardando_cliente: 0 }

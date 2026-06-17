@@ -654,7 +654,8 @@ class TicketsService {
       { id: 'aberto', title: 'Aberto' },
       { id: 'em_andamento', title: 'Em andamento' },
       { id: 'aguardando_cliente', title: 'Aguardando resposta' },
-      { id: 'resolvido', title: 'Finalizado' }
+      { id: 'resolvido', title: 'Finalizado' },
+      { id: 'fechado', title: 'Fechado' }
     ];
 
     const columns = columnsConfig.map(c => {

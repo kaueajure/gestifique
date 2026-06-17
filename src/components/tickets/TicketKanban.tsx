@@ -90,6 +90,11 @@ export const TicketKanban = ({
   const [loadingTeam, setLoadingTeam] = useState(true);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const boardColumns = localData.columns.length || 1;
+  const boardGridStyle = {
+    gridTemplateColumns: `220px repeat(${boardColumns}, minmax(180px, 1fr))`,
+  };
+  const boardMinWidth = 220 + boardColumns * 180;
 
   useEffect(() => {
     setLocalData(kanbanData);
@@ -272,8 +277,8 @@ export const TicketKanban = ({
 
       <DragDropContextComp onDragEnd={onDragEnd}>
         <div className="h-full overflow-auto p-3 custom-scrollbar">
-          <div className="min-w-[1120px]">
-            <div className="sticky top-0 z-20 grid grid-cols-[220px_repeat(5,minmax(180px,1fr))] gap-2 bg-slate-50/95 pb-2">
+          <div style={{ minWidth: `${boardMinWidth}px` }}>
+            <div className="sticky top-0 z-20 grid gap-2 bg-slate-50/95 pb-2" style={boardGridStyle}>
               <div className="px-2 py-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                 Atendente
               </div>
@@ -312,7 +317,8 @@ export const TicketKanban = ({
                       <button
                         type="button"
                         onClick={() => toggleRow(row.rowKey)}
-                        className="grid w-full grid-cols-[220px_repeat(5,minmax(180px,1fr))] gap-2 px-2 py-2 text-left transition-colors hover:bg-slate-50"
+                        className="grid w-full gap-2 px-2 py-2 text-left transition-colors hover:bg-slate-50"
+                        style={boardGridStyle}
                       >
                         <div className="flex min-w-0 items-center gap-2">
                           <div className={cn(
@@ -347,7 +353,7 @@ export const TicketKanban = ({
                       </button>
 
                       {isExpanded && (
-                        <div className="grid grid-cols-[220px_repeat(5,minmax(180px,1fr))] gap-2 border-t border-slate-100 bg-slate-50/60 p-2">
+                        <div className="grid gap-2 border-t border-slate-100 bg-slate-50/60 p-2" style={boardGridStyle}>
                           <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                             Tickets
                           </div>

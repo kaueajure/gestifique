@@ -99,8 +99,10 @@ export const Sidebar = ({
         {
           id: "ai",
           icon: Bot,
-          label: "Assistente IA",
+          label: "Assistente de IA",
           access: hasPermission(currentUser, "ia.visualizar"),
+          disabled: true,
+          title: "Beta: temporariamente desativado.",
         },
         {
           id: "settings",
@@ -179,9 +181,12 @@ export const Sidebar = ({
                   {accessibleItems.map((item) => (
                     <button
                       key={item.id}
-                      onClick={() => handleNav(item.id)}
+                      onClick={() => !item.disabled && handleNav(item.id)}
+                      disabled={item.disabled}
+                      title={item.title}
                       className={cn(
                         "w-full flex items-center gap-2.5 px-3 h-8 rounded-md text-[13px] font-semibold transition-all duration-200",
+                        item.disabled && "cursor-not-allowed opacity-50",
                         activeTab === item.id
                           ? "bg-slate-100 text-slate-900"
                           : "text-slate-600 hover:text-slate-900 hover:bg-slate-50",

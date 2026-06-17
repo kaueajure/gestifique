@@ -22,8 +22,13 @@ import {
   MessageSquare,
   Search,
   ChevronDown,
+  Settings2,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Button } from "../ui/Button";
+import { Input } from "../ui/Input";
+import { Modal } from "../ui/Modal";
 import { TicketList } from "../tickets/TicketList";
 import { TicketKanban } from "../tickets/TicketKanban";
 import { CreateTicketModal } from "../tickets/CreateTicketModal";
@@ -45,6 +50,13 @@ import { TicketBulkActions } from "../tickets/TicketBulkActions";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useTicketOptions } from "../../hooks/useTicketOptions";
+import {
+  applyTicketWorkflowToKanban,
+  DEFAULT_TICKET_WORKFLOW,
+  loadTicketWorkflow,
+  saveTicketWorkflow,
+  TicketWorkflowStatus,
+} from "../../lib/ticketWorkflow";
 
 interface TicketsPageProps {
   onSelectTicket: (id: number) => void;
@@ -94,6 +106,12 @@ const EMPTY_KANBAN_COLUMNS = [
   {
     id: "resolvido" as TicketStatus,
     title: "Finalizado",
+    count: 0,
+    tickets: [],
+  },
+  {
+    id: "fechado" as TicketStatus,
+    title: "Fechado",
     count: 0,
     tickets: [],
   },
@@ -156,6 +174,12 @@ export const TicketsPage = ({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showTeamSidebar, setShowTeamSidebar] = useState(false);
   const [showMoreQueues, setShowMoreQueues] = useState(false);
+  const [showWorkflowSettings, setShowWorkflowSettings] = useState(false);
+  const [workflowStatuses, setWorkflowStatuses] = useState<TicketWorkflowStatus[]>(
+    () => loadTicketWorkflow(currentUser.empresa_id),
+  );
+  const [newWorkflowStatusId, setNewWorkflowStatusId] = useState<TicketStatus | "">("");
+  const [newWorkflowStatusLabel, setNewWorkflowStatusLabel] = useState("");
 
   // Saved Views
   const [savedViews, setSavedViews] = useState<TicketView[]>([]);
@@ -175,6 +199,64 @@ export const TicketsPage = ({
     currentUser.desenvolvedor
       ? devCompanyId || undefined
       : String(currentUser.empresa_id),
+  );
+
+  const workflowCompanyKey = currentUser.desenvolvedor
+    ? devCompanyId || "dev"
+    : currentUser.empresa_id;
+
+  useEffect(() => {
+    setWorkflowStatuses(loadTicketWorkflow(workflowCompanyKey));
+    setNewWorkflowStatusId("");
+    setNewWorkflowStatusLabel("");
+  }, [workflowCompanyKey]);
+
+  const persistWorkflowStatuses = (next: TicketWorkflowStatus[]) => {
+    setWorkflowStatuses(next);
+    saveTicketWorkflow(workflowCompanyKey, next);
+  };
+
+  const updateWorkflowStatus = (
+    id: TicketStatus,
+    changes: Partial<TicketWorkflowStatus>,
+  ) => {
+    persistWorkflowStatuses(
+      workflowStatuses.map((status) =>
+        status.id === id ? { ...status, ...changes } : status,
+      ),
+    );
+  };
+
+  const addWorkflowStatus = () => {
+    if (!newWorkflowStatusId || !newWorkflowStatusLabel.trim()) return;
+    if (workflowStatuses.some((status) => status.id === newWorkflowStatusId)) {
+      addToast("Esse tipo de atendimento já está configurado.", "info");
+      return;
+    }
+
+    persistWorkflowStatuses([
+      ...workflowStatuses,
+      {
+        id: newWorkflowStatusId,
+        label: newWorkflowStatusLabel.trim(),
+        visible: true,
+      },
+    ]);
+    setNewWorkflowStatusId("");
+    setNewWorkflowStatusLabel("");
+  };
+
+  const resetWorkflowStatuses = () => {
+    persistWorkflowStatuses(DEFAULT_TICKET_WORKFLOW);
+    addToast("Configuração de atendimento restaurada.", "success");
+  };
+
+  const configuredKanbanResponse = kanbanResponse
+    ? applyTicketWorkflowToKanban(kanbanResponse, workflowStatuses)
+    : null;
+
+  const availableWorkflowStatusOptions = DEFAULT_TICKET_WORKFLOW.filter(
+    (status) => !workflowStatuses.some((item) => item.id === status.id),
   );
 
   const categoryOptionsForFilter =
@@ -773,12 +855,15 @@ export const TicketsPage = ({
                   value=""
                   onChange={(val) => {
                     if (val === "equipe") setShowTeamSidebar(!showTeamSidebar);
+                    if (val === "config_status")
+                      setShowWorkflowSettings(true);
                     if (val === "exportar") exportToCSV();
                     if (val === "atualizar") fetchData();
                   }}
                   options={[
                     { value: "", label: "Mais" },
                     { value: "equipe", label: "Ver Equipe" },
+                    { value: "config_status", label: "Configurar tipos" },
                     { value: "exportar", label: "Exportar CSV" },
                     { value: "atualizar", label: "Atualizar" },
                   ]}
@@ -965,9 +1050,9 @@ export const TicketsPage = ({
                 message={error}
                 onRetry={fetchData}
               />
-            ) : viewMode === "kanban" && kanbanResponse ? (
+            ) : viewMode === "kanban" && configuredKanbanResponse ? (
               <TicketKanban
-                kanbanData={kanbanResponse}
+                kanbanData={configuredKanbanResponse}
                 onSelectTicket={onSelectTicket}
                 currentUser={currentUser}
                 onStatusChange={() => fetchData()}
@@ -1022,6 +1107,125 @@ export const TicketsPage = ({
           fetchData();
         }}
       />
+
+      <Modal
+        isOpen={showWorkflowSettings}
+        onClose={() => setShowWorkflowSettings(false)}
+        title="Tipos de atendimento"
+        size="lg"
+        footer={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={resetWorkflowStatuses}
+            >
+              Restaurar padrão
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setShowWorkflowSettings(false)}
+            >
+              Concluir
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <div className="flex items-start gap-2">
+              <Settings2 size={16} className="mt-0.5 text-slate-500" />
+              <div>
+                <h4 className="text-sm font-semibold text-slate-900">
+                  Colunas do atendimento
+                </h4>
+                <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                  Renomeie os tipos e escolha quais aparecem no kanban. Tipos
+                  ocultos continuam disponíveis para movimentação em outras ações
+                  do ticket.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {workflowStatuses.map((status) => (
+              <div
+                key={status.id}
+                className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-3 sm:flex-row sm:items-center"
+              >
+                <div className="flex-1">
+                  <Input
+                    inputSize="sm"
+                    label={status.id.replace("_", " ")}
+                    value={status.label}
+                    onChange={(event) =>
+                      updateWorkflowStatus(status.id, {
+                        label: event.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant={status.visible ? "secondary" : "outline"}
+                  size="sm"
+                  onClick={() =>
+                    updateWorkflowStatus(status.id, {
+                      visible: !status.visible,
+                    })
+                  }
+                  className="w-full sm:w-32"
+                  title={status.visible ? "Ocultar coluna" : "Mostrar coluna"}
+                >
+                  {status.visible ? <Eye size={14} /> : <EyeOff size={14} />}
+                  {status.visible ? "Visível" : "Oculto"}
+                </Button>
+              </div>
+            ))}
+          </div>
+
+          {availableWorkflowStatusOptions.length > 0 && (
+            <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50/70 p-3">
+              <div className="grid gap-2 sm:grid-cols-[180px_1fr_auto] sm:items-end">
+                <Select
+                  size="sm"
+                  value={newWorkflowStatusId}
+                  onChange={(value) =>
+                    setNewWorkflowStatusId(value as TicketStatus)
+                  }
+                  placeholder="Status..."
+                  options={[
+                    { value: "", label: "Escolha o tipo" },
+                    ...availableWorkflowStatusOptions.map((status) => ({
+                      value: status.id,
+                      label: status.id.replace("_", " "),
+                    })),
+                  ]}
+                  buttonClassName="h-8"
+                />
+                <Input
+                  inputSize="sm"
+                  placeholder="Nome da coluna"
+                  value={newWorkflowStatusLabel}
+                  onChange={(event) =>
+                    setNewWorkflowStatusLabel(event.target.value)
+                  }
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={addWorkflowStatus}
+                  disabled={!newWorkflowStatusId || !newWorkflowStatusLabel.trim()}
+                >
+                  <Plus size={14} />
+                  Criar
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </Modal>
 
       {/* Toast System */}
       <div className="fixed bottom-6 right-6 z-[10000] flex flex-col gap-2 pointer-events-none">
