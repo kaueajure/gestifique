@@ -53,7 +53,8 @@ const getStatusDot = (status: string) =>
     status === 'em_andamento' && 'bg-indigo-500',
     status === 'aguardando_cliente' && 'bg-amber-500',
     status === 'resolvido' && 'bg-emerald-500',
-    status === 'fechado' && 'bg-slate-500'
+    status === 'fechado' && 'bg-slate-500',
+    !['aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado'].includes(status) && 'bg-cyan-500'
   );
 
 const getAllTickets = (columns: TicketKanbanColumn[]) =>
@@ -188,6 +189,20 @@ export const TicketKanban = ({
       ...users,
     ];
   }, [team, localData.columns]);
+
+  useEffect(() => {
+    if (!currentUser?.id || loadingTeam) return;
+
+    const currentUserRow = rows.find(
+      row => !row.isUnassigned && Number(row.id) === Number(currentUser.id),
+    );
+    if (!currentUserRow) return;
+
+    setExpandedRows(prev => {
+      if (prev[currentUserRow.rowKey] !== undefined) return prev;
+      return { ...prev, [currentUserRow.rowKey]: true };
+    });
+  }, [currentUser?.id, loadingTeam, rows]);
 
   const getRowTicketCount = (row: RowUser) =>
     localData.columns.reduce((total, column) => total + getTicketsForCell(localData.columns, column.id, row).length, 0);

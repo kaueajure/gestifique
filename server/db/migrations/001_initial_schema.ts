@@ -73,7 +73,7 @@ export async function up(connection: PoolConnection) {
       responsavel_id INT NULL,
       titulo VARCHAR(255) NOT NULL,
       descricao TEXT,
-      status ENUM('aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado') DEFAULT 'aberto',
+      status VARCHAR(80) NOT NULL DEFAULT 'aberto',
       prioridade ENUM('baixa', 'media', 'alta', 'urgente') DEFAULT 'media',
       categoria VARCHAR(100),
       origem VARCHAR(50),

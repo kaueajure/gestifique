@@ -135,6 +135,8 @@ export const TicketList = ({
     resolvido: { color: 'text-emerald-700', bg: 'bg-emerald-50' },
     fechado: { color: 'text-slate-600', bg: 'bg-slate-50' }
   };
+  const getStatusColor = (status: string) =>
+    statusColors[status] || { color: 'text-slate-700', bg: 'bg-slate-100' };
 
   const SortHeader = ({ label, k, className }: { label: string, k: SortKey, className?: string }) => (
     <th 
@@ -228,6 +230,7 @@ export const TicketList = ({
           <tbody className="divide-y divide-slate-100">
             {sortedTickets.map((ticket) => {
               const sla = getSlaInfo(ticket.prazo_sla, ticket.status, ticket.sla_status_operacional);
+              const statusColor = getStatusColor(ticket.status);
               const isAbertoESemResp = ticket.status === 'aberto' && !ticket.responsavel_id;
               const isSelected = selectedTicketIds.includes(ticket.id);
               const priority = getPriorityInfo(ticket.prioridade);
@@ -314,8 +317,8 @@ export const TicketList = ({
                 <td className="px-3 py-2">
                    <div className={cn(
                      "inline-flex px-1.5 py-0.5 rounded text-[11px] font-medium",
-                     statusColors[ticket.status].bg,
-                     statusColors[ticket.status].color
+                     statusColor.bg,
+                     statusColor.color
                    )}>
                      {ticket.status.replace('_', ' ')}
                    </div>

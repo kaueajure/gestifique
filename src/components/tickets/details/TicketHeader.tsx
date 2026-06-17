@@ -51,6 +51,22 @@ export const TicketHeader = ({
   const showReopenButton = canManage && (status === 'resolvido' || status === 'fechado');
   
   const slaInfo = getSlaInfo(prazo_sla, status, sla_status_operacional);
+  const defaultStatusOptions = [
+    { value: 'aberto', label: 'Aberto' },
+    { value: 'em_andamento', label: 'Em andamento' },
+    { value: 'aguardando_cliente', label: 'Aguard. cliente' },
+    { value: 'resolvido', label: 'Resolvido' },
+    { value: 'fechado', label: 'Fechado' }
+  ];
+  const statusOptions = defaultStatusOptions.some(option => option.value === status)
+    ? defaultStatusOptions
+    : [
+        ...defaultStatusOptions,
+        {
+          value: status || 'aberto',
+          label: (status || 'aberto').replace(/_/g, ' ')
+        }
+      ];
 
   const getPriorityInfo = (prio: string) => {
     switch (prio) {
@@ -129,18 +145,12 @@ export const TicketHeader = ({
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2">
           <HeaderSelectMeta
             label="Status"
-            icon={<span className={cn("w-2 h-2 rounded-full", ticketStatusColors[status as TicketStatus])} />}
+            icon={<span className={cn("w-2 h-2 rounded-full", ticketStatusColors[status] || "bg-slate-400")} />}
           >
             <Select 
               value={status || 'aberto'}
               onChange={(value) => onUpdate({ status: value as TicketStatus })}
-              options={[
-                { value: 'aberto', label: 'Aberto' },
-                { value: 'em_andamento', label: 'Em andamento' },
-                { value: 'aguardando_cliente', label: 'Aguard. cliente' },
-                { value: 'resolvido', label: 'Resolvido' },
-                { value: 'fechado', label: 'Fechado' }
-              ]}
+              options={statusOptions}
               buttonClassName="h-7 rounded-md border-slate-200 bg-white text-xs font-semibold text-slate-800 capitalize"
               dropdownClassName="min-w-[180px]"
               disabled={!canManage}
@@ -248,7 +258,7 @@ const HeaderSelectMeta = ({
   </div>
 );
 
-const ticketStatusColors: Record<TicketStatus, string> = {
+const ticketStatusColors: Record<string, string> = {
   aberto: "bg-blue-500",
   em_andamento: "bg-indigo-500",
   aguardando_cliente: "bg-amber-500",

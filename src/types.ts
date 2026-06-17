@@ -60,7 +60,7 @@ export interface CompanyFormData {
   logo?: string | null;
 }
 
-export type TicketStatus = 'aberto' | 'em_andamento' | 'aguardando_cliente' | 'resolvido' | 'fechado';
+export type TicketStatus = string;
 export type TicketPriority = 'baixa' | 'media' | 'alta' | 'urgente';
 export type TicketQueue = 'todos' | 'meus' | 'sem_responsavel' | 'urgentes' | 'sla_vencido' | 'vence_em_breve' | 'aguardando_cliente' | 'precisa_resposta';
 
@@ -72,7 +72,7 @@ export interface TicketListResponse {
     total: number;
     totalPages: number;
   };
-  summary: Record<TicketStatus | 'total', number>;
+  summary: Record<string, number>;
   queues?: Record<TicketQueue, number>;
 }
 
@@ -85,7 +85,7 @@ export interface TicketKanbanColumn {
 
 export interface TicketKanbanResponse {
   columns: TicketKanbanColumn[];
-  totals: Record<TicketStatus | 'total', number>;
+  totals: Record<string, number>;
   queues?: Record<TicketQueue, number>;
 }
 

@@ -53,9 +53,10 @@ import { useTicketOptions } from "../../hooks/useTicketOptions";
 import {
   applyTicketWorkflowToKanban,
   DEFAULT_TICKET_WORKFLOW,
+  labelFromTicketStatus,
   loadTicketWorkflow,
   saveTicketWorkflow,
-  SUPPORTED_TICKET_WORKFLOW,
+  slugifyTicketStatus,
   TicketWorkflowStatus,
 } from "../../lib/ticketWorkflow";
 
@@ -180,7 +181,6 @@ export const TicketsPage = ({
   const [workflowStatuses, setWorkflowStatuses] = useState<TicketWorkflowStatus[]>(
     () => loadTicketWorkflow(currentUser.empresa_id),
   );
-  const [newWorkflowStatusId, setNewWorkflowStatusId] = useState<TicketStatus | "">("");
   const [newWorkflowStatusLabel, setNewWorkflowStatusLabel] = useState("");
 
   // Saved Views
@@ -210,7 +210,6 @@ export const TicketsPage = ({
   useEffect(() => {
     setWorkflowStatuses(loadTicketWorkflow(workflowCompanyKey));
     setShowAddWorkflowStatus(false);
-    setNewWorkflowStatusId("");
     setNewWorkflowStatusLabel("");
   }, [workflowCompanyKey]);
 
@@ -231,8 +230,16 @@ export const TicketsPage = ({
   };
 
   const addWorkflowStatus = () => {
-    if (!newWorkflowStatusId || !newWorkflowStatusLabel.trim()) return;
-    if (workflowStatuses.some((status) => status.id === newWorkflowStatusId)) {
+    const label = newWorkflowStatusLabel.trim();
+    const id = slugifyTicketStatus(label);
+
+    if (!label) return;
+    if (!id || id.length < 2) {
+      addToast("Use um nome com pelo menos duas letras ou números.", "error");
+      return;
+    }
+
+    if (workflowStatuses.some((status) => status.id === id)) {
       addToast("Esse tipo de atendimento já está configurado.", "info");
       return;
     }
@@ -240,13 +247,12 @@ export const TicketsPage = ({
     persistWorkflowStatuses([
       ...workflowStatuses,
       {
-        id: newWorkflowStatusId,
-        label: newWorkflowStatusLabel.trim(),
+        id,
+        label,
         visible: true,
       },
     ]);
     setShowAddWorkflowStatus(false);
-    setNewWorkflowStatusId("");
     setNewWorkflowStatusLabel("");
   };
 
@@ -258,10 +264,6 @@ export const TicketsPage = ({
   const configuredKanbanResponse = kanbanResponse
     ? applyTicketWorkflowToKanban(kanbanResponse, workflowStatuses)
     : null;
-
-  const availableWorkflowStatusOptions = SUPPORTED_TICKET_WORKFLOW.filter(
-    (status) => !workflowStatuses.some((item) => item.id === status.id),
-  );
 
   const categoryOptionsForFilter =
     activeCategories.length > 0
@@ -1161,7 +1163,7 @@ export const TicketsPage = ({
                 <div className="flex-1">
                   <Input
                     inputSize="sm"
-                    label={status.id.replace("_", " ")}
+                    label={labelFromTicketStatus(status.id)}
                     value={status.label}
                     onChange={(event) =>
                       updateWorkflowStatus(status.id, {
@@ -1203,61 +1205,42 @@ export const TicketsPage = ({
               variant="outline"
               size="sm"
               onClick={() => setShowAddWorkflowStatus((prev) => !prev)}
-              disabled={availableWorkflowStatusOptions.length === 0}
             >
               <Plus size={14} />
               Adicionar
             </Button>
           </div>
 
-          {showAddWorkflowStatus && availableWorkflowStatusOptions.length > 0 && (
+          {showAddWorkflowStatus && (
             <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50/70 p-3">
-              <div className="grid gap-2 sm:grid-cols-[180px_1fr_auto] sm:items-end">
-                <Select
-                  size="sm"
-                  value={newWorkflowStatusId}
-                  onChange={(value) => {
-                    const nextId = value as TicketStatus;
-                    setNewWorkflowStatusId(nextId);
-                    const selectedStatus = SUPPORTED_TICKET_WORKFLOW.find(
-                      (status) => status.id === nextId,
-                    );
-                    setNewWorkflowStatusLabel(selectedStatus?.label || "");
-                  }}
-                  placeholder="Status..."
-                  options={[
-                    { value: "", label: "Escolha o tipo" },
-                    ...availableWorkflowStatusOptions.map((status) => ({
-                      value: status.id,
-                      label: status.id.replace("_", " "),
-                    })),
-                  ]}
-                  buttonClassName="h-8"
-                />
+              <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
                 <Input
                   inputSize="sm"
-                  placeholder="Nome da coluna"
+                  label="Nome do tipo"
+                  placeholder="Ex.: Backlog, Em Análise, Aguardando financeiro"
                   value={newWorkflowStatusLabel}
                   onChange={(event) =>
                     setNewWorkflowStatusLabel(event.target.value)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") addWorkflowStatus();
+                  }}
+                  hint={
+                    newWorkflowStatusLabel.trim()
+                      ? `Identificador: ${slugifyTicketStatus(newWorkflowStatusLabel)}`
+                      : "Você pode criar qualquer tipo personalizado."
                   }
                 />
                 <Button
                   type="button"
                   size="sm"
                   onClick={addWorkflowStatus}
-                  disabled={!newWorkflowStatusId || !newWorkflowStatusLabel.trim()}
+                  disabled={!newWorkflowStatusLabel.trim()}
                 >
                   <Plus size={14} />
                   Adicionar
                 </Button>
               </div>
-            </div>
-          )}
-
-          {availableWorkflowStatusOptions.length === 0 && (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs font-medium text-slate-500">
-              Todos os tipos disponíveis já foram adicionados.
             </div>
           )}
         </div>

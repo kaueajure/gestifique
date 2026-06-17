@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import  ticketsService, { toPositiveInt } from  '../services/tickets.service.js';
+import  ticketsService, { isValidTicketStatus, toPositiveInt } from  '../services/tickets.service.js';
 import  attachmentsService from  '../services/attachments.service.js';
 import { authMiddleware, AuthRequest } from '../middlewares/auth.js';
 import { requirePermission } from '../middlewares/permissions.middleware.js';
@@ -140,10 +140,9 @@ router.get('/kanban', requirePermission('tickets.visualizar'), async (req: AuthR
 
     const responsavelId = toPositiveInt(req.query.responsavel_id);
 
-    const validStatuses = ['aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado', 'todos'];
     const validPriorities = ['baixa', 'media', 'alta', 'urgente', 'todas'];
     
-    const status = typeof req.query.status === 'string' && validStatuses.includes(req.query.status) 
+    const status = typeof req.query.status === 'string' && (req.query.status === 'todos' || isValidTicketStatus(req.query.status))
       ? (req.query.status === 'todos' ? undefined : req.query.status) 
       : undefined;
       
@@ -457,8 +456,7 @@ router.patch('/:id/status', async (req: AuthRequest, res) => {
     const { status } = req.body;
     if (!status) return sendError(res, 'Status é obrigatório', 400);
 
-    const validStatuses = ['aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado'];
-    if (!validStatuses.includes(status)) return sendError(res, 'Status inválido', 400);
+    if (!isValidTicketStatus(status)) return sendError(res, 'Status inválido', 400);
 
     const result: any = await ticketsService.getByIdForUser(id, currentUser);
     if (!result) return sendError(res, 'Ticket não encontrado', 404);
@@ -567,10 +565,9 @@ router.patch('/:id', async (req: AuthRequest, res) => {
     let oldPrio = ticket.prioridade;
     
     // Validations for update
-    const validStatuses = ['aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado'];
     const validPriorities = ['baixa', 'media', 'alta', 'urgente'];
     
-    if (req.body.status && !validStatuses.includes(req.body.status)) return sendError(res, 'Status inválido', 400);
+    if (req.body.status && !isValidTicketStatus(req.body.status)) return sendError(res, 'Status inválido', 400);
     if (req.body.prioridade && !validPriorities.includes(req.body.prioridade)) return sendError(res, 'Prioridade inválida', 400);
     if (req.body.responsavel_id !== undefined && req.body.responsavel_id !== null) {
       if (!toPositiveInt(req.body.responsavel_id)) return sendError(res, 'Responsável inválido', 400);

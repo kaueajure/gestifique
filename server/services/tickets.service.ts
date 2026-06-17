@@ -29,6 +29,22 @@ export function toPositiveInt(value: unknown): number | undefined {
   return Number.isInteger(n) && n > 0 ? n : undefined;
 }
 
+export function isValidTicketStatus(value: unknown): value is string {
+  return typeof value === 'string' && /^[a-z0-9_]{2,80}$/.test(value);
+}
+
+function labelFromStatus(status: string): string {
+  const labels: Record<string, string> = {
+    aberto: 'Aberto',
+    em_andamento: 'Em andamento',
+    aguardando_cliente: 'Aguardando resposta',
+    resolvido: 'Finalizado',
+    fechado: 'Fechado'
+  };
+
+  return labels[status] || status.replace(/_/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
+}
+
 class TicketsService {
   private isValidDateOnly(value: unknown): value is string {
     return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
@@ -647,23 +663,39 @@ class TicketsService {
     `, summaryParams);
     const summary = summaryRows[0] || { total: 0, aberto: 0, em_andamento: 0, aguardando_cliente: 0, resolvido: 0, fechado: 0 };
 
+    const [statusCountRows]: any = await pool.query(`
+      SELECT t.status, COUNT(*) as count
+      FROM tickets t
+      LEFT JOIN usuarios u ON t.usuario_id = u.id
+      ${summaryWhere}
+      GROUP BY t.status
+    `, summaryParams);
+
     // Enriquecer com produtividade
     await this.enrichTicketsWithProductivity(tickets, filters.usuario_id);
 
-    const columnsConfig = [
-      { id: 'aberto', title: 'Aberto' },
-      { id: 'em_andamento', title: 'Em andamento' },
-      { id: 'aguardando_cliente', title: 'Aguardando resposta' },
-      { id: 'resolvido', title: 'Finalizado' },
-      { id: 'fechado', title: 'Fechado' }
-    ];
+    const defaultStatusOrder = ['aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado'];
+    const statusCounts = new Map<string, number>(
+      statusCountRows.map((row: any) => [row.status, Number(row.count || 0)])
+    );
+    const ticketStatuses = tickets.map((ticket: any) => ticket.status).filter(Boolean);
+    const discoveredStatuses = [
+      ...defaultStatusOrder,
+      ...Array.from(statusCounts.keys()),
+      ...ticketStatuses
+    ].filter((status, index, all) => all.indexOf(status) === index);
+
+    const columnsConfig = discoveredStatuses.map(status => ({
+      id: status,
+      title: labelFromStatus(status)
+    }));
 
     const columns = columnsConfig.map(c => {
       const colTickets = tickets.filter((t: any) => t.status === c.id);
       return {
         id: c.id,
         title: c.title,
-        count: Number(summary[c.id] || 0),
+        count: Number(statusCounts.get(c.id) ?? summary[c.id] ?? colTickets.length),
         tickets: colTickets
       };
     });
@@ -956,8 +988,7 @@ class TicketsService {
   }
 
   async updateStatus(id: number, status: string, changedByUserId: number, req?: any) {
-    const validStatuses = ['aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado'];
-    if (!validStatuses.includes(status)) {
+    if (!isValidTicketStatus(status)) {
       throw new Error(`Status inválido: ${status}`);
     }
 
@@ -1756,8 +1787,7 @@ class TicketsService {
 
         switch (action) {
           case 'status':
-            const validStatus = ['aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado'];
-            if (validStatus.includes(value)) {
+            if (isValidTicketStatus(value)) {
               await this.updateStatus(id, value, currentUser.id);
               updated++;
             } else {

@@ -6,16 +6,12 @@ export interface TicketWorkflowStatus {
   visible: boolean;
 }
 
-export const SUPPORTED_TICKET_WORKFLOW: TicketWorkflowStatus[] = [
+export const DEFAULT_TICKET_WORKFLOW: TicketWorkflowStatus[] = [
   { id: "aberto", label: "Aberto", visible: true },
   { id: "em_andamento", label: "Em andamento", visible: true },
   { id: "aguardando_cliente", label: "Aguardando resposta", visible: true },
   { id: "resolvido", label: "Finalizado", visible: true },
-  { id: "fechado", label: "Fechado", visible: false },
 ];
-
-export const DEFAULT_TICKET_WORKFLOW: TicketWorkflowStatus[] =
-  SUPPORTED_TICKET_WORKFLOW.filter((item) => item.id !== "fechado");
 
 const STORAGE_KEY_PREFIX = "gestifique.ticketWorkflow";
 
@@ -34,8 +30,14 @@ export const loadTicketWorkflow = (
     const parsed = JSON.parse(stored) as TicketWorkflowStatus[];
     if (!Array.isArray(parsed)) return DEFAULT_TICKET_WORKFLOW;
 
-    const validIds = new Set(SUPPORTED_TICKET_WORKFLOW.map((item) => item.id));
-    const sanitized = parsed.filter((item) => validIds.has(item.id));
+    const sanitized = parsed.filter(
+      (item) =>
+        item &&
+        typeof item.id === "string" &&
+        /^[a-z0-9_]{2,80}$/.test(item.id) &&
+        typeof item.label === "string" &&
+        item.label.trim().length > 0,
+    );
     const missing = DEFAULT_TICKET_WORKFLOW.filter(
       (item) => !sanitized.some((storedItem) => storedItem.id === item.id),
     );
@@ -53,13 +55,29 @@ export const saveTicketWorkflow = (
   window.localStorage.setItem(getWorkflowKey(companyId), JSON.stringify(workflow));
 };
 
+export const slugifyTicketStatus = (label: string) =>
+  label
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 80);
+
+export const labelFromTicketStatus = (status: string) =>
+  status
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
 export const applyTicketWorkflowToKanban = (
   kanbanData: TicketKanbanResponse,
   workflow: TicketWorkflowStatus[],
 ): TicketKanbanResponse => {
   const sourceColumns = kanbanData.columns || [];
+  const configuredIds = new Set(workflow.map((item) => item.id));
 
-  const columns = workflow
+  const configuredColumns = workflow
     .filter((item) => item.visible)
     .map((item) => {
       const sourceColumn = sourceColumns.find((column) => column.id === item.id);
@@ -70,6 +88,15 @@ export const applyTicketWorkflowToKanban = (
         tickets: sourceColumn?.tickets || [],
       };
     });
+
+  const discoveredColumns = sourceColumns
+    .filter((column) => !configuredIds.has(column.id))
+    .map((column) => ({
+      ...column,
+      title: column.title || labelFromTicketStatus(column.id),
+    }));
+
+  const columns = [...configuredColumns, ...discoveredColumns];
 
   return { ...kanbanData, columns };
 };

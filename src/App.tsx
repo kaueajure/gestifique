@@ -48,6 +48,54 @@ type ActiveTab =
   | "knowledge"
   | "ai";
 
+const DASHBOARD_STATE_KEY = "gestifique.dashboardState";
+
+const isActiveTab = (value: string | null): value is ActiveTab =>
+  !!value &&
+  [
+    "dashboard",
+    "tickets",
+    "users",
+    "companies",
+    "logs",
+    "profile",
+    "settings",
+    "reports",
+    "knowledge",
+    "ai",
+  ].includes(value);
+
+const loadDashboardState = (): {
+  activeTab: ActiveTab;
+  selectedTicketId: number | null;
+} => {
+  try {
+    const stored = localStorage.getItem(DASHBOARD_STATE_KEY);
+    if (!stored) return { activeTab: "dashboard", selectedTicketId: null };
+
+    const parsed = JSON.parse(stored) as {
+      activeTab?: string;
+      selectedTicketId?: number | null;
+    };
+    const storedActiveTab = parsed.activeTab || null;
+    const activeTab: ActiveTab = isActiveTab(storedActiveTab)
+      ? storedActiveTab
+      : "dashboard";
+    const selectedTicketId =
+      typeof parsed.selectedTicketId === "number" &&
+      Number.isFinite(parsed.selectedTicketId)
+        ? parsed.selectedTicketId
+        : null;
+
+    return {
+      activeTab: selectedTicketId ? "tickets" : activeTab,
+      selectedTicketId,
+    };
+  } catch {
+    return { activeTab: "dashboard", selectedTicketId: null };
+  }
+};
+
 export default function App() {
   const getViewFromPath = (pathname: string): ViewState => {
     if (pathname === "/login") return "login";
@@ -63,10 +111,14 @@ export default function App() {
   const [view, setView] = useState<ViewState>(() =>
     getViewFromPath(window.location.pathname),
   );
-  const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard");
+  const [activeTab, setActiveTab] = useState<ActiveTab>(
+    () => loadDashboardState().activeTab,
+  );
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [selectedTicketId, setSelectedTicketId] = useState<number | null>(
+    () => loadDashboardState().selectedTicketId,
+  );
   const [authError, setAuthError] = useState<string | null>(null);
   const [authSuccess, setAuthSuccess] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
@@ -137,6 +189,21 @@ export default function App() {
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
+
+  useEffect(() => {
+    if (!currentUser || view !== "dashboard") return;
+
+    localStorage.setItem(
+      DASHBOARD_STATE_KEY,
+      JSON.stringify({ activeTab, selectedTicketId }),
+    );
+  }, [activeTab, selectedTicketId, currentUser, view]);
+
+  useEffect(() => {
+    if (activeTab !== "tickets" && selectedTicketId) {
+      setSelectedTicketId(null);
+    }
+  }, [activeTab, selectedTicketId]);
 
   useEffect(() => {
     // Check session on load
@@ -262,6 +329,7 @@ export default function App() {
       await api.post("/auth/logout", {});
     } catch (e) {}
     localStorage.removeItem("portal_token");
+    localStorage.removeItem(DASHBOARD_STATE_KEY);
     setCurrentUser(null);
     setView("landing");
     window.history.pushState({}, "", "/");
