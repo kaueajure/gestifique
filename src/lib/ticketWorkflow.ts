@@ -75,9 +75,8 @@ export const applyTicketWorkflowToKanban = (
   workflow: TicketWorkflowStatus[],
 ): TicketKanbanResponse => {
   const sourceColumns = kanbanData.columns || [];
-  const configuredIds = new Set(workflow.map((item) => item.id));
 
-  const configuredColumns = workflow
+  const columns = workflow
     .filter((item) => item.visible)
     .map((item) => {
       const sourceColumn = sourceColumns.find((column) => column.id === item.id);
@@ -88,15 +87,6 @@ export const applyTicketWorkflowToKanban = (
         tickets: sourceColumn?.tickets || [],
       };
     });
-
-  const discoveredColumns = sourceColumns
-    .filter((column) => !configuredIds.has(column.id))
-    .map((column) => ({
-      ...column,
-      title: column.title || labelFromTicketStatus(column.id),
-    }));
-
-  const columns = [...configuredColumns, ...discoveredColumns];
 
   return { ...kanbanData, columns };
 };

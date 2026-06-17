@@ -76,6 +76,9 @@ const getTicketsForCell = (columns: TicketKanbanColumn[], status: string, row: R
 const rebuildCounts = (columns: TicketKanbanColumn[]) =>
   columns.map(column => ({ ...column, count: column.tickets.length }));
 
+const rowColumnWidth = 220;
+const statusColumnWidth = 210;
+
 export const TicketKanban = ({
   kanbanData,
   onSelectTicket,
@@ -93,9 +96,9 @@ export const TicketKanban = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const boardColumns = localData.columns.length || 1;
   const boardGridStyle = {
-    gridTemplateColumns: `220px repeat(${boardColumns}, minmax(180px, 1fr))`,
+    gridTemplateColumns: `${rowColumnWidth}px repeat(${boardColumns}, ${statusColumnWidth}px)`,
   };
-  const boardMinWidth = 220 + boardColumns * 180;
+  const boardMinWidth = rowColumnWidth + boardColumns * statusColumnWidth;
 
   useEffect(() => {
     setLocalData(kanbanData);
@@ -283,7 +286,7 @@ export const TicketKanban = ({
   };
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-lg border border-slate-200/60 bg-slate-50/50">
+    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       {errorMsg && (
         <div className="mx-2 mt-2 flex items-center gap-2 rounded-md border border-red-100 bg-red-50 p-2 text-[10px] font-semibold text-red-600">
           <AlertCircle size={12} /> {errorMsg}
@@ -291,19 +294,19 @@ export const TicketKanban = ({
       )}
 
       <DragDropContextComp onDragEnd={onDragEnd}>
-        <div className="h-full overflow-auto p-3 custom-scrollbar">
-          <div style={{ minWidth: `${boardMinWidth}px` }}>
-            <div className="sticky top-0 z-20 grid gap-2 bg-slate-50/95 pb-2" style={boardGridStyle}>
-              <div className="px-2 py-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+        <div className="h-full overflow-auto bg-gradient-to-b from-slate-50 to-white p-3 custom-scrollbar">
+          <div className="space-y-2" style={{ minWidth: `${boardMinWidth}px` }}>
+            <div className="sticky top-0 z-20 grid gap-2 rounded-lg border border-slate-200 bg-white/95 p-2 shadow-sm backdrop-blur" style={boardGridStyle}>
+              <div className="flex h-11 items-center px-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                 Atendente
               </div>
               {localData.columns.map(column => (
-                <div key={column.id} className="flex items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 shadow-sm">
-                  <div className="flex items-center gap-1.5">
+                <div key={column.id} className="flex h-11 items-center justify-between rounded-lg border border-slate-200 bg-slate-50/70 px-3 shadow-sm">
+                  <div className="flex min-w-0 items-center gap-1.5">
                     <div className={getStatusDot(column.id)} />
-                    <span className="text-xs font-semibold text-slate-700">{column.title}</span>
+                    <span className="truncate text-xs font-semibold text-slate-700">{column.title}</span>
                   </div>
-                  <span className="rounded-sm bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+                  <span className="ml-2 flex h-5 min-w-5 shrink-0 items-center justify-center rounded bg-white px-1.5 text-[10px] font-semibold text-slate-500 shadow-sm ring-1 ring-slate-200/70">
                     {getColumnTicketCount(localData.columns, column.id)}
                   </span>
                 </div>
@@ -328,11 +331,11 @@ export const TicketKanban = ({
                   const rowCount = getRowTicketCount(row);
 
                   return (
-                    <section key={row.rowKey} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+                    <section key={row.rowKey} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                       <button
                         type="button"
                         onClick={() => toggleRow(row.rowKey)}
-                        className="grid w-full gap-2 px-2 py-2 text-left transition-colors hover:bg-slate-50"
+                        className="grid w-full gap-2 bg-white p-2 text-left transition-colors hover:bg-slate-50/80"
                         style={boardGridStyle}
                       >
                         <div className="flex min-w-0 items-center gap-2">
@@ -358,7 +361,7 @@ export const TicketKanban = ({
                           const count = getTicketsForCell(localData.columns, column.id, row).length;
 
                           return (
-                            <div key={column.id} className="flex items-center rounded-md bg-slate-50 px-2 py-1">
+                            <div key={column.id} className="flex h-10 items-center rounded-lg border border-slate-100 bg-slate-50/80 px-3">
                               <span className="text-[11px] font-semibold text-slate-600">
                                 {count}
                               </span>
@@ -368,8 +371,8 @@ export const TicketKanban = ({
                       </button>
 
                       {isExpanded && (
-                        <div className="grid gap-2 border-t border-slate-100 bg-slate-50/60 p-2" style={boardGridStyle}>
-                          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                        <div className="grid gap-2 border-t border-slate-100 bg-slate-50/70 p-2" style={boardGridStyle}>
+                          <div className="px-2 pt-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                             Tickets
                           </div>
 
@@ -384,8 +387,9 @@ export const TicketKanban = ({
                                     ref={provided.innerRef}
                                     {...provided.droppableProps}
                                     className={cn(
-                                      'min-h-[92px] space-y-1.5 rounded-md border border-dashed border-slate-200 bg-white p-1.5 transition-colors',
-                                      snapshot.isDraggingOver && 'border-blue-200 bg-blue-50/60'
+                                      'min-h-[112px] rounded-lg border border-dashed border-slate-200 bg-white/90 p-2 transition-colors',
+                                      tickets.length > 0 && 'space-y-2',
+                                      snapshot.isDraggingOver && 'border-blue-300 bg-blue-50/70 shadow-inner'
                                     )}
                                   >
                                     {tickets.map((ticket, index) => {
@@ -406,14 +410,14 @@ export const TicketKanban = ({
                                               {...dragProvided.dragHandleProps}
                                               onClick={() => onSelectTicket(ticket.id)}
                                               className={cn(
-                                                'group relative cursor-pointer overflow-hidden rounded border border-slate-200 bg-white p-2 text-left shadow-sm transition-all hover:border-slate-300 hover:shadow-md',
+                                                'group relative flex h-[112px] cursor-pointer flex-col overflow-hidden rounded-lg border border-slate-200 bg-white p-2.5 text-left shadow-sm transition-all hover:border-slate-300 hover:shadow-md',
                                                 dragSnapshot.isDragging && 'z-50 border-blue-300 shadow-lg',
                                                 updatingId === ticket.id && 'pointer-events-none opacity-50'
                                               )}
                                             >
                                               <div className={cn('absolute bottom-0 left-0 top-0 w-[3px]', priorityColor)} />
 
-                                              <div className="flex items-start justify-between gap-2 pl-1.5">
+                                              <div className="flex min-h-0 items-start justify-between gap-2 pl-1.5">
                                                 <div className="min-w-0">
                                                   <div className="mb-1 flex items-center gap-1.5">
                                                     <span className="text-[10px] font-semibold text-slate-500">#{ticket.id}</span>
@@ -425,13 +429,13 @@ export const TicketKanban = ({
                                                   </h4>
                                                 </div>
 
-                                                <div className={cn('flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 text-[9px]', sla.color)}>
+                                                <div className={cn('flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[9px]', sla.color)}>
                                                   <Clock size={10} />
                                                   {sla.compactText || sla.label}
                                                 </div>
                                               </div>
 
-                                              <div className="mt-2 flex items-center gap-1.5 pl-1.5 text-[10px] text-slate-500">
+                                              <div className="mt-auto flex items-center gap-1.5 pl-1.5 text-[10px] text-slate-500">
                                                 <UserRound size={10} className="shrink-0 text-slate-400" />
                                                 <span className="truncate">{ticket.cliente_nome || 'Cliente'}</span>
                                               </div>
@@ -442,7 +446,7 @@ export const TicketKanban = ({
                                     })}
                                     {provided.placeholder}
                                     {tickets.length === 0 && !snapshot.isDraggingOver && (
-                                      <div className="flex h-10 items-center justify-center text-[10px] text-slate-400">
+                                      <div className="flex h-[112px] items-center justify-center rounded-md bg-slate-50/70 text-[10px] font-medium text-slate-400">
                                         Vazio
                                       </div>
                                     )}

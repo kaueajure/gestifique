@@ -25,6 +25,9 @@ import {
   Settings2,
   Eye,
   EyeOff,
+  ArrowUp,
+  ArrowDown,
+  Trash2,
 } from "lucide-react";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
@@ -227,6 +230,32 @@ export const TicketsPage = ({
         status.id === id ? { ...status, ...changes } : status,
       ),
     );
+  };
+
+  const moveWorkflowStatus = (index: number, direction: -1 | 1) => {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= workflowStatuses.length) return;
+
+    const next = [...workflowStatuses];
+    const [item] = next.splice(index, 1);
+    next.splice(targetIndex, 0, item);
+    persistWorkflowStatuses(next);
+  };
+
+  const removeWorkflowStatus = (id: TicketStatus) => {
+    if (workflowStatuses.length <= 1) {
+      addToast("Mantenha pelo menos um tipo de atendimento.", "error");
+      return;
+    }
+
+    const status = workflowStatuses.find((item) => item.id === id);
+    const confirmed = window.confirm(
+      `Remover o tipo "${status?.label || id}" da configuração? Tickets que estiverem nesse tipo não aparecerão no kanban até o tipo ser adicionado novamente.`,
+    );
+    if (!confirmed) return;
+
+    persistWorkflowStatuses(workflowStatuses.filter((item) => item.id !== id));
+    addToast("Tipo removido da configuração.", "success");
   };
 
   const addWorkflowStatus = () => {
@@ -1155,11 +1184,35 @@ export const TicketsPage = ({
           </div>
 
           <div className="space-y-2">
-            {workflowStatuses.map((status) => (
+            {workflowStatuses.map((status, index) => (
               <div
                 key={status.id}
                 className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-3 sm:flex-row sm:items-center"
               >
+                <div className="flex items-center gap-1 sm:self-end">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => moveWorkflowStatus(index, -1)}
+                    disabled={index === 0}
+                    title="Mover para cima"
+                    className="h-8 w-8"
+                  >
+                    <ArrowUp size={14} />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => moveWorkflowStatus(index, 1)}
+                    disabled={index === workflowStatuses.length - 1}
+                    title="Mover para baixo"
+                    className="h-8 w-8"
+                  >
+                    <ArrowDown size={14} />
+                  </Button>
+                </div>
                 <div className="flex-1">
                   <Input
                     inputSize="sm"
@@ -1186,6 +1239,17 @@ export const TicketsPage = ({
                 >
                   {status.visible ? <Eye size={14} /> : <EyeOff size={14} />}
                   {status.visible ? "Visível" : "Oculto"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeWorkflowStatus(status.id)}
+                  title="Remover tipo"
+                  className="h-8 w-8 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                  disabled={workflowStatuses.length <= 1}
+                >
+                  <Trash2 size={14} />
                 </Button>
               </div>
             ))}
