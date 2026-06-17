@@ -8,8 +8,7 @@ export interface TicketWorkflowStatus {
 
 export const DEFAULT_TICKET_WORKFLOW: TicketWorkflowStatus[] = [
   { id: "aberto", label: "Aberto", visible: true },
-  { id: "em_andamento", label: "Em andamento", visible: true },
-  { id: "aguardando_cliente", label: "Aguardando resposta", visible: true },
+  { id: "em_andamento", label: "Em Atendimento", visible: true },
   { id: "resolvido", label: "Finalizado", visible: true },
 ];
 

@@ -28,6 +28,8 @@ import {
   ArrowUp,
   ArrowDown,
   Trash2,
+  Check,
+  X,
 } from "lucide-react";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
@@ -58,7 +60,6 @@ import {
   DEFAULT_TICKET_WORKFLOW,
   labelFromTicketStatus,
   loadTicketWorkflow,
-  saveTicketWorkflow,
   slugifyTicketStatus,
   TicketWorkflowStatus,
 } from "../../lib/ticketWorkflow";
@@ -181,9 +182,12 @@ export const TicketsPage = ({
   const [showMoreQueues, setShowMoreQueues] = useState(false);
   const [showWorkflowSettings, setShowWorkflowSettings] = useState(false);
   const [showAddWorkflowStatus, setShowAddWorkflowStatus] = useState(false);
+  const [pendingRemoveWorkflowStatusId, setPendingRemoveWorkflowStatusId] =
+    useState<TicketStatus | null>(null);
   const [workflowStatuses, setWorkflowStatuses] = useState<TicketWorkflowStatus[]>(
-    () => loadTicketWorkflow(currentUser.empresa_id),
+    DEFAULT_TICKET_WORKFLOW,
   );
+  const [workflowLoading, setWorkflowLoading] = useState(false);
   const [newWorkflowStatusLabel, setNewWorkflowStatusLabel] = useState("");
 
   // Saved Views
@@ -210,26 +214,70 @@ export const TicketsPage = ({
     ? devCompanyId || "dev"
     : currentUser.empresa_id;
 
+  const mapWorkflowRows = (rows: any[]): TicketWorkflowStatus[] =>
+    rows.map((row) => ({
+      id: row.valor,
+      label: row.nome,
+      visible: Number(row.ativo) === 1,
+    }));
+
   useEffect(() => {
-    setWorkflowStatuses(loadTicketWorkflow(workflowCompanyKey));
+    const fetchWorkflowStatuses = async () => {
+      if (!workflowCompanyKey || workflowCompanyKey === "dev") {
+        setWorkflowStatuses([]);
+        return;
+      }
+
+      try {
+        setWorkflowLoading(true);
+        const rows = await api.get<any[]>(
+          `/companies/${workflowCompanyKey}/ticket-statuses`,
+        );
+        setWorkflowStatuses(mapWorkflowRows(rows));
+      } catch (err) {
+        setWorkflowStatuses(loadTicketWorkflow(workflowCompanyKey));
+        addToast("Erro ao carregar tipos de atendimento.", "error");
+      } finally {
+        setWorkflowLoading(false);
+      }
+    };
+
+    fetchWorkflowStatuses();
     setShowAddWorkflowStatus(false);
+    setPendingRemoveWorkflowStatusId(null);
     setNewWorkflowStatusLabel("");
   }, [workflowCompanyKey]);
 
-  const persistWorkflowStatuses = (next: TicketWorkflowStatus[]) => {
+  const persistWorkflowStatuses = async (next: TicketWorkflowStatus[]) => {
     setWorkflowStatuses(next);
-    saveTicketWorkflow(workflowCompanyKey, next);
+
+    if (!workflowCompanyKey || workflowCompanyKey === "dev") return;
+
+    try {
+      const rows = await api.put<any[]>(
+        `/companies/${workflowCompanyKey}/ticket-statuses`,
+        { statuses: next },
+      );
+      setWorkflowStatuses(mapWorkflowRows(rows));
+    } catch (err) {
+      addToast("Erro ao salvar tipos de atendimento.", "error");
+    }
   };
 
   const updateWorkflowStatus = (
     id: TicketStatus,
     changes: Partial<TicketWorkflowStatus>,
+    shouldPersist = true,
   ) => {
-    persistWorkflowStatuses(
-      workflowStatuses.map((status) =>
+    const next = workflowStatuses.map((status) =>
         status.id === id ? { ...status, ...changes } : status,
-      ),
     );
+
+    if (shouldPersist) {
+      persistWorkflowStatuses(next);
+    } else {
+      setWorkflowStatuses(next);
+    }
   };
 
   const moveWorkflowStatus = (index: number, direction: -1 | 1) => {
@@ -242,19 +290,13 @@ export const TicketsPage = ({
     persistWorkflowStatuses(next);
   };
 
-  const removeWorkflowStatus = (id: TicketStatus) => {
-    if (workflowStatuses.length <= 1) {
-      addToast("Mantenha pelo menos um tipo de atendimento.", "error");
-      return;
-    }
+  const requestRemoveWorkflowStatus = (id: TicketStatus) => {
+    setPendingRemoveWorkflowStatusId(id);
+  };
 
-    const status = workflowStatuses.find((item) => item.id === id);
-    const confirmed = window.confirm(
-      `Remover o tipo "${status?.label || id}" da configuração? Tickets que estiverem nesse tipo não aparecerão no kanban até o tipo ser adicionado novamente.`,
-    );
-    if (!confirmed) return;
-
+  const confirmRemoveWorkflowStatus = (id: TicketStatus) => {
     persistWorkflowStatuses(workflowStatuses.filter((item) => item.id !== id));
+    setPendingRemoveWorkflowStatusId(null);
     addToast("Tipo removido da configuração.", "success");
   };
 
@@ -282,6 +324,7 @@ export const TicketsPage = ({
       },
     ]);
     setShowAddWorkflowStatus(false);
+    setPendingRemoveWorkflowStatusId(null);
     setNewWorkflowStatusLabel("");
   };
 
@@ -1184,6 +1227,16 @@ export const TicketsPage = ({
           </div>
 
           <div className="space-y-2">
+            {workflowLoading && (
+              <div className="rounded-lg border border-slate-200 bg-white p-3 text-xs font-semibold text-slate-500">
+                Carregando tipos de atendimento...
+              </div>
+            )}
+            {!workflowLoading && workflowStatuses.length === 0 && (
+              <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-xs font-medium text-slate-500">
+                Nenhum tipo configurado. Adicione um tipo para exibir colunas no kanban.
+              </div>
+            )}
             {workflowStatuses.map((status, index) => (
               <div
                 key={status.id}
@@ -1221,8 +1274,9 @@ export const TicketsPage = ({
                     onChange={(event) =>
                       updateWorkflowStatus(status.id, {
                         label: event.target.value,
-                      })
+                      }, false)
                     }
+                    onBlur={() => persistWorkflowStatuses(workflowStatuses)}
                   />
                 </div>
                 <Button
@@ -1240,17 +1294,42 @@ export const TicketsPage = ({
                   {status.visible ? <Eye size={14} /> : <EyeOff size={14} />}
                   {status.visible ? "Visível" : "Oculto"}
                 </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeWorkflowStatus(status.id)}
-                  title="Remover tipo"
-                  className="h-8 w-8 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                  disabled={workflowStatuses.length <= 1}
-                >
-                  <Trash2 size={14} />
-                </Button>
+                {pendingRemoveWorkflowStatusId === status.id ? (
+                  <div className="flex w-full items-center gap-1 rounded-lg border border-rose-100 bg-rose-50 p-1 sm:w-auto">
+                    <Button
+                      type="button"
+                      variant="danger"
+                      size="sm"
+                      onClick={() => confirmRemoveWorkflowStatus(status.id)}
+                      className="h-8 flex-1 px-2 text-[11px] sm:flex-none"
+                      title="Confirmar remoção"
+                    >
+                      <Check size={13} />
+                      Confirmar
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setPendingRemoveWorkflowStatusId(null)}
+                      title="Cancelar remoção"
+                      className="h-8 w-8 text-slate-500 hover:bg-white hover:text-slate-700"
+                    >
+                      <X size={14} />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => requestRemoveWorkflowStatus(status.id)}
+                    title="Remover tipo"
+                    className="h-8 w-8 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                  >
+                    <Trash2 size={14} />
+                  </Button>
+                )}
               </div>
             ))}
           </div>

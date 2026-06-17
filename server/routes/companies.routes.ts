@@ -6,6 +6,7 @@ import { permissionsService } from '../services/permissions.service.js';
 import  { sendSuccess, sendError } from  '../utils/response.js';
 import  { logSystemAction } from  '../utils/logger.js';
 import { isValidEmail, isValidHexColor } from '../utils/validators.js';
+import { isValidTicketStatus } from '../services/tickets.service.js';
 
 const router = Router();
 
@@ -282,6 +283,86 @@ router.delete('/:id/ticket-services/:servId', async (req: AuthRequest, res) => {
     sendSuccess(res, null);
   } catch(error: unknown) {
     sendError(res, 'Erro ao deletar serviço');
+  }
+});
+
+// Settings: Ticket Status Workflow
+router.get('/:id/ticket-statuses', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+    const id = parseInt(req.params.id);
+    if (!currentUser.desenvolvedor && currentUser.empresa_id !== id) return sendError(res, 'Acesso negado', 403);
+
+    const [rows]: any = await pool.query(
+      'SELECT id, nome, valor, ativo, ordem FROM empresa_ticket_status WHERE empresa_id = ? ORDER BY ordem ASC, id ASC',
+      [id]
+    );
+    sendSuccess(res, rows);
+  } catch(error: unknown) {
+    sendError(res, 'Erro ao buscar tipos de atendimento');
+  }
+});
+
+router.put('/:id/ticket-statuses', async (req: AuthRequest, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+    const id = parseInt(req.params.id);
+    const hasConfigPerm = await permissionsService.hasPermission(currentUser, 'empresas.gerenciar_configuracoes');
+    if (!hasConfigPerm) return sendError(res, 'Acesso negado', 403);
+    if (!currentUser.desenvolvedor && currentUser.empresa_id !== id) return sendError(res, 'Acesso negado', 403);
+
+    const statuses = Array.isArray(req.body?.statuses) ? req.body.statuses : null;
+    if (!statuses) return sendError(res, 'Lista de tipos inválida', 400);
+    if (statuses.length > 40) return sendError(res, 'Máximo de 40 tipos de atendimento', 400);
+
+    const seen = new Set<string>();
+    const sanitized = statuses.map((status: any, index: number) => {
+      const nome = typeof status.label === 'string'
+        ? status.label.trim()
+        : typeof status.nome === 'string'
+          ? status.nome.trim()
+          : '';
+      const valor = typeof status.id === 'string'
+        ? status.id.trim()
+        : typeof status.valor === 'string'
+          ? status.valor.trim()
+          : '';
+      const ativo = status.visible === undefined ? Number(status.ativo ?? 1) : status.visible ? 1 : 0;
+
+      if (!nome || nome.length > 100) throw new Error('Nome de tipo inválido');
+      if (!isValidTicketStatus(valor)) throw new Error(`Identificador de tipo inválido: ${valor}`);
+      if (seen.has(valor)) throw new Error(`Tipo duplicado: ${valor}`);
+      seen.add(valor);
+
+      return { nome, valor, ativo, ordem: index };
+    });
+
+    await connection.beginTransaction();
+    await connection.query('DELETE FROM empresa_ticket_status WHERE empresa_id = ?', [id]);
+
+    for (const status of sanitized) {
+      await connection.query(
+        'INSERT INTO empresa_ticket_status (empresa_id, nome, valor, ativo, ordem) VALUES (?, ?, ?, ?, ?)',
+        [id, status.nome, status.valor, status.ativo, status.ordem]
+      );
+    }
+
+    await connection.commit();
+
+    const [rows]: any = await pool.query(
+      'SELECT id, nome, valor, ativo, ordem FROM empresa_ticket_status WHERE empresa_id = ? ORDER BY ordem ASC, id ASC',
+      [id]
+    );
+    sendSuccess(res, rows);
+  } catch(error: unknown) {
+    await connection.rollback();
+    const message = error instanceof Error ? error.message : 'Erro ao salvar tipos de atendimento';
+    sendError(res, message, 400);
+  } finally {
+    connection.release();
   }
 });
 

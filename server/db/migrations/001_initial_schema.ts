@@ -297,6 +297,21 @@ export async function up(connection: PoolConnection) {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
 
+  await connection.query(`
+    CREATE TABLE IF NOT EXISTS empresa_ticket_status (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      empresa_id INT NOT NULL,
+      nome VARCHAR(100) NOT NULL,
+      valor VARCHAR(80) NOT NULL,
+      ativo TINYINT(1) DEFAULT 1,
+      ordem INT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY unique_empresa_ticket_status (empresa_id, valor),
+      FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `);
+
   // 15. Automacoes & SLA
   await connection.query(`
     CREATE TABLE IF NOT EXISTS ticket_automacoes (
