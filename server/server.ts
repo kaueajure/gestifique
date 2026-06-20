@@ -95,7 +95,15 @@ async function startServer() {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net"],
+        // S2 (Fase 1): 'unsafe-eval' é necessário apenas em desenvolvimento (Vite/HMR).
+        // Em produção o bundle é estático e não usa eval, então removemos.
+        // 'unsafe-inline' mantido por ora (remoção exige nonce/hash — Fase 2).
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          ...(env.IS_PROD ? [] : ["'unsafe-eval'"]),
+          "https://cdn.jsdelivr.net"
+        ],
         styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
         fontSrc: ["'self'"],
         imgSrc: ["'self'", "data:", "blob:", "https://images.unsplash.com", "https://res.cloudinary.com"],
