@@ -18,7 +18,30 @@ interface EmailChannel {
   ultimo_erro?: string;
   last_received_at?: string;
   verified_at?: string;
+  // Envio por canal (SMTP da empresa). Senha NUNCA é exposta.
+  smtp_enabled?: boolean | number;
+  smtp_host?: string | null;
+  smtp_port?: number | null;
+  smtp_secure?: boolean | number;
+  smtp_user?: string | null;
+  smtp_from_name?: string | null;
+  smtp_status?: 'not_configured' | 'configured' | 'verified' | 'error';
+  smtp_last_test_at?: string | null;
+  smtp_last_error?: string | null;
 }
+
+const getSmtpStatusInfo = (status?: string) => {
+  switch (status) {
+    case 'verified':
+      return { label: 'Verificado', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+    case 'configured':
+      return { label: 'Configurado', cls: 'bg-amber-50 text-amber-700 border-amber-200' };
+    case 'error':
+      return { label: 'Erro', cls: 'bg-red-50 text-red-700 border-red-200' };
+    default:
+      return { label: 'Não configurado', cls: 'bg-slate-100 text-slate-500 border-slate-200' };
+  }
+};
 
 interface EmailChannelsManagerProps {
   empresaId: number;
@@ -40,6 +63,102 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
   const [createError, setCreateError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [copiedId, setCopiedId] = useState<number | null>(null);
+
+  // --- Configuração de SMTP por canal ---
+  const [smtpModalChannel, setSmtpModalChannel] = useState<EmailChannel | null>(null);
+  const [smtpForm, setSmtpForm] = useState({
+    smtp_enabled: false,
+    smtp_host: '',
+    smtp_port: 587,
+    smtp_secure: false,
+    smtp_user: '',
+    smtp_from_name: '',
+  });
+  const [smtpPassword, setSmtpPassword] = useState('');
+  const [smtpError, setSmtpError] = useState<string | null>(null);
+  const [smtpSaving, setSmtpSaving] = useState(false);
+  const [smtpTesting, setSmtpTesting] = useState(false);
+
+  const channelHasStoredPassword = (c: EmailChannel | null) =>
+    !!c && !!c.smtp_status && c.smtp_status !== 'not_configured';
+
+  const openSmtpModal = (channel: EmailChannel) => {
+    setSmtpModalChannel(channel);
+    setSmtpForm({
+      smtp_enabled: !!Number(channel.smtp_enabled),
+      smtp_host: channel.smtp_host || '',
+      smtp_port: channel.smtp_port || 587,
+      smtp_secure: !!Number(channel.smtp_secure),
+      smtp_user: channel.smtp_user || '',
+      smtp_from_name: channel.smtp_from_name || '',
+    });
+    setSmtpPassword('');
+    setSmtpError(null);
+  };
+
+  const closeSmtpModal = () => {
+    if (smtpSaving || smtpTesting) return;
+    setSmtpModalChannel(null);
+    setSmtpPassword('');
+    setSmtpError(null);
+  };
+
+  const handleSaveSmtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!smtpModalChannel) return;
+
+    const hasStored = channelHasStoredPassword(smtpModalChannel);
+    if (smtpForm.smtp_enabled) {
+      if (!smtpForm.smtp_host.trim()) { setSmtpError('Host SMTP é obrigatório.'); return; }
+      const portNum = Number(smtpForm.smtp_port);
+      if (!Number.isInteger(portNum) || portNum <= 0 || portNum > 65535) { setSmtpError('Porta SMTP inválida.'); return; }
+      if (!smtpForm.smtp_user.trim()) { setSmtpError('Usuário SMTP é obrigatório.'); return; }
+      if (!smtpPassword && !hasStored) { setSmtpError('Senha SMTP é obrigatória para ativar o envio.'); return; }
+    }
+
+    try {
+      setSmtpSaving(true);
+      setSmtpError(null);
+      const payload: any = {
+        smtp_enabled: smtpForm.smtp_enabled,
+        smtp_host: smtpForm.smtp_host.trim() || null,
+        smtp_port: Number(smtpForm.smtp_port) || null,
+        smtp_secure: smtpForm.smtp_secure,
+        smtp_user: smtpForm.smtp_user.trim() || null,
+        smtp_from_name: smtpForm.smtp_from_name.trim() || null,
+      };
+      // Só envia a senha se uma NOVA foi digitada (não sobrescreve a existente com vazio).
+      if (smtpPassword) payload.password = smtpPassword;
+
+      await api.put(`/companies/${empresaId}/email-channels/${smtpModalChannel.id}/smtp`, payload);
+      setSmtpPassword('');
+      setFeedback({ type: 'success', message: 'Configuração de envio salva.' });
+      await fetchChannels();
+      closeSmtpModal();
+    } catch (err: any) {
+      setSmtpError(err.message || 'Erro ao salvar configuração SMTP.');
+    } finally {
+      setSmtpSaving(false);
+    }
+  };
+
+  const handleTestSmtp = async () => {
+    if (!smtpModalChannel) return;
+    try {
+      setSmtpTesting(true);
+      setSmtpError(null);
+      const res = await api.post<{ sentTo?: string }>(
+        `/companies/${empresaId}/email-channels/${smtpModalChannel.id}/smtp/test`,
+        {}
+      );
+      setFeedback({ type: 'success', message: `E-mail de teste enviado para ${res?.sentTo || smtpModalChannel.email_publico}.` });
+      await fetchChannels();
+    } catch (err: any) {
+      setSmtpError(err.message || 'Falha no teste de SMTP. Verifique host, porta, usuário e senha.');
+    } finally {
+      setSmtpTesting(false);
+    }
+  };
 
   const fetchChannels = useCallback(async () => {
     try {
@@ -270,15 +389,45 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
                   </div>
                 </div>
 
-                <div className="p-3 bg-white border border-slate-200 rounded-md flex items-start gap-2">
-                  <div className="w-6 h-6 rounded bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                    <Send size={14} className="text-blue-600" />
+                <div className="p-3 bg-white border border-slate-200 rounded-md space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-6 h-6 rounded bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+                        <Send size={14} className="text-blue-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-slate-800">Envio de respostas</p>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          O cliente recebe as respostas como <strong className="break-all">{channel.email_publico}</strong>.
+                        </p>
+                      </div>
+                    </div>
+                    <span
+                      className={cn(
+                        'shrink-0 rounded px-2 py-0.5 text-[10px] font-semibold border',
+                        getSmtpStatusInfo(channel.smtp_status).cls
+                      )}
+                    >
+                      Envio: {getSmtpStatusInfo(channel.smtp_status).label}
+                    </span>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-slate-800">Envio de respostas</p>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      As respostas saem pelo SMTP configurado no sistema, usando este canal como referencia de conversa.
+
+                  {channel.smtp_status === 'error' && channel.smtp_last_error && (
+                    <p className="text-[11px] text-red-700 bg-red-50 border border-red-100 rounded p-1.5 flex items-start gap-1.5">
+                      <AlertCircle size={12} className="shrink-0 mt-0.5" />
+                      <span className="break-words">{channel.smtp_last_error}</span>
                     </p>
+                  )}
+
+                  <div className="flex justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-[11px]"
+                      onClick={() => openSmtpModal(channel)}
+                    >
+                      Configurar envio
+                    </Button>
                   </div>
                 </div>
 
@@ -369,6 +518,134 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
             <Button size="sm" type="submit" loading={submitting}>
               Criar canal
             </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={!!smtpModalChannel}
+        onClose={closeSmtpModal}
+        title="Configurar envio (SMTP do canal)"
+        size="md"
+      >
+        <form onSubmit={handleSaveSmtp} className="space-y-4 p-1">
+          {smtpError && (
+            <div className="p-3 bg-red-50 border border-red-100 rounded-md flex gap-2 items-start text-red-700">
+              <AlertCircle size={16} className="shrink-0 mt-0.5" />
+              <p className="text-xs font-medium">{smtpError}</p>
+            </div>
+          )}
+
+          <div className="p-3 bg-blue-50 border border-blue-100 rounded-md flex gap-2 items-start">
+            <Info size={16} className="text-blue-600 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-blue-700 leading-relaxed">
+              Essa configuração permite que o cliente receba as respostas do ticket como vindas de{' '}
+              <strong className="break-all">{smtpModalChannel?.email_publico}</strong>. Use o SMTP do
+              provedor desse e-mail (ex.: senha de aplicativo).
+            </p>
+          </div>
+
+          <label className="flex items-center gap-2 text-xs font-medium text-slate-700">
+            <input
+              type="checkbox"
+              checked={smtpForm.smtp_enabled}
+              onChange={(e) => setSmtpForm((f) => ({ ...f, smtp_enabled: e.target.checked }))}
+              disabled={smtpSaving}
+            />
+            Habilitar envio por este canal
+          </label>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="space-y-1 sm:col-span-2">
+              <label className="text-xs font-medium text-slate-700">Host SMTP</label>
+              <Input
+                placeholder="smtp.empresa.com"
+                value={smtpForm.smtp_host}
+                onChange={(e) => setSmtpForm((f) => ({ ...f, smtp_host: e.target.value }))}
+                className="h-8 text-sm"
+                disabled={smtpSaving}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-slate-700">Porta</label>
+              <Input
+                type="number"
+                placeholder="587"
+                value={String(smtpForm.smtp_port ?? '')}
+                onChange={(e) => setSmtpForm((f) => ({ ...f, smtp_port: Number(e.target.value) }))}
+                className="h-8 text-sm"
+                disabled={smtpSaving}
+              />
+            </div>
+          </div>
+
+          <label className="flex items-center gap-2 text-xs font-medium text-slate-700">
+            <input
+              type="checkbox"
+              checked={smtpForm.smtp_secure}
+              onChange={(e) => setSmtpForm((f) => ({ ...f, smtp_secure: e.target.checked }))}
+              disabled={smtpSaving}
+            />
+            Conexão segura SSL/TLS (porta 465). Deixe desmarcado para STARTTLS (porta 587).
+          </label>
+
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-slate-700">Usuário SMTP</label>
+            <Input
+              placeholder="suporte@empresa.com"
+              value={smtpForm.smtp_user}
+              onChange={(e) => setSmtpForm((f) => ({ ...f, smtp_user: e.target.value }))}
+              className="h-8 text-sm"
+              disabled={smtpSaving}
+              autoComplete="off"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-slate-700">Senha SMTP</label>
+            <Input
+              type="password"
+              placeholder={channelHasStoredPassword(smtpModalChannel) ? 'Senha já configurada (deixe em branco para manter)' : 'Senha / senha de aplicativo'}
+              value={smtpPassword}
+              onChange={(e) => setSmtpPassword(e.target.value)}
+              className="h-8 text-sm"
+              disabled={smtpSaving}
+              autoComplete="new-password"
+            />
+            <p className="text-[10px] text-slate-400">A senha é armazenada de forma cifrada e nunca é exibida novamente.</p>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-slate-700">Nome do remetente (opcional)</label>
+            <Input
+              placeholder="Ex: Suporte Empresa"
+              value={smtpForm.smtp_from_name}
+              onChange={(e) => setSmtpForm((f) => ({ ...f, smtp_from_name: e.target.value }))}
+              className="h-8 text-sm"
+              disabled={smtpSaving}
+            />
+          </div>
+
+          <div className="pt-2 flex justify-between gap-2">
+            <Button
+              size="sm"
+              type="button"
+              variant="outline"
+              onClick={handleTestSmtp}
+              loading={smtpTesting}
+              disabled={smtpSaving || !channelHasStoredPassword(smtpModalChannel)}
+              title={!channelHasStoredPassword(smtpModalChannel) ? 'Salve a configuração antes de testar.' : 'Envia um e-mail de teste usando a configuração salva.'}
+            >
+              <Send size={14} className="mr-1" /> Testar envio
+            </Button>
+            <div className="flex gap-2">
+              <Button size="sm" type="button" variant="ghost" onClick={closeSmtpModal} disabled={smtpSaving || smtpTesting}>
+                Cancelar
+              </Button>
+              <Button size="sm" type="submit" loading={smtpSaving}>
+                Salvar configuração
+              </Button>
+            </div>
           </div>
         </form>
       </Modal>
