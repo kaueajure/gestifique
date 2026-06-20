@@ -43,6 +43,95 @@ const getSmtpStatusInfo = (status?: string) => {
   }
 };
 
+// Presets de SMTP por provedor (apenas sugestões de UI; não são salvos no backend).
+interface SmtpProvider {
+  key: string;
+  label: string;
+  host: string;
+  port: number;
+  secure: boolean;
+  autofill: boolean;
+  tutorial: string[];
+  note?: string;
+}
+
+const SMTP_PROVIDERS: SmtpProvider[] = [
+  {
+    key: 'gmail',
+    label: 'Gmail / Google Workspace',
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
+    autofill: true,
+    note: 'Use uma SENHA DE APLICATIVO (não a senha normal da conta). Porta 587 (STARTTLS) ou 465 (SSL/TLS).',
+    tutorial: [
+      'Acesse sua Conta Google (myaccount.google.com).',
+      'Ative a verificação em duas etapas, se ainda não estiver ativa.',
+      'Gere uma "Senha de app" em Segurança > Senhas de app.',
+      'Use essa senha de app no campo "Senha SMTP" (não a senha normal).',
+    ],
+  },
+  {
+    key: 'outlook',
+    label: 'Outlook / Microsoft 365',
+    host: 'smtp-mail.outlook.com',
+    port: 587,
+    secure: false,
+    autofill: true,
+    note: 'Algumas contas Microsoft exigem Autenticação Moderna/OAuth2. Se o teste falhar mesmo com a senha correta, a conta pode não permitir SMTP por senha — nesse caso será necessária integração OAuth/Microsoft no futuro ou SMTP autorizado pelo administrador.',
+    tutorial: [
+      'Use seu e-mail completo como usuário.',
+      'Host: smtp-mail.outlook.com, Porta: 587 (STARTTLS).',
+      'Se a conta exigir Autenticação Moderna, o envio por senha pode ser bloqueado.',
+      'Confirme com o administrador do Microsoft 365 se o SMTP autenticado está liberado.',
+    ],
+  },
+  {
+    key: 'yahoo',
+    label: 'Yahoo',
+    host: 'smtp.mail.yahoo.com',
+    port: 587,
+    secure: false,
+    autofill: true,
+    note: 'Use uma senha de aplicativo. Porta 587 (STARTTLS) ou 465 (SSL/TLS).',
+    tutorial: [
+      'Acesse a Segurança da Conta Yahoo.',
+      'Gere uma "Senha para app".',
+      'Use a senha gerada no campo "Senha SMTP".',
+    ],
+  },
+  {
+    key: 'zoho',
+    label: 'Zoho Mail',
+    host: 'smtp.zoho.com',
+    port: 587,
+    secure: false,
+    autofill: true,
+    note: 'Contas com domínio próprio podem usar servidor/região diferente (ex.: smtp.zoho.eu). Confira no painel do Zoho.',
+    tutorial: [
+      'Acesse o painel do Zoho Mail.',
+      'Verifique os dados de SMTP em Configurações > E-mail.',
+      'Confirme o host correto para sua região/domínio (ex.: smtp.zoho.com ou smtp.zoho.eu).',
+    ],
+  },
+  {
+    key: 'outro',
+    label: 'Provedor próprio / Hostinger / Locaweb / Registro.br / outro',
+    host: '',
+    port: 587,
+    secure: false,
+    autofill: false,
+    note: 'Consulte no painel do seu provedor os dados de SMTP de envio. Normalmente ficam em Configurações > E-mail > SMTP/IMAP.',
+    tutorial: [
+      'No painel do provedor, procure os dados de SMTP de envio.',
+      'Host: algo como smtp.seudominio.com.br.',
+      'Porta: 587 (STARTTLS, SSL/TLS desmarcado) ou 465 (SSL/TLS marcado).',
+      'Usuário: geralmente o e-mail completo da caixa.',
+      'Senha: a senha da caixa ou uma senha de aplicativo, conforme o provedor.',
+    ],
+  },
+];
+
 interface EmailChannelsManagerProps {
   empresaId: number;
 }
@@ -78,6 +167,17 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
   const [smtpError, setSmtpError] = useState<string | null>(null);
   const [smtpSaving, setSmtpSaving] = useState(false);
   const [smtpTesting, setSmtpTesting] = useState(false);
+  const [smtpTab, setSmtpTab] = useState<'config' | 'tutorial' | 'recebimento'>('config');
+  const [smtpProvider, setSmtpProvider] = useState('');
+
+  const applyProvider = (key: string) => {
+    setSmtpProvider(key);
+    const preset = SMTP_PROVIDERS.find((p) => p.key === key);
+    if (!preset || !preset.autofill) return;
+    setSmtpForm((f) => ({ ...f, smtp_host: preset.host, smtp_port: preset.port, smtp_secure: preset.secure }));
+  };
+
+  const selectedProvider = SMTP_PROVIDERS.find((p) => p.key === smtpProvider) || null;
 
   const channelHasStoredPassword = (c: EmailChannel | null) =>
     !!c && !!c.smtp_status && c.smtp_status !== 'not_configured';
@@ -94,6 +194,8 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
     });
     setSmtpPassword('');
     setSmtpError(null);
+    setSmtpTab('config');
+    setSmtpProvider('');
   };
 
   const closeSmtpModal = () => {
@@ -530,9 +632,18 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
       >
         <form onSubmit={handleSaveSmtp} className="space-y-4 p-1">
           {smtpError && (
-            <div className="p-3 bg-red-50 border border-red-100 rounded-md flex gap-2 items-start text-red-700">
-              <AlertCircle size={16} className="shrink-0 mt-0.5" />
-              <p className="text-xs font-medium">{smtpError}</p>
+            <div className="p-3 bg-red-50 border border-red-100 rounded-md space-y-1.5 text-red-700">
+              <div className="flex gap-2 items-start">
+                <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                <p className="text-xs font-medium">{smtpError}</p>
+              </div>
+              <ul className="text-[11px] text-red-600/90 list-disc ml-6 space-y-0.5">
+                <li>Confira se o usuário (e-mail) e a senha estão corretos.</li>
+                <li>Em Gmail/Yahoo, use uma senha de aplicativo (não a senha normal da conta).</li>
+                <li>Porta 587: deixe “SSL/TLS” desmarcado (STARTTLS). Porta 465: marque “SSL/TLS”.</li>
+                <li>Verifique se o provedor permite SMTP externo.</li>
+                <li>No Microsoft/Outlook, pode ser necessário OAuth/Autenticação Moderna.</li>
+              </ul>
             </div>
           )}
 
@@ -540,93 +651,219 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
             <Info size={16} className="text-blue-600 shrink-0 mt-0.5" />
             <p className="text-[11px] text-blue-700 leading-relaxed">
               Essa configuração permite que o cliente receba as respostas do ticket como vindas de{' '}
-              <strong className="break-all">{smtpModalChannel?.email_publico}</strong>. Use o SMTP do
-              provedor desse e-mail (ex.: senha de aplicativo).
+              <strong className="break-all">{smtpModalChannel?.email_publico}</strong>.
             </p>
           </div>
 
-          <label className="flex items-center gap-2 text-xs font-medium text-slate-700">
-            <input
-              type="checkbox"
-              checked={smtpForm.smtp_enabled}
-              onChange={(e) => setSmtpForm((f) => ({ ...f, smtp_enabled: e.target.checked }))}
-              disabled={smtpSaving}
-            />
-            Habilitar envio por este canal
-          </label>
+          <div className="flex gap-1 border-b border-slate-200">
+            {([
+              { key: 'config', label: 'Configuração' },
+              { key: 'tutorial', label: 'Tutorial' },
+              { key: 'recebimento', label: 'Recebimento' },
+            ] as const).map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setSmtpTab(tab.key)}
+                className={cn(
+                  'px-3 py-1.5 text-xs font-medium border-b-2 -mb-px transition-colors',
+                  smtpTab === tab.key
+                    ? 'border-blue-600 text-blue-700'
+                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="space-y-1 sm:col-span-2">
-              <label className="text-xs font-medium text-slate-700">Host SMTP</label>
-              <Input
-                placeholder="smtp.empresa.com"
-                value={smtpForm.smtp_host}
-                onChange={(e) => setSmtpForm((f) => ({ ...f, smtp_host: e.target.value }))}
-                className="h-8 text-sm"
-                disabled={smtpSaving}
-              />
+          {smtpTab === 'config' && (
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-slate-700">Qual provedor de e-mail você usa?</label>
+                <select
+                  value={smtpProvider}
+                  onChange={(e) => applyProvider(e.target.value)}
+                  disabled={smtpSaving}
+                  className="w-full h-8 text-sm rounded-md border border-slate-200 bg-white px-2 text-slate-700"
+                >
+                  <option value="">Selecione (preenche host/porta automaticamente)…</option>
+                  {SMTP_PROVIDERS.map((p) => (
+                    <option key={p.key} value={p.key}>{p.label}</option>
+                  ))}
+                </select>
+                {selectedProvider?.note && (
+                  <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded p-1.5 mt-1">
+                    {selectedProvider.note}
+                  </p>
+                )}
+              </div>
+
+              <label className="flex items-center gap-2 text-xs font-medium text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={smtpForm.smtp_enabled}
+                  onChange={(e) => setSmtpForm((f) => ({ ...f, smtp_enabled: e.target.checked }))}
+                  disabled={smtpSaving}
+                />
+                Habilitar envio por este canal
+              </label>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="text-xs font-medium text-slate-700">Host SMTP</label>
+                  <Input
+                    placeholder="smtp.empresa.com"
+                    value={smtpForm.smtp_host}
+                    onChange={(e) => setSmtpForm((f) => ({ ...f, smtp_host: e.target.value }))}
+                    className="h-8 text-sm"
+                    disabled={smtpSaving}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-slate-700">Porta</label>
+                  <Input
+                    type="number"
+                    placeholder="587"
+                    value={String(smtpForm.smtp_port ?? '')}
+                    onChange={(e) => setSmtpForm((f) => ({ ...f, smtp_port: Number(e.target.value) }))}
+                    className="h-8 text-sm"
+                    disabled={smtpSaving}
+                  />
+                </div>
+              </div>
+
+              <label className="flex items-center gap-2 text-xs font-medium text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={smtpForm.smtp_secure}
+                  onChange={(e) => setSmtpForm((f) => ({ ...f, smtp_secure: e.target.checked }))}
+                  disabled={smtpSaving}
+                />
+                Conexão segura SSL/TLS (porta 465). Deixe desmarcado para STARTTLS (porta 587).
+              </label>
+
+              <p className="text-[11px] text-slate-500 bg-slate-50 border border-slate-200 rounded p-2">
+                <strong>Porta 587:</strong> usa STARTTLS — deixe “SSL/TLS” desmarcado.{' '}
+                <strong>Porta 465:</strong> usa SSL/TLS direto — marque “SSL/TLS”. Se não souber, tente 587 primeiro.
+              </p>
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-slate-700">Usuário SMTP</label>
+                <Input
+                  placeholder="suporte@empresa.com"
+                  value={smtpForm.smtp_user}
+                  onChange={(e) => setSmtpForm((f) => ({ ...f, smtp_user: e.target.value }))}
+                  className="h-8 text-sm"
+                  disabled={smtpSaving}
+                  autoComplete="off"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-slate-700">Senha SMTP</label>
+                <Input
+                  type="password"
+                  placeholder={channelHasStoredPassword(smtpModalChannel) ? 'Senha já configurada (deixe em branco para manter)' : 'Senha / senha de aplicativo'}
+                  value={smtpPassword}
+                  onChange={(e) => setSmtpPassword(e.target.value)}
+                  className="h-8 text-sm"
+                  disabled={smtpSaving}
+                  autoComplete="new-password"
+                />
+                <p className="text-[10px] text-slate-400">A senha é armazenada de forma cifrada e nunca é exibida novamente.</p>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-slate-700">Nome do remetente (opcional)</label>
+                <Input
+                  placeholder="Ex: Suporte Empresa"
+                  value={smtpForm.smtp_from_name}
+                  onChange={(e) => setSmtpForm((f) => ({ ...f, smtp_from_name: e.target.value }))}
+                  className="h-8 text-sm"
+                  disabled={smtpSaving}
+                />
+              </div>
             </div>
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-700">Porta</label>
-              <Input
-                type="number"
-                placeholder="587"
-                value={String(smtpForm.smtp_port ?? '')}
-                onChange={(e) => setSmtpForm((f) => ({ ...f, smtp_port: Number(e.target.value) }))}
-                className="h-8 text-sm"
-                disabled={smtpSaving}
-              />
+          )}
+
+          {smtpTab === 'tutorial' && (
+            <div className="space-y-3">
+              <div className="p-2.5 bg-amber-50 border border-amber-100 rounded-md text-[11px] text-amber-700">
+                <strong>Senha de aplicativo:</strong> alguns provedores (Gmail, Yahoo) não aceitam a senha normal da
+                conta. Gere uma “senha de aplicativo” nas configurações de segurança do provedor e use-a no campo Senha SMTP.
+              </div>
+
+              {selectedProvider ? (
+                <div className="p-3 bg-white border border-slate-200 rounded-md space-y-2">
+                  <p className="text-xs font-semibold text-slate-800">{selectedProvider.label}</p>
+                  {selectedProvider.autofill && (
+                    <p className="text-[11px] text-slate-500">
+                      Sugestão: Host <strong>{selectedProvider.host}</strong> · Porta <strong>{selectedProvider.port}</strong> ·{' '}
+                      SSL/TLS <strong>{selectedProvider.secure ? 'marcado' : 'desmarcado'}</strong>.
+                    </p>
+                  )}
+                  <ol className="text-[11px] text-slate-600 space-y-1 ml-4 list-decimal">
+                    {selectedProvider.tutorial.map((step, i) => (
+                      <li key={i}>{step}</li>
+                    ))}
+                  </ol>
+                  {selectedProvider.note && (
+                    <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded p-1.5">
+                      {selectedProvider.note}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-[11px] text-slate-500 bg-slate-50 border border-slate-200 rounded p-2">
+                  Selecione um provedor na aba <strong>Configuração</strong> para ver o passo a passo específico.
+                </p>
+              )}
+
+              <p className="text-[11px] text-slate-500 bg-slate-50 border border-slate-200 rounded p-2">
+                <strong>Porta 587</strong> usa STARTTLS (SSL/TLS desmarcado). <strong>Porta 465</strong> usa SSL/TLS direto
+                (marque SSL/TLS). Na dúvida, comece com 587.
+              </p>
             </div>
-          </div>
+          )}
 
-          <label className="flex items-center gap-2 text-xs font-medium text-slate-700">
-            <input
-              type="checkbox"
-              checked={smtpForm.smtp_secure}
-              onChange={(e) => setSmtpForm((f) => ({ ...f, smtp_secure: e.target.checked }))}
-              disabled={smtpSaving}
-            />
-            Conexão segura SSL/TLS (porta 465). Deixe desmarcado para STARTTLS (porta 587).
-          </label>
+          {smtpTab === 'recebimento' && smtpModalChannel && (
+            <div className="space-y-3">
+              <p className="text-[11px] text-slate-600 leading-relaxed">
+                Para <strong>receber</strong> tickets por e-mail, crie no seu provedor um encaminhamento automático de{' '}
+                <strong className="break-all">{smtpModalChannel.email_publico}</strong> para o endereço de entrada abaixo.
+                Assim, quando o cliente enviar um e-mail, o Gestifique cria ou atualiza o ticket.
+              </p>
 
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-700">Usuário SMTP</label>
-            <Input
-              placeholder="suporte@empresa.com"
-              value={smtpForm.smtp_user}
-              onChange={(e) => setSmtpForm((f) => ({ ...f, smtp_user: e.target.value }))}
-              className="h-8 text-sm"
-              disabled={smtpSaving}
-              autoComplete="off"
-            />
-          </div>
+              <div className="space-y-1">
+                <span className="text-[11px] font-medium text-slate-500">E-mail público</span>
+                <div className="bg-white p-2 rounded-md border border-slate-200 text-xs font-mono text-slate-600 break-all select-all">
+                  {smtpModalChannel.email_publico}
+                </div>
+              </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-700">Senha SMTP</label>
-            <Input
-              type="password"
-              placeholder={channelHasStoredPassword(smtpModalChannel) ? 'Senha já configurada (deixe em branco para manter)' : 'Senha / senha de aplicativo'}
-              value={smtpPassword}
-              onChange={(e) => setSmtpPassword(e.target.value)}
-              className="h-8 text-sm"
-              disabled={smtpSaving}
-              autoComplete="new-password"
-            />
-            <p className="text-[10px] text-slate-400">A senha é armazenada de forma cifrada e nunca é exibida novamente.</p>
-          </div>
+              <div className="space-y-1">
+                <span className="text-[11px] font-medium text-slate-500">Endereço de entrada Gestifique</span>
+                <div className="bg-white p-2 rounded-md border border-slate-200 flex items-center justify-between gap-3">
+                  <p className="text-xs font-mono text-slate-600 truncate select-all">{smtpModalChannel.inbound_address}</p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className={cn(
+                      'shrink-0 h-7 text-[11px] transition-all',
+                      copiedId === smtpModalChannel.id ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'
+                    )}
+                    onClick={() => handleCopy(smtpModalChannel.id, smtpModalChannel.inbound_address)}
+                  >
+                    {copiedId === smtpModalChannel.id ? <Check size={12} className="mr-1" /> : <Copy size={12} className="mr-1" />}
+                    {copiedId === smtpModalChannel.id ? 'Copiado' : 'Copiar endereço de entrada'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
 
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-700">Nome do remetente (opcional)</label>
-            <Input
-              placeholder="Ex: Suporte Empresa"
-              value={smtpForm.smtp_from_name}
-              onChange={(e) => setSmtpForm((f) => ({ ...f, smtp_from_name: e.target.value }))}
-              className="h-8 text-sm"
-              disabled={smtpSaving}
-            />
-          </div>
-
-          <div className="pt-2 flex justify-between gap-2">
+          <div className="pt-2 flex justify-between gap-2 border-t border-slate-100">
             <Button
               size="sm"
               type="button"
