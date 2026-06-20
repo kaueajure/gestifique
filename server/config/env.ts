@@ -83,6 +83,11 @@ export const env = {
   // Só desative (=true) em ambiente controlado com certificado inválido/self-signed.
   MAIL_TLS_INSECURE: process.env.MAIL_TLS_INSECURE === 'true',
 
+  // Fase 2A (escalabilidade): Redis é OPCIONAL. Sem REDIS_URL o sistema roda em
+  // modo single-instance (comportamento atual). Será usado em fase futura
+  // (Socket.io adapter/emitter e invalidação distribuída de cache).
+  REDIS_URL: process.env.REDIS_URL,
+
   // Scaling & features
   ENABLE_WEB_SERVER: process.env.ENABLE_WEB_SERVER !== 'false',
   ENABLE_EMAIL_LISTENER: process.env.ENABLE_EMAIL_LISTENER === 'true',
