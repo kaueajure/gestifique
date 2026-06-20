@@ -60,8 +60,12 @@ const getStatusDot = (status: string) =>
 const getAllTickets = (columns: TicketKanbanColumn[]) =>
   columns.flatMap(column => column.tickets);
 
-const getColumnTicketCount = (columns: TicketKanbanColumn[], status: string) =>
-  columns.find(column => column.id === status)?.tickets.length || 0;
+const getColumnTicketCount = (columns: TicketKanbanColumn[], status: string) => {
+  const col = columns.find(column => column.id === status);
+  if (!col) return 0;
+  // Usa o total REAL do servidor (não o número de cards carregados).
+  return typeof col.count === 'number' ? col.count : col.tickets.length;
+};
 
 const getTicketsForCell = (columns: TicketKanbanColumn[], status: string, row: RowUser) => {
   const tickets = columns.find(column => column.id === status)?.tickets || [];
@@ -72,9 +76,6 @@ const getTicketsForCell = (columns: TicketKanbanColumn[], status: string, row: R
 
   return tickets.filter(ticket => Number(ticket.responsavel_id) === Number(row.id));
 };
-
-const rebuildCounts = (columns: TicketKanbanColumn[]) =>
-  columns.map(column => ({ ...column, count: column.tickets.length }));
 
 const rowColumnWidth = 220;
 const statusColumnWidth = 210;
@@ -147,17 +148,35 @@ export const TicketKanban = ({
 
     const handleTicketUpdated = (updatedTicket: Ticket) => {
       setLocalData(currentData => {
-        const newColumns = currentData.columns.map(column => ({
-          ...column,
-          tickets: column.tickets.filter(ticket => ticket.id !== updatedTicket.id),
-        }));
+        // Descobre a coluna de origem (onde o ticket está carregado hoje).
+        let originStatus: string | null = null;
+        currentData.columns.forEach(column => {
+          if (column.tickets.some(ticket => ticket.id === updatedTicket.id)) {
+            originStatus = column.id;
+          }
+        });
+        const destStatus = updatedTicket.status;
 
-        const targetIndex = newColumns.findIndex(column => column.id === updatedTicket.status);
-        if (targetIndex !== -1) {
-          newColumns[targetIndex].tickets.unshift(updatedTicket);
-        }
+        const newColumns = currentData.columns.map(column => {
+          let tickets = column.tickets.filter(ticket => ticket.id !== updatedTicket.id);
+          let count = column.count;
 
-        return { ...currentData, columns: rebuildCounts(newColumns) };
+          // Origem perde 1 só se houve mudança real de status de um card carregado.
+          if (originStatus && originStatus !== destStatus && column.id === originStatus) {
+            count = Math.max(0, count - 1);
+          }
+
+          if (column.id === destStatus) {
+            tickets = [updatedTicket, ...tickets];
+            if (originStatus && originStatus !== destStatus) {
+              count = count + 1;
+            }
+          }
+
+          return { ...column, tickets, count };
+        });
+
+        return { ...currentData, columns: newColumns };
       });
     };
 
@@ -167,14 +186,15 @@ export const TicketKanban = ({
           return currentData;
         }
 
-        const newColumns = currentData.columns.map(column => ({ ...column, tickets: [...column.tickets] }));
-        const targetIndex = newColumns.findIndex(column => column.id === newTicket.status);
+        const newColumns = currentData.columns.map(column => {
+          if (column.id === newTicket.status) {
+            // Ticket novo: incrementa o total real da coluna de destino.
+            return { ...column, tickets: [newTicket, ...column.tickets], count: column.count + 1 };
+          }
+          return column;
+        });
 
-        if (targetIndex !== -1) {
-          newColumns[targetIndex].tickets.unshift(newTicket);
-        }
-
-        return { ...currentData, columns: rebuildCounts(newColumns) };
+        return { ...currentData, columns: newColumns };
       });
     };
 
@@ -227,11 +247,13 @@ export const TicketKanban = ({
   const updateTicketLocally = (ticketId: number, status: string, row: RowUser) => {
     setLocalData(currentData => {
       let movedTicket: Ticket | null = null;
+      let originStatus: string | null = null;
 
       const withoutTicket = currentData.columns.map(column => {
         const nextTickets = column.tickets.filter(ticket => {
           if (ticket.id === ticketId) {
             movedTicket = ticket;
+            originStatus = column.id;
             return false;
           }
           return true;
@@ -249,12 +271,26 @@ export const TicketKanban = ({
         responsavel_nome: row.isUnassigned ? 'Não Atribuído' : row.nome,
       };
 
-      const targetIndex = withoutTicket.findIndex(column => column.id === status);
-      if (targetIndex !== -1) {
-        withoutTicket[targetIndex].tickets.unshift(updatedTicket);
-      }
+      const finalColumns = withoutTicket.map(column => {
+        let tickets = column.tickets;
+        let count = column.count;
 
-      return { ...currentData, columns: rebuildCounts(withoutTicket) };
+        // Ajuste de contagem por delta apenas quando o status muda.
+        if (originStatus && originStatus !== status && column.id === originStatus) {
+          count = Math.max(0, count - 1);
+        }
+
+        if (column.id === status) {
+          tickets = [updatedTicket, ...tickets];
+          if (originStatus && originStatus !== status) {
+            count = count + 1;
+          }
+        }
+
+        return { ...column, tickets, count };
+      });
+
+      return { ...currentData, columns: finalColumns };
     });
   };
 
@@ -316,7 +352,15 @@ export const TicketKanban = ({
                     <div className={getStatusDot(column.id)} />
                     <span className="truncate text-xs font-semibold text-slate-700">{column.title}</span>
                   </div>
-                  <span className="ml-2 flex h-5 min-w-5 shrink-0 items-center justify-center rounded bg-white px-1.5 text-[10px] font-semibold text-slate-500 shadow-sm ring-1 ring-slate-200/70">
+                  <span
+                    className="ml-2 flex h-5 min-w-5 shrink-0 items-center justify-center rounded bg-white px-1.5 text-[10px] font-semibold text-slate-500 shadow-sm ring-1 ring-slate-200/70"
+                    title={column.hasMore ? `Mostrando ${column.loadedCount ?? column.tickets.length} de ${getColumnTicketCount(localData.columns, column.id)}` : undefined}
+                  >
+                    {column.hasMore && (
+                      <span className="mr-0.5 text-[9px] font-medium text-amber-500">
+                        {column.loadedCount ?? column.tickets.length}/
+                      </span>
+                    )}
                     {getColumnTicketCount(localData.columns, column.id)}
                   </span>
                 </div>

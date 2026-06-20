@@ -5,6 +5,7 @@ import { authMiddleware, AuthRequest } from '../middlewares/auth.js';
 import { sendSuccess, sendError } from '../utils/response.js';
 import { logSystemAction } from '../utils/logger.js';
 import { permissionsService } from '../services/permissions.service.js';
+import { env } from '../config/env.js';
 import { promises as fs } from 'fs';
 import path from 'path';
 
@@ -22,30 +23,20 @@ router.get('/:id/download', async (req: AuthRequest, res: Response) => {
     
     if (!attachment) return sendError(res, 'Anexo não encontrado', 404);
 
-    const ticket = await ticketsService.getById(attachment.ticket_id);
-    if (!ticket) return sendError(res, 'Ticket não encontrado', 404);
+    const ticketResult: any = await ticketsService.getByIdForUser(attachment.ticket_id, currentUser);
+    if (!ticketResult) return sendError(res, 'Ticket não encontrado', 404);
+    if (ticketResult.error === 'forbidden') return sendError(res, 'Acesso negado ao anexo', 403);
+
+    const ticket = ticketResult;
+
+    // S7: defesa em profundidade — somente desenvolvedor acessa anexo de outra empresa.
+    // (getByIdForUser trata administrador como superusuário; este guard mantém a
+    // regra de "admin acessa apenas a própria empresa" e bloqueia cross-empresa.)
+    if (!currentUser.desenvolvedor && ticket.empresa_id !== currentUser.empresa_id) {
+      return sendError(res, 'Acesso negado ao anexo (outra empresa)', 403);
+    }
 
     const isAdminOrDev = currentUser.administrador || currentUser.desenvolvedor;
-    const isOwner = ticket.usuario_id === currentUser.id;
-    const isSameEnterprise = ticket.empresa_id === currentUser.empresa_id;
-
-    // ACL Check
-    // Desenvolvedor: tudo
-    // Administrador: tickets da empresa
-    // Usuário comum: apenas tickets próprios
-    if (!currentUser.desenvolvedor) {
-      if (currentUser.administrador) {
-        if (!isSameEnterprise) {
-          return sendError(res, 'Acesso negado ao ticket (Admin)', 403);
-        }
-      } else {
-        // Usuário comum
-        if (!isOwner) {
-          return sendError(res, 'Acesso negado ao ticket (Comum)', 403);
-        }
-      }
-    }
-    
     const canViewInternal = isAdminOrDev || await permissionsService.hasPermission(currentUser, 'ticket_mensagens.ver_internos');
 
     // Internal attachment check
@@ -53,9 +44,9 @@ router.get('/:id/download', async (req: AuthRequest, res: Response) => {
        return sendError(res, 'Acesso negado a anexo interno', 403);
     }
 
-    // Path safety check
+    // Path safety check (usa o diretório central de storage, não hardcoded)
     const absolutePath = path.resolve(attachment.caminho);
-    const uploadsDir = path.resolve(process.cwd(), 'uploads', 'tickets');
+    const uploadsDir = path.resolve(process.cwd(), env.STORAGE_CONFIG.LOCAL_PATH);
     
     if (!absolutePath.startsWith(uploadsDir)) {
        return sendError(res, 'Caminho de arquivo inválido', 400);

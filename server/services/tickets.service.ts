@@ -587,31 +587,9 @@ class TicketsService {
       t.updated_at DESC
     `;
 
-    const [tickets]: any = await pool.query(`
-      SELECT t.id, t.titulo, t.status, t.prioridade, t.categoria, t.servico, t.created_at, t.updated_at, t.prazo_sla, t.responsavel_id, t.empresa_id,
-             t.sla_status_operacional, t.sla_pausado_em,
-             t.aguardando_resposta_atendente, t.ultima_mensagem_publica_em, t.ultima_mensagem_publica_origem,
-             COALESCE(t.solicitante_nome, u.nome, 'Usuário Removido') as cliente_nome, 
-             COALESCE(t.solicitante_email, u.email, 'Usuário Removido') as cliente_email, 
-             COALESCE(r.nome, 'Não Atribuído') as responsavel_nome, 
-             e.nome as empresa_nome
-      FROM tickets t
-      LEFT JOIN usuarios u ON t.usuario_id = u.id
-      LEFT JOIN empresas e ON t.empresa_id = e.id
-      LEFT JOIN usuarios r ON t.responsavel_id = r.id
-      ${baseWhere}
-      ORDER BY ${orderBy_K}
-    `, params);
-
-    // Enriquecer com tags
-    if (tickets.length > 0) {
-      const ticketIds = tickets.map((t: any) => t.id);
-      const tagsMap = await this.getTagsForTickets(ticketIds);
-      tickets.forEach((t: any) => {
-        t.tags = tagsMap[t.id] || [];
-      });
-    }
-
+    // C2 fix: NÃO buscamos todos os tickets de uma vez.
+    // 1) Primeiro calculamos summary e contagens REAIS por status (precisamos
+    //    saber quais colunas existem e seus totais antes de buscar os cards).
     const [summaryRows]: any = await pool.query(`
       SELECT 
         COUNT(*) as total,
@@ -634,13 +612,51 @@ class TicketsService {
       GROUP BY t.status
     `, summaryParams);
 
+    const statusCounts = new Map<string, number>(
+      statusCountRows.map((row: any) => [row.status, Number(row.count || 0)])
+    );
+
+    // 2) Limite por coluna (generoso). Aceita kanban_limit com teto seguro.
+    const perColumnLimit = Math.min(Math.max(toPositiveInt(filters.kanban_limit) ?? 150, 20), 300);
+
+    // 3) Busca os cards por status (uma query por coluna existente), com a MESMA
+    //    ordenação operacional e LIMIT por coluna. Reusa baseWhere/params atuais
+    //    e apenas adiciona o recorte por status + LIMIT.
+    const statusesToFetch = Array.from(statusCounts.keys());
+    let tickets: any[] = [];
+    for (const st of statusesToFetch) {
+      const [colRows]: any = await pool.query(`
+        SELECT t.id, t.titulo, t.status, t.prioridade, t.categoria, t.servico, t.created_at, t.updated_at, t.prazo_sla, t.responsavel_id, t.empresa_id,
+               t.sla_status_operacional, t.sla_pausado_em,
+               t.aguardando_resposta_atendente, t.ultima_mensagem_publica_em, t.ultima_mensagem_publica_origem,
+               COALESCE(t.solicitante_nome, u.nome, 'Usuário Removido') as cliente_nome, 
+               COALESCE(t.solicitante_email, u.email, 'Usuário Removido') as cliente_email, 
+               COALESCE(r.nome, 'Não Atribuído') as responsavel_nome, 
+               e.nome as empresa_nome
+        FROM tickets t
+        LEFT JOIN usuarios u ON t.usuario_id = u.id
+        LEFT JOIN empresas e ON t.empresa_id = e.id
+        LEFT JOIN usuarios r ON t.responsavel_id = r.id
+        ${baseWhere} AND t.status = ?
+        ORDER BY ${orderBy_K}
+        LIMIT ?
+      `, [...params, st, perColumnLimit]);
+      tickets = tickets.concat(colRows);
+    }
+
+    // Enriquecer com tags
+    if (tickets.length > 0) {
+      const ticketIds = tickets.map((t: any) => t.id);
+      const tagsMap = await this.getTagsForTickets(ticketIds);
+      tickets.forEach((t: any) => {
+        t.tags = tagsMap[t.id] || [];
+      });
+    }
+
     // Enriquecer com produtividade
     await this.enrichTicketsWithProductivity(tickets, filters.usuario_id);
 
     const defaultStatusOrder = ['aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado'];
-    const statusCounts = new Map<string, number>(
-      statusCountRows.map((row: any) => [row.status, Number(row.count || 0)])
-    );
     const ticketStatuses = tickets.map((ticket: any) => ticket.status).filter(Boolean);
     const discoveredStatuses = [
       ...defaultStatusOrder,
@@ -653,12 +669,21 @@ class TicketsService {
       title: labelFromStatus(status)
     }));
 
+    let totalLoaded = 0;
+    let truncated = false;
     const columns = columnsConfig.map(c => {
       const colTickets = tickets.filter((t: any) => t.status === c.id);
+      const realCount = Number(statusCounts.get(c.id) ?? summary[c.id] ?? colTickets.length);
+      const loadedCount = colTickets.length;
+      totalLoaded += loadedCount;
+      const hasMore = realCount > loadedCount;
+      if (hasMore) truncated = true;
       return {
         id: c.id,
         title: c.title,
-        count: Number(statusCounts.get(c.id) ?? summary[c.id] ?? colTickets.length),
+        count: realCount,
+        loadedCount,
+        hasMore,
         tickets: colTickets
       };
     });
@@ -672,7 +697,17 @@ class TicketsService {
       fechado: Number(summary.fechado || 0)
     };
 
-    return { columns, totals, queues: await this.getQueuesCounts(filters) };
+    return {
+      columns,
+      totals,
+      queues: await this.getQueuesCounts(filters),
+      meta: {
+        perColumnLimit,
+        truncated,
+        totalLoaded,
+        totalAvailable: Number(summary.total || 0)
+      }
+    };
   }
 
   async create(data: any) {

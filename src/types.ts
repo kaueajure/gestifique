@@ -81,12 +81,20 @@ export interface TicketKanbanColumn {
   title: string;
   count: number;
   tickets: Ticket[];
+  loadedCount?: number;
+  hasMore?: boolean;
 }
 
 export interface TicketKanbanResponse {
   columns: TicketKanbanColumn[];
   totals: Record<string, number>;
   queues?: Record<TicketQueue, number>;
+  meta?: {
+    perColumnLimit: number;
+    truncated: boolean;
+    totalLoaded: number;
+    totalAvailable: number;
+  };
 }
 
 export interface TicketOption {

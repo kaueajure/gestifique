@@ -7,6 +7,7 @@ import { sendSuccess, sendError } from '../utils/response.js';
 import { logSystemAction } from '../utils/logger.js';
 import { isValidEmail, isValidHexColor } from '../utils/validators.js';
 import { isValidTicketStatus } from '../services/tickets.service.js';
+import { recomputeTicketMessageState } from '../utils/ticket-state.js';
 const router = Router();
 router.use(authMiddleware);
 // Listar e Criar empresas
@@ -423,16 +424,33 @@ router.put('/:id/ticket-statuses', async (req, res) => {
         for (const status of sanitized) {
             await connection.query('INSERT INTO empresa_ticket_status (empresa_id, nome, valor, ativo, ordem) VALUES (?, ?, ?, ?, ?)', [id, status.nome, status.valor, status.ativo, status.ordem]);
         }
+        let affectedTicketIds = [];
         if (sanitized.length > 0) {
             const configuredStatusValues = sanitized.map((status) => status.valor);
             const fallbackStatus = configuredStatusValues[0];
             const placeholders = configuredStatusValues.map(() => '?').join(', ');
+            // BUG 4 fix: captura os tickets que serão remapeados ANTES do update,
+            // para recomputar o estado materializado deles após o commit.
+            const [affectedRows] = await connection.query(`SELECT id FROM tickets
+	         WHERE empresa_id = ?
+	         AND status NOT IN (${placeholders})`, [id, ...configuredStatusValues]);
+            affectedTicketIds = affectedRows.map((r) => Number(r.id));
             await connection.query(`UPDATE tickets
 	         SET status = ?, updated_at = NOW()
 	         WHERE empresa_id = ?
 	         AND status NOT IN (${placeholders})`, [fallbackStatus, id, ...configuredStatusValues]);
         }
         await connection.commit();
+        // BUG 4 fix: recomputa o estado materializado dos tickets remapeados.
+        // Operação administrativa rara; o loop por IDs reusa a regra canônica única.
+        for (const remappedTicketId of affectedTicketIds) {
+            try {
+                await recomputeTicketMessageState(remappedTicketId);
+            }
+            catch (stateErr) {
+                console.error('[Companies] Falha ao recomputar estado materializado do ticket', remappedTicketId, stateErr);
+            }
+        }
         const [rows] = await pool.query('SELECT id, nome, valor, ativo, ordem FROM empresa_ticket_status WHERE empresa_id = ? ORDER BY ordem ASC, id ASC', [id]);
         sendSuccess(res, rows);
     }

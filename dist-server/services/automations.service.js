@@ -2,6 +2,7 @@ import pool from '../db/connection.js';
 import { recordTicketEvent } from './ticket-events.service.js';
 import ticketMessagesService from './ticket-messages.service.js';
 import slaService from './sla.service.js';
+import { recomputeTicketMessageState } from '../utils/ticket-state.js';
 const parseJsonArray = (value) => {
     if (Array.isArray(value))
         return value;
@@ -98,6 +99,9 @@ export async function runAutomations(evento, ticket, contexto) {
         ticket._automationsProcessed = new Set();
     try {
         const [regras] = await pool.query('SELECT * FROM ticket_automacoes WHERE empresa_id = ? AND evento = ? AND ativo = 1 ORDER BY ordem ASC', [ticket.empresa_id, evento]);
+        // Marca se alguma ação alterou o status, para recomputar o estado
+        // materializado UMA única vez ao final (evita recomputes repetidos).
+        let statusChanged = false;
         for (const regra of regras) {
             // Prevent executing the same rule more than once in the same transaction chain
             const ruleKey = `${regra.id}_${evento}`;
@@ -123,6 +127,7 @@ export async function runAutomations(evento, ticket, contexto) {
                             const oldStatus = ticket.status;
                             await pool.query('UPDATE tickets SET status = ?, updated_at = NOW() WHERE id = ?', [acao.valor, ticket.id]);
                             ticket.status = acao.valor;
+                            statusChanged = true;
                             // Handle SLA for the new status
                             if (acao.valor === 'aguardando_cliente') {
                                 await slaService.pauseSla(ticket.id, contexto?.usuario_id || null);
@@ -179,6 +184,7 @@ export async function runAutomations(evento, ticket, contexto) {
                             const oldStatus = ticket.status;
                             await pool.query('UPDATE tickets SET status = "fechado", resolucao_motivo = ?, finalizado_em = NOW(), updated_at = NOW() WHERE id = ?', [acao.valor, ticket.id]);
                             ticket.status = 'fechado';
+                            statusChanged = true;
                             if (oldStatus === 'aguardando_cliente') {
                                 await slaService.resumeSla(ticket.id, contexto?.usuario_id || null);
                             }
@@ -206,6 +212,17 @@ export async function runAutomations(evento, ticket, contexto) {
                         }
                     });
                 }
+            }
+        }
+        // BUG 2 fix: se alguma ação alterou o status, recomputa o estado
+        // materializado UMA vez ao final (origem da última mensagem pública não
+        // muda aqui; somente a flag aguardando_resposta_atendente depende do status).
+        if (statusChanged) {
+            try {
+                await recomputeTicketMessageState(ticket.id);
+            }
+            catch (stateErr) {
+                console.error('[Automations] Falha ao recomputar estado materializado:', stateErr);
             }
         }
     }

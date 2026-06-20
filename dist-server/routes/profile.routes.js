@@ -4,6 +4,7 @@ import { authMiddleware } from '../middlewares/auth.js';
 import { sendSuccess, sendError } from '../utils/response.js';
 import { logSystemAction } from '../utils/logger.js';
 import { permissionsService } from '../services/permissions.service.js';
+import { isValidPassword, PASSWORD_RULE_MESSAGE } from '../utils/validators.js';
 const router = Router();
 router.use(authMiddleware);
 router.get('/', async (req, res) => {
@@ -65,8 +66,8 @@ router.patch('/password', async (req, res) => {
         if (!currentPassword || !newPassword || !confirmPassword) {
             return sendError(res, 'Todos os campos são obrigatórios');
         }
-        if (newPassword.length < 8) {
-            return sendError(res, 'A nova senha deve ter no mínimo 8 caracteres');
+        if (!newPassword || !isValidPassword(newPassword)) {
+            return sendError(res, PASSWORD_RULE_MESSAGE);
         }
         if (newPassword !== confirmPassword) {
             return sendError(res, 'A confirmação de senha não confere');

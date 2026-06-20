@@ -84,7 +84,15 @@ async function startServer() {
         contentSecurityPolicy: {
             directives: {
                 defaultSrc: ["'self'"],
-                scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net"],
+                // S2 (Fase 1): 'unsafe-eval' é necessário apenas em desenvolvimento (Vite/HMR).
+                // Em produção o bundle é estático e não usa eval, então removemos.
+                // 'unsafe-inline' mantido por ora (remoção exige nonce/hash — Fase 2).
+                scriptSrc: [
+                    "'self'",
+                    "'unsafe-inline'",
+                    ...(env.IS_PROD ? [] : ["'unsafe-eval'"]),
+                    "https://cdn.jsdelivr.net"
+                ],
                 styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
                 fontSrc: ["'self'"],
                 imgSrc: ["'self'", "data:", "blob:", "https://images.unsplash.com", "https://res.cloudinary.com"],
@@ -228,6 +236,15 @@ async function startServer() {
         console.log(`🚀 Gestifique Server Instance running on port ${PORT}`);
         console.log(`Environment: ${env.NODE_ENV}`);
         console.log(`Roles: [WEB: ${env.ENABLE_WEB_SERVER}] [EMAIL_LISTENER: ${env.ENABLE_EMAIL_LISTENER}] [JOBS: ${env.ENABLE_TICKET_JOBS}]`);
+        // Fase 1 (escalabilidade): avisos sobre topologia web/worker.
+        // Em ambiente multi-instância, jobs e e-mail listener devem rodar em um
+        // WORKER único separado, não nas instâncias web. Apenas warning (não bloqueia).
+        if (env.ENABLE_WEB_SERVER && env.ENABLE_TICKET_JOBS) {
+            console.warn('[BOOT] ⚠️ ENABLE_WEB_SERVER=true e ENABLE_TICKET_JOBS=true na mesma instância. Em produção multi-instância, prefira rodar os jobs apenas em um worker (ENABLE_TICKET_JOBS=false na web). As automações já são protegidas por lock distribuído (GET_LOCK), mas a separação evita carga desnecessária.');
+        }
+        if (env.ENABLE_WEB_SERVER && env.ENABLE_EMAIL_LISTENER) {
+            console.warn('[BOOT] ⚠️ ENABLE_WEB_SERVER=true e ENABLE_EMAIL_LISTENER=true na mesma instância. O e-mail listener deve rodar em um worker ÚNICO (ENABLE_EMAIL_LISTENER=false na web) para evitar processamento concorrente da mesma caixa.');
+        }
         // Start Email Listener only if role is enabled
         if (env.ENABLE_EMAIL_LISTENER) {
             console.log('[BOOT] Starting Email Listener Service...');

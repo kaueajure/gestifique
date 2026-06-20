@@ -1,6 +1,9 @@
 import pool from '../db/connection.js';
 import { runAutomations } from '../services/automations.service.js';
-export const runTicketAutomations = async () => {
+// Fase 1 (escalabilidade): nome do lock distribuído (MySQL GET_LOCK) que impede
+// a execução simultânea das automações em múltiplas instâncias/processos.
+const AUTOMATION_LOCK_NAME = 'gestifique:ticket-automations';
+const executeTicketAutomations = async () => {
     try {
         const [regras] = await pool.query("SELECT * FROM ticket_automacoes WHERE ativo = 1 AND evento IN ('tempo_sem_interacao', 'aguardando_cliente_por_tempo', 'sla_primeira_resposta_vencido', 'sla_resolucao_vencido')");
         for (const regra of regras) {
@@ -91,5 +94,45 @@ export const runTicketAutomations = async () => {
     }
     catch (err) {
         console.error('[Automations] Erro ao rodar rotina de automacao:', err);
+    }
+};
+/**
+ * Wrapper público com lock distribuído (MySQL GET_LOCK).
+ *
+ * Garante execução ÚNICA das automações mesmo que múltiplas instâncias/processos
+ * estejam com ENABLE_TICKET_JOBS=true. O lock é por sessão (conexão), então:
+ *  - adquirimos o lock numa conexão dedicada,
+ *  - mantemos essa conexão durante toda a execução,
+ *  - liberamos o lock em finally e só então devolvemos a conexão ao pool.
+ *
+ * Se outra instância já detém o lock, este ciclo é pulado sem erro.
+ * NÃO é um lock global do app — protege apenas o job de automações.
+ */
+export const runTicketAutomations = async () => {
+    const lockConn = await pool.getConnection();
+    try {
+        // timeout 0 => tenta uma vez e retorna imediatamente.
+        const [lockRows] = await lockConn.query('SELECT GET_LOCK(?, 0) AS got', [AUTOMATION_LOCK_NAME]);
+        const got = Number(lockRows?.[0]?.got);
+        if (got !== 1) {
+            console.log('[Automations] Lock ocupado: outra instância já está executando as automações. Ciclo ignorado.');
+            return;
+        }
+        try {
+            await executeTicketAutomations();
+        }
+        finally {
+            // Libera o lock sempre, mesmo se a execução falhar.
+            await lockConn.query('SELECT RELEASE_LOCK(?)', [AUTOMATION_LOCK_NAME]).catch((relErr) => {
+                console.error('[Automations] Falha ao liberar o lock de automações:', relErr);
+            });
+        }
+    }
+    catch (err) {
+        console.error('[Automations] Erro ao adquirir/executar automações com lock:', err);
+    }
+    finally {
+        // Devolve a conexão ao pool apenas após o RELEASE_LOCK.
+        lockConn.release();
     }
 };

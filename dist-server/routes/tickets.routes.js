@@ -197,7 +197,8 @@ router.get('/kanban', requirePermission('tickets.visualizar'), async (req, res) 
             updated_from: typeof req.query.updated_from === 'string' ? req.query.updated_from : undefined,
             updated_to: typeof req.query.updated_to === 'string' ? req.query.updated_to : undefined,
             sla_status: typeof req.query.sla_status === 'string' ? req.query.sla_status : undefined,
-            custom_field_search: typeof req.query.custom_field_search === 'string' ? req.query.custom_field_search : undefined
+            custom_field_search: typeof req.query.custom_field_search === 'string' ? req.query.custom_field_search : undefined,
+            kanban_limit: toPositiveInt(req.query.kanban_limit)
         };
         const kanbanData = await ticketsService.getKanban(filters);
         sendSuccess(res, kanbanData);
