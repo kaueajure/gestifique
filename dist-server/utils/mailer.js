@@ -13,6 +13,25 @@ const transporter = nodemailer.createTransport({
         rejectUnauthorized: !env.MAIL_TLS_INSECURE
     }
 });
+/**
+ * Verifica conexão/autenticação de um SMTP de canal (sem enviar e-mail).
+ */
+export const verifyChannelSmtp = async (config) => {
+    try {
+        const t = nodemailer.createTransport({
+            host: config.host,
+            port: config.port,
+            secure: config.secure,
+            auth: config.auth,
+            tls: { rejectUnauthorized: !env.MAIL_TLS_INSECURE }
+        });
+        await t.verify();
+        return { success: true, message: 'SMTP do canal conectado com sucesso.' };
+    }
+    catch (error) {
+        return { success: false, error: error.message };
+    }
+};
 export const verifySMTP = async () => {
     try {
         if (!env.SMTP.HOST || !env.SMTP.USER) {
@@ -172,15 +191,30 @@ export const buildTicketEmailTemplate = (params) => {
   `;
     return { subject, html, text: html.replace(/<[^>]*>?/gm, '') };
 };
-export const sendTicketEmail = async (params) => {
-    if (!env.SMTP.HOST) {
+export const sendTicketEmail = async (params, options) => {
+    const useChannelTransport = !!options?.transportConfig;
+    // Transporter por canal (identidade da empresa) ou global (fallback técnico).
+    const activeTransporter = useChannelTransport
+        ? nodemailer.createTransport({
+            host: options.transportConfig.host,
+            port: options.transportConfig.port,
+            secure: options.transportConfig.secure,
+            auth: options.transportConfig.auth,
+            tls: {
+                // S1: validação de certificado segura por padrão.
+                rejectUnauthorized: !env.MAIL_TLS_INSECURE
+            }
+        })
+        : transporter;
+    if (!useChannelTransport && !env.SMTP.HOST) {
         console.error('[Mailer] SMTP not configured. Skipping email notification.');
         return { success: false, error: 'SMTP not configured' };
     }
     const msgId = params.messageId || `<ticket-${params.ticketId}-${Date.now()}@gestifique.com.br>`;
     const template = buildTicketEmailTemplate(params);
     const mailOptions = {
-        from: env.SMTP.FROM,
+        // From: identidade do canal quando fornecida; senão, global (fallback técnico).
+        from: options?.from || env.SMTP.FROM,
         to: params.to,
         subject: template.subject,
         messageId: msgId,
@@ -201,8 +235,8 @@ export const sendTicketEmail = async (params) => {
         mailOptions.references = params.references || [params.inReplyTo];
     }
     try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log(`[Mailer] Ticket email (${params.type}) sent to ${params.to} (ID: ${params.ticketId}, Message-ID: ${info.messageId})`);
+        const info = await activeTransporter.sendMail(mailOptions);
+        console.log(`[Mailer] Ticket email (${params.type}) sent to ${params.to} (ID: ${params.ticketId}, via: ${useChannelTransport ? 'channel' : 'global'}, Message-ID: ${info.messageId})`);
         return {
             success: true,
             messageId: msgId,
@@ -210,7 +244,7 @@ export const sendTicketEmail = async (params) => {
         };
     }
     catch (error) {
-        console.error(`[Mailer] Failed to send ticket email (${params.type}) to ${params.to}:`, error);
+        console.error(`[Mailer] Failed to send ticket email (${params.type}) to ${params.to}:`, error.message);
         return {
             success: false,
             error: error.message

@@ -80,6 +80,13 @@ export const env = {
     // modo single-instance (comportamento atual). Será usado em fase futura
     // (Socket.io adapter/emitter e invalidação distribuída de cache).
     REDIS_URL: process.env.REDIS_URL,
+    // Envio de e-mail por canal: chave para cifrar credenciais SMTP por empresa/canal.
+    // Obrigatória quando há SMTP por canal configurado (validada no momento do uso).
+    ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
+    // Fallback de envio de resposta de ticket pelo SMTP GLOBAL do Gestifique.
+    // Padrão SEGURO = false: se o canal não tiver SMTP, a resposta NÃO sai com a
+    // identidade global do SaaS; vira erro controlado. Ative só conscientemente.
+    ALLOW_GLOBAL_TICKET_EMAIL_FALLBACK: process.env.ALLOW_GLOBAL_TICKET_EMAIL_FALLBACK === 'true',
     // Scaling & features
     ENABLE_WEB_SERVER: process.env.ENABLE_WEB_SERVER !== 'false',
     ENABLE_EMAIL_LISTENER: process.env.ENABLE_EMAIL_LISTENER === 'true',
