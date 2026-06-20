@@ -6,11 +6,20 @@ const router = Router();
 router.use(authMiddleware);
 const sendSuccess = (res, data) => res.json({ success: true, data });
 const sendError = (res, error, num = 500) => res.status(num).json({ success: false, message: error, error });
+function toPositiveInt(value) {
+    if (value === undefined || value === null || value === '')
+        return undefined;
+    const n = Number(Array.isArray(value) ? value[0] : value);
+    return Number.isInteger(n) && n > 0 ? n : undefined;
+}
 router.get('/categories', async (req, res) => {
     try {
-        const empresaId = req.user.desenvolvedor && req.query.empresa_id
-            ? Number(req.query.empresa_id)
+        const empresaId = req.user.desenvolvedor
+            ? toPositiveInt(req.query.empresa_id)
             : req.user.empresa_id;
+        if (req.user.desenvolvedor && !empresaId) {
+            return sendSuccess(res, []);
+        }
         if (!empresaId && !req.user.desenvolvedor) {
             return sendError(res, 'Empresa não identificada', 400);
         }
@@ -34,14 +43,17 @@ router.get('/', async (req, res) => {
             return sendError(res, 'Não autenticado', 401);
         let query = 'SELECT * FROM knowledge_articles';
         let params = [];
-        const requestedEmpresaId = req.user.desenvolvedor && req.query.empresa_id
-            ? Number(req.query.empresa_id)
+        const requestedEmpresaId = req.user.desenvolvedor
+            ? toPositiveInt(req.query.empresa_id)
             : req.user.empresa_id;
         if (requestedEmpresaId) {
             query += ' WHERE empresa_id = ?';
             params.push(requestedEmpresaId);
         }
-        else if (!req.user.desenvolvedor) {
+        else if (req.user.desenvolvedor) {
+            return sendSuccess(res, []);
+        }
+        else {
             return sendError(res, 'Empresa não identificada', 400);
         }
         // User can see public or internal, let's just show all for employee (since we don't have portal yet)
@@ -56,8 +68,8 @@ router.get('/', async (req, res) => {
 router.post('/', requireAnyPermission(['base_conhecimento.criar', 'base_conhecimento.gerenciar']), async (req, res) => {
     try {
         const { titulo, conteudo, categoria, publico, ativo } = req.body;
-        const empresaId = req.user.desenvolvedor && req.body.empresa_id
-            ? Number(req.body.empresa_id)
+        const empresaId = req.user.desenvolvedor
+            ? toPositiveInt(req.body.empresa_id)
             : req.user.empresa_id;
         if (!empresaId) {
             return sendError(res, 'Empresa é obrigatória para criar artigo', 400);
@@ -72,7 +84,9 @@ router.post('/', requireAnyPermission(['base_conhecimento.criar', 'base_conhecim
 router.patch('/:id', requireAnyPermission(['base_conhecimento.editar', 'base_conhecimento.gerenciar']), async (req, res) => {
     try {
         const { titulo, conteudo, categoria, publico, ativo } = req.body;
-        const id = parseInt(req.params.id);
+        const id = toPositiveInt(req.params.id);
+        if (!id)
+            return sendError(res, 'ID invalido', 400);
         const empresaId = req.user.empresa_id;
         const [existing] = await pool.query('SELECT empresa_id FROM knowledge_articles WHERE id = ?', [id]);
         if (existing.length === 0)
@@ -115,7 +129,9 @@ router.patch('/:id', requireAnyPermission(['base_conhecimento.editar', 'base_con
 });
 router.delete('/:id', requireAnyPermission(['base_conhecimento.excluir', 'base_conhecimento.gerenciar']), async (req, res) => {
     try {
-        const id = parseInt(req.params.id);
+        const id = toPositiveInt(req.params.id);
+        if (!id)
+            return sendError(res, 'ID invalido', 400);
         const empresaId = req.user.empresa_id;
         const [existing] = await pool.query('SELECT empresa_id FROM knowledge_articles WHERE id = ?', [id]);
         if (existing.length === 0)

@@ -101,7 +101,7 @@ router.post('/:id/use', requireAnyPermission(['macros.usar', 'macros.gerenciar']
 });
 
 // Aplicar macro (substituir tags, registrar uso e evento)
-router.post('/:id/apply', async (req: AuthRequest, res) => {
+router.post('/:id/apply', requireAnyPermission(['macros.usar', 'macros.gerenciar']), async (req: AuthRequest, res) => {
   try {
     if (!req.user) return sendError(res, 'Não autorizado', 401);
     const { id } = req.params;

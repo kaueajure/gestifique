@@ -4,6 +4,7 @@ import notificationsService from './notifications.service.js';
 import { emailOutboundService, trackTicketEmailMessageIds } from './email-outbound.service.js';
 import { io } from '../server.js';
 import slaService from './sla.service.js';
+import { recomputeTicketMessageState } from '../utils/ticket-state.js';
 
 export interface AddMessageData {
   ticket_id: number;
@@ -238,6 +239,17 @@ class TicketMessagesService {
 
     } catch (error) {
       console.error('[TicketMessagesService] Error in business logic:', error);
+    }
+
+    // 5b. Sincroniza campos materializados de estado de mensagens.
+    // Roda DEPOIS das transições de status acima e ANTES do emit de socket,
+    // para que o ticket emitido em tempo real já carregue os valores atualizados.
+    // Vale para mensagens públicas e internas (notas internas não alteram a
+    // "última mensagem pública", então a recomputação as ignora corretamente).
+    try {
+      await recomputeTicketMessageState(ticket_id);
+    } catch (stateErr) {
+      console.error('[TicketMessagesService] Falha ao recomputar estado materializado:', stateErr);
     }
 
     // 6. WebSocket Emit

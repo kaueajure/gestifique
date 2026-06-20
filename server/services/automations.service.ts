@@ -2,6 +2,7 @@ import pool from '../db/connection.js';
 import { recordTicketEvent } from './ticket-events.service.js';
 import ticketMessagesService from './ticket-messages.service.js';
 import slaService from './sla.service.js';
+import { recomputeTicketMessageState } from '../utils/ticket-state.js';
 
 const parseJsonArray = (value: any) => {
   if (Array.isArray(value)) return value;
@@ -109,6 +110,10 @@ export async function runAutomations(evento: string, ticket: any, contexto: any)
       [ticket.empresa_id, evento]
     );
 
+    // Marca se alguma ação alterou o status, para recomputar o estado
+    // materializado UMA única vez ao final (evita recomputes repetidos).
+    let statusChanged = false;
+
     for (const regra of regras) {
       // Prevent executing the same rule more than once in the same transaction chain
       const ruleKey = `${regra.id}_${evento}`;
@@ -137,6 +142,7 @@ export async function runAutomations(evento: string, ticket: any, contexto: any)
               const oldStatus = ticket.status;
               await pool.query('UPDATE tickets SET status = ?, updated_at = NOW() WHERE id = ?', [acao.valor, ticket.id]);
               ticket.status = acao.valor;
+              statusChanged = true;
               
               // Handle SLA for the new status
               if (acao.valor === 'aguardando_cliente') {
@@ -196,6 +202,7 @@ export async function runAutomations(evento: string, ticket: any, contexto: any)
                  [acao.valor, ticket.id]
                );
                ticket.status = 'fechado';
+               statusChanged = true;
 
                if (oldStatus === 'aguardando_cliente') {
                  await slaService.resumeSla(ticket.id, contexto?.usuario_id || null);
@@ -224,6 +231,17 @@ export async function runAutomations(evento: string, ticket: any, contexto: any)
             }
           });
         }
+      }
+    }
+
+    // BUG 2 fix: se alguma ação alterou o status, recomputa o estado
+    // materializado UMA vez ao final (origem da última mensagem pública não
+    // muda aqui; somente a flag aguardando_resposta_atendente depende do status).
+    if (statusChanged) {
+      try {
+        await recomputeTicketMessageState(ticket.id);
+      } catch (stateErr) {
+        console.error('[Automations] Falha ao recomputar estado materializado:', stateErr);
       }
     }
   } catch (err) {

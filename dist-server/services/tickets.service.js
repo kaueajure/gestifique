@@ -22,6 +22,19 @@ export function toPositiveInt(value) {
     const n = Number(str);
     return Number.isInteger(n) && n > 0 ? n : undefined;
 }
+export function isValidTicketStatus(value) {
+    return typeof value === 'string' && /^[a-z0-9_]{2,80}$/.test(value);
+}
+function labelFromStatus(status) {
+    const labels = {
+        aberto: 'Aberto',
+        em_andamento: 'Em andamento',
+        aguardando_cliente: 'Aguardando resposta',
+        resolvido: 'Finalizado',
+        fechado: 'Fechado'
+    };
+    return labels[status] || status.replace(/_/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
+}
 class TicketsService {
     isValidDateOnly(value) {
         return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
@@ -97,21 +110,25 @@ class TicketsService {
         }
         return { baseWhere, summaryWhere, params };
     }
-    async cleanupSpam() {
+    async cleanupSpam(empresaId) {
         // Delete tickets created in the last 12 hours that might be spam (too many from same user/subject)
         const [spamUsers] = await pool.query(`
       SELECT usuario_id, titulo, COUNT(*) as cnt 
       FROM tickets 
-      WHERE created_at > (NOW() - INTERVAL 12 HOUR)
+      WHERE empresa_id = ? AND created_at > (NOW() - INTERVAL 12 HOUR)
       GROUP BY usuario_id, titulo
       HAVING cnt > 5 
-    `);
+    `, [empresaId]);
         let deletedCount = 0;
         for (const spam of spamUsers) {
-            const [result] = await pool.query('DELETE FROM tickets WHERE usuario_id = ? AND titulo = ? AND created_at > (NOW() - INTERVAL 12 HOUR)', [spam.usuario_id, spam.titulo]);
+            const [result] = await pool.query(`DELETE FROM tickets
+         WHERE empresa_id = ?
+           AND ((usuario_id = ?) OR (usuario_id IS NULL AND ? IS NULL))
+           AND titulo = ?
+           AND created_at > (NOW() - INTERVAL 12 HOUR)`, [empresaId, spam.usuario_id, spam.usuario_id, spam.titulo]);
             deletedCount += result.affectedRows;
         }
-        return { deletedCount };
+        return { empresaId, deletedCount };
     }
     async list(filters) {
         const { empresa_id, usuario_id, is_dev, is_admin, status, prioridade, categoria, servico, search, responsavel_id, fila, page = 1, limit = 20, 
@@ -568,21 +585,33 @@ class TicketsService {
       ${summaryWhere}
     `, summaryParams);
         const summary = summaryRows[0] || { total: 0, aberto: 0, em_andamento: 0, aguardando_cliente: 0, resolvido: 0, fechado: 0 };
+        const [statusCountRows] = await pool.query(`
+      SELECT t.status, COUNT(*) as count
+      FROM tickets t
+      LEFT JOIN usuarios u ON t.usuario_id = u.id
+      ${summaryWhere}
+      GROUP BY t.status
+    `, summaryParams);
         // Enriquecer com produtividade
         await this.enrichTicketsWithProductivity(tickets, filters.usuario_id);
-        const columnsConfig = [
-            { id: 'aberto', title: 'Aberto' },
-            { id: 'em_andamento', title: 'Em andamento' },
-            { id: 'aguardando_cliente', title: 'Aguardando resposta' },
-            { id: 'resolvido', title: 'Finalizado' },
-            { id: 'fechado', title: 'Fechado' }
-        ];
+        const defaultStatusOrder = ['aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado'];
+        const statusCounts = new Map(statusCountRows.map((row) => [row.status, Number(row.count || 0)]));
+        const ticketStatuses = tickets.map((ticket) => ticket.status).filter(Boolean);
+        const discoveredStatuses = [
+            ...defaultStatusOrder,
+            ...Array.from(statusCounts.keys()),
+            ...ticketStatuses
+        ].filter((status, index, all) => all.indexOf(status) === index);
+        const columnsConfig = discoveredStatuses.map(status => ({
+            id: status,
+            title: labelFromStatus(status)
+        }));
         const columns = columnsConfig.map(c => {
             const colTickets = tickets.filter((t) => t.status === c.id);
             return {
                 id: c.id,
                 title: c.title,
-                count: Number(summary[c.id] || 0),
+                count: Number(statusCounts.get(c.id) ?? summary[c.id] ?? colTickets.length),
                 tickets: colTickets
             };
         });
@@ -835,8 +864,7 @@ class TicketsService {
         return enriched[0];
     }
     async updateStatus(id, status, changedByUserId, req) {
-        const validStatuses = ['aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado'];
-        if (!validStatuses.includes(status)) {
+        if (!isValidTicketStatus(status)) {
             throw new Error(`Status inválido: ${status}`);
         }
         const oldTicket = await this.getById(id, changedByUserId);
@@ -1525,8 +1553,7 @@ class TicketsService {
                 }
                 switch (action) {
                     case 'status':
-                        const validStatus = ['aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado'];
-                        if (validStatus.includes(value)) {
+                        if (isValidTicketStatus(value)) {
                             await this.updateStatus(id, value, currentUser.id);
                             updated++;
                         }

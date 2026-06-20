@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { api } from "../../lib/api";
 import {
   Ticket,
@@ -21,6 +21,7 @@ import {
   History,
   MessageSquare,
   Search,
+  Tag,
   ChevronDown,
   Settings2,
   Eye,
@@ -63,6 +64,7 @@ import {
   slugifyTicketStatus,
   TicketWorkflowStatus,
 } from "../../lib/ticketWorkflow";
+import { getCategoryShortLabel } from "../../lib/ticketOptions";
 
 interface TicketsPageProps {
   onSelectTicket: (id: number) => void;
@@ -134,6 +136,35 @@ const EMPTY_QUEUES = {
   precisa_resposta: 0,
 };
 
+const queueChipBaseClass =
+  "relative flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-md transition-all whitespace-nowrap";
+
+const queueChipInactiveClass =
+  "bg-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50";
+
+const queueChipActiveClass = "bg-slate-100 text-slate-900";
+
+const MORE_QUEUES_MENU_WIDTH = 192;
+const CATEGORY_MENU_WIDTH = 240;
+
+const getFloatingMenuPosition = (
+  element: HTMLElement | null,
+  width: number,
+) => {
+  if (!element || typeof window === "undefined") return null;
+
+  const rect = element.getBoundingClientRect();
+  const margin = 8;
+  const maxLeft = Math.max(margin, window.innerWidth - width - margin);
+  const left = Math.min(Math.max(rect.left, margin), maxLeft);
+
+  return {
+    top: rect.bottom + 4,
+    left,
+    width,
+  };
+};
+
 import { PageShell } from "../layout/PageShell";
 
 export const TicketsPage = ({
@@ -180,6 +211,19 @@ export const TicketsPage = ({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showTeamSidebar, setShowTeamSidebar] = useState(false);
   const [showMoreQueues, setShowMoreQueues] = useState(false);
+  const [showCategoryMenu, setShowCategoryMenu] = useState(false);
+  const moreQueuesButtonRef = useRef<HTMLButtonElement | null>(null);
+  const categoryButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [moreQueuesMenuPosition, setMoreQueuesMenuPosition] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
+  const [categoryMenuPosition, setCategoryMenuPosition] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
   const [showWorkflowSettings, setShowWorkflowSettings] = useState(false);
   const [showAddWorkflowStatus, setShowAddWorkflowStatus] = useState(false);
   const [pendingRemoveWorkflowStatusId, setPendingRemoveWorkflowStatusId] =
@@ -197,17 +241,27 @@ export const TicketsPage = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
-  const [devCompanyId, setDevCompanyId] = useState<string>("");
+  const [devCompanyId, setDevCompanyId] = useState<string>(() =>
+    currentUser.desenvolvedor && currentUser.empresa_id
+      ? String(currentUser.empresa_id)
+      : "",
+  );
   const [companies, setCompanies] = useState<Empresa[]>([]);
   const [agents, setAgents] = useState<User[]>([]);
 
   // Bulk Selection
   const [selectedTicketIds, setSelectedTicketIds] = useState<number[]>([]);
 
-  const { activeCategories, activeServices } = useTicketOptions(
+  const {
+    activeCategories,
+    activeServices,
+    loading: ticketOptionsLoading,
+    error: ticketOptionsError,
+  } = useTicketOptions(
     currentUser.desenvolvedor
       ? devCompanyId || undefined
-      : String(currentUser.empresa_id),
+      : undefined,
+    { scope: "current-user" },
   );
 
   const workflowCompanyKey = currentUser.desenvolvedor
@@ -337,20 +391,23 @@ export const TicketsPage = ({
     ? applyTicketWorkflowToKanban(kanbanResponse, workflowStatuses)
     : null;
 
-  const categoryOptionsForFilter =
-    activeCategories.length > 0
-      ? [
-          { value: "todas", label: "Todas" },
-          ...activeCategories.map((c) => ({ value: c.valor, label: c.nome })),
-        ]
-      : [
-          { value: "todas", label: "Todas" },
-          { value: "suporte_tecnico", label: "Suporte Técnico" },
-          { value: "financeiro", label: "Financeiro" },
-          { value: "recursos_humanos", label: "Recursos Humanos" },
-          { value: "comercial", label: "Comercial" },
-          { value: "outros", label: "Outros" },
-        ];
+  const categoryOptionsForFilter = [
+    { value: "todas", label: "Todas" },
+    ...activeCategories.map((c) => ({
+      value: c.valor,
+      label: getCategoryShortLabel(c),
+    })),
+  ];
+
+  const categoryQuickFilterOptions = categoryOptionsForFilter.map((option) =>
+    option.value === "todas"
+      ? { ...option, label: "Todas categorias" }
+      : option,
+  );
+
+  const selectedCategoryLabel =
+    categoryQuickFilterOptions.find((option) => option.value === categoryFilter)
+      ?.label || "Categorias";
 
   const serviceOptionsForFilter =
     activeServices.length > 0
@@ -367,7 +424,19 @@ export const TicketsPage = ({
         ];
 
   useEffect(() => {
-    if (hasPermission(currentUser, "tickets.ver_todos")) {
+    if (categoryFilter === "todas" || ticketOptionsLoading) return;
+
+    const categoryStillExists = categoryOptionsForFilter.some(
+      (option) => option.value === categoryFilter,
+    );
+
+    if (!categoryStillExists) {
+      setCategoryFilter("todas");
+    }
+  }, [categoryFilter, categoryOptionsForFilter, ticketOptionsLoading]);
+
+  useEffect(() => {
+    if (currentUser.desenvolvedor || hasPermission(currentUser, "tickets.ver_todos")) {
       api.get<Empresa[]>("/companies").then(setCompanies).catch(console.error);
 
       // Fetch agents for bulk assignment
@@ -386,6 +455,79 @@ export const TicketsPage = ({
         .catch(console.error);
     }
   }, [currentUser]);
+
+  useEffect(() => {
+    if (!currentUser.desenvolvedor || devCompanyId || companies.length === 0) {
+      return;
+    }
+
+    if (!currentUser.empresa_id) {
+      return;
+    }
+
+    const linkedCompany = companies.find(
+      (company) => Number(company.id) === Number(currentUser.empresa_id),
+    );
+
+    if (linkedCompany) {
+      setDevCompanyId(String(linkedCompany.id));
+    }
+  }, [currentUser.desenvolvedor, currentUser.empresa_id, devCompanyId, companies]);
+
+  const handleDevCompanyChange = (companyId: string) => {
+    setDevCompanyId(companyId);
+    setCategoryFilter("todas");
+    setServiceFilter("todos");
+  };
+
+  const updateFloatingMenuPositions = () => {
+    if (showMoreQueues) {
+      setMoreQueuesMenuPosition(
+        getFloatingMenuPosition(moreQueuesButtonRef.current, MORE_QUEUES_MENU_WIDTH),
+      );
+    }
+
+    if (showCategoryMenu) {
+      setCategoryMenuPosition(
+        getFloatingMenuPosition(categoryButtonRef.current, CATEGORY_MENU_WIDTH),
+      );
+    }
+  };
+
+  useEffect(() => {
+    if (!showMoreQueues && !showCategoryMenu) return;
+
+    updateFloatingMenuPositions();
+    window.addEventListener("resize", updateFloatingMenuPositions);
+    window.addEventListener("scroll", updateFloatingMenuPositions, true);
+
+    return () => {
+      window.removeEventListener("resize", updateFloatingMenuPositions);
+      window.removeEventListener("scroll", updateFloatingMenuPositions, true);
+    };
+  }, [showMoreQueues, showCategoryMenu]);
+
+  const toggleMoreQueuesMenu = () => {
+    const nextOpen = !showMoreQueues;
+    setShowMoreQueues(nextOpen);
+    setShowCategoryMenu(false);
+    setMoreQueuesMenuPosition(
+      nextOpen
+        ? getFloatingMenuPosition(moreQueuesButtonRef.current, MORE_QUEUES_MENU_WIDTH)
+        : null,
+    );
+  };
+
+  const toggleCategoryMenu = () => {
+    const nextOpen = !showCategoryMenu;
+    setShowCategoryMenu(nextOpen);
+    setShowMoreQueues(false);
+    setCategoryMenuPosition(
+      nextOpen
+        ? getFloatingMenuPosition(categoryButtonRef.current, CATEGORY_MENU_WIDTH)
+        : null,
+    );
+  };
 
   useEffect(() => {
     if (currentUser.desenvolvedor) {
@@ -905,7 +1047,7 @@ export const TicketsPage = ({
                     <Select
                       size="sm"
                       value={devCompanyId}
-                      onChange={setDevCompanyId}
+                      onChange={handleDevCompanyChange}
                       placeholder="Empresa..."
                       buttonClassName="pl-8 bg-slate-50 border-slate-200 h-8 text-[11px]"
                       options={[
@@ -968,10 +1110,8 @@ export const TicketsPage = ({
                       key={q.id}
                       onClick={() => setSelectedQueue(q.id)}
                       className={cn(
-                        "relative flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-md transition-all whitespace-nowrap",
-                        isActive
-                          ? "bg-slate-100 text-slate-900"
-                          : "bg-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50",
+                        queueChipBaseClass,
+                        isActive ? queueChipActiveClass : queueChipInactiveClass,
                       )}
                     >
                       <q.icon
@@ -1002,12 +1142,13 @@ export const TicketsPage = ({
 
               <div className="relative shrink-0">
                 <button
-                  onClick={() => setShowMoreQueues((prev) => !prev)}
+                  ref={moreQueuesButtonRef}
+                  onClick={toggleMoreQueuesMenu}
                   className={cn(
-                    "relative flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-md transition-all whitespace-nowrap",
+                    queueChipBaseClass,
                     MORE_QUEUES.some((q) => q.id === selectedQueue)
-                      ? "bg-slate-100 text-slate-900"
-                      : "bg-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50",
+                      ? queueChipActiveClass
+                      : queueChipInactiveClass,
                   )}
                 >
                   <span>
@@ -1037,7 +1178,10 @@ export const TicketsPage = ({
                       className="fixed inset-0 z-40"
                       onClick={() => setShowMoreQueues(false)}
                     />
-                    <div className="absolute top-full right-0 lg:left-0 lg:right-auto mt-1 w-48 bg-white rounded-lg shadow-lg border border-slate-200 p-1.5 z-50">
+                    <div
+                      className="fixed w-48 bg-white rounded-lg shadow-lg border border-slate-200 p-1.5 z-50"
+                      style={moreQueuesMenuPosition || undefined}
+                    >
                       {MORE_QUEUES.map((q) => {
                         const isActive = selectedQueue === q.id;
                         const count = queueCounts?.[q.id] || 0;
@@ -1071,6 +1215,99 @@ export const TicketsPage = ({
                           </button>
                         );
                       })}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="relative shrink-0">
+                <button
+                  ref={categoryButtonRef}
+                  onClick={toggleCategoryMenu}
+                  className={cn(
+                    queueChipBaseClass,
+                    categoryFilter !== "todas"
+                      ? queueChipActiveClass
+                      : queueChipInactiveClass,
+                  )}
+                >
+                  <Tag
+                    size={14}
+                    className={cn(
+                      categoryFilter !== "todas"
+                        ? "text-slate-800"
+                        : "text-slate-400",
+                    )}
+                  />
+                  <span className="max-w-[170px] truncate">
+                    {categoryFilter === "todas"
+                      ? "Categorias"
+                      : selectedCategoryLabel}
+                  </span>
+                  <ChevronDown
+                    size={14}
+                    className={cn(
+                      "transition-transform text-slate-400",
+                      showCategoryMenu && "rotate-180",
+                    )}
+                  />
+                </button>
+
+                {showCategoryMenu && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setShowCategoryMenu(false)}
+                    />
+                    <div
+                      className="fixed w-60 bg-white rounded-lg shadow-lg border border-slate-200 p-1.5 z-50"
+                      style={categoryMenuPosition || undefined}
+                    >
+                      {ticketOptionsLoading ? (
+                        <div className="px-3 py-2 text-xs font-medium text-slate-400">
+                          Carregando categorias...
+                        </div>
+                      ) : ticketOptionsError ? (
+                        <div className="px-3 py-2 text-xs font-medium text-rose-600">
+                          {ticketOptionsError}
+                        </div>
+                      ) : currentUser.desenvolvedor && !devCompanyId ? (
+                        <div className="px-3 py-2 text-xs font-medium text-slate-400">
+                          Selecione uma empresa para ver categorias.
+                        </div>
+                      ) : categoryQuickFilterOptions.length === 1 ? (
+                        <div className="px-3 py-2 text-xs font-medium text-slate-400">
+                          Nenhuma categoria ativa nesta empresa.
+                        </div>
+                      ) : (
+                        categoryQuickFilterOptions.map((option) => {
+                          const isActive = categoryFilter === option.value;
+
+                          return (
+                            <button
+                              key={option.value}
+                              onClick={() => {
+                                setCategoryFilter(option.value);
+                                setShowCategoryMenu(false);
+                              }}
+                              className={cn(
+                                "w-full flex items-center justify-between gap-2 px-3 py-2 text-xs font-semibold rounded-md transition-colors",
+                                isActive
+                                  ? "bg-blue-50 text-blue-700"
+                                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
+                              )}
+                            >
+                              <span className="truncate">{option.label}</span>
+                              {isActive && (
+                                <Check
+                                  size={13}
+                                  className="shrink-0 text-blue-600"
+                                />
+                              )}
+                            </button>
+                          );
+                        })
+                      )}
                     </div>
                   </>
                 )}

@@ -4,9 +4,11 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import jwt from 'jsonwebtoken';
 import { createServer as createViteServer } from 'vite';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
+import pool from './db/connection.js';
 import { initDB } from './db/init-db.js';
 import apiRoutes from './routes/index.js';
 import { errorHandler } from './middlewares/error-handler.js';
@@ -15,6 +17,36 @@ import { EmailListenerService } from './services/email-listener.service.js';
 import { runTicketAutomations } from './jobs/ticketAutomationJob.js';
 
 export let io: SocketIOServer;
+
+function getCookieValue(cookieHeader: string | undefined, name: string): string | null {
+  if (!cookieHeader) return null;
+  const parts = cookieHeader.split(';');
+  for (const part of parts) {
+    const [rawKey, ...rawValue] = part.trim().split('=');
+    if (rawKey === name) {
+      return decodeURIComponent(rawValue.join('='));
+    }
+  }
+  return null;
+}
+
+function getSocketToken(socket: any): string | null {
+  const authToken = socket.handshake.auth?.token;
+  if (typeof authToken === 'string' && authToken.trim()) return authToken.trim();
+
+  const authorization = socket.handshake.headers?.authorization;
+  if (typeof authorization === 'string' && authorization.startsWith('Bearer ')) {
+    return authorization.slice('Bearer '.length).trim();
+  }
+
+  return getCookieValue(socket.handshake.headers?.cookie, 'token');
+}
+
+function getRequestedSocketCompanyId(socket: any): number | null {
+  const rawEmpresaId = socket.handshake.auth?.empresa_id || socket.handshake.query?.empresa_id;
+  const empresaId = Number(Array.isArray(rawEmpresaId) ? rawEmpresaId[0] : rawEmpresaId);
+  return Number.isInteger(empresaId) && empresaId > 0 ? empresaId : null;
+}
 
 async function startServer() {
   const allowedOrigins = [
@@ -64,11 +96,11 @@ async function startServer() {
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
-        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+        fontSrc: ["'self'"],
         imgSrc: ["'self'", "data:", "blob:", "https://images.unsplash.com", "https://res.cloudinary.com"],
         connectSrc: ["'self'", "ws:", "wss:", "https://*.run.app", "https://*.studio", ...env.CORS_ORIGINS],
-        frameAncestors: ["'self'", "https://ai.studio", "https://*.studio.google.com"],
+        frameAncestors: ["'self'"],
         upgradeInsecureRequests: env.IS_PROD ? [] : null,
       },
     },
@@ -97,13 +129,54 @@ async function startServer() {
 
     app.set('io', io);
 
-    io.on('connection', (socket) => {
-      const empresaId = socket.handshake.auth.empresa_id || socket.handshake.query.empresa_id;
-      if (empresaId) {
-        const room = `empresa_${empresaId}`;
-        socket.join(room);
-        console.log(`[Socket] User connected to room: ${room}`);
+    io.use(async (socket, next) => {
+      try {
+        const token = getSocketToken(socket);
+        const empresaId = getRequestedSocketCompanyId(socket);
+
+        if (!token || !empresaId) {
+          return next(new Error('Unauthorized socket connection'));
+        }
+
+        const decoded = jwt.verify(token, env.JWT_SECRET) as any;
+        if (!decoded?.id) {
+          return next(new Error('Unauthorized socket connection'));
+        }
+
+        const [rows]: any = await pool.query(
+          'SELECT id, empresa_id, administrador, desenvolvedor, ativo, perfil FROM usuarios WHERE id = ?',
+          [decoded.id]
+        );
+
+        const user = rows[0];
+        if (!user || Number(user.ativo) !== 1) {
+          return next(new Error('Unauthorized socket connection'));
+        }
+
+        const isDeveloper = Boolean(user.desenvolvedor) || user.perfil === 'desenvolvedor';
+        if (!isDeveloper && Number(user.empresa_id) !== empresaId) {
+          return next(new Error('Forbidden socket room'));
+        }
+
+        socket.data.user = {
+          id: user.id,
+          empresa_id: user.empresa_id,
+          administrador: Boolean(user.administrador),
+          desenvolvedor: isDeveloper,
+          perfil: user.perfil
+        };
+        socket.data.empresaId = empresaId;
+        next();
+      } catch {
+        next(new Error('Unauthorized socket connection'));
       }
+    });
+
+    io.on('connection', (socket) => {
+      const empresaId = socket.data.empresaId;
+      const room = `empresa_${empresaId}`;
+      socket.join(room);
+      console.log(`[Socket] User ${socket.data.user?.id} connected to room: ${room}`);
 
       socket.on('disconnect', () => {
         console.log(`[Socket] User disconnected`);

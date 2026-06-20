@@ -7,6 +7,7 @@ import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { api } from '../../lib/api';
 import { useTicketOptions } from '../../hooks/useTicketOptions';
+import { getCategoryShortLabel } from '../../lib/ticketOptions';
 
 interface CreateTicketModalProps {
   isOpen: boolean;
@@ -43,7 +44,7 @@ export const CreateTicketModal = ({ isOpen, onClose, currentUser, onSuccess }: C
   ];
 
   const categoryOptions = activeCategories.length > 0 
-    ? activeCategories.map(c => ({ value: c.valor, label: c.nome }))
+    ? activeCategories.map(c => ({ value: c.valor, label: getCategoryShortLabel(c) }))
     : defaultCategories;
 
   const serviceOptions = activeServices.length > 0 

@@ -7,6 +7,7 @@ import  { sendSuccess, sendError } from  '../utils/response.js';
 import  { logSystemAction } from  '../utils/logger.js';
 import { isValidEmail, isValidHexColor } from '../utils/validators.js';
 import { isValidTicketStatus } from '../services/tickets.service.js';
+import { recomputeTicketMessageState } from '../utils/ticket-state.js';
 
 const router = Router();
 
@@ -86,16 +87,47 @@ router.patch('/:id', async (req: AuthRequest, res) => {
 
 import  pool from  '../db/connection.js';
 
+const CATEGORY_SIGLA_MAX_LENGTH = 6;
+
+function normalizeCategorySigla(value: unknown): string {
+  return typeof value === 'string'
+    ? value.trim().toUpperCase().slice(0, CATEGORY_SIGLA_MAX_LENGTH)
+    : '';
+}
+
+function isSiglaTooLong(value: unknown): boolean {
+  return typeof value === 'string' && value.trim().length > CATEGORY_SIGLA_MAX_LENGTH;
+}
+
+function slugifyOptionValue(value: unknown): string {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
 router.patch('/:id/status', requirePermission('empresas.desativar'), async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
 
     const id = parseInt(req.params.id);
+    if (!id || isNaN(id)) return sendError(res, 'ID invalido', 400);
+    if (!currentUser.desenvolvedor) {
+      return sendError(res, 'Acesso negado: apenas desenvolvedores podem alterar status de empresas.', 403);
+    }
+
     const { ativo } = req.body;
-    await companiesService.update(id, { ativo });
-    await logSystemAction(req, currentUser.id, null, 'COMPANY_STATUS', `${ativo ? 'Ativou' : 'Desativou'} empresa ID ${id}`);
-    sendSuccess(res, null, `Empresa ${ativo ? 'ativada' : 'desativada'} com sucesso`);
+    if (typeof ativo !== 'boolean' && ativo !== 0 && ativo !== 1) {
+      return sendError(res, 'Status invalido', 400);
+    }
+
+    const normalizedAtivo = Boolean(ativo);
+    await companiesService.update(id, { ativo: normalizedAtivo ? 1 : 0 });
+    await logSystemAction(req, currentUser.id, null, 'COMPANY_STATUS', `${normalizedAtivo ? 'Ativou' : 'Desativou'} empresa ID ${id}`);
+    sendSuccess(res, null, `Empresa ${normalizedAtivo ? 'ativada' : 'desativada'} com sucesso`);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erro ao alterar status da empresa';
     sendError(res, message);
@@ -109,6 +141,10 @@ router.delete('/:id', requirePermission('empresas.excluir'), async (req: AuthReq
 
     const id = parseInt(req.params.id);
     if (!id || isNaN(id)) return sendError(res, 'ID inválido', 400);
+
+    if (!currentUser.desenvolvedor) {
+      return sendError(res, 'Acesso negado: apenas desenvolvedores podem excluir empresas.', 403);
+    }
 
     await companiesService.deleteCascade(id, currentUser);
     await logSystemAction(req, currentUser.id, null, 'COMPANY_DELETE', `Excluiu empresa ID ${id} e todos os seus dados vinculados`);
@@ -145,12 +181,19 @@ router.post('/:id/ticket-categories', async (req: AuthRequest, res) => {
     if (!hasConfigPerm) return sendError(res, 'Acesso negado', 403);
     if (!currentUser.desenvolvedor && currentUser.empresa_id !== id) return sendError(res, 'Acesso negado', 403);
     
-    const { nome, valor, ativo, ordem } = req.body;
+    let { nome, valor, ativo, ordem } = req.body;
+    const normalizedNome = typeof nome === 'string' ? nome.trim() : '';
+    const sigla = normalizeCategorySigla(req.body.sigla);
+    const normalizedValor = slugifyOptionValue(valor || sigla || normalizedNome);
+    if (!normalizedNome || !sigla) return sendError(res, 'Nome e sigla sao obrigatorios', 400);
+    if (isSiglaTooLong(req.body.sigla)) return sendError(res, 'A sigla deve ter no maximo 6 caracteres', 400);
+    if (!normalizedValor) return sendError(res, 'Valor da categoria invalido', 400);
+    valor = normalizedValor;
     if (!nome || !valor) return sendError(res, 'Nome e valor são obrigatórios', 400);
 
     const [result]: any = await pool.query(
-      'INSERT INTO empresa_ticket_categorias (empresa_id, nome, valor, ativo, ordem) VALUES (?, ?, ?, ?, ?)',
-      [id, nome, valor, ativo !== undefined ? ativo : 1, ordem || 0]
+      'INSERT INTO empresa_ticket_categorias (empresa_id, nome, sigla, valor, ativo, ordem) VALUES (?, ?, ?, ?, ?, ?)',
+      [id, normalizedNome, sigla, normalizedValor, ativo !== undefined ? ativo : 1, ordem || 0]
     );
     sendSuccess(res, { id: result.insertId });
   } catch(error: unknown) {
@@ -168,11 +211,28 @@ router.patch('/:id/ticket-categories/:catId', async (req: AuthRequest, res) => {
     if (!hasConfigPerm) return sendError(res, 'Acesso negado', 403);
     if (!currentUser.desenvolvedor && currentUser.empresa_id !== id) return sendError(res, 'Acesso negado', 403);
     
-    const { nome, valor, ativo, ordem } = req.body;
+    const { nome, valor, ativo, ordem, sigla } = req.body;
     let updates = [];
     let params = [];
-    if (nome !== undefined) { updates.push('nome = ?'); params.push(nome); }
-    if (valor !== undefined) { updates.push('valor = ?'); params.push(valor); }
+    if (nome !== undefined) {
+      const normalizedNome = typeof nome === 'string' ? nome.trim() : '';
+      if (!normalizedNome) return sendError(res, 'Nome da categoria e obrigatorio', 400);
+      updates.push('nome = ?');
+      params.push(normalizedNome);
+    }
+    if (sigla !== undefined) {
+      const normalizedSigla = normalizeCategorySigla(sigla);
+      if (!normalizedSigla) return sendError(res, 'Sigla da categoria e obrigatoria', 400);
+      if (isSiglaTooLong(sigla)) return sendError(res, 'A sigla deve ter no maximo 6 caracteres', 400);
+      updates.push('sigla = ?');
+      params.push(normalizedSigla);
+    }
+    if (valor !== undefined) {
+      const normalizedValor = slugifyOptionValue(valor);
+      if (!normalizedValor) return sendError(res, 'Valor da categoria invalido', 400);
+      updates.push('valor = ?');
+      params.push(normalizedValor);
+    }
     if (ativo !== undefined) { updates.push('ativo = ?'); params.push(ativo); }
     if (ordem !== undefined) { updates.push('ordem = ?'); params.push(ordem); }
 
@@ -350,10 +410,21 @@ router.put('/:id/ticket-statuses', async (req: AuthRequest, res) => {
 	      );
 	    }
 
+	    let affectedTicketIds: number[] = [];
 	    if (sanitized.length > 0) {
 	      const configuredStatusValues = sanitized.map((status) => status.valor);
 	      const fallbackStatus = configuredStatusValues[0];
 	      const placeholders = configuredStatusValues.map(() => '?').join(', ');
+
+	      // BUG 4 fix: captura os tickets que serão remapeados ANTES do update,
+	      // para recomputar o estado materializado deles após o commit.
+	      const [affectedRows]: any = await connection.query(
+	        `SELECT id FROM tickets
+	         WHERE empresa_id = ?
+	         AND status NOT IN (${placeholders})`,
+	        [id, ...configuredStatusValues]
+	      );
+	      affectedTicketIds = affectedRows.map((r: any) => Number(r.id));
 
 	      await connection.query(
 	        `UPDATE tickets
@@ -365,6 +436,16 @@ router.put('/:id/ticket-statuses', async (req: AuthRequest, res) => {
 	    }
 	
 	    await connection.commit();
+
+	    // BUG 4 fix: recomputa o estado materializado dos tickets remapeados.
+	    // Operação administrativa rara; o loop por IDs reusa a regra canônica única.
+	    for (const remappedTicketId of affectedTicketIds) {
+	      try {
+	        await recomputeTicketMessageState(remappedTicketId);
+	      } catch (stateErr) {
+	        console.error('[Companies] Falha ao recomputar estado materializado do ticket', remappedTicketId, stateErr);
+	      }
+	    }
 
     const [rows]: any = await pool.query(
       'SELECT id, nome, valor, ativo, ordem FROM empresa_ticket_status WHERE empresa_id = ? ORDER BY ordem ASC, id ASC',

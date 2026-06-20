@@ -6,6 +6,25 @@ import { permissionsService } from '../services/permissions.service.js';
 import { sendSuccess, sendError } from '../utils/response.js';
 const router = Router();
 router.use(authMiddleware);
+function toPositiveInt(value) {
+    if (value === undefined || value === null || value === '')
+        return undefined;
+    const n = Number(Array.isArray(value) ? value[0] : value);
+    return Number.isInteger(n) && n > 0 ? n : undefined;
+}
+function applyReportCompanyScope(currentUser, filters, empresaIdValue) {
+    if (currentUser.desenvolvedor) {
+        const empresaId = toPositiveInt(empresaIdValue);
+        if (!empresaId)
+            return 'Selecione uma empresa valida para gerar relatorios.';
+        filters.empresa_id = empresaId;
+        return null;
+    }
+    if (!currentUser.empresa_id)
+        return 'Sua conta nao possui empresa vinculada.';
+    filters.empresa_id = currentUser.empresa_id;
+    return null;
+}
 router.get('/summary', requirePermission('relatorios.visualizar'), async (req, res) => {
     try {
         const currentUser = req.user;
@@ -15,17 +34,13 @@ router.get('/summary', requirePermission('relatorios.visualizar'), async (req, r
         const filters = {
             start_date: start_date,
             end_date: end_date,
-            responsavel_id: responsavel_id ? parseInt(responsavel_id) : undefined,
+            responsavel_id: toPositiveInt(responsavel_id),
             status: status,
             prioridade: prioridade
         };
-        // Permission check for empresa_id
-        if (!currentUser.desenvolvedor) {
-            filters.empresa_id = currentUser.empresa_id;
-        }
-        else if (empresa_id) {
-            filters.empresa_id = parseInt(empresa_id);
-        }
+        const scopeError = applyReportCompanyScope(currentUser, filters, empresa_id);
+        if (scopeError)
+            return sendError(res, scopeError, currentUser.desenvolvedor ? 400 : 403);
         // Resolve reports scoping
         const isSuperUser = !!(currentUser.desenvolvedor || currentUser.administrador);
         if (!isSuperUser) {
@@ -52,17 +67,13 @@ router.post('/generate', requirePermission('relatorios.visualizar'), async (req,
         const filters = {
             start_date,
             end_date,
-            responsavel_id: responsavel_id ? parseInt(responsavel_id) : undefined,
+            responsavel_id: toPositiveInt(responsavel_id),
             status,
             prioridade
         };
-        // Force empresa_id if not developer
-        if (!currentUser.desenvolvedor) {
-            filters.empresa_id = currentUser.empresa_id;
-        }
-        else if (empresa_id) {
-            filters.empresa_id = parseInt(empresa_id);
-        }
+        const scopeError = applyReportCompanyScope(currentUser, filters, empresa_id);
+        if (scopeError)
+            return sendError(res, scopeError, currentUser.desenvolvedor ? 400 : 403);
         // Resolve reports scoping
         const isSuperUser = !!(currentUser.desenvolvedor || currentUser.administrador);
         if (!isSuperUser) {
@@ -89,18 +100,15 @@ router.get('/export', requirePermission('relatorios.exportar'), async (req, res)
         const filters = {
             start_date: start_date,
             end_date: end_date,
-            responsavel_id: responsavel_id ? parseInt(responsavel_id) : undefined,
+            responsavel_id: toPositiveInt(responsavel_id),
             status: status,
             prioridade: prioridade,
             categoria: categoria,
             servico: servico
         };
-        if (!currentUser.desenvolvedor) {
-            filters.empresa_id = currentUser.empresa_id;
-        }
-        else if (empresa_id) {
-            filters.empresa_id = parseInt(empresa_id);
-        }
+        const scopeError = applyReportCompanyScope(currentUser, filters, empresa_id);
+        if (scopeError)
+            return sendError(res, scopeError, currentUser.desenvolvedor ? 400 : 403);
         // Resolve reports scoping
         const isSuperUser = !!(currentUser.desenvolvedor || currentUser.administrador);
         if (!isSuperUser) {

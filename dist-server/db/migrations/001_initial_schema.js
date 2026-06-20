@@ -68,7 +68,7 @@ export async function up(connection) {
       responsavel_id INT NULL,
       titulo VARCHAR(255) NOT NULL,
       descricao TEXT,
-      status ENUM('aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado') DEFAULT 'aberto',
+      status VARCHAR(80) NOT NULL DEFAULT 'aberto',
       prioridade ENUM('baixa', 'media', 'alta', 'urgente') DEFAULT 'media',
       categoria VARCHAR(100),
       origem VARCHAR(50),
@@ -257,6 +257,7 @@ export async function up(connection) {
       id INT AUTO_INCREMENT PRIMARY KEY,
       empresa_id INT NOT NULL,
       nome VARCHAR(100) NOT NULL,
+      sigla VARCHAR(6) NULL,
       valor VARCHAR(100) NOT NULL,
       ativo TINYINT(1) DEFAULT 1,
       ordem INT DEFAULT 0,
@@ -277,6 +278,20 @@ export async function up(connection) {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       UNIQUE KEY unique_empresa_servico (empresa_id, valor),
+      FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `);
+    await connection.query(`
+    CREATE TABLE IF NOT EXISTS empresa_ticket_status (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      empresa_id INT NOT NULL,
+      nome VARCHAR(100) NOT NULL,
+      valor VARCHAR(80) NOT NULL,
+      ativo TINYINT(1) DEFAULT 1,
+      ordem INT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY unique_empresa_ticket_status (empresa_id, valor),
       FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);

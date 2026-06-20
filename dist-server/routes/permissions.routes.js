@@ -6,6 +6,26 @@ import pool from '../db/connection.js';
 const router = Router();
 // Apply authentication to all permission routes
 router.use(authMiddleware);
+function parsePositiveInt(value) {
+    const n = Number(value);
+    return Number.isInteger(n) && n > 0 ? n : null;
+}
+function validateTargetAccess(caller, targetUser) {
+    if (!caller.desenvolvedor && (!caller.empresa_id || Number(caller.empresa_id) !== Number(targetUser.empresa_id))) {
+        return 'Acesso negado: usuario alvo pertence a outra empresa.';
+    }
+    if ((targetUser.desenvolvedor || targetUser.perfil === 'desenvolvedor') && !caller.desenvolvedor) {
+        return 'Apenas desenvolvedores podem alterar permissoes de outro desenvolvedor.';
+    }
+    if (caller.perfil === 'gestor' && (targetUser.desenvolvedor || targetUser.administrador || targetUser.perfil === 'administrador')) {
+        return 'Gestores nao podem alterar permissoes de administradores ou desenvolvedores.';
+    }
+    return null;
+}
+async function getTargetUser(targetUserId) {
+    const [targetUserRows] = await pool.query('SELECT id, empresa_id, desenvolvedor, administrador, perfil FROM usuarios WHERE id = ?', [targetUserId]);
+    return targetUserRows[0] || null;
+}
 // 1. GET /api/permissions/me
 router.get('/me', async (req, res) => {
     try {
@@ -43,7 +63,18 @@ router.get('/catalog', requirePermission('usuarios.ver_permissoes'), async (req,
 // 3. GET /api/permissions/users/:id
 router.get('/users/:id', requirePermission('usuarios.ver_permissoes'), async (req, res) => {
     try {
-        const userId = Number(req.params.id);
+        const userId = parsePositiveInt(req.params.id);
+        if (!userId) {
+            return res.status(400).json({ success: false, message: 'ID de usuario invalido.' });
+        }
+        const targetUser = await getTargetUser(userId);
+        if (!targetUser) {
+            return res.status(404).json({ success: false, message: 'Usuario alvo nao encontrado.' });
+        }
+        const accessError = validateTargetAccess(req.user, targetUser);
+        if (accessError) {
+            return res.status(403).json({ success: false, message: accessError });
+        }
         const matrix = await permissionsService.getUserPermissionMatrix(userId);
         return res.json({
             success: true,
@@ -58,18 +89,25 @@ router.get('/users/:id', requirePermission('usuarios.ver_permissoes'), async (re
 // 4. PUT /api/permissions/users/:id/override
 router.put('/users/:id/override', requirePermission('usuarios.gerenciar_permissoes'), async (req, res) => {
     try {
-        const targetUserId = Number(req.params.id);
+        const targetUserId = parsePositiveInt(req.params.id);
+        if (!targetUserId) {
+            return res.status(400).json({ success: false, message: 'ID de usuario invalido.' });
+        }
         const { permission_key, effect, motivo } = req.body;
         if (!permission_key || !['allow', 'deny'].includes(effect)) {
             return res.status(400).json({ success: false, message: 'Campos chaves ausentes ou inválidos.' });
         }
         const caller = req.user;
         // Load target user's details
-        const [targetUserRows] = await pool.query('SELECT id, desenvolvedor, administrador, perfil FROM usuarios WHERE id = ?', [targetUserId]);
+        const [targetUserRows] = await pool.query('SELECT id, empresa_id, desenvolvedor, administrador, perfil FROM usuarios WHERE id = ?', [targetUserId]);
         if (targetUserRows.length === 0) {
             return res.status(404).json({ success: false, message: 'Usuário alvo não encontrado.' });
         }
         const targetUser = targetUserRows[0];
+        const accessError = validateTargetAccess(caller, targetUser);
+        if (accessError) {
+            return res.status(403).json({ success: false, message: accessError });
+        }
         // Hierarchy check:
         // Only developer can edit developer
         if ((targetUser.desenvolvedor || targetUser.perfil === 'desenvolvedor') && !caller.desenvolvedor) {
@@ -85,6 +123,10 @@ router.put('/users/:id/override', requirePermission('usuarios.gerenciar_permisso
         }
         if (targetUserId === caller.id && permission_key === 'sistema.developer' && effect === 'deny') {
             return res.status(400).json({ success: false, message: 'Você não pode revogar seu próprio acesso de desenvolvedor.' });
+        }
+        const [validPermissionRows] = await pool.query('SELECT permission_key FROM permissions_catalog WHERE permission_key = ? AND ativo = 1', [permission_key]);
+        if (validPermissionRows.length === 0) {
+            return res.status(400).json({ success: false, message: 'Permissao inexistente ou inativa no catalogo.' });
         }
         await permissionsService.setUserPermissionOverride({
             usuarioId: targetUserId,
@@ -109,15 +151,22 @@ router.put('/users/:id/override', requirePermission('usuarios.gerenciar_permisso
 // 5. DELETE /api/permissions/users/:id/override/:permissionKey
 router.delete('/users/:id/override/:permissionKey', requirePermission('usuarios.gerenciar_permissoes'), async (req, res) => {
     try {
-        const targetUserId = Number(req.params.id);
+        const targetUserId = parsePositiveInt(req.params.id);
+        if (!targetUserId) {
+            return res.status(400).json({ success: false, message: 'ID de usuario invalido.' });
+        }
         const { permissionKey } = req.params;
         const caller = req.user;
         // Load target user's details
-        const [targetUserRows] = await pool.query('SELECT id, desenvolvedor, administrador, perfil FROM usuarios WHERE id = ?', [targetUserId]);
+        const [targetUserRows] = await pool.query('SELECT id, empresa_id, desenvolvedor, administrador, perfil FROM usuarios WHERE id = ?', [targetUserId]);
         if (targetUserRows.length === 0) {
             return res.status(404).json({ success: false, message: 'Usuário alvo não encontrado.' });
         }
         const targetUser = targetUserRows[0];
+        const accessError = validateTargetAccess(caller, targetUser);
+        if (accessError) {
+            return res.status(403).json({ success: false, message: accessError });
+        }
         // Hierarchy check
         if ((targetUser.desenvolvedor || targetUser.perfil === 'desenvolvedor') && !caller.desenvolvedor) {
             return res.status(403).json({ success: false, message: 'Apenas desenvolvedores podem alterar permissões de outro desenvolvedor.' });
@@ -146,14 +195,21 @@ router.delete('/users/:id/override/:permissionKey', requirePermission('usuarios.
 // 6. POST /api/permissions/users/:id/reset
 router.post('/users/:id/reset', requirePermission('usuarios.gerenciar_permissoes'), async (req, res) => {
     try {
-        const targetUserId = Number(req.params.id);
+        const targetUserId = parsePositiveInt(req.params.id);
+        if (!targetUserId) {
+            return res.status(400).json({ success: false, message: 'ID de usuario invalido.' });
+        }
         const caller = req.user;
         // Load target user's details
-        const [targetUserRows] = await pool.query('SELECT id, desenvolvedor, administrador, perfil FROM usuarios WHERE id = ?', [targetUserId]);
+        const [targetUserRows] = await pool.query('SELECT id, empresa_id, desenvolvedor, administrador, perfil FROM usuarios WHERE id = ?', [targetUserId]);
         if (targetUserRows.length === 0) {
             return res.status(404).json({ success: false, message: 'Usuário alvo não encontrado.' });
         }
         const targetUser = targetUserRows[0];
+        const accessError = validateTargetAccess(caller, targetUser);
+        if (accessError) {
+            return res.status(403).json({ success: false, message: accessError });
+        }
         // Hierarchy check
         if ((targetUser.desenvolvedor || targetUser.perfil === 'desenvolvedor') && !caller.desenvolvedor) {
             return res.status(403).json({ success: false, message: 'Apenas desenvolvedores podem alterar permissões de outro desenvolvedor.' });
@@ -176,18 +232,25 @@ router.post('/users/:id/reset', requirePermission('usuarios.gerenciar_permissoes
 // 6b. POST /api/permissions/users/:id/bulk
 router.post('/users/:id/bulk', requirePermission('usuarios.gerenciar_permissoes'), async (req, res) => {
     try {
-        const targetUserId = Number(req.params.id);
+        const targetUserId = parsePositiveInt(req.params.id);
+        if (!targetUserId) {
+            return res.status(400).json({ success: false, message: 'ID de usuario invalido.' });
+        }
         const { permission_keys, effect, motivo } = req.body;
         if (!permission_keys || !Array.isArray(permission_keys) || permission_keys.length === 0 || !['allow', 'deny'].includes(effect)) {
             return res.status(400).json({ success: false, message: 'Campos chaves ausentes ou inválidos.' });
         }
         const caller = req.user;
         // Load target user's details
-        const [targetUserRows] = await pool.query('SELECT id, desenvolvedor, administrador, perfil FROM usuarios WHERE id = ?', [targetUserId]);
+        const [targetUserRows] = await pool.query('SELECT id, empresa_id, desenvolvedor, administrador, perfil FROM usuarios WHERE id = ?', [targetUserId]);
         if (targetUserRows.length === 0) {
             return res.status(404).json({ success: false, message: 'Usuário alvo não encontrado.' });
         }
         const targetUser = targetUserRows[0];
+        const accessError = validateTargetAccess(caller, targetUser);
+        if (accessError) {
+            return res.status(403).json({ success: false, message: accessError });
+        }
         // Hierarchy check: Only developer can edit developer
         if ((targetUser.desenvolvedor || targetUser.perfil === 'desenvolvedor') && !caller.desenvolvedor) {
             return res.status(403).json({ success: false, message: 'Apenas desenvolvedores podem alterar permissões de outro desenvolvedor.' });
@@ -242,18 +305,25 @@ router.post('/users/:id/bulk', requirePermission('usuarios.gerenciar_permissoes'
 // 6c. POST /api/permissions/users/:id/bulk-reset
 router.post('/users/:id/bulk-reset', requirePermission('usuarios.gerenciar_permissoes'), async (req, res) => {
     try {
-        const targetUserId = Number(req.params.id);
+        const targetUserId = parsePositiveInt(req.params.id);
+        if (!targetUserId) {
+            return res.status(400).json({ success: false, message: 'ID de usuario invalido.' });
+        }
         const { permission_keys } = req.body;
         if (!permission_keys || !Array.isArray(permission_keys) || permission_keys.length === 0) {
             return res.status(400).json({ success: false, message: 'Campos chaves ausentes ou inválidos.' });
         }
         const caller = req.user;
         // Load target user's details
-        const [targetUserRows] = await pool.query('SELECT id, desenvolvedor, administrador, perfil FROM usuarios WHERE id = ?', [targetUserId]);
+        const [targetUserRows] = await pool.query('SELECT id, empresa_id, desenvolvedor, administrador, perfil FROM usuarios WHERE id = ?', [targetUserId]);
         if (targetUserRows.length === 0) {
             return res.status(404).json({ success: false, message: 'Usuário alvo não encontrado.' });
         }
         const targetUser = targetUserRows[0];
+        const accessError = validateTargetAccess(caller, targetUser);
+        if (accessError) {
+            return res.status(403).json({ success: false, message: accessError });
+        }
         // Hierarchy check
         if ((targetUser.desenvolvedor || targetUser.perfil === 'desenvolvedor') && !caller.desenvolvedor) {
             return res.status(403).json({ success: false, message: 'Apenas desenvolvedores podem alterar permissões de outro desenvolvedor.' });
@@ -295,6 +365,9 @@ router.post('/users/:id/bulk-reset', requirePermission('usuarios.gerenciar_permi
 // 7. POST /api/permissions/sync
 router.post('/sync', requirePermission('sistema.developer'), async (req, res) => {
     try {
+        if (!req.user?.desenvolvedor) {
+            return res.status(403).json({ success: false, message: 'Apenas desenvolvedores podem sincronizar o catalogo de permissoes.' });
+        }
         await permissionsService.syncCatalog();
         return res.json({
             success: true,

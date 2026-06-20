@@ -7,6 +7,7 @@ import ticketMessagesService from './ticket-messages.service.js';
 import slaService from './sla.service.js';
 import { AIService } from './ai.service.js';
 import { getTicketScope } from '../utils/ticket-permissions.js';
+import { recomputeTicketMessageState } from '../utils/ticket-state.js';
 
 export function toPositiveInt(value: unknown): number | undefined {
   if (value === undefined || value === null || value === '') return undefined;
@@ -140,26 +141,30 @@ class TicketsService {
     return { baseWhere, summaryWhere, params };
   }
 
-  async cleanupSpam() {
+  async cleanupSpam(empresaId: number) {
     // Delete tickets created in the last 12 hours that might be spam (too many from same user/subject)
     const [spamUsers]: any = await pool.query(`
       SELECT usuario_id, titulo, COUNT(*) as cnt 
       FROM tickets 
-      WHERE created_at > (NOW() - INTERVAL 12 HOUR)
+      WHERE empresa_id = ? AND created_at > (NOW() - INTERVAL 12 HOUR)
       GROUP BY usuario_id, titulo
       HAVING cnt > 5 
-    `);
+    `, [empresaId]);
 
     let deletedCount = 0;
     for (const spam of spamUsers) {
       const [result]: any = await pool.query(
-        'DELETE FROM tickets WHERE usuario_id = ? AND titulo = ? AND created_at > (NOW() - INTERVAL 12 HOUR)',
-        [spam.usuario_id, spam.titulo]
+        `DELETE FROM tickets
+         WHERE empresa_id = ?
+           AND ((usuario_id = ?) OR (usuario_id IS NULL AND ? IS NULL))
+           AND titulo = ?
+           AND created_at > (NOW() - INTERVAL 12 HOUR)`,
+        [empresaId, spam.usuario_id, spam.usuario_id, spam.titulo]
       );
       deletedCount += result.affectedRows;
     }
 
-    return { deletedCount };
+    return { empresaId, deletedCount };
   }
 
   async list(filters: any) {
@@ -249,17 +254,9 @@ class TicketsService {
           summaryWhere += " AND t.status = 'aguardando_cliente'";
           break;
         case 'precisa_resposta':
-          const prSQL = ` AND t.status NOT IN ('resolvido', 'fechado') AND (
-            NOT EXISTS (SELECT 1 FROM ticket_mensagens m_pr WHERE m_pr.ticket_id = t.id AND m_pr.interno = 0)
-            OR EXISTS (
-              SELECT 1 FROM ticket_mensagens m_pr 
-              WHERE m_pr.ticket_id = t.id AND m_pr.interno = 0 
-              AND m_pr.usuario_id = t.usuario_id
-              AND m_pr.id = (SELECT MAX(id) FROM ticket_mensagens WHERE ticket_id = t.id AND interno = 0)
-            )
-          )`;
-          baseWhere += prSQL;
-          summaryWhere += prSQL;
+          // Usa campo materializado (mantido por utils/ticket-state.ts).
+          baseWhere += ' AND t.aguardando_resposta_atendente = 1';
+          summaryWhere += ' AND t.aguardando_resposta_atendente = 1';
           break;
       }
     }
@@ -336,15 +333,7 @@ class TicketsService {
     // 4. Urgente
     // 5. Sem responsável
     const orderBy = `
-      (CASE WHEN t.status NOT IN ('resolvido', 'fechado') AND (
-        NOT EXISTS (SELECT 1 FROM ticket_mensagens m_pr WHERE m_pr.ticket_id = t.id AND m_pr.interno = 0)
-        OR EXISTS (
-          SELECT 1 FROM ticket_mensagens m_pr 
-          WHERE m_pr.ticket_id = t.id AND m_pr.interno = 0 
-          AND m_pr.usuario_id = t.usuario_id
-          AND m_pr.id = (SELECT MAX(id) FROM ticket_mensagens WHERE ticket_id = t.id AND interno = 0)
-        )
-      ) THEN 1 ELSE 0 END) DESC,
+      t.aguardando_resposta_atendente DESC,
       (CASE WHEN t.prazo_sla < NOW() AND t.status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) DESC,
       (CASE WHEN t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) DESC,
       (CASE WHEN t.prioridade = 'urgente' THEN 1 ELSE 0 END) DESC,
@@ -433,18 +422,7 @@ class TicketsService {
         SUM(CASE WHEN prazo_sla < NOW() AND status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) as sla_vencido,
         SUM(CASE WHEN prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) as vence_em_breve,
         SUM(CASE WHEN status = 'aguardando_cliente' THEN 1 ELSE 0 END) as aguardando_cliente,
-        SUM(CASE WHEN status NOT IN ('resolvido', 'fechado') AND (
-          -- Nunca respondeu (apenas descrição inicial)
-          NOT EXISTS (SELECT 1 FROM ticket_mensagens m WHERE m.ticket_id = tickets.id AND m.interno = 0)
-          OR 
-          -- Última mensagem pública é do cliente
-          EXISTS (
-            SELECT 1 FROM ticket_mensagens m 
-            WHERE m.ticket_id = tickets.id AND m.interno = 0 
-            AND m.usuario_id = tickets.usuario_id
-            AND m.id = (SELECT MAX(id) FROM ticket_mensagens WHERE ticket_id = tickets.id AND interno = 0)
-          )
-        ) THEN 1 ELSE 0 END) as precisa_resposta
+        SUM(aguardando_resposta_atendente) as precisa_resposta
       FROM tickets
       ${baseWhere}
     `, [usuario_id, ...params]);
@@ -548,17 +526,9 @@ class TicketsService {
           summaryWhere += " AND t.status = 'aguardando_cliente'";
           break;
         case 'precisa_resposta':
-           const prSQL_K = ` AND t.status NOT IN ('resolvido', 'fechado') AND (
-             NOT EXISTS (SELECT 1 FROM ticket_mensagens m_pr WHERE m_pr.ticket_id = t.id AND m_pr.interno = 0)
-             OR EXISTS (
-               SELECT 1 FROM ticket_mensagens m_pr 
-               WHERE m_pr.ticket_id = t.id AND m_pr.interno = 0 
-               AND m_pr.usuario_id = t.usuario_id
-               AND m_pr.id = (SELECT MAX(id) FROM ticket_mensagens WHERE ticket_id = t.id AND interno = 0)
-             )
-           )`;
-           baseWhere += prSQL_K;
-           summaryWhere += prSQL_K;
+           // Usa campo materializado (mantido por utils/ticket-state.ts).
+           baseWhere += ' AND t.aguardando_resposta_atendente = 1';
+           summaryWhere += ' AND t.aguardando_resposta_atendente = 1';
            break;
       }
     }
@@ -608,15 +578,7 @@ class TicketsService {
     
     // Prioridade operacional
     const orderBy_K = `
-      (CASE WHEN t.status NOT IN ('resolvido', 'fechado') AND (
-        NOT EXISTS (SELECT 1 FROM ticket_mensagens m_pr WHERE m_pr.ticket_id = t.id AND m_pr.interno = 0)
-        OR EXISTS (
-          SELECT 1 FROM ticket_mensagens m_pr 
-          WHERE m_pr.ticket_id = t.id AND m_pr.interno = 0 
-          AND m_pr.usuario_id = t.usuario_id
-          AND m_pr.id = (SELECT MAX(id) FROM ticket_mensagens WHERE ticket_id = t.id AND interno = 0)
-        )
-      ) THEN 1 ELSE 0 END) DESC,
+      t.aguardando_resposta_atendente DESC,
       (CASE WHEN t.prazo_sla < NOW() AND t.status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) DESC,
       (CASE WHEN t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) DESC,
       (CASE WHEN t.prioridade = 'urgente' THEN 1 ELSE 0 END) DESC,
@@ -628,6 +590,7 @@ class TicketsService {
     const [tickets]: any = await pool.query(`
       SELECT t.id, t.titulo, t.status, t.prioridade, t.categoria, t.servico, t.created_at, t.updated_at, t.prazo_sla, t.responsavel_id, t.empresa_id,
              t.sla_status_operacional, t.sla_pausado_em,
+             t.aguardando_resposta_atendente, t.ultima_mensagem_publica_em, t.ultima_mensagem_publica_origem,
              COALESCE(t.solicitante_nome, u.nome, 'Usuário Removido') as cliente_nome, 
              COALESCE(t.solicitante_email, u.email, 'Usuário Removido') as cliente_email, 
              COALESCE(r.nome, 'Não Atribuído') as responsavel_nome, 
@@ -816,6 +779,14 @@ class TicketsService {
       console.warn('Erro ao rodar automações', err);
     }
 
+    // BUG 3 fix: recompute APÓS as automações de criação, pois uma automação
+    // 'ticket_criado' pode ter alterado o status (ex.: fechar/aguardando_cliente).
+    try {
+      await recomputeTicketMessageState(ticketId);
+    } catch (stateErr) {
+      console.error('[TicketsService] Falha ao recomputar estado materializado (create):', stateErr);
+    }
+
     try {
       await recordTicketEvent({
         ticket_id: ticketId,
@@ -939,6 +910,7 @@ class TicketsService {
         t.prazo_primeira_resposta, t.primeira_resposta_em, t.sla_primeira_resposta_status, t.sla_resolucao_status,
         t.sla_pausado_em, t.sla_pausado_total_minutos, t.sla_status_operacional,
         t.resolucao_motivo, t.resolucao_observacao, t.reaberto_em, t.reaberto_por,
+        t.aguardando_resposta_atendente, t.ultima_mensagem_publica_em, t.ultima_mensagem_publica_origem,
         t.created_at, t.updated_at,
         COALESCE(t.solicitante_nome, u.nome, 'Usuário Removido') as cliente_nome, 
         COALESCE(t.solicitante_email, u.email, 'removido@sistema.com') as cliente_email, 
@@ -1087,6 +1059,13 @@ class TicketsService {
        const { runAutomations } = await import('./automations.service.js');
        await runAutomations('status_alterado', { ...oldTicket, status }, {});
     } catch(err) {}
+
+    // Mudança de status afeta "aguardando_resposta_atendente" -> recomputa.
+    try {
+      await recomputeTicketMessageState(id);
+    } catch (stateErr) {
+      console.error('[TicketsService] Falha ao recomputar estado materializado (updateStatus):', stateErr);
+    }
 
     return { oldStatus: oldTicket.status, newStatus: status, empresa_id: oldTicket.empresa_id };
   }
@@ -1315,6 +1294,18 @@ class TicketsService {
     } catch(err) {
       console.warn('Erro rodar automacoes update', err);
     }
+
+    // Defensivo: update() suporta data.status (pausa/retoma SLA, notifica, e-mail).
+    // Se o status mudou por aqui, recomputa o estado materializado para manter
+    // aguardando_resposta_atendente correto. Guardado: não roda em updates de
+    // prioridade/responsável (caminho comum do bulk), evitando overhead.
+    if (data.status && data.status !== oldTicket.status) {
+      try {
+        await recomputeTicketMessageState(id);
+      } catch (stateErr) {
+        console.error('[TicketsService] Falha ao recomputar estado materializado (update):', stateErr);
+      }
+    }
   }
 
   async getMessages(ticketId: number, includeInternal: boolean) {
@@ -1417,6 +1408,13 @@ class TicketsService {
       });
     }
 
+    // Ticket finalizado nunca fica em fila de resposta -> recomputa.
+    try {
+      await recomputeTicketMessageState(id);
+    } catch (stateErr) {
+      console.error('[TicketsService] Falha ao recomputar estado materializado (resolveTicket):', stateErr);
+    }
+
     return { success: true };
   }
 
@@ -1435,6 +1433,13 @@ class TicketsService {
       await slaService.resumeSla(id, currentUser.id);
     } else {
       await slaService.updateOperationalStatus(id);
+    }
+
+    // Reabertura volta o ticket para fila de resposta conforme a regra -> recomputa.
+    try {
+      await recomputeTicketMessageState(id);
+    } catch (stateErr) {
+      console.error('[TicketsService] Falha ao recomputar estado materializado (reopenTicket):', stateErr);
     }
 
     return { success: true };
@@ -1861,14 +1866,10 @@ class TicketsService {
 
     const ticketIds = tickets.map(t => t.id);
 
-    // 1. Fetch last public message for each ticket (for state calculation)
-    const [publicMessages]: any = await pool.query(`
-      SELECT m.ticket_id, m.id, m.usuario_id, m.created_at
-      FROM ticket_mensagens m
-      WHERE m.id IN (
-        SELECT MAX(id) FROM ticket_mensagens WHERE ticket_id IN (?) AND (interno = 0) GROUP BY ticket_id
-      )
-    `, [ticketIds]);
+    // (1) A "última mensagem pública" agora é MATERIALIZADA em tickets
+    //     (ultima_mensagem_publica_em / ultima_mensagem_publica_origem +
+    //     aguardando_resposta_atendente), mantida por utils/ticket-state.ts.
+    //     A antiga subquery correlacionada foi removida daqui.
 
     // 2. Fetch last overall message for each ticket (for "last message in list")
     const [lastMessages]: any = await pool.query(`
@@ -1895,18 +1896,12 @@ class TicketsService {
       }, {});
     }
 
-    const publicMsgMap = publicMessages.reduce((acc: any, m: any) => {
-      acc[m.ticket_id] = m;
-      return acc;
-    }, {});
-
     const lastMsgMap = lastMessages.reduce((acc: any, m: any) => {
       acc[m.ticket_id] = m;
       return acc;
     }, {});
 
     tickets.forEach(t => {
-      const lmPub = publicMsgMap[t.id];
       const lmAll = lastMsgMap[t.id];
       const lastRead = readReceiptsMap[t.id];
 
@@ -1917,16 +1912,17 @@ class TicketsService {
         estado = 'finalizado';
       } else if (t.status === 'aguardando_cliente') {
         estado = 'aguardando_cliente';
-      } else if (!lmPub) {
+      } else if (!t.ultima_mensagem_publica_em) {
         estado = 'sem_resposta';
-      } else if (Number(lmPub.usuario_id) === Number(t.usuario_id)) {
+      } else if (t.ultima_mensagem_publica_origem === 'cliente') {
         estado = 'cliente_respondeu';
       } else {
         estado = 'atendente_respondeu';
       }
 
       t.estado_atendimento = estado;
-      t.precisa_resposta = (estado === 'cliente_respondeu' || estado === 'sem_resposta') && !['resolvido', 'fechado'].includes(t.status);
+      // precisa_resposta vem do campo materializado (fonte única: utils/ticket-state.ts)
+      t.precisa_resposta = Number(t.aguardando_resposta_atendente) === 1;
       
       if (lmAll) {
         t.ultima_mensagem_em = lmAll.ultima_mensagem_em;

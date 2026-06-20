@@ -137,9 +137,13 @@ export const TicketKanban = ({
   }, [currentUser.desenvolvedor, devCompanyId]);
 
   useEffect(() => {
-    if (!currentUser?.empresa_id) return;
+    const socketEmpresaId = currentUser.desenvolvedor
+      ? Number(devCompanyId)
+      : Number(currentUser.empresa_id);
 
-    const socket = getSocket(currentUser.empresa_id);
+    if (!Number.isInteger(socketEmpresaId) || socketEmpresaId <= 0) return;
+
+    const socket = getSocket(socketEmpresaId);
 
     const handleTicketUpdated = (updatedTicket: Ticket) => {
       setLocalData(currentData => {
@@ -181,7 +185,7 @@ export const TicketKanban = ({
       socket.off('ticketUpdated', handleTicketUpdated);
       socket.off('ticketCreated', handleTicketCreated);
     };
-  }, [currentUser]);
+  }, [currentUser.desenvolvedor, currentUser.empresa_id, devCompanyId]);
 
   const rows: RowUser[] = useMemo(() => {
     const allTickets = getAllTickets(localData.columns);

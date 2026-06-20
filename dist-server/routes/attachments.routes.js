@@ -4,6 +4,7 @@ import ticketsService from '../services/tickets.service.js';
 import { authMiddleware } from '../middlewares/auth.js';
 import { sendSuccess, sendError } from '../utils/response.js';
 import { logSystemAction } from '../utils/logger.js';
+import { permissionsService } from '../services/permissions.service.js';
 import { promises as fs } from 'fs';
 import path from 'path';
 const router = Router();
@@ -40,8 +41,9 @@ router.get('/:id/download', async (req, res) => {
                 }
             }
         }
+        const canViewInternal = isAdminOrDev || await permissionsService.hasPermission(currentUser, 'ticket_mensagens.ver_internos');
         // Internal attachment check
-        if (attachment.interno && !isAdminOrDev) {
+        if (attachment.interno && !canViewInternal) {
             return sendError(res, 'Acesso negado a anexo interno', 403);
         }
         // Path safety check

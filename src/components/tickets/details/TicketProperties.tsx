@@ -26,6 +26,7 @@ import { TicketTags } from '../TicketTags';
 import { TicketCustomFields } from './TicketCustomFields';
 import { useTicketOptions } from '../../../hooks/useTicketOptions';
 import { hasPermission } from '../../../lib/permissions';
+import { getCategoryShortLabel } from '../../../lib/ticketOptions';
 
 const PropertyRow = ({ label, icon: Icon, children, className }: { label: string, icon?: any, children: React.ReactNode, className?: string }) => (
   <div className={cn("flex flex-col gap-1 py-1.5 first:pt-0", className)}>
@@ -146,7 +147,7 @@ export const TicketProperties = ({
   ];
 
   const categoryOptions = activeCategories.length > 0 
-    ? activeCategories.map(c => ({ value: c.valor, label: c.nome }))
+    ? activeCategories.map(c => ({ value: c.valor, label: getCategoryShortLabel(c) }))
     : defaultCategories;
 
   const serviceOptions = activeServices.length > 0 

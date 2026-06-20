@@ -46,7 +46,12 @@ class CompaniesService {
                 throw new Error('Este E-mail de suporte já está em uso por outra empresa.');
         }
         const [result] = await pool.query('INSERT INTO empresas (nome, cnpj, email, email_suporte, telefone, cor_principal, logo) VALUES (?, ?, ?, ?, ?, ?, ?)', [nome, cnpj, email, email_suporte || null, telefone, cor_principal, logo]);
-        return result.insertId;
+        const companyId = result.insertId;
+        await pool.query(`INSERT IGNORE INTO empresa_ticket_status (empresa_id, nome, valor, ativo, ordem)
+       VALUES (?, 'Aberto', 'aberto', 1, 0),
+              (?, 'Em Atendimento', 'em_andamento', 1, 1),
+              (?, 'Finalizado', 'resolvido', 1, 2)`, [companyId, companyId, companyId]);
+        return companyId;
     }
     async update(id, data) {
         const { cnpj, email, email_suporte } = data;
@@ -119,6 +124,7 @@ class CompaniesService {
                 'empresa_email_canais',
                 'empresa_ticket_categorias',
                 'empresa_ticket_servicos',
+                'empresa_ticket_status',
                 'empresa_sla_politicas',
                 'empresa_distribuicao_regras',
                 'logs_sistema',

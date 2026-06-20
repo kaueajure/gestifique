@@ -92,8 +92,9 @@ export interface TicketKanbanResponse {
 export interface TicketOption {
   id: number;
   nome: string;
+  sigla?: string | null;
   valor: string;
-  ativo: boolean;
+  ativo: boolean | number | string;
   ordem?: number;
 }
 

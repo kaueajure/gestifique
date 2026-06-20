@@ -1,15 +1,13 @@
 import React from 'react';
 import { Database, FileText, Lock, Mail, ShieldCheck, Users } from 'lucide-react';
 
-const lastUpdated = '11 de junho de 2026';
+const lastUpdated = '20 de junho de 2026';
 const contactEmail = 'contato@gestifique.com.br';
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <section className="space-y-3">
     <h2 className="text-lg font-bold tracking-tight text-slate-900">{title}</h2>
-    <div className="space-y-3 text-sm font-medium leading-relaxed text-slate-600">
-      {children}
-    </div>
+    <div className="space-y-3 text-sm font-medium leading-relaxed text-slate-600">{children}</div>
   </section>
 );
 
@@ -43,7 +41,7 @@ const LegalHero = ({
         <p className="max-w-3xl text-base lg:text-lg font-medium leading-relaxed text-slate-500">
           {description}
         </p>
-        <p className="text-xs font-semibold text-slate-400">Última atualização: {lastUpdated}</p>
+        <p className="text-xs font-semibold text-slate-400">Ultima atualizacao: {lastUpdated}</p>
       </div>
     </div>
   </section>
@@ -54,8 +52,8 @@ export const PublicPrivacyPolicyPage = () => {
     <div className="flex flex-col bg-white">
       <LegalHero
         eyebrow="Privacidade e dados"
-        title="Política de Privacidade"
-        description="Esta Política descreve, de forma específica, como o Gestifique coleta, usa, armazena, protege, compartilha e exclui dados tratados na plataforma, incluindo dados recebidos por integrações de e-mail."
+        title="Politica de Privacidade"
+        description="Esta Politica descreve como o Gestifique coleta, usa, armazena, protege, compartilha e exclui dados tratados na plataforma, incluindo dados recebidos por canais de e-mail."
         icon={ShieldCheck}
       />
 
@@ -63,7 +61,7 @@ export const PublicPrivacyPolicyPage = () => {
         <div className="max-w-4xl mx-auto grid gap-10">
           <div className="grid gap-4 sm:grid-cols-3">
             {[
-              { icon: Lock, title: 'Acesso restrito', text: 'Controles por perfil, autenticação e registros de auditoria.' },
+              { icon: Lock, title: 'Acesso restrito', text: 'Controles por perfil, autenticacao e registros de auditoria.' },
               { icon: Database, title: 'Finalidade limitada', text: 'Dados usados para atendimento, tickets, SLA e suporte.' },
               { icon: Mail, title: 'Canal de privacidade', text: contactEmail },
             ].map((item) => (
@@ -75,28 +73,27 @@ export const PublicPrivacyPolicyPage = () => {
             ))}
           </div>
 
-          <Section title="1. Controlador e escopo desta Política">
+          <Section title="1. Controlador e escopo desta Politica">
             <p>
-              O Gestifique é uma plataforma SaaS de gestão de atendimento, tickets, SLA, portal do cliente,
-              base de conhecimento, relatórios, automações e integrações de e-mail. Esta Política se aplica ao
-              site público, ao painel administrativo, ao portal do cliente, às APIs, aos canais de e-mail e às
-              integrações OAuth disponibilizadas pela plataforma.
+              O Gestifique e uma plataforma SaaS de gestao de atendimento, tickets, SLA, portal do cliente,
+              base de conhecimento, relatorios, automacoes e canais de e-mail. Esta Politica se aplica ao site
+              publico, ao painel administrativo, ao portal do cliente, as APIs e aos canais de e-mail da plataforma.
             </p>
             <p>
-              A empresa contratante é responsável pela base de dados operacional inserida por seus usuários,
+              A empresa contratante e responsavel pela base de dados operacional inserida por seus usuarios,
               clientes e representantes. O Gestifique trata esses dados para executar a plataforma, manter a
-              segurança, prestar suporte e cumprir obrigações legais e contratuais.
+              seguranca, prestar suporte e cumprir obrigacoes legais e contratuais.
             </p>
           </Section>
 
           <Section title="2. Dados coletados e tratados">
             <BulletList
               items={[
-                'Dados de identificação e acesso: nome, e-mail, telefone, cargo, empresa, perfil, permissões, status da conta e registros de autenticação.',
-                'Dados corporativos: nome da empresa, CNPJ, domínio, contatos de suporte, configurações de canais, identidade visual e preferências operacionais.',
-                'Dados de atendimento: tickets, mensagens, comentários internos, anexos, categorias, prioridades, filas, responsáveis, SLA, eventos, histórico de alterações e satisfação do cliente.',
-                'Dados técnicos e de segurança: IP, user agent, data e hora de acesso, logs de erro, logs de auditoria, tentativas de autenticação e informações necessárias para prevenção de abuso.',
-                'Dados de e-mail e integrações: endereço conectado, escopos autorizados, identificadores de mensagens, remetente, destinatários, assunto, corpo, anexos, cabeçalhos de conversa, status OAuth e tokens criptografados.',
+                'Dados de identificacao e acesso: nome, e-mail, telefone, cargo, empresa, perfil, permissoes, status da conta e registros de autenticacao.',
+                'Dados corporativos: nome da empresa, CNPJ, dominio, contatos de suporte, configuracoes de canais, identidade visual e preferencias operacionais.',
+                'Dados de atendimento: tickets, mensagens, comentarios internos, anexos, categorias, prioridades, filas, responsaveis, SLA, eventos, historico de alteracoes e satisfacao do cliente.',
+                'Dados tecnicos e de seguranca: IP, user agent, data e hora de acesso, logs de erro, logs de auditoria, tentativas de autenticacao e informacoes necessarias para prevencao de abuso.',
+                'Dados de e-mail: endereco publico do canal, endereco tecnico de encaminhamento, remetente, destinatarios, assunto, corpo, anexos, cabecalhos de conversa e identificadores de mensagens.',
               ]}
             />
           </Section>
@@ -106,107 +103,83 @@ export const PublicPrivacyPolicyPage = () => {
               items={[
                 'Criar, organizar, classificar, distribuir, acompanhar e encerrar tickets de atendimento.',
                 'Vincular mensagens recebidas por e-mail a tickets novos ou existentes, evitando duplicidade por Message-ID, In-Reply-To, References e outros metadados de conversa.',
-                'Permitir que usuários autorizados respondam tickets e acompanhem o histórico de atendimento.',
-                'Controlar SLA, prioridades, responsáveis, filas, auditoria, relatórios e indicadores operacionais.',
-                'Enviar mensagens transacionais, respostas de tickets, notificações e e-mails necessários à operação.',
-                'Manter segurança, diagnosticar falhas, prevenir spam, abuso, fraude, acesso indevido e uso incompatível com estes documentos.',
+                'Permitir que usuarios autorizados respondam tickets e acompanhem o historico de atendimento.',
+                'Controlar SLA, prioridades, responsaveis, filas, auditoria, relatorios e indicadores operacionais.',
+                'Enviar mensagens transacionais, respostas de tickets, notificacoes e e-mails necessarios a operacao.',
+                'Manter seguranca, diagnosticar falhas, prevenir spam, abuso, fraude, acesso indevido e uso incompatavel com estes documentos.',
               ]}
             />
           </Section>
 
-          <Section title="4. Uso de Google OAuth e Gmail API">
+          <Section title="4. Canais de e-mail">
             <p>
-              Quando uma empresa conecta uma conta Google/Gmail ao Gestifique, solicitamos autorização OAuth
-              apenas para as funcionalidades de atendimento vinculadas ao canal de e-mail. A conta conectada deve
-              pertencer à empresa ou ser usada com autorização válida da empresa.
+              A empresa pode cadastrar enderecos publicos de atendimento e configurar regras de encaminhamento
+              no seu proprio provedor de e-mail para que mensagens recebidas sejam processadas pelo Gestifique.
+              O envio de respostas e mensagens transacionais usa a configuracao SMTP da plataforma.
             </p>
             <p>
-              O escopo <strong>https://www.googleapis.com/auth/gmail.send</strong> é usado somente para enviar
-              respostas de tickets com o remetente autorizado. O escopo <strong>https://www.googleapis.com/auth/gmail.readonly</strong>,
-              quando habilitado, é usado somente para ler mensagens recebidas, remetente, destinatários, assunto,
-              corpo, anexos e cabeçalhos necessários para criar tickets, atualizar tickets existentes e preservar
-              o histórico de atendimento.
-            </p>
-            <p>
-              O Gestifique não usa dados do Gmail para publicidade, venda de dados, perfilamento, enriquecimento
-              comercial, treinamento de modelos de terceiros ou qualquer finalidade não relacionada ao atendimento.
-              Não excluímos e-mails da conta Google, não alteramos labels, não acessamos contatos e não solicitamos
-              escopos mais amplos como <strong>https://mail.google.com/</strong> ou <strong>gmail.modify</strong>
-              quando escopos mais restritos forem suficientes.
-            </p>
-            <p>
-              O uso e a transferência de dados recebidos das APIs do Google para qualquer outro aplicativo seguem
-              a Política de Dados do Usuário dos Serviços de API do Google, incluindo os requisitos de Uso Limitado.
-              Dados do Google são usados exclusivamente para fornecer ou melhorar funcionalidades visíveis ao usuário
-              dentro do Gestifique.
+              O Gestifique usa os dados de e-mail apenas para criar, atualizar e preservar o historico dos tickets,
+              entregar respostas aos destinatarios corretos e manter rastreabilidade operacional. Nao vendemos dados
+              de e-mail e nao os usamos para publicidade ou perfilamento comercial.
             </p>
           </Section>
 
-          <Section title="5. Tokens, credenciais e segurança de integrações">
+          <Section title="5. Credenciais e seguranca de integracoes">
             <p>
-              Tokens OAuth e credenciais sensíveis são armazenados de forma criptografada quando precisam ser
-              preservados para manter a conexão. O acesso a esses dados é restrito a processos necessários para
-              autenticar chamadas à API, renovar tokens, enviar mensagens, ler mensagens autorizadas e registrar
-              eventos operacionais.
+              Credenciais tecnicas e segredos operacionais, quando necessarios, sao armazenados com controles de
+              acesso restritos. O acesso a esses dados fica limitado a processos necessarios para executar a plataforma,
+              autenticar servicos internos, enviar mensagens, receber mensagens encaminhadas e registrar eventos.
             </p>
             <p>
-              A empresa pode desconectar uma conta Google pelo painel do canal. A desconexão remove a capacidade
-              operacional do Gestifique de usar aquela autorização, sem impedir que a empresa também revogue o acesso
-              diretamente na conta Google.
+              A empresa continua responsavel por manter suas contas de e-mail, DNS, usuarios, senhas e regras de
+              encaminhamento sob controle adequado.
             </p>
           </Section>
 
           <Section title="6. Compartilhamento e subprocessadores">
             <p>
-              Não vendemos dados pessoais ou dados de e-mail. Podemos compartilhar dados somente com fornecedores
-              necessários à execução da plataforma, como hospedagem, banco de dados, armazenamento de arquivos,
-              envio de e-mails, monitoramento, suporte técnico e provedores de autenticação. Esses fornecedores
-              devem tratar os dados apenas conforme instruções compatíveis com esta Política.
+              Nao vendemos dados pessoais ou dados de e-mail. Podemos compartilhar dados somente com fornecedores
+              necessarios a execucao da plataforma, como hospedagem, banco de dados, armazenamento de arquivos,
+              envio de e-mails, monitoramento e suporte tecnico.
             </p>
             <p>
-              Também poderemos divulgar dados quando necessário para cumprir lei, ordem de autoridade competente,
-              defesa de direitos, investigação de incidentes, prevenção de abuso ou proteção da segurança da plataforma.
-            </p>
-          </Section>
-
-          <Section title="7. Retenção, exclusão e minimização">
-            <p>
-              Mantemos dados pelo tempo necessário para prestar o serviço, preservar histórico de atendimento,
-              cumprir obrigações legais ou contratuais, resolver disputas, manter logs de auditoria e proteger a
-              segurança da plataforma. Dados de tickets e mensagens podem ser mantidos enquanto a empresa mantiver
-              a conta ativa ou enquanto houver necessidade operacional legítima.
-            </p>
-            <p>
-              Mediante solicitação válida, avaliaremos exclusão, anonimização, bloqueio ou exportação de dados,
-              respeitando obrigações legais, antifraude, auditoria, segurança e continuidade da relação contratual.
+              Tambem poderemos divulgar dados quando necessario para cumprir lei, ordem de autoridade competente,
+              defesa de direitos, investigacao de incidentes, prevencao de abuso ou protecao da seguranca da plataforma.
             </p>
           </Section>
 
-          <Section title="8. Direitos dos titulares e canal de solicitação">
+          <Section title="7. Retencao, exclusao e minimizacao">
             <p>
-              Conforme a legislação aplicável, titulares podem solicitar confirmação de tratamento, acesso, correção,
-              anonimização, portabilidade, bloqueio, eliminação, informação sobre compartilhamento e revisão de decisões
-              automatizadas, quando aplicável. Solicitações devem ser enviadas para <strong>{contactEmail}</strong>.
+              Mantemos dados pelo tempo necessario para prestar o servico, preservar historico de atendimento,
+              cumprir obrigacoes legais ou contratuais, resolver disputas, manter logs de auditoria e proteger a
+              seguranca da plataforma.
             </p>
             <p>
-              Poderemos solicitar informações adicionais para confirmar a identidade do solicitante e proteger dados
-              contra acesso indevido.
+              Mediante solicitacao valida, avaliaremos exclusao, anonimizacao, bloqueio ou exportacao de dados,
+              respeitando obrigacoes legais, antifraude, auditoria, seguranca e continuidade da relacao contratual.
+            </p>
+          </Section>
+
+          <Section title="8. Direitos dos titulares e canal de solicitacao">
+            <p>
+              Conforme a legislacao aplicavel, titulares podem solicitar confirmacao de tratamento, acesso, correcao,
+              anonimizacao, portabilidade, bloqueio, eliminacao, informacao sobre compartilhamento e revisao de decisoes
+              automatizadas, quando aplicavel. Solicitacoes devem ser enviadas para <strong>{contactEmail}</strong>.
             </p>
           </Section>
 
           <Section title="9. Uso proibido dos dados">
             <p>
-              Dados tratados pelo Gestifique, incluindo dados de Gmail, não podem ser usados por clientes ou usuários
-              para spam, assédio, fraude, discriminação, scraping, venda de listas, envio de conteúdo ilegal, violação
-              de direitos de terceiros ou qualquer finalidade incompatível com atendimento e suporte legítimos.
+              Dados tratados pelo Gestifique nao podem ser usados por clientes ou usuarios para spam, assedio, fraude,
+              discriminacao, scraping, venda de listas, envio de conteudo ilegal, violacao de direitos de terceiros
+              ou qualquer finalidade incompatavel com atendimento e suporte legitimos.
             </p>
           </Section>
 
-          <Section title="10. Alterações nesta Política">
+          <Section title="10. Alteracoes nesta Politica">
             <p>
-              Podemos atualizar esta Política para refletir mudanças legais, técnicas, operacionais ou de integrações.
-              A versão vigente ficará disponível nesta página, com data de atualização. Mudanças relevantes poderão
-              ser comunicadas por meios razoáveis dentro da plataforma ou canais de contato cadastrados.
+              Podemos atualizar esta Politica para refletir mudancas legais, tecnicas, operacionais ou de integracoes.
+              A versao vigente ficara disponivel nesta pagina, com data de atualizacao.
             </p>
           </Section>
         </div>
@@ -221,7 +194,7 @@ export const PublicTermsOfUsePage = () => {
       <LegalHero
         eyebrow="Termos contratuais"
         title="Termos de Uso"
-        description="Estes Termos definem regras rigorosas para acesso, uso, responsabilidades, limitações e integrações do Gestifique por empresas, usuários internos e clientes finais autorizados."
+        description="Estes Termos definem regras para acesso, uso, responsabilidades, limitacoes e integracoes do Gestifique por empresas, usuarios internos e clientes finais autorizados."
         icon={FileText}
       />
 
@@ -231,139 +204,124 @@ export const PublicTermsOfUsePage = () => {
             <div className="flex items-start gap-3">
               <Users size={20} className="mt-0.5 shrink-0 text-blue-700" />
               <p className="text-sm font-semibold leading-relaxed text-blue-900">
-                Ao acessar ou usar o Gestifique, você confirma que leu, compreendeu e aceita estes Termos.
-                Se estiver atuando em nome de uma empresa, declara possuir autorização para vinculá-la a estes Termos.
+                Ao acessar ou usar o Gestifique, voce confirma que leu, compreendeu e aceita estes Termos.
+                Se estiver atuando em nome de uma empresa, declara possuir autorizacao para vincula-la a estes Termos.
               </p>
             </div>
           </div>
 
-          <Section title="1. Objeto e natureza do serviço">
+          <Section title="1. Objeto e natureza do servico">
             <p>
-              O Gestifique é uma plataforma SaaS para gestão de atendimento, tickets, SLA, portal do cliente,
-              usuários, permissões, relatórios, base de conhecimento, anexos, automações e integrações de e-mail.
-              A plataforma não substitui consultoria jurídica, contábil, médica, financeira ou qualquer atividade
-              regulada que dependa de profissional habilitado.
+              O Gestifique e uma plataforma SaaS para gestao de atendimento, tickets, SLA, portal do cliente,
+              usuarios, permissoes, relatorios, base de conhecimento, anexos, automacoes e canais de e-mail.
             </p>
           </Section>
 
-          <Section title="2. Elegibilidade, contas e permissões">
+          <Section title="2. Elegibilidade, contas e permissoes">
             <BulletList
               items={[
-                'A empresa é responsável por autorizar usuários, definir perfis, revisar permissões e remover acessos indevidos ou desnecessários.',
-                'Cada usuário deve usar credenciais próprias, manter senha em sigilo e comunicar qualquer suspeita de acesso não autorizado.',
-                'Administradores respondem por ações realizadas por usuários que tenham recebido permissões dentro da conta da empresa.',
-                'É proibido compartilhar credenciais, burlar autenticação, explorar falhas, testar invasão sem autorização ou acessar dados de terceiros sem permissão.',
+                'A empresa e responsavel por autorizar usuarios, definir perfis, revisar permissoes e remover acessos indevidos ou desnecessarios.',
+                'Cada usuario deve usar credenciais proprias, manter senha em sigilo e comunicar qualquer suspeita de acesso nao autorizado.',
+                'Administradores respondem por acoes realizadas por usuarios que tenham recebido permissoes dentro da conta da empresa.',
+                'E proibido compartilhar credenciais, burlar autenticacao, explorar falhas, testar invasao sem autorizacao ou acessar dados de terceiros sem permissao.',
               ]}
             />
           </Section>
 
-          <Section title="3. Responsabilidade pelo conteúdo">
+          <Section title="3. Responsabilidade pelo conteudo">
             <p>
-              A empresa e seus usuários são responsáveis por dados, mensagens, anexos, informações de clientes,
-              bases de conhecimento e demais conteúdos inseridos, importados, encaminhados ou transmitidos pela
-              plataforma. O Gestifique pode remover, bloquear ou restringir conteúdo quando houver indícios de uso
-              ilícito, abusivo, inseguro ou incompatível com estes Termos.
+              A empresa e seus usuarios sao responsaveis por dados, mensagens, anexos, informacoes de clientes,
+              bases de conhecimento e demais conteudos inseridos, importados, encaminhados ou transmitidos pela
+              plataforma.
             </p>
           </Section>
 
           <Section title="4. Uso permitido e condutas proibidas">
             <p>
-              O Gestifique deve ser usado exclusivamente para atendimento, suporte, gestão operacional e comunicação
-              legítima com clientes ou usuários autorizados. É proibido usar a plataforma para spam, phishing, malware,
-              coleta indevida de dados, venda de listas, assédio, fraude, violação de propriedade intelectual, envio de
-              conteúdo ilícito ou tentativa de degradar, sobrecarregar ou comprometer a segurança do serviço.
+              O Gestifique deve ser usado exclusivamente para atendimento, suporte, gestao operacional e comunicacao
+              legitima com clientes ou usuarios autorizados. E proibido usar a plataforma para spam, phishing, malware,
+              coleta indevida de dados, venda de listas, assedio, fraude ou envio de conteudo ilicito.
             </p>
           </Section>
 
-          <Section title="5. Integrações de e-mail, Google OAuth e Gmail API">
+          <Section title="5. Integracoes de e-mail">
             <p>
-              A empresa pode conectar contas de e-mail por encaminhamento, IMAP ou Google OAuth, conforme recursos
-              disponíveis. Ao conectar uma conta Google, a empresa declara que possui direito e autorização para usar
-              esse endereço como canal de atendimento e que informará seus usuários e clientes sobre o tratamento de
-              mensagens relacionado a tickets.
+              A empresa pode cadastrar canais de e-mail e configurar encaminhamento no seu proprio provedor. A empresa
+              declara que possui direito e autorizacao para usar esses enderecos como canais de atendimento e que
+              informara seus usuarios e clientes sobre o tratamento de mensagens relacionado a tickets.
             </p>
             <p>
-              A integração Gmail pode usar permissões estritamente necessárias para enviar respostas e, quando habilitado,
-              ler mensagens recebidas para criar ou atualizar tickets. O Gestifique não se compromete a aprovar, manter
-              ou garantir disponibilidade de APIs de terceiros. Google, provedores de e-mail, DNS, hospedagem e demais
-              serviços externos podem impor limites, verificações, suspensões, mudanças de política ou indisponibilidades.
+              Provedores de e-mail, DNS, hospedagem e demais servicos externos podem impor limites, verificacoes,
+              suspensoes, mudancas de politica ou indisponibilidades que estejam fora do controle do Gestifique.
             </p>
           </Section>
 
-          <Section title="6. Obrigações da empresa sobre e-mail e dados de clientes">
+          <Section title="6. Obrigacoes da empresa sobre e-mail e dados de clientes">
             <BulletList
               items={[
-                'Obter autorizações internas necessárias antes de conectar caixas de e-mail corporativas ou pessoais usadas para atendimento.',
-                'Não conectar caixas de e-mail que contenham dados sem relação com a operação de suporte, salvo se houver base legal e autorização adequadas.',
-                'Não usar o Gestifique para monitoramento secreto, vigilância indevida ou tratamento incompatível com leis de privacidade e trabalho.',
-                'Manter informações de clientes corretas e remover dados desnecessários, excessivos ou inseridos por engano.',
+                'Obter autorizacoes internas necessarias antes de usar caixas de e-mail corporativas ou pessoais para atendimento.',
+                'Nao encaminhar mensagens sem relacao com a operacao de suporte, salvo se houver base legal e autorizacao adequadas.',
+                'Nao usar o Gestifique para monitoramento secreto, vigilancia indevida ou tratamento incompatavel com leis de privacidade e trabalho.',
+                'Manter informacoes de clientes corretas e remover dados desnecessarios, excessivos ou inseridos por engano.',
               ]}
             />
           </Section>
 
-          <Section title="7. Segurança e resposta a incidentes">
+          <Section title="7. Seguranca e resposta a incidentes">
             <p>
-              Empregamos medidas razoáveis de segurança técnica e administrativa, mas nenhum sistema é imune a riscos.
-              A empresa deve manter dispositivos, senhas, contas Google, DNS, provedores de e-mail e usuários sob
-              controle adequado. Incidentes, vazamentos suspeitos ou acessos não autorizados devem ser comunicados
-              imediatamente pelo e-mail <strong>{contactEmail}</strong>.
+              Empregamos medidas razoaveis de seguranca tecnica e administrativa, mas nenhum sistema e imune a riscos.
+              A empresa deve manter dispositivos, senhas, DNS, provedores de e-mail e usuarios sob controle adequado.
+              Incidentes ou acessos nao autorizados devem ser comunicados imediatamente pelo e-mail{' '}
+              <strong>{contactEmail}</strong>.
             </p>
           </Section>
 
-          <Section title="8. Funcionalidades beta e mudanças no produto">
+          <Section title="8. Funcionalidades beta e mudancas no produto">
             <p>
-              Recursos identificados como beta, teste, experimental ou pré-lançamento podem apresentar instabilidade,
-              limitações, mudanças de comportamento, suspensão ou remoção sem aviso prévio. O uso desses recursos
-              ocorre por conta e risco da empresa, especialmente quando depender de APIs externas em processo de
-              verificação ou aprovação.
+              Recursos identificados como beta, teste, experimental ou pre-lancamento podem apresentar instabilidade,
+              limitacoes, mudancas de comportamento, suspensao ou remocao sem aviso previo.
             </p>
           </Section>
 
-          <Section title="9. Planos, cobrança, suspensão e cancelamento">
+          <Section title="9. Planos, cobranca, suspensao e cancelamento">
             <p>
-              Condições comerciais, preços, limites, cobrança, suporte, vigência e cancelamento podem ser definidos
-              em proposta, contrato ou página de planos vigente. Poderemos suspender ou limitar acesso em caso de
-              inadimplência, risco de segurança, abuso, violação destes Termos, ordem legal ou uso que comprometa a
-              plataforma ou terceiros.
+              Condicoes comerciais, precos, limites, cobranca, suporte, vigencia e cancelamento podem ser definidos
+              em proposta, contrato ou pagina de planos vigente.
             </p>
           </Section>
 
           <Section title="10. Propriedade intelectual">
             <p>
-              O Gestifique, incluindo marca, software, código, design, textos, fluxos, documentação, interfaces,
-              relatórios e recursos, pertence aos seus titulares. Estes Termos concedem apenas licença limitada,
-              revogável, não exclusiva e intransferível para uso da plataforma durante a relação contratual.
+              O Gestifique, incluindo marca, software, codigo, design, textos, fluxos, documentacao, interfaces,
+              relatorios e recursos, pertence aos seus titulares.
             </p>
           </Section>
 
-          <Section title="11. Disponibilidade e limitações de responsabilidade">
+          <Section title="11. Disponibilidade e limitacoes de responsabilidade">
             <p>
-              Buscamos manter a plataforma disponível, segura e funcional, mas não garantimos operação ininterrupta
-              ou livre de falhas. Na máxima extensão permitida por lei, não respondemos por lucros cessantes, perda
-              de receita, danos indiretos, falhas de terceiros, indisponibilidade de APIs externas, erros de configuração
-              da empresa, dados inseridos incorretamente ou decisões tomadas com base em informações cadastradas pelos usuários.
+              Buscamos manter a plataforma disponivel, segura e funcional, mas nao garantimos operacao ininterrupta
+              ou livre de falhas. Na maxima extensao permitida por lei, nao respondemos por falhas de terceiros,
+              indisponibilidade de APIs externas, erros de configuracao da empresa ou dados inseridos incorretamente.
             </p>
           </Section>
 
-          <Section title="12. Privacidade e proteção de dados">
+          <Section title="12. Privacidade e protecao de dados">
             <p>
-              O tratamento de dados pessoais e dados de Gmail é regulado pela Política de Privacidade do Gestifique,
-              que integra estes Termos. Ao usar a plataforma, a empresa declara possuir base legal adequada para inserir,
-              conectar, encaminhar, armazenar e tratar dados de seus usuários, clientes e canais de atendimento.
+              O tratamento de dados pessoais e dados de e-mail e regulado pela Politica de Privacidade do Gestifique,
+              que integra estes Termos.
             </p>
           </Section>
 
-          <Section title="13. Alterações dos Termos">
+          <Section title="13. Alteracoes dos Termos">
             <p>
-              Podemos atualizar estes Termos para refletir mudanças legais, técnicas, operacionais, comerciais ou de
-              segurança. O uso continuado da plataforma após a publicação da nova versão indica aceitação dos Termos
-              atualizados, salvo quando exigida aceitação expressa.
+              Podemos atualizar estes Termos para refletir mudancas legais, tecnicas, operacionais, comerciais ou de
+              seguranca. O uso continuado da plataforma apos a publicacao da nova versao indica aceitacao dos Termos.
             </p>
           </Section>
 
           <Section title="14. Contato">
             <p>
-              Dúvidas sobre estes Termos, privacidade, segurança, contratos ou uso da plataforma devem ser enviadas
+              Duvidas sobre estes Termos, privacidade, seguranca, contratos ou uso da plataforma devem ser enviadas
               para <strong>{contactEmail}</strong>.
             </p>
           </Section>

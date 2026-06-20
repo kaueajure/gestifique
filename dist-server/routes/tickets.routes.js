@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import ticketsService, { toPositiveInt } from '../services/tickets.service.js';
+import ticketsService, { isValidTicketStatus, toPositiveInt } from '../services/tickets.service.js';
 import attachmentsService from '../services/attachments.service.js';
 import { authMiddleware } from '../middlewares/auth.js';
 import { requirePermission } from '../middlewares/permissions.middleware.js';
@@ -25,6 +25,30 @@ function parseTicketQueue(value) {
 const isAgentUser = (user) => !!(user.administrador || user.desenvolvedor || user.perfil === 'gestor' || user.perfil === 'atendente');
 const canManageTickets = (user) => !!(user.administrador || user.desenvolvedor || user.perfil === 'gestor');
 router.use(authMiddleware);
+router.get('/options', requirePermission('tickets.visualizar'), async (req, res) => {
+    try {
+        const currentUser = req.user;
+        if (!currentUser)
+            return sendError(res, 'Nao autenticado', 401);
+        const empresaId = currentUser.desenvolvedor
+            ? toPositiveInt(req.query.empresa_id) || currentUser.empresa_id
+            : currentUser.empresa_id;
+        if (!empresaId) {
+            return sendSuccess(res, { empresa_id: null, categories: [], services: [] });
+        }
+        const [categories] = await pool.query('SELECT id, nome, sigla, valor, ativo, ordem FROM empresa_ticket_categorias WHERE empresa_id = ? ORDER BY ordem ASC, id ASC', [empresaId]);
+        const [services] = await pool.query('SELECT id, nome, valor, ativo, ordem FROM empresa_ticket_servicos WHERE empresa_id = ? ORDER BY ordem ASC, id ASC', [empresaId]);
+        sendSuccess(res, {
+            empresa_id: empresaId,
+            categories,
+            services
+        });
+    }
+    catch (error) {
+        const message = error instanceof Error ? error.message : 'Erro ao carregar opcoes de atendimento';
+        sendError(res, message);
+    }
+});
 router.post('/:id/read', async (req, res) => {
     try {
         const currentUser = req.user;
@@ -44,9 +68,19 @@ router.post('/:id/read', async (req, res) => {
         sendError(res, message);
     }
 });
-router.delete('/cleanup-spam', async (req, res) => {
+router.delete('/cleanup-spam', requirePermission('sistema.executar_manutencao'), async (req, res) => {
     try {
-        const result = await ticketsService.cleanupSpam();
+        const currentUser = req.user;
+        if (!currentUser)
+            return sendError(res, 'Nao autenticado', 401);
+        if (!currentUser.desenvolvedor) {
+            return sendError(res, 'Acesso proibido: manutencao critica e exclusiva para desenvolvedores.', 403);
+        }
+        const empresaId = toPositiveInt(req.query.empresa_id ?? req.body?.empresa_id);
+        if (!empresaId)
+            return sendError(res, 'empresa_id e obrigatorio para limpeza de spam.', 400);
+        const result = await ticketsService.cleanupSpam(empresaId);
+        await logSystemAction(req, currentUser.id, empresaId, 'TICKET_CLEANUP_SPAM', `Executou limpeza de spam na empresa ID ${empresaId}: ${result.deletedCount} chamados removidos`);
         sendSuccess(res, result, 'Limpeza concluída');
     }
     catch (error) {
@@ -120,16 +154,16 @@ router.get('/kanban', requirePermission('tickets.visualizar'), async (req, res) 
                     { id: 'aberto', title: 'Aberto', count: 0, tickets: [] },
                     { id: 'em_andamento', title: 'Em andamento', count: 0, tickets: [] },
                     { id: 'aguardando_cliente', title: 'Aguardando resposta', count: 0, tickets: [] },
-                    { id: 'resolvido', title: 'Finalizado', count: 0, tickets: [] }
+                    { id: 'resolvido', title: 'Finalizado', count: 0, tickets: [] },
+                    { id: 'fechado', title: 'Fechado', count: 0, tickets: [] }
                 ],
                 totals: { total: 0, aberto: 0, em_andamento: 0, aguardando_cliente: 0, resolvido: 0, fechado: 0 },
                 queues: { todos: 0, meus: 0, sem_responsavel: 0, urgentes: 0, sla_vencido: 0, vence_em_breve: 0, aguardando_cliente: 0 }
             });
         }
         const responsavelId = toPositiveInt(req.query.responsavel_id);
-        const validStatuses = ['aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado', 'todos'];
         const validPriorities = ['baixa', 'media', 'alta', 'urgente', 'todas'];
-        const status = typeof req.query.status === 'string' && validStatuses.includes(req.query.status)
+        const status = typeof req.query.status === 'string' && (req.query.status === 'todos' || isValidTicketStatus(req.query.status))
             ? (req.query.status === 'todos' ? undefined : req.query.status)
             : undefined;
         const prioridade = typeof req.query.prioridade === 'string' && validPriorities.includes(req.query.prioridade)
@@ -420,8 +454,7 @@ router.patch('/:id/status', async (req, res) => {
         const { status } = req.body;
         if (!status)
             return sendError(res, 'Status é obrigatório', 400);
-        const validStatuses = ['aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado'];
-        if (!validStatuses.includes(status))
+        if (!isValidTicketStatus(status))
             return sendError(res, 'Status inválido', 400);
         const result = await ticketsService.getByIdForUser(id, currentUser);
         if (!result)
@@ -488,12 +521,17 @@ router.patch('/:id', async (req, res) => {
             }
         }
         if (req.body.responsavel_id !== undefined && req.body.responsavel_id !== ticket.responsavel_id) {
+            const wantsRemoveResponsavel = req.body.responsavel_id === null || req.body.responsavel_id === '';
             const newRespId = toPositiveInt(req.body.responsavel_id);
-            if (newRespId === null) {
+            if (wantsRemoveResponsavel) {
                 const hasRemovePerm = await permissionsService.hasPermission(currentUser, 'tickets.remover_responsavel');
                 if (!hasRemovePerm) {
                     return sendError(res, 'Acesso proibido: Sem permissão para remover responsável (tickets.remover_responsavel).', 403);
                 }
+                req.body.responsavel_id = null;
+            }
+            else if (!newRespId) {
+                return sendError(res, 'Responsavel invalido', 400);
             }
             else if (newRespId === currentUser.id) {
                 const hasTakePerm = await permissionsService.hasPermission(currentUser, 'tickets.assumir');
@@ -523,13 +561,12 @@ router.patch('/:id', async (req, res) => {
         let oldResp = ticket.responsavel_id;
         let oldPrio = ticket.prioridade;
         // Validations for update
-        const validStatuses = ['aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado'];
         const validPriorities = ['baixa', 'media', 'alta', 'urgente'];
-        if (req.body.status && !validStatuses.includes(req.body.status))
+        if (req.body.status && !isValidTicketStatus(req.body.status))
             return sendError(res, 'Status inválido', 400);
         if (req.body.prioridade && !validPriorities.includes(req.body.prioridade))
             return sendError(res, 'Prioridade inválida', 400);
-        if (req.body.responsavel_id !== undefined && req.body.responsavel_id !== null) {
+        if (req.body.responsavel_id !== undefined && req.body.responsavel_id !== null && req.body.responsavel_id !== '') {
             if (!toPositiveInt(req.body.responsavel_id))
                 return sendError(res, 'Responsável inválido', 400);
             const newRespId = toPositiveInt(req.body.responsavel_id);
@@ -668,11 +705,6 @@ router.post('/:id/messages', async (req, res) => {
             mensagem,
             interno: isInternalCom
         }, currentUser);
-        const [getInsertedMsg] = await pool.query('SELECT id, ticket_id, interno, mensagem FROM ticket_mensagens WHERE id = ?', [messageId]);
-        console.log(`[TicketsRoutes] Message ${messageId} added checking DB directly: `, getInsertedMsg[0]);
-        // getMessages test
-        const testMessages = await ticketsService.getMessages(id, true);
-        console.log(`[TicketsRoutes] Validation getMessages ticket_id ${id} total messages visible: ${testMessages.length}. includes added? ${testMessages.some((m) => m.id === messageId)}`);
         const [ticketRows] = await pool.query('SELECT empresa_id FROM tickets WHERE id = ?', [id]);
         const empresaId = ticketRows[0]?.empresa_id || currentUser.empresa_id;
         await logSystemAction(req, currentUser.id, empresaId, 'MESSAGE_SEND', `Nova mensagem no chamado #${id}`);
@@ -695,8 +727,8 @@ router.get('/:id/attachments', async (req, res) => {
             return sendError(res, 'Ticket não encontrado', 404);
         if (result.error === 'forbidden')
             return sendError(res, 'Permissão negada', 403);
-        const isAgent = isAgentUser(currentUser);
-        const attachments = await attachmentsService.listByTicket(id, isAgent);
+        const hasVerInternos = await permissionsService.hasPermission(currentUser, 'ticket_mensagens.ver_internos');
+        const attachments = await attachmentsService.listByTicket(id, hasVerInternos);
         sendSuccess(res, attachments);
     }
     catch (error) {
@@ -751,6 +783,13 @@ router.post('/:id/attachments', ticketUpload.array('files', 5), async (req, res)
         const ticket = ticketResult;
         const isAgent = isAgentUser(currentUser);
         const isInternal = isAgent ? (interno === 'true' || interno === true) : false;
+        if (isInternal) {
+            const hasInternalPerm = await permissionsService.hasPermission(currentUser, 'ticket_mensagens.comentar_interno');
+            if (!hasInternalPerm) {
+                await attachmentsService.deleteMultiple(files);
+                return sendError(res, 'Acesso proibido: Sem permissao para enviar anexos internos.', 403);
+            }
+        }
         const createdAttachments = await Promise.all(files.map(async (file) => {
             const attachmentId = await attachmentsService.create({
                 ticket_id: id,

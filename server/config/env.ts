@@ -8,12 +8,12 @@ const requiredEnvVars = [
   'DB_USER',
   'DB_PASSWORD',
   'DB_NAME',
-  'DB_PORT'
+  'DB_PORT',
 ];
 
 requiredEnvVars.forEach((varName) => {
   if (!process.env[varName]) {
-    console.error(`❌ CRITICAL ERROR: Environment variable ${varName} is missing.`);
+    console.error(`CRITICAL ERROR: Environment variable ${varName} is missing.`);
     process.exit(1);
   }
 });
@@ -27,7 +27,7 @@ export const env = {
     USER: process.env.DB_USER as string,
     PASSWORD: process.env.DB_PASSWORD as string,
     NAME: process.env.DB_NAME as string,
-    PORT: parseInt(process.env.DB_PORT as string)
+    PORT: parseInt(process.env.DB_PORT as string),
   },
   IS_PROD: process.env.NODE_ENV === 'production',
   CORS_ORIGINS: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : [],
@@ -48,12 +48,13 @@ export const env = {
     PASS: process.env.SMTP_PASS as string,
     FROM: process.env.MAIL_FROM || '"Gestifique" <suporte@gestifique.com>',
   },
-  // Scaling & Features
+
+  // Scaling & features
   ENABLE_WEB_SERVER: process.env.ENABLE_WEB_SERVER !== 'false',
-  ENABLE_EMAIL_LISTENER: process.env.ENABLE_EMAIL_LISTENER === 'true', // Default false to be safe
+  ENABLE_EMAIL_LISTENER: process.env.ENABLE_EMAIL_LISTENER === 'true',
   ENABLE_TICKET_JOBS: process.env.ENABLE_TICKET_JOBS !== 'false',
-  
-  // Proxy configuration for express-rate-limit compatibility (Hostinger/Nginx/Cloudflare)
+
+  // Proxy configuration for express-rate-limit compatibility.
   TRUST_PROXY: (() => {
     const val = process.env.TRUST_PROXY;
     if (val === undefined || val === '' || val === 'false' || val === '0') return false;
@@ -70,13 +71,4 @@ export const env = {
     REGION: process.env.STORAGE_REGION,
     ENDPOINT: process.env.STORAGE_ENDPOINT,
   },
-
-  // Gmail OAuth send (Fase 1) — optional until OAuth routes are enabled
-  FRONTEND_URL: process.env.FRONTEND_URL,
-  GOOGLE_OAUTH: {
-    CLIENT_ID: process.env.GOOGLE_OAUTH_CLIENT_ID,
-    CLIENT_SECRET: process.env.GOOGLE_OAUTH_CLIENT_SECRET,
-    REDIRECT_URI: process.env.GOOGLE_OAUTH_REDIRECT_URI,
-  },
-  TOKEN_ENCRYPTION_KEY: process.env.TOKEN_ENCRYPTION_KEY,
 };

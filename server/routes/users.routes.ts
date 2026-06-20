@@ -12,6 +12,28 @@ const router = Router();
 
 router.use(authMiddleware);
 
+function parsePositiveInt(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  const n = Number(Array.isArray(value) ? value[0] : value);
+  return Number.isInteger(n) && n > 0 ? n : undefined;
+}
+
+function normalizeUserRoleFlags(data: any) {
+  if (data.perfil === 'desenvolvedor') {
+    data.desenvolvedor = true;
+    data.administrador = true;
+  } else if (data.desenvolvedor === true) {
+    data.perfil = 'desenvolvedor';
+    data.administrador = true;
+  } else if (data.perfil === 'administrador') {
+    data.administrador = true;
+    data.desenvolvedor = false;
+  } else if (data.perfil !== undefined) {
+    data.desenvolvedor = false;
+    data.administrador = false;
+  }
+}
+
 router.get('/team', async (req: AuthRequest, res) => {
     try {
         const currentUser = req.user;
@@ -37,7 +59,9 @@ router.get('/team', async (req: AuthRequest, res) => {
         }
 
         if (currentUser.desenvolvedor && req.query.empresa_id) {
-           params[0] = req.query.empresa_id;
+           const queryEmpresaId = parsePositiveInt(req.query.empresa_id);
+           if (!queryEmpresaId) return sendSuccess(res, []);
+           params[0] = queryEmpresaId;
         }
 
         const [rows] = await pool.query(query, params);
@@ -82,22 +106,33 @@ router.post('/', requirePermission('usuarios.criar'), async (req: AuthRequest, r
     if (!isValidEmail(email)) return sendError(res, 'Email inválido', 400);
     if (password.length < 8) return sendError(res, 'A senha deve ter pelo menos 8 caracteres', 400);
 
-    const targetEmpresaId = currentUser.desenvolvedor ? empresa_id : currentUser.empresa_id;
+    const wantsDeveloper = desenvolvedor === true || perfil === 'desenvolvedor';
+    const wantsAdmin = administrador === true || perfil === 'administrador' || wantsDeveloper;
+
+    if (wantsDeveloper && !currentUser.desenvolvedor) {
+      return sendError(res, 'Apenas desenvolvedores podem criar usuarios com perfil de desenvolvedor', 403);
+    }
+
+    if (wantsAdmin && !currentUser.desenvolvedor && !currentUser.administrador) {
+      return sendError(res, 'Apenas administradores podem criar usuarios administradores', 403);
+    }
+
+    const targetEmpresaId = currentUser.desenvolvedor ? parsePositiveInt(empresa_id) : currentUser.empresa_id;
     
     if (!currentUser.desenvolvedor && !targetEmpresaId) {
       return sendError(res, 'Sua conta não possui uma empresa vinculada para realizar esta ação', 403);
     }
 
-    if (!currentUser.desenvolvedor && (desenvolvedor || perfil === 'desenvolvedor')) {
-      return sendError(res, 'Apenas desenvolvedores podem criar usuários com perfil de desenvolvedor', 403);
+    if (!wantsDeveloper && !targetEmpresaId) {
+      return sendError(res, 'Empresa e obrigatoria para criar usuarios sem perfil de desenvolvedor', 400);
     }
 
     const buildData = {
       nome, email, password, cargo, telefone,
       empresa_id: targetEmpresaId,
-      administrador: administrador === true,
-      desenvolvedor: currentUser.desenvolvedor ? (desenvolvedor === true) : false,
-      perfil: currentUser.desenvolvedor ? perfil : (perfil === 'desenvolvedor' ? 'atendente' : perfil)
+      administrador: wantsAdmin,
+      desenvolvedor: currentUser.desenvolvedor ? wantsDeveloper : false,
+      perfil: wantsDeveloper ? 'desenvolvedor' : wantsAdmin ? 'administrador' : (perfil || 'atendente')
     };
 
     const newUser = await usersService.create(buildData);
@@ -115,7 +150,8 @@ router.patch('/:id', requirePermission('usuarios.editar'), async (req: AuthReque
         const currentUser = req.user;
         if (!currentUser) return sendError(res, 'Não autenticado', 401);
 
-        const id = parseInt(req.params.id);
+        const id = parsePositiveInt(req.params.id);
+        if (!id) return sendError(res, 'ID invalido', 400);
         const targetUser = await usersService.getById(id);
         
         if (!targetUser) return sendError(res, 'Usuário não encontrado', 404);
@@ -128,13 +164,24 @@ router.patch('/:id', requirePermission('usuarios.editar'), async (req: AuthReque
             if (targetUser.desenvolvedor) {
                 return sendError(res, 'Você não tem permissão para editar um desenvolvedor', 403);
             }
+            if (targetUser.administrador && !currentUser.administrador) {
+                return sendError(res, 'Voce nao tem permissao para editar um administrador', 403);
+            }
             // Admin cannot change empresa_id, administrador (to dev level) or desenvolvedor
             delete req.body.empresa_id;
             delete req.body.desenvolvedor;
+            if (!currentUser.administrador) {
+                delete req.body.administrador;
+                if (req.body.perfil === 'administrador') {
+                    delete req.body.perfil;
+                }
+            }
             if (req.body.perfil === 'desenvolvedor') {
                 delete req.body.perfil;
             }
         }
+
+        normalizeUserRoleFlags(req.body);
 
         // Validate email if present
         if (req.body.email && req.body.email !== targetUser.email) {
@@ -159,13 +206,21 @@ router.patch('/:id/status', async (req: AuthRequest, res) => {
         const currentUser = req.user;
         if (!currentUser) return sendError(res, 'Não autenticado', 401);
 
-        const id = parseInt(req.params.id);
+        const id = parsePositiveInt(req.params.id);
+        if (!id) return sendError(res, 'ID invalido', 400);
         const { ativo } = req.body;
+        if (typeof ativo !== 'boolean' && ativo !== 0 && ativo !== 1) {
+            return sendError(res, 'Status invalido', 400);
+        }
+        const normalizedAtivo = Boolean(ativo);
 
         const targetUser = await usersService.getById(id);
         if (!targetUser) return sendError(res, 'Usuário não encontrado', 404);
+        if (targetUser.id === currentUser.id && !normalizedAtivo) {
+            return sendError(res, 'Voce nao pode desativar o proprio usuario', 400);
+        }
 
-        const requiredPerm = ativo ? 'usuarios.reativar' : 'usuarios.desativar';
+        const requiredPerm = normalizedAtivo ? 'usuarios.reativar' : 'usuarios.desativar';
         const hasStatusPerm = await permissionsService.hasPermission(currentUser, requiredPerm);
         if (!hasStatusPerm) {
             return sendError(res, `Acesso proibido: Você não possui a permissão ${requiredPerm}.`, 403);
@@ -175,10 +230,10 @@ router.patch('/:id/status', async (req: AuthRequest, res) => {
             return sendError(res, 'Acesso proibido', 403);
         }
 
-        await usersService.update(id, { ativo });
+        await usersService.update(id, { ativo: normalizedAtivo ? 1 : 0 });
         permissionsService.invalidateCache(id);
         
-        if (!ativo) {
+        if (!normalizedAtivo) {
             // Unassign tickets and flag them for review
             try {
                await pool.query(`
@@ -191,9 +246,9 @@ router.patch('/:id/status', async (req: AuthRequest, res) => {
             }
         }
         
-        await logSystemAction(req, currentUser.id, currentUser.empresa_id, 'USER_STATUS', `${ativo ? 'Ativou' : 'Desativou'} usuário ID ${id}`);
+        await logSystemAction(req, currentUser.id, currentUser.empresa_id, 'USER_STATUS', `${normalizedAtivo ? 'Ativou' : 'Desativou'} usuário ID ${id}`);
         
-        sendSuccess(res, null, `Usuário ${ativo ? 'ativado' : 'desativado'} com sucesso`);
+        sendSuccess(res, null, `Usuário ${normalizedAtivo ? 'ativado' : 'desativado'} com sucesso`);
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Erro ao alterar status';
         sendError(res, message);
@@ -205,7 +260,8 @@ router.patch('/:id/password', requirePermission('usuarios.resetar_senha'), async
         const currentUser = req.user;
         if (!currentUser) return sendError(res, 'Não autenticado', 401);
 
-        const id = parseInt(req.params.id);
+        const id = parsePositiveInt(req.params.id);
+        if (!id) return sendError(res, 'ID invalido', 400);
         const { password } = req.body;
         
         if (!password || password.length < 8) return sendError(res, 'A senha deve ter pelo menos 8 caracteres', 400);
@@ -215,6 +271,9 @@ router.patch('/:id/password', requirePermission('usuarios.resetar_senha'), async
         
         if (!currentUser.desenvolvedor && (targetUser.empresa_id !== currentUser.empresa_id || targetUser.desenvolvedor)) {
             return sendError(res, 'Acesso proibido', 403);
+        }
+        if (!currentUser.desenvolvedor && targetUser.administrador && !currentUser.administrador) {
+            return sendError(res, 'Voce nao tem permissao para redefinir senha de um administrador', 403);
         }
 
         await usersService.update(id, { password });

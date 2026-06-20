@@ -10,11 +10,21 @@ router.use(authMiddleware as any);
 const sendSuccess = (res: any, data: any) => res.json({ success: true, data });
 const sendError = (res: any, error: string, num = 500) => res.status(num).json({ success: false, message: error, error });
 
+function toPositiveInt(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  const n = Number(Array.isArray(value) ? value[0] : value);
+  return Number.isInteger(n) && n > 0 ? n : undefined;
+}
+
 router.get('/categories', async (req: AuthRequest, res) => {
   try {
-    const empresaId = req.user!.desenvolvedor && req.query.empresa_id
-      ? Number(req.query.empresa_id)
+    const empresaId = req.user!.desenvolvedor
+      ? toPositiveInt(req.query.empresa_id)
       : req.user!.empresa_id;
+
+    if (req.user!.desenvolvedor && !empresaId) {
+      return sendSuccess(res, []);
+    }
 
     if (!empresaId && !req.user!.desenvolvedor) {
       return sendError(res, 'Empresa não identificada', 400);
@@ -42,14 +52,16 @@ router.get('/', async (req: AuthRequest, res) => {
     let query = 'SELECT * FROM knowledge_articles';
     let params: any[] = [];
     
-    const requestedEmpresaId = req.user.desenvolvedor && req.query.empresa_id
-      ? Number(req.query.empresa_id)
+    const requestedEmpresaId = req.user.desenvolvedor
+      ? toPositiveInt(req.query.empresa_id)
       : req.user.empresa_id;
 
     if (requestedEmpresaId) {
       query += ' WHERE empresa_id = ?';
       params.push(requestedEmpresaId);
-    } else if (!req.user.desenvolvedor) {
+    } else if (req.user.desenvolvedor) {
+      return sendSuccess(res, []);
+    } else {
       return sendError(res, 'Empresa não identificada', 400);
     }
     
@@ -67,8 +79,8 @@ router.post('/', requireAnyPermission(['base_conhecimento.criar', 'base_conhecim
   try {
     const { titulo, conteudo, categoria, publico, ativo } = req.body;
     
-    const empresaId = req.user!.desenvolvedor && req.body.empresa_id
-      ? Number(req.body.empresa_id)
+    const empresaId = req.user!.desenvolvedor
+      ? toPositiveInt(req.body.empresa_id)
       : req.user!.empresa_id;
 
     if (!empresaId) {
@@ -88,7 +100,8 @@ router.post('/', requireAnyPermission(['base_conhecimento.criar', 'base_conhecim
 router.patch('/:id', requireAnyPermission(['base_conhecimento.editar', 'base_conhecimento.gerenciar']), async (req: AuthRequest, res) => {
   try {
     const { titulo, conteudo, categoria, publico, ativo } = req.body;
-    const id = parseInt(req.params.id);
+    const id = toPositiveInt(req.params.id);
+    if (!id) return sendError(res, 'ID invalido', 400);
     const empresaId = req.user!.empresa_id;
     
     const [existing]: any = await pool.query('SELECT empresa_id FROM knowledge_articles WHERE id = ?', [id]);
@@ -118,7 +131,8 @@ router.patch('/:id', requireAnyPermission(['base_conhecimento.editar', 'base_con
 
 router.delete('/:id', requireAnyPermission(['base_conhecimento.excluir', 'base_conhecimento.gerenciar']), async (req: AuthRequest, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = toPositiveInt(req.params.id);
+    if (!id) return sendError(res, 'ID invalido', 400);
     const empresaId = req.user!.empresa_id;
     
     const [existing]: any = await pool.query('SELECT empresa_id FROM knowledge_articles WHERE id = ?', [id]);

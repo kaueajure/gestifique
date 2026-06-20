@@ -159,6 +159,14 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
+    if (currentUser.desenvolvedor && !filters.empresa_id) {
+      setData(null);
+      setDetailedReport(null);
+      setError("Selecione uma empresa para carregar relatórios.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const queryParams = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
@@ -192,9 +200,14 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, currentUser.desenvolvedor]);
 
   const handleGenerateReport = async () => {
+    if (currentUser.desenvolvedor && !filters.empresa_id) {
+      setError("Selecione uma empresa para gerar o relatório.");
+      return;
+    }
+
     setGenerating(true);
     setError(null);
     try {
@@ -227,6 +240,11 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
               ? res.data
               : [];
           setCompanies(list);
+          if (list.length > 0) {
+            setFilters((current) =>
+              current.empresa_id ? current : { ...current, empresa_id: String(list[0].id) },
+            );
+          }
         })
         .catch(() => {});
     }
@@ -234,6 +252,11 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
 
   const handleExportCSV = async (type: string) => {
     try {
+      if (currentUser.desenvolvedor && !filters.empresa_id) {
+        setError("Selecione uma empresa para exportar relatórios.");
+        return;
+      }
+
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
         if (value) params.append(key, String(value));
@@ -416,7 +439,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                     setFilters((f) => ({ ...f, empresa_id: value }))
                   }
                   options={[
-                    { value: "", label: "Todas" },
+                    { value: "", label: "Selecione" },
                     ...companies.map((c) => ({
                       value: String(c.id),
                       label: c.nome,

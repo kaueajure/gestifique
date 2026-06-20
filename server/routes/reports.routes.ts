@@ -9,6 +9,25 @@ const router = Router();
 
 router.use(authMiddleware);
 
+function toPositiveInt(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  const n = Number(Array.isArray(value) ? value[0] : value);
+  return Number.isInteger(n) && n > 0 ? n : undefined;
+}
+
+function applyReportCompanyScope(currentUser: any, filters: ReportFilters, empresaIdValue: unknown): string | null {
+  if (currentUser.desenvolvedor) {
+    const empresaId = toPositiveInt(empresaIdValue);
+    if (!empresaId) return 'Selecione uma empresa valida para gerar relatorios.';
+    filters.empresa_id = empresaId;
+    return null;
+  }
+
+  if (!currentUser.empresa_id) return 'Sua conta nao possui empresa vinculada.';
+  filters.empresa_id = currentUser.empresa_id;
+  return null;
+}
+
 router.get('/summary', requirePermission('relatorios.visualizar'), async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
@@ -19,17 +38,13 @@ router.get('/summary', requirePermission('relatorios.visualizar'), async (req: A
     const filters: ReportFilters = {
       start_date: start_date as string | undefined,
       end_date: end_date as string | undefined,
-      responsavel_id: responsavel_id ? parseInt(responsavel_id as string) : undefined,
+      responsavel_id: toPositiveInt(responsavel_id),
       status: status as string | undefined,
       prioridade: prioridade as string | undefined
     };
 
-    // Permission check for empresa_id
-    if (!currentUser.desenvolvedor) {
-      filters.empresa_id = currentUser.empresa_id;
-    } else if (empresa_id) {
-      filters.empresa_id = parseInt(empresa_id as string);
-    }
+    const scopeError = applyReportCompanyScope(currentUser, filters, empresa_id);
+    if (scopeError) return sendError(res, scopeError, currentUser.desenvolvedor ? 400 : 403);
 
     // Resolve reports scoping
     const isSuperUser = !!(currentUser.desenvolvedor || currentUser.administrador);
@@ -59,17 +74,13 @@ router.post('/generate', requirePermission('relatorios.visualizar'), async (req:
     const filters: ReportFilters = {
       start_date,
       end_date,
-      responsavel_id: responsavel_id ? parseInt(responsavel_id as string) : undefined,
+      responsavel_id: toPositiveInt(responsavel_id),
       status,
       prioridade
     };
 
-    // Force empresa_id if not developer
-    if (!currentUser.desenvolvedor) {
-      filters.empresa_id = currentUser.empresa_id;
-    } else if (empresa_id) {
-      filters.empresa_id = parseInt(empresa_id as string);
-    }
+    const scopeError = applyReportCompanyScope(currentUser, filters, empresa_id);
+    if (scopeError) return sendError(res, scopeError, currentUser.desenvolvedor ? 400 : 403);
 
     // Resolve reports scoping
     const isSuperUser = !!(currentUser.desenvolvedor || currentUser.administrador);
@@ -99,18 +110,15 @@ router.get('/export', requirePermission('relatorios.exportar'), async (req: Auth
     const filters: ReportFilters = {
       start_date: start_date as string | undefined,
       end_date: end_date as string | undefined,
-      responsavel_id: responsavel_id ? parseInt(responsavel_id as string) : undefined,
+      responsavel_id: toPositiveInt(responsavel_id),
       status: status as string | undefined,
       prioridade: prioridade as string | undefined,
       categoria: categoria as string | undefined,
       servico: servico as string | undefined
     };
 
-    if (!currentUser.desenvolvedor) {
-      filters.empresa_id = currentUser.empresa_id;
-    } else if (empresa_id) {
-      filters.empresa_id = parseInt(empresa_id as string);
-    }
+    const scopeError = applyReportCompanyScope(currentUser, filters, empresa_id);
+    if (scopeError) return sendError(res, scopeError, currentUser.desenvolvedor ? 400 : 403);
 
     // Resolve reports scoping
     const isSuperUser = !!(currentUser.desenvolvedor || currentUser.administrador);

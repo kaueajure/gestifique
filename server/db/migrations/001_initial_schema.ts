@@ -272,6 +272,7 @@ export async function up(connection: PoolConnection) {
       id INT AUTO_INCREMENT PRIMARY KEY,
       empresa_id INT NOT NULL,
       nome VARCHAR(100) NOT NULL,
+      sigla VARCHAR(6) NULL,
       valor VARCHAR(100) NOT NULL,
       ativo TINYINT(1) DEFAULT 1,
       ordem INT DEFAULT 0,

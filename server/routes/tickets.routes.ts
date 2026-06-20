@@ -30,6 +30,39 @@ const canManageTickets = (user: any) => !!(user.administrador || user.desenvolve
 
 router.use(authMiddleware);
 
+router.get('/options', requirePermission('tickets.visualizar'), async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Nao autenticado', 401);
+
+    const empresaId = currentUser.desenvolvedor
+      ? toPositiveInt(req.query.empresa_id) || currentUser.empresa_id
+      : currentUser.empresa_id;
+
+    if (!empresaId) {
+      return sendSuccess(res, { empresa_id: null, categories: [], services: [] });
+    }
+
+    const [categories]: any = await pool.query(
+      'SELECT id, nome, sigla, valor, ativo, ordem FROM empresa_ticket_categorias WHERE empresa_id = ? ORDER BY ordem ASC, id ASC',
+      [empresaId]
+    );
+    const [services]: any = await pool.query(
+      'SELECT id, nome, valor, ativo, ordem FROM empresa_ticket_servicos WHERE empresa_id = ? ORDER BY ordem ASC, id ASC',
+      [empresaId]
+    );
+
+    sendSuccess(res, {
+      empresa_id: empresaId,
+      categories,
+      services
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao carregar opcoes de atendimento';
+    sendError(res, message);
+  }
+});
+
 router.post('/:id/read', async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
@@ -49,9 +82,25 @@ router.post('/:id/read', async (req: AuthRequest, res) => {
   }
 });
 
-router.delete('/cleanup-spam', async (req: AuthRequest, res) => {
+router.delete('/cleanup-spam', requirePermission('sistema.executar_manutencao'), async (req: AuthRequest, res) => {
   try {
-    const result = await ticketsService.cleanupSpam();
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Nao autenticado', 401);
+    if (!currentUser.desenvolvedor) {
+      return sendError(res, 'Acesso proibido: manutencao critica e exclusiva para desenvolvedores.', 403);
+    }
+
+    const empresaId = toPositiveInt(req.query.empresa_id ?? req.body?.empresa_id);
+    if (!empresaId) return sendError(res, 'empresa_id e obrigatorio para limpeza de spam.', 400);
+
+    const result = await ticketsService.cleanupSpam(empresaId);
+    await logSystemAction(
+      req,
+      currentUser.id,
+      empresaId,
+      'TICKET_CLEANUP_SPAM',
+      `Executou limpeza de spam na empresa ID ${empresaId}: ${result.deletedCount} chamados removidos`
+    );
     sendSuccess(res, result, 'Limpeza concluída');
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erro na limpeza';
@@ -529,12 +578,16 @@ router.patch('/:id', async (req: AuthRequest, res) => {
     }
 
     if (req.body.responsavel_id !== undefined && req.body.responsavel_id !== ticket.responsavel_id) {
+       const wantsRemoveResponsavel = req.body.responsavel_id === null || req.body.responsavel_id === '';
        const newRespId = toPositiveInt(req.body.responsavel_id);
-       if (newRespId === null) {
+       if (wantsRemoveResponsavel) {
           const hasRemovePerm = await permissionsService.hasPermission(currentUser, 'tickets.remover_responsavel');
           if (!hasRemovePerm) {
              return sendError(res, 'Acesso proibido: Sem permissão para remover responsável (tickets.remover_responsavel).', 403);
           }
+          req.body.responsavel_id = null;
+       } else if (!newRespId) {
+          return sendError(res, 'Responsavel invalido', 400);
        } else if (newRespId === currentUser.id) {
           const hasTakePerm = await permissionsService.hasPermission(currentUser, 'tickets.assumir');
           if (!hasTakePerm) {
@@ -569,7 +622,7 @@ router.patch('/:id', async (req: AuthRequest, res) => {
     
     if (req.body.status && !isValidTicketStatus(req.body.status)) return sendError(res, 'Status inválido', 400);
     if (req.body.prioridade && !validPriorities.includes(req.body.prioridade)) return sendError(res, 'Prioridade inválida', 400);
-    if (req.body.responsavel_id !== undefined && req.body.responsavel_id !== null) {
+    if (req.body.responsavel_id !== undefined && req.body.responsavel_id !== null && req.body.responsavel_id !== '') {
       if (!toPositiveInt(req.body.responsavel_id)) return sendError(res, 'Responsável inválido', 400);
       
       const newRespId = toPositiveInt(req.body.responsavel_id);
@@ -716,13 +769,6 @@ router.post('/:id/messages', async (req: AuthRequest, res) => {
       interno: isInternalCom
     }, currentUser);
 
-    const [getInsertedMsg]: any = await pool.query('SELECT id, ticket_id, interno, mensagem FROM ticket_mensagens WHERE id = ?', [messageId]);
-    console.log(`[TicketsRoutes] Message ${messageId} added checking DB directly: `, getInsertedMsg[0]);
-    
-    // getMessages test
-    const testMessages = await ticketsService.getMessages(id, true);
-    console.log(`[TicketsRoutes] Validation getMessages ticket_id ${id} total messages visible: ${(testMessages as any[]).length}. includes added? ${(testMessages as any[]).some((m: any) => m.id === messageId)}`);
-
     const [ticketRows]: any = await pool.query('SELECT empresa_id FROM tickets WHERE id = ?', [id]);
     const empresaId = ticketRows[0]?.empresa_id || currentUser.empresa_id;
 
@@ -746,8 +792,8 @@ router.get('/:id/attachments', async (req: AuthRequest, res) => {
     if (!result) return sendError(res, 'Ticket não encontrado', 404);
     if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
-    const isAgent = isAgentUser(currentUser);
-    const attachments = await attachmentsService.listByTicket(id, isAgent);
+    const hasVerInternos = await permissionsService.hasPermission(currentUser, 'ticket_mensagens.ver_internos');
+    const attachments = await attachmentsService.listByTicket(id, hasVerInternos);
     sendSuccess(res, attachments);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erro ao listar anexos';
@@ -810,6 +856,13 @@ router.post('/:id/attachments', ticketUpload.array('files', 5), async (req: Auth
 
     const isAgent = isAgentUser(currentUser);
     const isInternal = isAgent ? (interno === 'true' || interno === true) : false;
+    if (isInternal) {
+      const hasInternalPerm = await permissionsService.hasPermission(currentUser, 'ticket_mensagens.comentar_interno');
+      if (!hasInternalPerm) {
+        await attachmentsService.deleteMultiple(files);
+        return sendError(res, 'Acesso proibido: Sem permissao para enviar anexos internos.', 403);
+      }
+    }
 
     const createdAttachments = await Promise.all(files.map(async (file) => {
       const attachmentId = await attachmentsService.create({
