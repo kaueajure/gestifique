@@ -165,21 +165,17 @@ export const buildTicketEmailTemplate = (params: Pick<TicketEmailParams, 'type' 
 
     case 'agent_reply':
       subject = `[Ticket #${ticketId}] Nova resposta: ${title}`;
+      // S5 fix: usar SEMPRE safeMessage (escapado via escapeHtml, que também
+      // converte quebras de linha em <br>). Não interpolar a mensagem crua.
       contentHtml = `
         <p>Olá, ${safeCustomerName}.</p>
         <p><strong>${safeAgentName}</strong> respondeu ao seu chamado <strong>#${ticketId}</strong>.</p>
         <div style="background-color: #f8fafc; padding: 16px; border-radius: 8px; margin: 16px 0; border: 1px solid #e2e8f0;">
-          <p style="margin: 0;">${message} <!-- Already formatted by our generic notification when using old method, but if empty we just show it. Ideally we shouldn't escape if message contains HTML like <br>, but we did above. So we will assume message comes as text --></p>
+          <p style="margin: 0;">${safeMessage}</p>
         </div>
         <p>Status atual: <strong>${safeStatus}</strong></p>
         <p>Para continuar o atendimento, responda este e-mail. Sua resposta será adicionada automaticamente ao chamado.</p>
       `;
-      // Override message render to support basic HTML if provided by older method
-      if (message.includes('<br>') || message.includes('<i>')) {
-        contentHtml = contentHtml.replace('${message}', message); // skip full escape if it smells like HTML already provided
-      } else {
-        contentHtml = contentHtml.replace('${message}', safeMessage);
-      }
       break;
 
     case 'ticket_resolved':

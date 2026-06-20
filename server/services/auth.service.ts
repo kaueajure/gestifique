@@ -71,21 +71,23 @@ class AuthService {
     
     const user = rows[0];
     const token = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digits
+    const tokenHash = await bcrypt.hash(token, 10); // S3: nunca armazenar em texto plano
     const expires = new Date(Date.now() + 30 * 60 * 1000); // 30 mins
     
     await pool.query(
       'UPDATE usuarios SET reset_token = ?, reset_token_expires = ? WHERE id = ?',
-      [token, expires, user.id]
+      [tokenHash, expires, user.id]
     );
     
-    await sendPasswordRecoveryEmail(email, token);
+    await sendPasswordRecoveryEmail(email, token); // o código em claro vai apenas no e-mail
     return { message: 'Token de recuperação enviado para o seu e-mail.' };
   }
 
   async resetPassword(email: string, token: string, newPassword: string) {
+    // S3: busca por e-mail + token ativo/não expirado, depois compara o hash.
     const [rows]: any = await pool.query(
-      'SELECT * FROM usuarios WHERE email = ? AND reset_token = ? AND reset_token_expires > NOW()',
-      [email, token]
+      'SELECT * FROM usuarios WHERE email = ? AND reset_token IS NOT NULL AND reset_token_expires > NOW()',
+      [email]
     );
 
     if (rows.length === 0) {
@@ -93,6 +95,12 @@ class AuthService {
     }
 
     const user = rows[0];
+
+    const tokenValido = await bcrypt.compare(token, user.reset_token);
+    if (!tokenValido) {
+      throw new Error('Token inválido ou expirado.');
+    }
+
     const hash = await bcrypt.hash(newPassword, 10);
 
     await pool.query(

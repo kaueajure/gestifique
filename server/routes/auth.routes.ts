@@ -3,6 +3,7 @@ import authService from '../services/auth.service.js';
 import { sendSuccess, sendError } from '../utils/response.js';
 import { logSystemAction } from '../utils/logger.js';
 import { env } from '../config/env.js';
+import { isValidPassword, PASSWORD_RULE_MESSAGE } from '../utils/validators.js';
 import rateLimit from 'express-rate-limit';
 
 const router = Router();
@@ -91,8 +92,8 @@ router.post('/reset-password', authLimiter, async (req, res, next) => {
     if (!email || !token || !newPassword) {
       return sendError(res, 'E-mail, token e nova senha são obrigatórios.', 400);
     }
-    if (newPassword.length < 8) {
-      return sendError(res, 'A senha deve ter pelo menos 8 caracteres para sua segurança.', 400);
+    if (!isValidPassword(newPassword)) {
+      return sendError(res, PASSWORD_RULE_MESSAGE, 400);
     }
     const data = await authService.resetPassword(email, token, newPassword);
     sendSuccess(res, data, 'Senha redefinida com sucesso.');

@@ -4,7 +4,7 @@ import  { authMiddleware, AuthRequest } from  '../middlewares/auth.js';
 import { requirePermission } from '../middlewares/permissions.middleware.js';
 import  { sendSuccess, sendError } from  '../utils/response.js';
 import  { logSystemAction } from  '../utils/logger.js';
-import  { isValidEmail } from  '../utils/validators.js';
+import  { isValidEmail, isValidPassword, PASSWORD_RULE_MESSAGE } from  '../utils/validators.js';
 import pool from '../db/connection.js';
 import { permissionsService } from '../services/permissions.service.js';
 
@@ -104,7 +104,7 @@ router.post('/', requirePermission('usuarios.criar'), async (req: AuthRequest, r
     
     if (!nome || !email || !password) return sendError(res, 'Nome, email e senha são obrigatórios', 400);
     if (!isValidEmail(email)) return sendError(res, 'Email inválido', 400);
-    if (password.length < 8) return sendError(res, 'A senha deve ter pelo menos 8 caracteres', 400);
+    if (!isValidPassword(password)) return sendError(res, PASSWORD_RULE_MESSAGE, 400);
 
     const wantsDeveloper = desenvolvedor === true || perfil === 'desenvolvedor';
     const wantsAdmin = administrador === true || perfil === 'administrador' || wantsDeveloper;
@@ -264,7 +264,7 @@ router.patch('/:id/password', requirePermission('usuarios.resetar_senha'), async
         if (!id) return sendError(res, 'ID invalido', 400);
         const { password } = req.body;
         
-        if (!password || password.length < 8) return sendError(res, 'A senha deve ter pelo menos 8 caracteres', 400);
+        if (!password || !isValidPassword(password)) return sendError(res, PASSWORD_RULE_MESSAGE, 400);
 
         const targetUser = await usersService.getById(id);
         if (!targetUser) return sendError(res, 'Usuário não encontrado', 404);
