@@ -81,7 +81,7 @@ export class EmailListenerService {
         host: env.IMAP.HOST,
         port: env.IMAP.PORT ? Number(env.IMAP.PORT) : 993,
         tls: true,
-        tlsOptions: { rejectUnauthorized: false },
+        tlsOptions: { rejectUnauthorized: !env.MAIL_TLS_INSECURE },
         authTimeout: 15000,
         keepalive: true
       }

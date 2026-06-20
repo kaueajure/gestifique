@@ -10,7 +10,8 @@ const transporter = nodemailer.createTransport({
     pass: env.SMTP.PASS,
   },
   tls: {
-    rejectUnauthorized: false
+    // S1: padrão seguro (valida o certificado). Só relaxa via MAIL_TLS_INSECURE=true.
+    rejectUnauthorized: !env.MAIL_TLS_INSECURE
   }
 });
 

@@ -18,6 +18,36 @@ requiredEnvVars.forEach((varName) => {
   }
 });
 
+// S6: validação de força do JWT_SECRET.
+// Rejeita segredo vazio, curto (< 32) ou igual a valores de exemplo conhecidos.
+// Em produção é fatal (aborta o boot); em desenvolvimento apenas avisa.
+const IS_PROD_BOOT = process.env.NODE_ENV === 'production';
+const WEAK_JWT_SECRETS = new Set([
+  'mudar-isso-em-producao-com-chave-longa-e-segura',
+  'secret',
+  'changeme',
+  'change-me',
+  'jwt_secret',
+  'your-secret-key',
+  'supersecret',
+]);
+(() => {
+  const secret = (process.env.JWT_SECRET || '').trim();
+  const isWeak = secret.length < 32 || WEAK_JWT_SECRETS.has(secret.toLowerCase());
+  if (!isWeak) return;
+
+  const reason = secret.length < 32
+    ? 'deve ter no mínimo 32 caracteres'
+    : 'não pode ser um valor de exemplo/conhecido';
+
+  if (IS_PROD_BOOT) {
+    console.error(`CRITICAL ERROR: JWT_SECRET inseguro (${reason}). Defina um segredo forte e aleatório antes de subir em produção.`);
+    process.exit(1);
+  } else {
+    console.warn(`[SECURITY] ⚠️ JWT_SECRET inseguro (${reason}). Tolerado apenas em desenvolvimento; NUNCA use assim em produção.`);
+  }
+})();
+
 export const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: parseInt(process.env.PORT || '3000'),
@@ -49,6 +79,10 @@ export const env = {
     FROM: process.env.MAIL_FROM || '"Gestifique" <suporte@gestifique.com>',
   },
 
+  // S1: TLS de e-mail. Padrão SEGURO (valida certificado).
+  // Só desative (=true) em ambiente controlado com certificado inválido/self-signed.
+  MAIL_TLS_INSECURE: process.env.MAIL_TLS_INSECURE === 'true',
+
   // Scaling & features
   ENABLE_WEB_SERVER: process.env.ENABLE_WEB_SERVER !== 'false',
   ENABLE_EMAIL_LISTENER: process.env.ENABLE_EMAIL_LISTENER === 'true',
@@ -72,3 +106,8 @@ export const env = {
     ENDPOINT: process.env.STORAGE_ENDPOINT,
   },
 };
+
+// S1: aviso explícito quando a validação TLS de e-mail está desativada.
+if (env.MAIL_TLS_INSECURE) {
+  console.warn('[SECURITY] ⚠️ MAIL_TLS_INSECURE=true: validação de certificado TLS do e-mail DESATIVADA (SMTP/IMAP). Use apenas em ambiente controlado/cert inválido. NÃO use em produção real.');
+}
