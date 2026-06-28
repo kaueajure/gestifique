@@ -719,6 +719,18 @@ class TicketsService {
     
     let prioridade = data.prioridade || 'media';
 
+    if (message_id) {
+      const [existingTicket]: any = await pool.query(
+        'SELECT id FROM tickets WHERE message_id = ? ORDER BY id ASC LIMIT 1',
+        [message_id]
+      );
+
+      if (existingTicket.length > 0) {
+        console.warn(`[TicketsService] Duplicate ticket message_id ignored: ${message_id}`);
+        return existingTicket[0].id;
+      }
+    }
+
     // Check SLA policy
     let minutosSla = 24 * 60; // media padrão
     let minutosPrimeiraResposta = 60; // 1 hora padrão

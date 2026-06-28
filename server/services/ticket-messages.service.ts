@@ -64,7 +64,39 @@ class TicketMessagesService {
     // Security: Only agents can create internal messages
     const finalInterno = isAgent ? interno : false;
 
-      // 2. Create the message
+    if (message_id) {
+      const [existingMessage]: any = await pool.query(
+        'SELECT id FROM ticket_mensagens WHERE message_id = ? LIMIT 1',
+        [message_id]
+      );
+
+      if (existingMessage.length > 0) {
+        console.warn(`[TicketMessagesService] Duplicate message_id ignored: ${message_id}`);
+        return existingMessage[0].id;
+      }
+    }
+
+    if (!currentUser && !finalInterno) {
+      const [recentSameMessage]: any = await pool.query(
+        `SELECT id
+         FROM ticket_mensagens
+         WHERE ticket_id = ?
+           AND usuario_id <=> ?
+           AND interno = 0
+           AND mensagem = ?
+           AND created_at >= (NOW() - INTERVAL 5 MINUTE)
+         ORDER BY id DESC
+         LIMIT 1`,
+        [ticket_id, usuario_id || null, mensagem]
+      );
+
+      if (recentSameMessage.length > 0) {
+        console.warn(`[TicketMessagesService] Recent duplicate inbound message ignored for ticket #${ticket_id}.`);
+        return recentSameMessage[0].id;
+      }
+    }
+
+    // 2. Create the message
     console.log(`[TicketMessagesService] Adding message: ticket_id=${ticket_id}, usuario_id=${usuario_id}, interno=${finalInterno}, message_id=${message_id}, tipo=${tipo}`);
     const [result]: any = await pool.query(
       'INSERT INTO ticket_mensagens (ticket_id, usuario_id, mensagem, interno, message_id, tipo) VALUES (?, ?, ?, ?, ?, ?)',
