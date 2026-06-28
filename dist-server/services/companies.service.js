@@ -9,6 +9,16 @@ class CompaniesService {
       WHERE 1=1
     `;
         const params = [];
+        if (filters.empresaId !== undefined) {
+            const empresaId = Number(filters.empresaId);
+            if (Number.isInteger(empresaId) && empresaId > 0) {
+                query += ' AND e.id = ?';
+                params.push(empresaId);
+            }
+            else {
+                query += ' AND 1=0';
+            }
+        }
         if (filters.search) {
             query += ' AND (e.nome LIKE ? OR e.cnpj LIKE ? OR e.email LIKE ?)';
             params.push(`%${filters.search}%`, `%${filters.search}%`, `%${filters.search}%`);

@@ -97,17 +97,19 @@ async function startServer() {
         defaultSrc: ["'self'"],
         // S2 (Fase 1): 'unsafe-eval' é necessário apenas em desenvolvimento (Vite/HMR).
         // Em produção o bundle é estático e não usa eval, então removemos.
-        // 'unsafe-inline' mantido por ora (remoção exige nonce/hash — Fase 2).
+        // Em producao tambem removemos script inline; estilos ainda usam inline por compatibilidade.
         scriptSrc: [
           "'self'",
-          "'unsafe-inline'",
-          ...(env.IS_PROD ? [] : ["'unsafe-eval'"]),
+          ...(env.IS_PROD ? [] : ["'unsafe-inline'", "'unsafe-eval'"]),
           "https://cdn.jsdelivr.net"
         ],
         styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
         fontSrc: ["'self'"],
         imgSrc: ["'self'", "data:", "blob:", "https://images.unsplash.com", "https://res.cloudinary.com"],
         connectSrc: ["'self'", "ws:", "wss:", "https://*.run.app", "https://*.studio", ...env.CORS_ORIGINS],
+        objectSrc: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
         frameAncestors: ["'self'"],
         upgradeInsecureRequests: env.IS_PROD ? [] : null,
       },
@@ -229,6 +231,34 @@ async function startServer() {
       status: 'UP', 
       timestamp: new Date().toISOString(),
       services: {
+        web: env.ENABLE_WEB_SERVER,
+        emailListener: env.ENABLE_EMAIL_LISTENER,
+        jobs: env.ENABLE_TICKET_JOBS
+      }
+    });
+  });
+
+  app.get('/ready', async (req, res) => {
+    let databaseReady = false;
+
+    try {
+      await pool.query('SELECT 1');
+      databaseReady = true;
+    } catch {
+      databaseReady = false;
+    }
+
+    const ready = databaseReady;
+    res.status(ready ? 200 : 503).json({
+      success: ready,
+      status: ready ? 'READY' : 'NOT_READY',
+      timestamp: new Date().toISOString(),
+      checks: {
+        api: 'UP',
+        database: databaseReady ? 'CONNECTED' : 'ERROR',
+        redis: env.REDIS_URL ? 'CONFIGURED_OPTIONAL' : 'NOT_CONFIGURED'
+      },
+      roles: {
         web: env.ENABLE_WEB_SERVER,
         emailListener: env.ENABLE_EMAIL_LISTENER,
         jobs: env.ENABLE_TICKET_JOBS

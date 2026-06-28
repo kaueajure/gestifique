@@ -20,11 +20,12 @@ router.get('/', async (req, res) => {
         catch (permError) {
             console.error('Erro ao carregar permissões do perfil do usuário:', permError);
         }
-        const isSuperUser = !!(profile.desenvolvedor || profile.administrador);
+        const isSuperUser = !!profile.desenvolvedor;
         sendSuccess(res, {
             ...profile,
             permissions,
-            isSuperUser
+            isSuperUser,
+            isTenantAdmin: !!profile.administrador && !profile.desenvolvedor
         });
     }
     catch (error) {

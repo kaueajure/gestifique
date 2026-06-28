@@ -1,8 +1,10 @@
 import pool from '../db/connection.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { env } from '../config/env.js';
 import { sendPasswordRecoveryEmail } from '../utils/mailer.js';
+import { sanitizeUser } from '../utils/sanitize.js';
 const SECRET = env.JWT_SECRET;
 class AuthService {
     async login(email, password) {
@@ -42,9 +44,8 @@ class AuthService {
             desenvolvedor: !!user.desenvolvedor,
             ativo: !!user.ativo
         };
-        const token = jwt.sign(payload, SECRET, { expiresIn: '1d' });
-        const { senha_hash, ...uPublic } = user;
-        return { token, user: uPublic };
+        const sessionToken = jwt.sign(payload, SECRET, { expiresIn: '1d' });
+        return { sessionToken, user: sanitizeUser(user) };
     }
     async forgotPassword(email) {
         const [rows] = await pool.query('SELECT * FROM usuarios WHERE email = ? AND ativo = 1', [email]);
@@ -53,7 +54,7 @@ class AuthService {
             return { message: 'Se o e-mail estiver cadastrado, você receberá um token.' };
         }
         const user = rows[0];
-        const token = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digits
+        const token = crypto.randomInt(100000, 1000000).toString(); // 6 digits
         const tokenHash = await bcrypt.hash(token, 10); // S3: nunca armazenar em texto plano
         const expires = new Date(Date.now() + 30 * 60 * 1000); // 30 mins
         await pool.query('UPDATE usuarios SET reset_token = ?, reset_token_expires = ? WHERE id = ?', [tokenHash, expires, user.id]);

@@ -129,7 +129,12 @@ export const TicketProperties = ({
     });
   };
 
-  const canManage = hasPermission(currentUser, 'tickets.editar');
+  const canEditOrigem = hasPermission(currentUser, 'tickets.editar_origem');
+  const canEditCategoria = hasPermission(currentUser, 'tickets.editar_categoria');
+  const canEditServico = hasPermission(currentUser, 'tickets.editar_servico');
+  const canManageTags = hasPermission(currentUser, 'tickets.gerenciar_tags');
+  const canEditCustomFields = hasPermission(currentUser, 'tickets.editar_campos_customizados');
+  const canCloseTicket = hasPermission(currentUser, 'tickets.fechar');
 
   const defaultCategories = [
     { value: 'suporte_tecnico', label: 'Suporte Técnico' },
@@ -242,8 +247,10 @@ export const TicketProperties = ({
                   <Button 
                     size="xs" 
                     variant="outline" 
+                    disabled={!canEditCategoria}
                     className="h-5 px-1.5 text-[9px] font-bold text-indigo-600 bg-white hover:text-white hover:bg-indigo-600 border-indigo-200 rounded transition-all shadow-sm"
                     onClick={() => {
+                      if (!canEditCategoria) return;
                       const valueMap: Record<string, string> = {
                         'Financeiro': 'financeiro',
                         'Suporte Técnico': 'suporte_tecnico',
@@ -343,7 +350,7 @@ export const TicketProperties = ({
                { value: 'manual', label: 'Manual' }
              ]}
              buttonClassName="w-full h-7 text-[11px] font-semibold bg-white border-slate-200 rounded text-slate-700"
-             disabled={!canManage}
+             disabled={!canEditOrigem}
            />
         </PropertyRow>
       </Section>
@@ -356,7 +363,7 @@ export const TicketProperties = ({
              onChange={(value) => onUpdate({ categoria: value })}
              options={categoryOptions}
              buttonClassName="w-full h-7 text-[11px] font-semibold bg-white border-slate-200 rounded text-slate-700"
-             disabled={!canManage}
+             disabled={!canEditCategoria}
            />
         </PropertyRow>
         <PropertyRow label="Serviço / Produto">
@@ -365,7 +372,7 @@ export const TicketProperties = ({
              onChange={(value) => onUpdate({ servico: value })}
              options={serviceOptions}
              buttonClassName="w-full h-7 text-[11px] font-semibold bg-white border-slate-200 rounded text-slate-700"
-             disabled={!canManage}
+             disabled={!canEditServico}
            />
         </PropertyRow>
 
@@ -374,7 +381,7 @@ export const TicketProperties = ({
               tags={(ticket.tags || []).filter(tag => !tag.startsWith('ia-'))}
               onAdd={(tag) => onUpdateTags?.([...(ticket.tags || []), tag])}
               onRemove={(tag) => onUpdateTags?.((ticket.tags || []).filter(t => t !== tag))}
-              readOnly={!canManage}
+              readOnly={!canManageTags}
             />
         </PropertyRow>
       </Section>
@@ -385,7 +392,7 @@ export const TicketProperties = ({
            <TicketCustomFields 
              fields={ticket.custom_fields || []}
              onUpdate={onUpdateCustomFields || (() => {})}
-             readOnly={!canManage}
+             readOnly={!canEditCustomFields}
            />
         </PropertyRow>
         <PropertyRow label="Documentos em Anexo" icon={Paperclip}>
@@ -419,7 +426,7 @@ export const TicketProperties = ({
       )}
 
       {/* Seção 7: Arquivar */}
-      {canManage && ticket.status !== 'fechado' && (
+      {canCloseTicket && ticket.status !== 'fechado' && (
         <div className="pt-2">
            <Button 
              variant="outline"

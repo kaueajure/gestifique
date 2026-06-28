@@ -3,10 +3,10 @@ import { verifySMTP, sendTestEmail } from '../utils/mailer.js';
 import { authMiddleware } from '../middlewares/auth.js';
 import { env } from '../config/env.js';
 const router = Router();
-// Only allow admins to test email
+// Only developers can inspect/test the global SaaS mail configuration.
 router.use(authMiddleware);
 router.get('/config', (req, res) => {
-    if (!req.user?.administrador && !req.user?.desenvolvedor) {
+    if (!req.user?.desenvolvedor) {
         return res.status(403).json({ error: 'Acesso negado' });
     }
     res.json({
@@ -27,14 +27,14 @@ router.get('/config', (req, res) => {
     });
 });
 router.post('/test-smtp', async (req, res) => {
-    if (!req.user?.administrador && !req.user?.desenvolvedor) {
+    if (!req.user?.desenvolvedor) {
         return res.status(403).json({ error: 'Acesso negado' });
     }
     const result = await verifySMTP();
     res.json(result);
 });
 router.post('/send-test', async (req, res) => {
-    if (!req.user?.administrador && !req.user?.desenvolvedor) {
+    if (!req.user?.desenvolvedor) {
         return res.status(403).json({ error: 'Acesso negado' });
     }
     const { to } = req.body;

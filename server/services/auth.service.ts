@@ -1,8 +1,10 @@
 import  pool from  '../db/connection.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import  { env } from  '../config/env.js';
 import { sendPasswordRecoveryEmail } from '../utils/mailer.js';
+import { sanitizeUser } from '../utils/sanitize.js';
 
 const SECRET = env.JWT_SECRET;
 
@@ -55,10 +57,9 @@ class AuthService {
       ativo: !!user.ativo
     };
 
-    const token = jwt.sign(payload, SECRET, { expiresIn: '1d' });
+    const sessionToken = jwt.sign(payload, SECRET, { expiresIn: '1d' });
     
-    const { senha_hash, ...uPublic } = user;
-    return { token, user: uPublic };
+    return { sessionToken, user: sanitizeUser(user) };
   }
 
   async forgotPassword(email: string) {
@@ -70,7 +71,7 @@ class AuthService {
     }
     
     const user = rows[0];
-    const token = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digits
+    const token = crypto.randomInt(100000, 1000000).toString(); // 6 digits
     const tokenHash = await bcrypt.hash(token, 10); // S3: nunca armazenar em texto plano
     const expires = new Date(Date.now() + 30 * 60 * 1000); // 30 mins
     

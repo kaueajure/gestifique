@@ -10,11 +10,17 @@ O projeto utiliza um sistema de migrações versionadas para garantir que a estr
 
 ## Como funciona
 
-Ao iniciar o servidor (`npm run dev` ou `npm start`), o sistema chama automaticamente o `migration-runner`.
-1. Ele verifica a tabela `schema_migrations`.
-2. Se não existir, ele a cria automaticamente.
-3. Ele lê os arquivos na pasta `migrations/` e executa apenas aqueles que ainda não constam na tabela `schema_migrations`.
-4. Utiliza uma trava (`migration_lock`) para evitar que múltiplas instâncias do servidor tentem rodar migrações ao mesmo tempo.
+O sistema usa `schema_migrations` para registrar as migrações executadas e `migration_lock` para evitar execuções paralelas.
+
+Em desenvolvimento, se `AUTO_RUN_MIGRATIONS` não for definido, o boot pode executar migrations automaticamente.
+
+Em produção, use `AUTO_RUN_MIGRATIONS=false` e rode migrations manualmente como etapa controlada de deploy. Isso evita `ALTER TABLE`, criação de índices e outros DDLs durante o boot da aplicação.
+
+Fluxo do runner:
+1. Verifica/cria as tabelas de controle.
+2. Lê os arquivos em `server/db/migrations/`.
+3. Executa apenas arquivos ausentes em `schema_migrations`.
+4. Usa `migration_lock` para evitar execução simultânea.
 
 ## Comandos
 
@@ -22,6 +28,15 @@ Ao iniciar o servidor (`npm run dev` ou `npm start`), o sistema chama automatica
 ```bash
 npm run db:migrate
 ```
+
+### Produção
+```bash
+npm run build
+npm run db:migrate
+npm start
+```
+
+Antes de rodar migrations em produção, faça backup do banco.
 
 ## Criando uma nova migração
 

@@ -4,6 +4,7 @@ import { sendSuccess, sendError } from '../utils/response.js';
 import { logSystemAction } from '../utils/logger.js';
 import { env } from '../config/env.js';
 import { isValidPassword, PASSWORD_RULE_MESSAGE } from '../utils/validators.js';
+import { maskEmail } from '../utils/sanitize.js';
 import rateLimit from 'express-rate-limit';
 const router = Router();
 // 1. Stricter Rate Limiting for Auth
@@ -32,7 +33,7 @@ router.post('/login', authLimiter, async (req, res, next) => {
         }
         const data = await authService.login(email, password);
         // Set Hardened Cookie
-        res.cookie('token', data.token, {
+        res.cookie('token', data.sessionToken, {
             httpOnly: true,
             secure: env.IS_PROD,
             sameSite: env.IS_PROD ? 'strict' : 'lax', // Strict in production for CSRF
@@ -40,7 +41,7 @@ router.post('/login', authLimiter, async (req, res, next) => {
             path: '/'
         });
         await logSystemAction(req, data.user.id, data.user.empresa_id, 'LOGIN', 'Usuário realizou login com sucesso');
-        sendSuccess(res, data, 'Login realizado com sucesso');
+        sendSuccess(res, { user: data.user }, 'Login realizado com sucesso');
     }
     catch (error) {
         // Generic error message to prevent enumeration
@@ -65,7 +66,7 @@ router.post('/forgot-password', passwordRecoveryLimiter, async (req, res, next) 
         }
         // We always return success to prevent email enumeration
         await authService.forgotPassword(email).catch(err => {
-            console.warn(`[Forgot Password] Failed for ${email}:`, err.message);
+            console.warn(`[Forgot Password] Failed for ${maskEmail(email)}:`, err.message);
         });
         sendSuccess(res, { sent: true }, 'Se este e-mail estiver cadastrado, você receberá instruções para redefinir sua senha.');
     }

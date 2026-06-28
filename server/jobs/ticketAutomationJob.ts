@@ -4,6 +4,15 @@ import { runAutomations } from '../services/automations.service.js';
 // Fase 1 (escalabilidade): nome do lock distribuído (MySQL GET_LOCK) que impede
 // a execução simultânea das automações em múltiplas instâncias/processos.
 const AUTOMATION_LOCK_NAME = 'gestifique:ticket-automations';
+const AUTOMATION_TICKET_BATCH_SIZE = 200;
+const SLA_UPDATE_BATCH_SIZE = 1000;
+
+async function runBatchedUpdate(sql: string, params: any[] = []) {
+  while (true) {
+    const [result]: any = await pool.query(`${sql} LIMIT ${SLA_UPDATE_BATCH_SIZE}`, params);
+    if (!result?.affectedRows || result.affectedRows < SLA_UPDATE_BATCH_SIZE) break;
+  }
+}
 
 const executeTicketAutomations = async () => {
   try {
@@ -58,17 +67,32 @@ const executeTicketAutomations = async () => {
        }
 
        if (query) {
-         const [tickets]: any = await pool.query(query, params);
-         for (const ticket of tickets) {
-            // runAutomations internally evaluates conditions (like hours_since_update)
-            await runAutomations(regra.evento, ticket, { isInternalAutomation: false, usuario_id: null });
+         let lastId = 0;
+         while (true) {
+           const [tickets]: any = await pool.query(
+             `${query}
+              AND id > ?
+              ORDER BY id ASC
+              LIMIT ?`,
+             [...params, lastId, AUTOMATION_TICKET_BATCH_SIZE]
+           );
+
+           if (tickets.length === 0) break;
+
+           for (const ticket of tickets) {
+              // runAutomations internally evaluates conditions (like hours_since_update)
+              await runAutomations(regra.evento, ticket, { isInternalAutomation: false, usuario_id: null });
+              lastId = Number(ticket.id) || lastId;
+           }
+
+           if (tickets.length < AUTOMATION_TICKET_BATCH_SIZE) break;
          }
        }
     }
 
     // Baseline SLA violation update for tickets without specific rules.
     // Sprint 2: Respect paused tickets
-    await pool.query(`
+    await runBatchedUpdate(`
       UPDATE tickets 
       SET sla_resolucao_status = 'violado', 
           sla_status_operacional = 'violado',
@@ -79,7 +103,7 @@ const executeTicketAutomations = async () => {
       AND prazo_sla < NOW()
     `);
 
-    await pool.query(`
+    await runBatchedUpdate(`
       UPDATE tickets 
       SET sla_primeira_resposta_status = 'violado', 
           updated_at = NOW() 
@@ -90,7 +114,7 @@ const executeTicketAutomations = async () => {
     `);
 
     // Sync other operacional statuses for non-paused, non-resolved tickets
-    await pool.query(`
+    await runBatchedUpdate(`
       UPDATE tickets
       SET sla_status_operacional = CASE
         WHEN prazo_sla < NOW() THEN 'vencido'
@@ -100,6 +124,14 @@ const executeTicketAutomations = async () => {
       WHERE status NOT IN ('resolvido', 'fechado', 'aguardando_cliente')
       AND sla_pausado_em IS NULL
       AND prazo_sla IS NOT NULL
+      AND (
+        sla_status_operacional IS NULL
+        OR sla_status_operacional <> CASE
+          WHEN prazo_sla < NOW() THEN 'vencido'
+          WHEN prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) THEN 'vencendo'
+          ELSE 'dentro_sla'
+        END
+      )
     `);
 
   } catch (err) {

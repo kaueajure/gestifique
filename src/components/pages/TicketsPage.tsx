@@ -35,10 +35,11 @@ import {
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { Modal } from "../ui/Modal";
-import { TicketList } from "../tickets/TicketList";
+import { TicketList, TicketSortKey, TicketSortOrder } from "../tickets/TicketList";
 import { TicketKanban } from "../tickets/TicketKanban";
 import { CreateTicketModal } from "../tickets/CreateTicketModal";
 import { TeamSidebar } from "../tickets/TeamSidebar";
+import { TicketFilterDrawer } from "../tickets/TicketFilterDrawer";
 import { LoadingState } from "../ui/LoadingState";
 import { ErrorState } from "../ui/ErrorState";
 import { EmptyState } from "../ui/EmptyState";
@@ -203,6 +204,8 @@ export const TicketsPage = ({
   const [categoryFilter, setCategoryFilter] = useState("todas");
   const [serviceFilter, setServiceFilter] = useState("todos");
   const [selectedQueue, setSelectedQueue] = useState<TicketQueue>("todos");
+  const [sortBy, setSortBy] = useState<TicketSortKey>("operacional");
+  const [sortOrder, setSortOrder] = useState<TicketSortOrder>("desc");
 
   // Advanced Filters
   const [advancedFilters, setAdvancedFilters] = useState<IAdvancedFilters>({
@@ -251,6 +254,11 @@ export const TicketsPage = ({
 
   // Bulk Selection
   const [selectedTicketIds, setSelectedTicketIds] = useState<number[]>([]);
+
+  const handleSortChange = (key: TicketSortKey, order: TicketSortOrder) => {
+    setSortBy(key);
+    setSortOrder(order);
+  };
 
   const {
     activeCategories,
@@ -390,6 +398,11 @@ export const TicketsPage = ({
   const configuredKanbanResponse = kanbanResponse
     ? applyTicketWorkflowToKanban(kanbanResponse, workflowStatuses)
     : null;
+
+  const canCreateTicket = hasPermission(currentUser, "tickets.criar");
+  const canBulkActions = hasPermission(currentUser, "tickets.acoes_em_massa");
+  const canViewTeam = hasPermission(currentUser, "usuarios.visualizar");
+  const canConfigureTicketStatuses = hasPermission(currentUser, "empresas.gerenciar_configuracoes");
 
   const categoryOptionsForFilter = [
     { value: "todas", label: "Todas" },
@@ -622,6 +635,10 @@ export const TicketsPage = ({
           "custom_field_search",
           advancedFilters.custom_field_search,
         );
+      if (sortBy !== "operacional") {
+        query.append("sort_by", sortBy);
+        query.append("sort_order", sortOrder);
+      }
 
       if (viewMode === "list") {
         query.append("page", currentPage.toString());
@@ -675,6 +692,8 @@ export const TicketsPage = ({
     devCompanyId,
     selectedQueue,
     advancedFilters,
+    sortBy,
+    sortOrder,
   ]);
 
   useEffect(() => {
@@ -692,6 +711,8 @@ export const TicketsPage = ({
     devCompanyId,
     selectedQueue,
     advancedFilters,
+    sortBy,
+    sortOrder,
   ]);
 
   const handleBulkAction = async (action: string, value?: any) => {
@@ -731,6 +752,8 @@ export const TicketsPage = ({
       setCategoryFilter("todas");
       setServiceFilter("todos");
       setSelectedQueue("todos");
+      setSortBy("operacional");
+      setSortOrder("desc");
       setAdvancedFilters({ sla_status: "todos" });
       return;
     }
@@ -745,6 +768,10 @@ export const TicketsPage = ({
     if (f.search !== undefined) setSearchTerm(f.search);
     if (f.advanced) setAdvancedFilters(f.advanced);
     if (f.mode) setViewMode(f.mode);
+    if (f.sort_by) setSortBy(f.sort_by);
+    else setSortBy("operacional");
+    if (f.sort_order) setSortOrder(f.sort_order);
+    else setSortOrder("desc");
   };
 
   const handleSaveView = async (nome: string) => {
@@ -763,6 +790,8 @@ export const TicketsPage = ({
         search: searchTerm,
         advanced: advancedFilters,
         mode: viewMode,
+        sort_by: sortBy,
+        sort_order: sortOrder,
       };
 
       const empresa_id = currentUser.desenvolvedor
@@ -946,7 +975,7 @@ export const TicketsPage = ({
     }
     if (selectedQueue !== "todos") {
       const queueLabel =
-        QUEUES.find((q) => q.id === selectedQueue)?.label || selectedQueue;
+        [...QUEUES, ...MORE_QUEUES].find((q) => q.id === selectedQueue)?.label || selectedQueue;
       chips.push({ id: "queue", label: "Fila", value: queueLabel });
     }
 
@@ -979,6 +1008,15 @@ export const TicketsPage = ({
 
   const queueCounts =
     viewMode === "list" ? ticketsResponse?.queues : kanbanResponse?.queues;
+
+  const moreActionOptions = [
+    { value: "", label: "Mais" },
+    { value: "filtros", label: "Filtros" },
+    ...(canViewTeam ? [{ value: "equipe", label: "Ver Equipe" }] : []),
+    ...(canConfigureTicketStatuses ? [{ value: "config_status", label: "Configurar tipos" }] : []),
+    { value: "exportar", label: "Exportar CSV" },
+    { value: "atualizar", label: "Atualizar" },
+  ];
 
   return (
     <PageShell
@@ -1061,32 +1099,29 @@ export const TicketsPage = ({
                   </div>
                 )}
 
-                <Button
-                  size="sm"
-                  className="h-8 w-8 p-0 rounded-md text-[11px] font-bold"
-                  onClick={() => setIsModalOpen(true)}
-                  title="Novo ticket"
-                >
-                  <Plus size={16} />
-                </Button>
+                {canCreateTicket && (
+                  <Button
+                    size="sm"
+                    className="h-8 w-8 p-0 rounded-md text-[11px] font-bold"
+                    onClick={() => setIsModalOpen(true)}
+                    title="Novo ticket"
+                  >
+                    <Plus size={16} />
+                  </Button>
+                )}
 
                 <Select
                   size="sm"
                   value=""
                   onChange={(val) => {
+                    if (val === "filtros") setShowAdvanced(true);
                     if (val === "equipe") setShowTeamSidebar(!showTeamSidebar);
                     if (val === "config_status")
                       setShowWorkflowSettings(true);
                     if (val === "exportar") exportToCSV();
                     if (val === "atualizar") fetchData();
                   }}
-                  options={[
-                    { value: "", label: "Mais" },
-                    { value: "equipe", label: "Ver Equipe" },
-                    { value: "config_status", label: "Configurar tipos" },
-                    { value: "exportar", label: "Exportar CSV" },
-                    { value: "atualizar", label: "Atualizar" },
-                  ]}
+                  options={moreActionOptions}
                   className="w-20 sm:w-24 text-[11px]"
                   buttonClassName="h-8"
                 />
@@ -1385,7 +1420,10 @@ export const TicketsPage = ({
                 hasFilters={hasAnyFilters}
                 selectedTicketIds={selectedTicketIds}
                 onSelectionChange={setSelectedTicketIds}
-                canSelectBulk={hasPermission(currentUser, "tickets.editar")}
+                canSelectBulk={canBulkActions}
+                sortKey={sortBy}
+                sortOrder={sortOrder}
+                onSortChange={handleSortChange}
               />
             ) : null}
           </div>
@@ -1406,11 +1444,33 @@ export const TicketsPage = ({
         )}
       </div>
 
-      <TicketBulkActions
-        selectedCount={selectedTicketIds.length}
-        onAction={handleBulkAction}
-        onClear={() => setSelectedTicketIds([])}
+      {canBulkActions && (
+        <TicketBulkActions
+          selectedCount={selectedTicketIds.length}
+          onAction={handleBulkAction}
+          onClear={() => setSelectedTicketIds([])}
+          agents={agents}
+          currentUser={currentUser}
+        />
+      )}
+
+      <TicketFilterDrawer
+        isOpen={showAdvanced}
+        onClose={() => setShowAdvanced(false)}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        priorityFilter={priorityFilter}
+        setPriorityFilter={setPriorityFilter}
+        categoryFilter={categoryFilter}
+        setCategoryFilter={setCategoryFilter}
+        serviceFilter={serviceFilter}
+        setServiceFilter={setServiceFilter}
+        filters={advancedFilters}
+        onFilterChange={setAdvancedFilters}
+        onClear={clearFilters}
         agents={agents}
+        categoryOptions={categoryOptionsForFilter}
+        serviceOptions={serviceOptionsForFilter}
       />
 
       <CreateTicketModal

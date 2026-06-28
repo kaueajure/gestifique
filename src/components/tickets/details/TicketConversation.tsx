@@ -23,7 +23,10 @@ interface TicketConversationProps {
   loadingSend: boolean;
   actionError: string | null;
   actionSuccess: string | null;
+  canSendPublicReply: boolean;
   canAddInternalNote: boolean;
+  canAttachFiles: boolean;
+  canDeleteAttachments: boolean;
 }
 
 const ticketSubject = (msg: any) =>
@@ -192,7 +195,10 @@ export const TicketConversation = ({
   loadingSend,
   actionError,
   actionSuccess,
-  canAddInternalNote
+  canSendPublicReply,
+  canAddInternalNote,
+  canAttachFiles,
+  canDeleteAttachments
 }: TicketConversationProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -270,7 +276,7 @@ export const TicketConversation = ({
                       isCliente={msg.isAbertura || msg.usuario_id === ticket.usuario_id || (!msg.usuario_id && !msg.interno)}
                       isCurrentUser={!!msg.usuario_id && msg.usuario_id === currentUser.id}
                       isAbertura={msg.isAbertura}
-                      onDeleteAttachment={onDeleteAttachment}
+                      onDeleteAttachment={canDeleteAttachments ? onDeleteAttachment : undefined}
                     />
                   </React.Fragment>
                 );
@@ -283,7 +289,7 @@ export const TicketConversation = ({
 
       <div className="shrink-0 border-t border-slate-200 bg-white">
         <div className="w-full p-3 sm:px-5">
-          {ticket.status === 'fechado' ? (
+          {ticket.status === 'resolvido' || ticket.status === 'fechado' ? (
             <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 py-4">
               <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-slate-200/50 text-slate-400">
                 <Lock size={14} />
@@ -291,6 +297,16 @@ export const TicketConversation = ({
               <p className="mb-0.5 text-xs font-semibold tracking-tight text-slate-900">Atendimento fechado</p>
               <p className="text-[10px] font-medium text-slate-500">
                 Reabra o atendimento para enviar novas mensagens.
+              </p>
+            </div>
+          ) : !canSendPublicReply && !canAddInternalNote ? (
+            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 py-4">
+              <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-slate-200/50 text-slate-400">
+                <Lock size={14} />
+              </div>
+              <p className="mb-0.5 text-xs font-semibold tracking-tight text-slate-900">Sem permissao para responder</p>
+              <p className="text-[10px] font-medium text-slate-500">
+                Solicite acesso a respostas ou notas internas.
               </p>
             </div>
           ) : (
@@ -301,7 +317,9 @@ export const TicketConversation = ({
               loadingSend={loadingSend}
               actionError={actionError}
               actionSuccess={actionSuccess}
+              canSendPublicReply={canSendPublicReply}
               canAddInternalNote={canAddInternalNote}
+              canAttachFiles={canAttachFiles}
             />
           )}
           <div className="mt-2 text-center text-[10px] font-medium text-slate-400">

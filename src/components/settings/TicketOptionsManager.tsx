@@ -5,6 +5,7 @@ import { Input } from '../ui/Input';
 import { Card } from '../ui/Card';
 import { Trash2, Plus, Edit2, Check, X, ShieldAlert } from 'lucide-react';
 import { TicketOption, User } from '../../types';
+import { hasPermission } from '../../lib/permissions';
 
 interface TicketOptionsManagerProps {
   currentUser: User;
@@ -40,7 +41,7 @@ export const TicketOptionsManager = ({ currentUser }: TicketOptionsManagerProps)
   const [editName, setEditName] = useState('');
   const [editSigla, setEditSigla] = useState('');
 
-  const isDevOrAdmin = currentUser.administrador || currentUser.desenvolvedor;
+  const canManageOptions = hasPermission(currentUser, 'empresas.gerenciar_configuracoes');
   const companyId = currentUser.empresa_id;
 
   const loadOptions = async () => {
@@ -221,11 +222,11 @@ export const TicketOptionsManager = ({ currentUser }: TicketOptionsManagerProps)
     </div>
   );
 
-  if (!isDevOrAdmin) {
+  if (!canManageOptions) {
     return (
       <div className="p-6 bg-red-50 text-red-600 rounded-xl flex items-center gap-3">
         <ShieldAlert size={20} />
-        Acesso restrito. Apenas administradores podem gerenciar configuracoes de atendimento.
+        Acesso restrito. Sua conta nao pode gerenciar configuracoes de atendimento.
       </div>
     );
   }

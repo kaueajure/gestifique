@@ -20,7 +20,12 @@ interface TicketHeaderProps {
   onUpdate: (data: Partial<Ticket>) => Promise<void>;
   onResolve: () => void;
   onBack: () => void;
-  canManage: boolean;
+  canEditStatus: boolean;
+  canFinalize: boolean;
+  canCloseTicket: boolean;
+  canReopen: boolean;
+  canEditPriority: boolean;
+  canEditResponsavel: boolean;
   agents: User[];
 }
 
@@ -30,7 +35,12 @@ export const TicketHeader = ({
   onUpdate, 
   onResolve, 
   onBack,
-  canManage,
+  canEditStatus,
+  canFinalize,
+  canCloseTicket,
+  canReopen,
+  canEditPriority,
+  canEditResponsavel,
   agents
 }: TicketHeaderProps) => {
   const { 
@@ -47,8 +57,8 @@ export const TicketHeader = ({
     created_at
   } = ticket;
 
-  const showResolveButton = canManage && status !== 'resolvido' && status !== 'fechado';
-  const showReopenButton = canManage && (status === 'resolvido' || status === 'fechado');
+  const showResolveButton = canFinalize && status !== 'resolvido' && status !== 'fechado';
+  const showReopenButton = canReopen && (status === 'resolvido' || status === 'fechado');
   
   const slaInfo = getSlaInfo(prazo_sla, status, sla_status_operacional);
   const defaultStatusOptions = [
@@ -67,6 +77,14 @@ export const TicketHeader = ({
           label: (status || 'aberto').replace(/_/g, ' ')
         }
       ];
+  const finalStatuses = new Set(['resolvido', 'fechado']);
+  const filteredStatusOptions = statusOptions.filter(option => {
+    if (option.value === status) return true;
+    if (option.value === 'resolvido') return canFinalize;
+    if (option.value === 'fechado') return canCloseTicket;
+    if (finalStatuses.has(status)) return canReopen && canEditStatus;
+    return true;
+  });
 
   const getPriorityInfo = (prio: string) => {
     switch (prio) {
@@ -150,10 +168,10 @@ export const TicketHeader = ({
             <Select 
               value={status || 'aberto'}
               onChange={(value) => onUpdate({ status: value as TicketStatus })}
-              options={statusOptions}
+              options={filteredStatusOptions}
               buttonClassName="h-7 rounded-md border-slate-200 bg-white text-xs font-semibold text-slate-800 capitalize"
               dropdownClassName="min-w-[180px]"
-              disabled={!canManage}
+              disabled={!canEditStatus || (finalStatuses.has(status) && !canReopen)}
             />
           </HeaderSelectMeta>
           <HeaderSelectMeta
@@ -173,7 +191,7 @@ export const TicketHeader = ({
                 ]}
                 buttonClassName="h-7 rounded-md border-slate-200 bg-white pl-6 text-xs font-semibold text-slate-800"
                 dropdownClassName="min-w-[150px]"
-                disabled={!canManage}
+                disabled={!canEditPriority}
               />
             </div>
           </HeaderSelectMeta>
@@ -190,7 +208,7 @@ export const TicketHeader = ({
               ]}
               buttonClassName="h-7 rounded-md border-slate-200 bg-white text-xs font-semibold text-slate-800"
               dropdownClassName="min-w-[220px]"
-              disabled={!canManage}
+              disabled={!canEditResponsavel}
             />
           </HeaderSelectMeta>
           <HeaderMeta

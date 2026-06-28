@@ -33,6 +33,7 @@ import { TicketOptionsManager } from "../settings/TicketOptionsManager";
 import { SlaPoliciesManager } from "../settings/SlaPoliciesManager";
 import { AutomationsManager } from "../settings/AutomationsManager";
 import { ScreensSettingsManager } from "../settings/ScreensSettingsManager";
+import { hasPermission } from "../../lib/permissions";
 
 type AppTab =
   | "dashboard"
@@ -100,6 +101,48 @@ export const SettingsPage = ({
     null,
   );
 
+  const canEditCompany = hasPermission(currentUser, "empresas.editar");
+  const canManageEmailChannelsByBackend = Boolean(
+    currentUser.desenvolvedor || currentUser.administrador,
+  );
+  const canViewCompanyTab =
+    canEditCompany ||
+    (Boolean(currentUser.empresa_id) && canManageEmailChannelsByBackend);
+  const canManageTicketOptions = hasPermission(
+    currentUser,
+    "empresas.gerenciar_configuracoes",
+  );
+  const canManageSlaPolicies = hasPermission(
+    currentUser,
+    "sla.gerenciar_politicas",
+  );
+  const canManageAutomations = hasPermission(
+    currentUser,
+    "automacoes.gerenciar",
+  );
+  const canViewTicketSettings =
+    canManageTicketOptions || canManageSlaPolicies || canManageAutomations;
+  const canViewSystemHealth = hasPermission(currentUser, "sistema.health");
+  const canViewScreens = hasPermission(currentUser, "telas.visualizar");
+
+  React.useEffect(() => {
+    if (activeSubTab === "company" && !canViewCompanyTab) {
+      setActiveSubTab("general");
+    } else if (activeSubTab === "tickets" && !canViewTicketSettings) {
+      setActiveSubTab("general");
+    } else if (activeSubTab === "system" && !canViewSystemHealth) {
+      setActiveSubTab("general");
+    } else if (activeSubTab === "screens" && !canViewScreens) {
+      setActiveSubTab("general");
+    }
+  }, [
+    activeSubTab,
+    canViewCompanyTab,
+    canViewTicketSettings,
+    canViewSystemHealth,
+    canViewScreens,
+  ]);
+
   const fetchHealthOverview = async () => {
     setLoadingHealth(true);
     setHealthError(null);
@@ -114,10 +157,10 @@ export const SettingsPage = ({
   };
 
   React.useEffect(() => {
-    if (activeSubTab === "system") {
+    if (activeSubTab === "system" && canViewSystemHealth) {
       fetchHealthOverview();
     }
-  }, [activeSubTab]);
+  }, [activeSubTab, canViewSystemHealth]);
 
   const handleSaveCompany = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -194,7 +237,7 @@ export const SettingsPage = ({
               <Palette size={14} /> Preferências
             </button>
 
-            {!!(currentUser.administrador || currentUser.desenvolvedor) && (
+            {canViewCompanyTab && (
               <button
                 onClick={() => setActiveSubTab("company")}
                 className={cn(
@@ -208,7 +251,7 @@ export const SettingsPage = ({
               </button>
             )}
 
-            {!!(currentUser.administrador || currentUser.desenvolvedor) && (
+            {canViewTicketSettings && (
               <button
                 onClick={() => setActiveSubTab("tickets")}
                 className={cn(
@@ -222,7 +265,7 @@ export const SettingsPage = ({
               </button>
             )}
 
-            {!!currentUser.desenvolvedor && (
+            {canViewSystemHealth && (
               <button
                 onClick={() => setActiveSubTab("system")}
                 className={cn(
@@ -236,7 +279,7 @@ export const SettingsPage = ({
               </button>
             )}
 
-            {!!currentUser.desenvolvedor && (
+            {canViewScreens && (
               <button
                 onClick={() => setActiveSubTab("screens")}
                 className={cn(
@@ -339,21 +382,31 @@ export const SettingsPage = ({
                           reports: {
                             desc: "Análise de Relatórios",
                             icon: <TrendingUp size={16} />,
-                            access:
-                              currentUser.administrador ||
-                              currentUser.desenvolvedor,
+                            access: hasPermission(
+                              currentUser,
+                              "relatorios.visualizar",
+                            ),
                           },
                           tickets: {
                             desc: "Central de Atendimentos",
                             icon: <Layout size={16} />,
+                            access: hasPermission(
+                              currentUser,
+                              "tickets.visualizar",
+                            ),
                           },
                           profile: {
                             desc: "Dados do Perfil",
                             icon: <ShieldCheck size={16} />,
+                            access: true,
                           },
                           dashboard: {
                             desc: "Indicadores em Tempo Real",
                             icon: <Zap size={16} />,
+                            access: hasPermission(
+                              currentUser,
+                              "dashboard.visualizar",
+                            ),
                           },
                         };
                         const nav = navMap[id];
@@ -384,7 +437,7 @@ export const SettingsPage = ({
                 </div>
               )}
 
-              {activeSubTab === "company" && (
+              {activeSubTab === "company" && canEditCompany && (
                 <Card className="p-4 sm:p-5">
                   {!currentUser.empresa_id ? (
                     <div className="flex flex-col items-center justify-center py-10 px-4 text-center space-y-3">
@@ -519,30 +572,36 @@ export const SettingsPage = ({
                           </h4>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                          <Button
-                            variant="outline"
-                            onClick={() => onNavigate("users")}
-                            className="bg-white border-slate-200 text-slate-700 justify-between h-10 text-xs"
-                          >
-                            Equipe{" "}
-                            <ShieldCheck size={14} className="text-blue-500" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() => onNavigate("logs")}
-                            className="bg-white border-slate-200 text-slate-700 justify-between h-10 text-xs"
-                          >
-                            Auditoria{" "}
-                            <Database size={14} className="text-indigo-500" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() => onNavigate("tickets")}
-                            className="bg-white border-slate-200 text-slate-700 justify-between h-10 text-xs"
-                          >
-                            Atendimentos{" "}
-                            <Layout size={14} className="text-emerald-500" />
-                          </Button>
+                          {hasPermission(currentUser, "usuarios.visualizar") && (
+                            <Button
+                              variant="outline"
+                              onClick={() => onNavigate("users")}
+                              className="bg-white border-slate-200 text-slate-700 justify-between h-10 text-xs"
+                            >
+                              Equipe{" "}
+                              <ShieldCheck size={14} className="text-blue-500" />
+                            </Button>
+                          )}
+                          {hasPermission(currentUser, "auditoria.visualizar") && (
+                            <Button
+                              variant="outline"
+                              onClick={() => onNavigate("logs")}
+                              className="bg-white border-slate-200 text-slate-700 justify-between h-10 text-xs"
+                            >
+                              Auditoria{" "}
+                              <Database size={14} className="text-indigo-500" />
+                            </Button>
+                          )}
+                          {hasPermission(currentUser, "tickets.visualizar") && (
+                            <Button
+                              variant="outline"
+                              onClick={() => onNavigate("tickets")}
+                              className="bg-white border-slate-200 text-slate-700 justify-between h-10 text-xs"
+                            >
+                              Atendimentos{" "}
+                              <Layout size={14} className="text-emerald-500" />
+                            </Button>
+                          )}
                         </div>
                       </div>
 
@@ -562,13 +621,21 @@ export const SettingsPage = ({
                 </Card>
               )}
 
-              {activeSubTab === "company" && !!currentUser.empresa_id && (
+              {activeSubTab === "company" &&
+                !!currentUser.empresa_id &&
+                canManageEmailChannelsByBackend && (
                 <Card className="p-4 sm:p-5">
-                  <EmailChannelsManager empresaId={currentUser.empresa_id} />
+                  <EmailChannelsManager
+                    empresaId={currentUser.empresa_id}
+                    canCreate={canManageEmailChannelsByBackend}
+                    canEdit={canManageEmailChannelsByBackend}
+                    canDelete={canManageEmailChannelsByBackend}
+                    canTest={canManageEmailChannelsByBackend}
+                  />
                 </Card>
               )}
 
-              {activeSubTab === "system" && (
+              {activeSubTab === "system" && canViewSystemHealth && (
                 <div className="space-y-4">
                   {loadingHealth ? (
                     <div className="flex flex-col items-center justify-center py-8 space-y-4">
@@ -885,17 +952,23 @@ export const SettingsPage = ({
 
               {activeSubTab === "tickets" && (
                 <div className="space-y-4">
-                  <TicketOptionsManager currentUser={currentUser} />
-                  <SlaPoliciesManager
-                    currentCompanyId={currentUser.empresa_id!}
-                  />
-                  <AutomationsManager
-                    currentCompanyId={currentUser.empresa_id!}
-                  />
+                  {canManageTicketOptions && (
+                    <TicketOptionsManager currentUser={currentUser} />
+                  )}
+                  {canManageSlaPolicies && (
+                    <SlaPoliciesManager
+                      currentCompanyId={currentUser.empresa_id!}
+                    />
+                  )}
+                  {canManageAutomations && (
+                    <AutomationsManager
+                      currentCompanyId={currentUser.empresa_id!}
+                    />
+                  )}
                 </div>
               )}
 
-              {activeSubTab === "screens" && (
+              {activeSubTab === "screens" && canViewScreens && (
                 <ScreensSettingsManager currentUser={currentUser} />
               )}
             </motion.div>

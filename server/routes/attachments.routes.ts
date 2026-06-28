@@ -47,8 +47,9 @@ router.get('/:id/download', async (req: AuthRequest, res: Response) => {
     // Path safety check (usa o diretório central de storage, não hardcoded)
     const absolutePath = path.resolve(attachment.caminho);
     const uploadsDir = path.resolve(process.cwd(), env.STORAGE_CONFIG.LOCAL_PATH);
+    const relativePath = path.relative(uploadsDir, absolutePath);
     
-    if (!absolutePath.startsWith(uploadsDir)) {
+    if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
        return sendError(res, 'Caminho de arquivo inválido', 400);
     }
 
@@ -58,6 +59,7 @@ router.get('/:id/download', async (req: AuthRequest, res: Response) => {
        return sendError(res, 'Arquivo físico não encontrado no servidor', 404);
     }
 
+    res.setHeader('X-Content-Type-Options', 'nosniff');
     res.download(absolutePath, attachment.nome_original);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erro ao processar download';

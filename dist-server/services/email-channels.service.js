@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import pool from '../db/connection.js';
 import { env } from '../config/env.js';
 import { encryptSecret } from '../utils/crypto.js';
+import { maskEmail } from '../utils/sanitize.js';
 // Colunas seguras para exposição (NUNCA inclui smtp_pass_enc).
 const PUBLIC_CHANNEL_COLUMNS = `
   id, empresa_id, nome, email_publico, inbound_address, verification_token, status,
@@ -9,6 +10,9 @@ const PUBLIC_CHANNEL_COLUMNS = `
   smtp_enabled, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_from_name,
   smtp_status, smtp_last_test_at, smtp_last_error
 `;
+function normalizePublicEmail(email) {
+    return String(email || '').trim().toLowerCase();
+}
 export class EmailChannelsService {
     async listByCompany(empresaId) {
         const [rows] = await pool.query(`SELECT ${PUBLIC_CHANNEL_COLUMNS} FROM empresa_email_canais WHERE empresa_id = ? ORDER BY created_at DESC`, [empresaId]);
@@ -20,14 +24,22 @@ export class EmailChannelsService {
     }
     async createChannel(data) {
         const { empresa_id, nome, email_publico } = data;
+        const normalizedEmailPublico = normalizePublicEmail(email_publico);
+        if (!normalizedEmailPublico) {
+            throw new Error('E-mail publico do canal e obrigatorio.');
+        }
+        const [duplicateRows] = await pool.query('SELECT id, empresa_id FROM empresa_email_canais WHERE LOWER(TRIM(email_publico)) = ? LIMIT 1', [normalizedEmailPublico]);
+        if (duplicateRows.length > 0) {
+            throw new Error('Este e-mail publico ja esta vinculado a outro canal.');
+        }
         const randomHex = crypto.randomBytes(4).toString('hex');
         const inbound_address = `${env.INBOUND_EMAIL_PREFIX}-${empresa_id}-${randomHex}@${env.INBOUND_EMAIL_DOMAIN}`.toLowerCase();
         const verification_token = crypto.randomBytes(16).toString('hex');
-        const [result] = await pool.query('INSERT INTO empresa_email_canais (empresa_id, nome, email_publico, inbound_address, verification_token, status) VALUES (?, ?, ?, ?, ?, ?)', [empresa_id, nome || null, email_publico, inbound_address, verification_token, 'pendente']);
+        const [result] = await pool.query('INSERT INTO empresa_email_canais (empresa_id, nome, email_publico, inbound_address, verification_token, status) VALUES (?, ?, ?, ?, ?, ?)', [empresa_id, nome || null, normalizedEmailPublico, inbound_address, verification_token, 'pendente']);
         await pool.query('INSERT INTO logs_sistema (empresa_id, acao, descricao, user_agent, ip) VALUES (?, ?, ?, ?, ?)', [
             empresa_id,
             'EMAIL_CHANNEL_CREATED',
-            `Canal de e-mail criado: ${inbound_address} referenciando ${email_publico}`,
+            `Canal de e-mail criado: ${maskEmail(inbound_address)} referenciando ${maskEmail(normalizedEmailPublico)}`,
             'SYSTEM',
             '127.0.0.1',
         ]);

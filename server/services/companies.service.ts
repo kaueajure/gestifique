@@ -1,7 +1,7 @@
 import  pool from  '../db/connection.js';
 
 class CompaniesService {
-  async list(filters: { search?: string; status?: string } = {}) {
+  async list(filters: { search?: string; status?: string; empresaId?: number } = {}) {
     let query = `
       SELECT e.*, 
              (SELECT COUNT(*) FROM usuarios u WHERE u.empresa_id = e.id) as total_usuarios,
@@ -10,6 +10,16 @@ class CompaniesService {
       WHERE 1=1
     `;
     const params: any[] = [];
+
+    if (filters.empresaId !== undefined) {
+      const empresaId = Number(filters.empresaId);
+      if (Number.isInteger(empresaId) && empresaId > 0) {
+        query += ' AND e.id = ?';
+        params.push(empresaId);
+      } else {
+        query += ' AND 1=0';
+      }
+    }
 
     if (filters.search) {
       query += ' AND (e.nome LIKE ? OR e.cnpj LIKE ? OR e.email LIKE ?)';

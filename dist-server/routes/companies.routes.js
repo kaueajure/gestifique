@@ -8,15 +8,20 @@ import { logSystemAction } from '../utils/logger.js';
 import { isValidEmail, isValidHexColor } from '../utils/validators.js';
 import { isValidTicketStatus } from '../services/tickets.service.js';
 import { recomputeTicketMessageState } from '../utils/ticket-state.js';
+import { isDeveloperUser } from '../utils/user-scope.js';
 const router = Router();
 router.use(authMiddleware);
 // Listar e Criar empresas
 router.get('/', requirePermission('empresas.visualizar'), async (req, res) => {
     try {
+        const currentUser = req.user;
+        if (!currentUser)
+            return sendError(res, 'Nao autenticado', 401);
         const { search, status } = req.query;
         const companies = await companiesService.list({
             search: search,
-            status: status
+            status: status,
+            empresaId: isDeveloperUser(currentUser) ? undefined : Number(currentUser.empresa_id)
         });
         sendSuccess(res, companies);
     }

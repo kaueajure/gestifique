@@ -161,6 +161,46 @@ class AttachmentsService {
     }));
   }
 
+  async getByMessages(messageIds: number[], includeInternal: boolean, ticketId?: number): Promise<Record<number, AttachmentData[]>> {
+    const safeIds = Array.from(new Set(messageIds.map(id => Number(id)).filter(id => Number.isInteger(id) && id > 0)));
+    if (safeIds.length === 0) return {};
+
+    let query = `
+      SELECT a.*, COALESCE(u.nome, 'Cliente Externo') as usuario_nome
+      FROM ticket_anexos a
+      LEFT JOIN usuarios u ON a.usuario_id = u.id
+      WHERE a.mensagem_id IN (?)
+    `;
+    const params: any[] = [safeIds];
+
+    if (ticketId) {
+      query += ' AND a.ticket_id = ?';
+      params.push(ticketId);
+    }
+
+    if (!includeInternal) {
+      query += ' AND a.interno = 0';
+    }
+
+    query += ' ORDER BY a.created_at ASC, a.id ASC';
+
+    const [rows]: any = await pool.query(query, params);
+    const map: Record<number, AttachmentData[]> = {};
+
+    (rows as AttachmentData[]).forEach(row => {
+      if (!row.mensagem_id) return;
+      const normalized = {
+        ...row,
+        interno: !!row.interno,
+        url: `/api/attachments/${row.id}/download`
+      };
+      if (!map[row.mensagem_id]) map[row.mensagem_id] = [];
+      map[row.mensagem_id].push(normalized);
+    });
+
+    return map;
+  }
+
   async deleteMultiple(files: Express.Multer.File[]): Promise<void> {
     await Promise.all(files.map(file => storageService.delete(file.path).catch(() => {})));
   }

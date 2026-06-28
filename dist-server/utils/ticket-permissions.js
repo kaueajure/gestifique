@@ -1,13 +1,9 @@
 import { permissionsService } from '../services/permissions.service.js';
+import { isDeveloperUser } from './user-scope.js';
 export async function getTicketScope(user) {
-    // Superusers bypass all scope restrictions
-    const isSuperUser = user.desenvolvedor === 1 ||
-        user.desenvolvedor === true ||
-        user.perfil === 'desenvolvedor' ||
-        user.administrador === 1 ||
-        user.administrador === true ||
-        user.perfil === 'administrador';
-    if (isSuperUser) {
+    if (!user)
+        return { canViewAll: false, canViewOwn: false, canViewUnassigned: false };
+    if (isDeveloperUser(user)) {
         return {
             canViewAll: true,
             canViewOwn: true,
@@ -26,15 +22,13 @@ export async function getTicketScope(user) {
     };
 }
 export function canAccessTicketByScope(ticket, user, scope) {
-    // Superusers bypass all scope restrictions
-    const isSuperUser = user.desenvolvedor === 1 ||
-        user.desenvolvedor === true ||
-        user.perfil === 'desenvolvedor' ||
-        user.administrador === 1 ||
-        user.administrador === true ||
-        user.perfil === 'administrador';
-    if (isSuperUser)
+    if (!ticket || !user)
+        return false;
+    if (isDeveloperUser(user))
         return true;
+    if (Number(ticket.empresa_id) !== Number(user.empresa_id)) {
+        return false;
+    }
     // Clients can strictly only view their own tickets
     if (user.perfil === 'cliente') {
         return Number(ticket.usuario_id) === Number(user.id);

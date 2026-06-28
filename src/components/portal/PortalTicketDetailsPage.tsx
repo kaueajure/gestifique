@@ -3,7 +3,7 @@ import { api } from '../../lib/api';
 import { Badge } from '../ui/Badge';
 import { User } from '../../types';
 import { Button } from '../ui/Button';
-import { ArrowLeft, Send, Loader2, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Send, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '../../lib/utils';
@@ -67,8 +67,6 @@ export const PortalTicketDetailsPage = ({ ticketId, onBack, currentUser }: Porta
 
   if (!ticket) return <div className="py-10 flex justify-center"><Loader2 className="animate-spin text-slate-300" size={24}/></div>;
 
-  const isClosed = ticket.status === 'resolvido' || ticket.status === 'fechado';
-
   return (
     <div className="space-y-4 max-w-4xl mx-auto">
       <div className="flex items-center gap-3 border-b border-slate-200 pb-4">
@@ -128,26 +126,19 @@ export const PortalTicketDetailsPage = ({ ticketId, onBack, currentUser }: Porta
         </div>
 
         <div className="p-4 bg-white border-t border-slate-200">
-          {isClosed ? (
-            <div className="text-center py-3 text-emerald-600 bg-emerald-50 rounded-lg border border-emerald-100 flex flex-col items-center gap-1.5">
-              <CheckCircle2 size={16} />
-              <span className="text-sm font-medium">Este chamado foi finalizado.</span>
+          <form onSubmit={handleReply} className="flex flex-col gap-2.5">
+            <textarea
+              value={replyMessage}
+              onChange={e => setReplyMessage(e.target.value)}
+              placeholder="Escreva sua mensagem..."
+              className="w-full resize-none h-16 p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all outline-none"
+            />
+            <div className="flex justify-end gap-2">
+              <Button type="submit" disabled={sending || !replyMessage.trim()} className="font-semibold px-5 text-sm h-9">
+                {sending ? 'Enviando...' : <span className="flex items-center"><Send size={16} className="mr-2" /> Enviar</span>}
+              </Button>
             </div>
-          ) : (
-            <form onSubmit={handleReply} className="flex flex-col gap-2.5">
-              <textarea
-                value={replyMessage}
-                onChange={e => setReplyMessage(e.target.value)}
-                placeholder="Escreva sua mensagem..."
-                className="w-full resize-none h-16 p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all outline-none"
-              />
-              <div className="flex justify-end gap-2">
-                <Button type="submit" disabled={sending || !replyMessage.trim()} className="font-semibold px-5 text-sm h-9">
-                  {sending ? 'Enviando...' : <span className="flex items-center"><Send size={16} className="mr-2" /> Enviar</span>}
-                </Button>
-              </div>
-            </form>
-          )}
+          </form>
         </div>
       </div>
     </div>

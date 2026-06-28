@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import { env } from '../config/env.js';
+import { maskEmail, maskIdentifier } from './sanitize.js';
 const transporter = nodemailer.createTransport({
     host: env.SMTP.HOST,
     port: env.SMTP.PORT,
@@ -55,11 +56,11 @@ export const sendTestEmail = async (to) => {
     };
     try {
         const info = await transporter.sendMail(mailOptions);
-        console.log('[Mailer] Test email sent:', info.messageId);
+        console.log(`[Mailer] Test email sent to ${maskEmail(to)} (Message-ID: ${maskIdentifier(info.messageId)})`);
         return { success: true, messageId: info.messageId };
     }
     catch (error) {
-        console.error('[Mailer] Failed to send test email:', error);
+        console.error(`[Mailer] Failed to send test email to ${maskEmail(to)}:`, error.message);
         return { success: false, error: error.message };
     }
 };
@@ -85,10 +86,10 @@ export const sendPasswordRecoveryEmail = async (email, token) => {
     };
     try {
         await transporter.sendMail(mailOptions);
-        console.log(`[Mailer] Recovery email sent to ${email}`);
+        console.log(`[Mailer] Recovery email sent to ${maskEmail(email)}`);
     }
     catch (error) {
-        console.error(`[Mailer] Failed to send recovery email to ${email}:`, error);
+        console.error(`[Mailer] Failed to send recovery email to ${maskEmail(email)}:`, error.message);
     }
 };
 const escapeHtml = (unsafe) => {
@@ -236,7 +237,7 @@ export const sendTicketEmail = async (params, options) => {
     }
     try {
         const info = await activeTransporter.sendMail(mailOptions);
-        console.log(`[Mailer] Ticket email (${params.type}) sent to ${params.to} (ID: ${params.ticketId}, via: ${useChannelTransport ? 'channel' : 'global'}, Message-ID: ${info.messageId})`);
+        console.log(`[Mailer] Ticket email (${params.type}) sent to ${maskEmail(params.to)} (ID: ${params.ticketId}, via: ${useChannelTransport ? 'channel' : 'global'}, Message-ID: ${maskIdentifier(info.messageId)})`);
         return {
             success: true,
             messageId: msgId,
@@ -244,7 +245,7 @@ export const sendTicketEmail = async (params, options) => {
         };
     }
     catch (error) {
-        console.error(`[Mailer] Failed to send ticket email (${params.type}) to ${params.to}:`, error.message);
+        console.error(`[Mailer] Failed to send ticket email (${params.type}) to ${maskEmail(params.to)}:`, error.message);
         return {
             success: false,
             error: error.message
@@ -279,11 +280,11 @@ export const sendPortalAccessCodeEmail = async (params) => {
     };
     try {
         const info = await transporter.sendMail(mailOptions);
-        console.log(`[Mailer] Portal access code sent to ${to}`);
+        console.log(`[Mailer] Portal access code sent to ${maskEmail(to)} (Message-ID: ${maskIdentifier(info.messageId)})`);
         return { success: true, messageId: info.messageId };
     }
     catch (error) {
-        console.error(`[Mailer] Failed to send portal access code to ${to}:`, error);
+        console.error(`[Mailer] Failed to send portal access code to ${maskEmail(to)}:`, error.message);
         return { success: false, error: error.message };
     }
 };

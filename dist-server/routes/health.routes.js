@@ -75,8 +75,8 @@ router.get('/security', (req, res) => {
             warnings.push('CORS_ORIGINS está vazio em produção. Recomenda-se configurar as origens permitidas.');
         }
     }
-    if (!env.JWT_SECRET || env.JWT_SECRET.length < 16) {
-        warnings.push('JWT_SECRET está configurado, mas muito curto. Use pelo menos 16 caracteres complexos.');
+    if (!env.JWT_SECRET || env.JWT_SECRET.length < 32) {
+        warnings.push('JWT_SECRET esta configurado, mas muito curto. Use pelo menos 32 caracteres complexos.');
     }
     res.json({
         success: true,
@@ -147,8 +147,8 @@ router.get('/overview', async (req, res) => {
             warnings.push('CORS_ORIGINS está vazio em produção. Recomenda-se configurar as origens permitidas.');
         }
     }
-    if (!env.JWT_SECRET || env.JWT_SECRET.length < 16) {
-        warnings.push('JWT_SECRET está configurado, mas muito curto. Use pelo menos 16 caracteres complexos.');
+    if (!env.JWT_SECRET || env.JWT_SECRET.length < 32) {
+        warnings.push('JWT_SECRET esta configurado, mas muito curto. Use pelo menos 32 caracteres complexos.');
     }
     const securityResult = {
         success: true,

@@ -26,6 +26,8 @@ npm run build
 npm run db:migrate # Aplica todas as tabelas e correções estruturais (idempotente)
 ```
 
+Para o checklist completo de producao, rollback, workers e healthcheck, veja `docs/PRODUCTION_RUNBOOK.md`.
+
 ### 4. Execução
 Utilize `pm2` ou similar para manter o processo rodando:
 ```bash

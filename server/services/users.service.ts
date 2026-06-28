@@ -1,5 +1,6 @@
 import  pool from  '../db/connection.js';
 import bcrypt from 'bcryptjs';
+import { sanitizeUser, sanitizeUsers } from '../utils/sanitize.js';
 
 class UsersService {
   async list(filters: { empresaId?: number; search?: string; status?: string }) {
@@ -30,8 +31,8 @@ class UsersService {
 
     query += ' ORDER BY u.nome ASC';
 
-    const [rows] = await pool.query(query, params);
-    return rows;
+    const [rows]: any = await pool.query(query, params);
+    return sanitizeUsers(rows);
   }
 
   async getById(id: number) {
@@ -50,8 +51,7 @@ class UsersService {
       [id]
     );
     if (rows.length === 0) return null;
-    const { senha_hash, ...user } = rows[0];
-    return user;
+    return sanitizeUser(rows[0]);
   }
 
   async create(data: any) {

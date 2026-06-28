@@ -10,6 +10,7 @@ import { TicketConversation } from '../tickets/details/TicketConversation';
 import { TicketTimeline } from '../tickets/details/TicketTimeline';
 import { Select } from '../ui/Select';
 import { cn } from '../../lib/utils';
+import { hasAnyPermission, hasPermission } from '../../lib/permissions';
 import { getSocket } from '../../lib/socket';
 import { motion, AnimatePresence } from 'motion/react';
 import { PageShell } from '../layout/PageShell';
@@ -68,16 +69,12 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
         console.error('Erro ao marcar ticket como lido:', err);
       });
 
-      if (!!(currentUser.administrador || currentUser.desenvolvedor)) {
-        const usersData = await api.get<User[]>('/users');
-        const filteredAgents = usersData.filter(u => {
-          const isActive = u.ativo !== false;
-          if (!isActive) return false;
-          
-          if (!!currentUser.desenvolvedor) return true;
-          return u.empresa_id === currentUser.empresa_id;
-        });
-        setAgents(filteredAgents);
+      if (hasAnyPermission(currentUser, ['tickets.assumir', 'tickets.atribuir', 'tickets.transferir', 'tickets.remover_responsavel'])) {
+        const teamEndpoint = currentUser.desenvolvedor && ticketData.empresa_id
+          ? `/users/team?empresa_id=${ticketData.empresa_id}`
+          : '/users/team';
+        const usersData = await api.get<User[]>(teamEndpoint);
+        setAgents(usersData);
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao carregar detalhes do atendimento.';
@@ -274,8 +271,21 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
     );
   }
 
-  const canManage = !!(currentUser.administrador || currentUser.desenvolvedor || currentUser.perfil === 'gestor' || currentUser.perfil === 'atendente');
-  const canAddInternalNote = !!(currentUser.administrador || currentUser.desenvolvedor || currentUser.perfil === 'gestor' || currentUser.perfil === 'atendente');
+  const canEditStatus = hasPermission(currentUser, 'tickets.editar_status');
+  const canFinalize = hasPermission(currentUser, 'tickets.finalizar');
+  const canCloseTicket = hasPermission(currentUser, 'tickets.fechar');
+  const canReopen = hasPermission(currentUser, 'tickets.reabrir');
+  const canEditPriority = hasPermission(currentUser, 'tickets.editar_prioridade');
+  const canEditResponsavel = hasAnyPermission(currentUser, [
+    'tickets.assumir',
+    'tickets.atribuir',
+    'tickets.transferir',
+    'tickets.remover_responsavel'
+  ]);
+  const canSendPublicReply = hasPermission(currentUser, 'ticket_mensagens.responder');
+  const canAddInternalNote = hasPermission(currentUser, 'ticket_mensagens.comentar_interno');
+  const canAttachFiles = hasPermission(currentUser, 'ticket_mensagens.anexar');
+  const canDeleteAttachments = hasPermission(currentUser, 'ticket_mensagens.excluir_anexos');
 
   return (
     <PageShell
@@ -293,7 +303,12 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
               setIsResolveModalOpen(true);
            }}
            onBack={onBack}
-           canManage={canManage}
+           canEditStatus={canEditStatus}
+           canFinalize={canFinalize}
+           canCloseTicket={canCloseTicket}
+           canReopen={canReopen}
+           canEditPriority={canEditPriority}
+           canEditResponsavel={canEditResponsavel}
            agents={agents}
           />
       </div>
@@ -311,7 +326,10 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
             loadingSend={loadingSend}
             actionError={actionError}
             actionSuccess={actionSuccess}
+            canSendPublicReply={canSendPublicReply}
             canAddInternalNote={canAddInternalNote}
+            canAttachFiles={canAttachFiles}
+            canDeleteAttachments={canDeleteAttachments}
           />
         </div>
 

@@ -1,6 +1,7 @@
 import pool from '../db/connection.js';
 import { Connection } from 'mysql2/promise';
 import { PERMISSIONS_CATALOG, DEFAULT_ROLE_PERMISSIONS, PermissionCatalogItem } from '../constants/permissions.js';
+import { isDeveloperUser } from '../utils/user-scope.js';
 
 interface Override {
   permission_key: string;
@@ -8,6 +9,45 @@ interface Override {
 }
 
 const userPermissionsCache = new Map<number, { permissions: string[]; expiresAt: number }>();
+
+export function isGlobalOnlyPermission(permissionKey: string): boolean {
+  return (
+    permissionKey === '*' ||
+    permissionKey.startsWith('sistema.') ||
+    permissionKey.startsWith('telas.') ||
+    ['empresas.criar', 'empresas.excluir', 'empresas.desativar', 'configuracoes.sistema'].includes(permissionKey)
+  );
+}
+
+export function filterGlobalPermissionsForUser(user: any, permissionKeys: string[]): string[] {
+  if (isDeveloperUser(user)) return permissionKeys;
+  return permissionKeys.filter(key => !isGlobalOnlyPermission(key));
+}
+
+export function resolveEffectivePermissionKeys(user: any, roleKeys: string[], overrides: Override[]): string[] {
+  if (!user) return [];
+  if (isDeveloperUser(user)) return ['*'];
+
+  if (user.administrador === 1 || user.administrador === true || user.perfil === 'administrador') {
+    return filterGlobalPermissionsForUser(user, PERMISSIONS_CATALOG.map(item => item.key));
+  }
+
+  const permissionSet = new Set<string>(filterGlobalPermissionsForUser(user, roleKeys));
+
+  const allows = overrides.filter(o => o.effect === 'allow').map(o => o.permission_key);
+  const denies = overrides.filter(o => o.effect === 'deny').map(o => o.permission_key);
+
+  for (const key of allows) {
+    if (!isGlobalOnlyPermission(key)) {
+      permissionSet.add(key);
+    }
+  }
+  for (const key of denies) {
+    permissionSet.delete(key);
+  }
+
+  return filterGlobalPermissionsForUser(user, Array.from(permissionSet));
+}
 
 export const permissionsService = {
   invalidateCache(userId: number) {
@@ -87,11 +127,11 @@ export const permissionsService = {
 
   async getEffectivePermissions(user: any): Promise<string[]> {
     if (!user) return [];
-    if (user.desenvolvedor === 1 || user.desenvolvedor === true || user.perfil === 'desenvolvedor') {
+    if (isDeveloperUser(user)) {
       return ['*'];
     }
     if (user.administrador === 1 || user.administrador === true || user.perfil === 'administrador') {
-      return ['*'];
+      return resolveEffectivePermissionKeys(user, [], []);
     }
 
     const userId = Number(user.id);
@@ -104,22 +144,7 @@ export const permissionsService = {
     // Fetch from database
     const roleKeys = await this.getRolePermissions(user.perfil);
     const overrides = await this.getUserOverrides(userId);
-
-    const permissionSet = new Set<string>(roleKeys);
-
-    // Apply overrides: allow adds, deny removes.
-    // Deny strictly wins over allow.
-    const allows = overrides.filter(o => o.effect === 'allow').map(o => o.permission_key);
-    const denies = overrides.filter(o => o.effect === 'deny').map(o => o.permission_key);
-
-    for (const key of allows) {
-      permissionSet.add(key);
-    }
-    for (const key of denies) {
-      permissionSet.delete(key);
-    }
-
-    const effective = Array.from(permissionSet);
+    const effective = resolveEffectivePermissionKeys(user, roleKeys, overrides);
     userPermissionsCache.set(userId, {
       permissions: effective,
       expiresAt: now + 60000 // 60 seconds
@@ -130,8 +155,13 @@ export const permissionsService = {
 
   async hasPermission(user: any, permissionKey: string): Promise<boolean> {
     if (!user) return false;
+    if (!isDeveloperUser(user) && isGlobalOnlyPermission(permissionKey)) {
+      return false;
+    }
     const effective = await this.getEffectivePermissions(user);
-    if (effective.includes('*')) return true;
+    if (effective.includes('*')) {
+      return isDeveloperUser(user);
+    }
     return effective.includes(permissionKey);
   },
 

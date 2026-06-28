@@ -6,11 +6,11 @@ import { env } from '../config/env.js';
 
 const router = Router();
 
-// Only allow admins to test email
+// Only developers can inspect/test the global SaaS mail configuration.
 router.use(authMiddleware);
 
 router.get('/config', (req: any, res) => {
-  if (!req.user?.administrador && !req.user?.desenvolvedor) {
+  if (!req.user?.desenvolvedor) {
     return res.status(403).json({ error: 'Acesso negado' });
   }
 
@@ -33,7 +33,7 @@ router.get('/config', (req: any, res) => {
 });
 
 router.post('/test-smtp', async (req: any, res) => {
-  if (!req.user?.administrador && !req.user?.desenvolvedor) {
+  if (!req.user?.desenvolvedor) {
     return res.status(403).json({ error: 'Acesso negado' });
   }
 
@@ -42,7 +42,7 @@ router.post('/test-smtp', async (req: any, res) => {
 });
 
 router.post('/send-test', async (req: any, res) => {
-  if (!req.user?.administrador && !req.user?.desenvolvedor) {
+  if (!req.user?.desenvolvedor) {
     return res.status(403).json({ error: 'Acesso negado' });
   }
 

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { authMiddleware, AuthRequest } from '../middlewares/auth.js';
 import { requirePermission } from '../middlewares/permissions.middleware.js';
-import { permissionsService } from '../services/permissions.service.js';
+import { isGlobalOnlyPermission, permissionsService } from '../services/permissions.service.js';
 import pool from '../db/connection.js';
 
 const router = Router();
@@ -38,16 +38,26 @@ async function getTargetUser(targetUserId: number) {
   return targetUserRows[0] || null;
 }
 
+function globalPermissionAllowError(caller: any, permissionKeys: string[], effect: 'allow' | 'deny'): string | null {
+  if (effect !== 'allow' || caller.desenvolvedor) return null;
+
+  const globalKeys = permissionKeys.filter(isGlobalOnlyPermission);
+  if (globalKeys.length === 0) return null;
+
+  return `Apenas desenvolvedores podem conceder permissoes globais do SaaS (${globalKeys.join(', ')}).`;
+}
+
 // 1. GET /api/permissions/me
 router.get('/me', async (req: AuthRequest, res) => {
   try {
     const permissions = await permissionsService.getEffectivePermissions(req.user);
-    const isSuperUser = !!(req.user?.desenvolvedor || req.user?.administrador);
+    const isSuperUser = !!req.user?.desenvolvedor;
     return res.json({
       success: true,
       data: {
         permissions,
-        isSuperUser
+        isSuperUser,
+        isTenantAdmin: !!req.user?.administrador && !req.user?.desenvolvedor
       }
     });
   } catch (err: any) {
@@ -157,6 +167,11 @@ router.put('/users/:id/override', requirePermission('usuarios.gerenciar_permisso
     );
     if (validPermissionRows.length === 0) {
       return res.status(400).json({ success: false, message: 'Permissao inexistente ou inativa no catalogo.' });
+    }
+
+    const globalAllowError = globalPermissionAllowError(caller, [permission_key], effect);
+    if (globalAllowError) {
+      return res.status(403).json({ success: false, message: globalAllowError });
     }
 
     await permissionsService.setUserPermissionOverride({
@@ -342,6 +357,11 @@ router.post('/users/:id/bulk', requirePermission('usuarios.gerenciar_permissoes'
         message: 'Algumas permissões fornecidas não existem no catálogo ou estão inativas.', 
         data: { invalid_keys: invalidKeys } 
       });
+    }
+
+    const globalAllowError = globalPermissionAllowError(caller, permission_keys, effect);
+    if (globalAllowError) {
+      return res.status(403).json({ success: false, message: globalAllowError });
     }
 
     await permissionsService.setUserPermissionOverridesBulk({

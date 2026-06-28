@@ -4,6 +4,17 @@ import ticketMessagesService from './ticket-messages.service.js';
 import slaService from './sla.service.js';
 import { recomputeTicketMessageState } from '../utils/ticket-state.js';
 
+const FINAL_TICKET_STATUSES = new Set(['resolvido', 'fechado']);
+const FINALIZED_TICKET_MUTATION_ACTIONS = new Set([
+  'alterar_status',
+  'alterar_prioridade',
+  'atribuir_responsavel',
+  'remover_responsavel',
+  'adicionar_tag',
+  'adicionar_comentario',
+  'fechar_com_motivo'
+]);
+
 const parseJsonArray = (value: any) => {
   if (Array.isArray(value)) return value;
   if (typeof value === 'string') {
@@ -138,22 +149,42 @@ export async function runAutomations(evento: string, ticket: any, contexto: any)
 
         for (const acao of acoes) {
           try {
+            if (FINAL_TICKET_STATUSES.has(String(ticket.status)) && FINALIZED_TICKET_MUTATION_ACTIONS.has(acao.tipo)) {
+              continue;
+            }
+
             if (acao.tipo === 'alterar_status' && acao.valor) {
               const oldStatus = ticket.status;
-              await pool.query('UPDATE tickets SET status = ?, updated_at = NOW() WHERE id = ?', [acao.valor, ticket.id]);
-              ticket.status = acao.valor;
+              const newStatus = String(acao.valor);
+              const willBeFinalStatus = FINAL_TICKET_STATUSES.has(newStatus);
+              const updateFields = ['status = ?', 'updated_at = NOW()'];
+              const updateParams: any[] = [newStatus];
+
+              if (willBeFinalStatus) {
+                let slaResolucaoStatus = ticket.sla_resolucao_status;
+                if (ticket.prazo_sla) {
+                  slaResolucaoStatus = new Date() <= new Date(ticket.prazo_sla) ? 'cumprido' : 'violado';
+                }
+                updateFields.push('finalizado_em = NOW()', 'sla_resolucao_status = ?');
+                updateParams.push(slaResolucaoStatus);
+                ticket.sla_resolucao_status = slaResolucaoStatus;
+              }
+
+              updateParams.push(ticket.id);
+              await pool.query(`UPDATE tickets SET ${updateFields.join(', ')} WHERE id = ?`, updateParams);
+              ticket.status = newStatus;
               statusChanged = true;
               
               // Handle SLA for the new status
-              if (acao.valor === 'aguardando_cliente') {
+              if (newStatus === 'aguardando_cliente') {
                 await slaService.pauseSla(ticket.id, contexto?.usuario_id || null);
-              } else if (oldStatus === 'aguardando_cliente' && acao.valor !== 'aguardando_cliente') {
+              } else if (oldStatus === 'aguardando_cliente' && newStatus !== 'aguardando_cliente') {
                 await slaService.resumeSla(ticket.id, contexto?.usuario_id || null);
               } else {
                 await slaService.updateOperationalStatus(ticket.id);
               }
 
-              executedAcoes.push(`Status alterado para: ${acao.valor}`);
+              executedAcoes.push(`Status alterado para: ${newStatus}`);
             }
             else if (acao.tipo === 'alterar_prioridade' && acao.valor) {
               await pool.query('UPDATE tickets SET prioridade = ?, updated_at = NOW() WHERE id = ?', [acao.valor, ticket.id]);
@@ -197,11 +228,16 @@ export async function runAutomations(evento: string, ticket: any, contexto: any)
             }
             else if (acao.tipo === 'fechar_com_motivo' && acao.valor) {
                const oldStatus = ticket.status;
+               let slaResolucaoStatus = ticket.sla_resolucao_status;
+               if (ticket.prazo_sla) {
+                 slaResolucaoStatus = new Date() <= new Date(ticket.prazo_sla) ? 'cumprido' : 'violado';
+               }
                await pool.query(
-                 'UPDATE tickets SET status = "fechado", resolucao_motivo = ?, finalizado_em = NOW(), updated_at = NOW() WHERE id = ?',
-                 [acao.valor, ticket.id]
+                 'UPDATE tickets SET status = "fechado", resolucao_motivo = ?, finalizado_em = NOW(), sla_resolucao_status = ?, updated_at = NOW() WHERE id = ?',
+                 [acao.valor, slaResolucaoStatus, ticket.id]
                );
                ticket.status = 'fechado';
+               ticket.sla_resolucao_status = slaResolucaoStatus;
                statusChanged = true;
 
                if (oldStatus === 'aguardando_cliente') {

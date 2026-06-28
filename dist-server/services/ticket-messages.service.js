@@ -5,13 +5,14 @@ import { emailOutboundService, trackTicketEmailMessageIds } from './email-outbou
 import { io } from '../server.js';
 import slaService from './sla.service.js';
 import { recomputeTicketMessageState } from '../utils/ticket-state.js';
+import { maskEmail, maskIdentifier } from '../utils/sanitize.js';
 class TicketMessagesService {
     /**
      * Centralized method to add a message to a ticket.
      * Handles status updates, SLA, notifications, events and real-time updates.
      */
     async addMessage(data, currentUser) {
-        const { ticket_id, usuario_id, mensagem, interno, message_id, tipo = 'texto' } = data;
+        const { ticket_id, usuario_id, mensagem, interno, message_id, empresa_id, tipo = 'texto' } = data;
         if (!mensagem || mensagem.trim() === '') {
             throw new Error('A mensagem não pode estar vazia');
         }
@@ -26,6 +27,9 @@ class TicketMessagesService {
         if (!ticket) {
             throw new Error('Chamado não encontrado');
         }
+        if (empresa_id !== undefined && empresa_id !== null && Number(empresa_id) !== Number(ticket.empresa_id)) {
+            throw new Error('Acesso negado: este chamado pertence a outra empresa');
+        }
         const isDev = !!currentUser?.desenvolvedor;
         const isAdmin = !!currentUser?.administrador;
         const isManager = currentUser?.perfil === 'gestor';
@@ -37,14 +41,53 @@ class TicketMessagesService {
                 throw new Error('Acesso negado: este chamado pertence a outra empresa');
             }
             // Customer specific check
-            if (!isAgent && Number(ticket.usuario_id) !== Number(currentUser?.id)) {
+            const currentUserId = Number(currentUser?.id || 0);
+            const currentUserEmail = typeof currentUser?.email === 'string'
+                ? currentUser.email.trim().toLowerCase()
+                : '';
+            const ticketRequesterEmail = typeof ticket.solicitante_email === 'string'
+                ? ticket.solicitante_email.trim().toLowerCase()
+                : '';
+            const isTicketOwnerUser = currentUserId > 0
+                && ticket.usuario_id !== null
+                && Number(ticket.usuario_id) === currentUserId;
+            const isTicketOwnerEmail = currentUserEmail !== ''
+                && ticketRequesterEmail !== ''
+                && currentUserEmail === ticketRequesterEmail;
+            if (!isAgent && !isTicketOwnerUser && !isTicketOwnerEmail) {
                 throw new Error('Acesso negado: este chamado pertence a outro usuário');
             }
         }
         // Security: Only agents can create internal messages
         const finalInterno = isAgent ? interno : false;
+        if (message_id) {
+            const [existingMessage] = await pool.query(`SELECT m.id
+         FROM ticket_mensagens m
+         INNER JOIN tickets t ON t.id = m.ticket_id
+         WHERE m.message_id = ? AND t.empresa_id = ?
+         LIMIT 1`, [message_id, ticket.empresa_id]);
+            if (existingMessage.length > 0) {
+                console.warn(`[TicketMessagesService] Duplicate message_id ignored: ${maskIdentifier(message_id)}`);
+                return existingMessage[0].id;
+            }
+        }
+        if (!currentUser && !finalInterno) {
+            const [recentSameMessage] = await pool.query(`SELECT id
+         FROM ticket_mensagens
+         WHERE ticket_id = ?
+           AND usuario_id <=> ?
+           AND interno = 0
+           AND mensagem = ?
+           AND created_at >= (NOW() - INTERVAL 5 MINUTE)
+         ORDER BY id DESC
+         LIMIT 1`, [ticket_id, usuario_id || null, mensagem]);
+            if (recentSameMessage.length > 0) {
+                console.warn(`[TicketMessagesService] Recent duplicate inbound message ignored for ticket #${ticket_id}.`);
+                return recentSameMessage[0].id;
+            }
+        }
         // 2. Create the message
-        console.log(`[TicketMessagesService] Adding message: ticket_id=${ticket_id}, usuario_id=${usuario_id}, interno=${finalInterno}, message_id=${message_id}, tipo=${tipo}`);
+        console.log(`[TicketMessagesService] Adding message: ticket_id=${ticket_id}, usuario_id=${usuario_id}, interno=${finalInterno}, message_id=${maskIdentifier(message_id)}, tipo=${tipo}`);
         const [result] = await pool.query('INSERT INTO ticket_mensagens (ticket_id, usuario_id, mensagem, interno, message_id, tipo) VALUES (?, ?, ?, ?, ?, ?)', [ticket_id, usuario_id || null, mensagem, finalInterno ? 1 : 0, message_id || null, tipo]);
         const messageId = result.insertId;
         // 3. Track processed email to avoid duplicates
@@ -56,12 +99,29 @@ class TicketMessagesService {
         // 5. Business Logic: Status, SLA and Notifications
         try {
             const isExternalEmail = !!message_id;
-            // A message is from client if it came from the ticket owner OR from external email with null usuario_id
-            const isClient = (usuario_id !== null && Number(usuario_id) === Number(ticket.usuario_id)) || (isExternalEmail && usuario_id === null);
-            // A response from agent is when it's NOT an internal note AND NOT from the client
-            // We also ensure it's actually an agent user if it's not an external email
-            const isAgentResponse = !finalInterno && !isClient && (isAgent || !isExternalEmail);
-            if (!['resolvido', 'fechado'].includes(ticket.status)) {
+            const isPortalCustomer = !!currentUser && !isAgent && currentUser?.perfil === 'cliente';
+            const messageUserId = usuario_id !== null && usuario_id !== undefined ? Number(usuario_id) : null;
+            const ticketRequesterId = ticket.usuario_id !== null && ticket.usuario_id !== undefined ? Number(ticket.usuario_id) : null;
+            // Public messages with NULL author are client messages by the canonical ticket-state rule.
+            const isClient = !finalInterno && ((messageUserId !== null && ticketRequesterId !== null && messageUserId === ticketRequesterId) ||
+                (usuario_id === null && (isExternalEmail || isPortalCustomer || !currentUser)));
+            // A response from agent is public, not from the client, and written by an agent user.
+            const isAgentResponse = !finalInterno && !isClient && isAgent;
+            const finalStatuses = ['resolvido', 'fechado'];
+            if (isClient && finalStatuses.includes(ticket.status)) {
+                const reopenedByUserId = messageUserId && messageUserId > 0 ? messageUserId : null;
+                await pool.query('UPDATE tickets SET status = "aberto", finalizado_em = NULL, reaberto_em = NOW(), reaberto_por = ?, updated_at = NOW() WHERE id = ?', [reopenedByUserId, ticket_id]);
+                await recordTicketEvent({
+                    ticket_id,
+                    empresa_id: ticket.empresa_id,
+                    usuario_id: reopenedByUserId,
+                    tipo: 'ticket_reaberto',
+                    descricao: 'Chamado reaberto automaticamente por resposta do cliente'
+                });
+                ticket.status = 'aberto';
+                ticket.finalizado_em = null;
+            }
+            if (!finalStatuses.includes(ticket.status)) {
                 // A) SLA Primera Resposta (only if from agent and public)
                 if (isAgentResponse && !ticket.primeira_resposta_em) {
                     const agora = new Date();
@@ -129,7 +189,7 @@ class TicketMessagesService {
                     // Get the original messageId from the ticket or the latest message for threading
                     const replyToId = ticket.message_id;
                     const outboundMessageId = `<ticket-${ticket_id}-msg-${messageId}-${Date.now()}@gestifique.com.br>`;
-                    console.log(`[TicketMessagesService] Generated outboundMessageId: ${outboundMessageId}`);
+                    console.log(`[TicketMessagesService] Generated outboundMessageId: ${maskIdentifier(outboundMessageId)}`);
                     try {
                         const sendResult = await emailOutboundService.sendTicketEmail({
                             to: ticket.cliente_email,
@@ -147,7 +207,7 @@ class TicketMessagesService {
                             references: replyToId ? [replyToId] : undefined,
                         });
                         if (sendResult.success) {
-                            console.log(`[TicketMessagesService] External notification email sent to ${ticket.cliente_email} for ticket #${ticket_id} via ${sendResult.provider} (Message-ID: ${sendResult.messageId})`);
+                            console.log(`[TicketMessagesService] External notification email sent to ${maskEmail(ticket.cliente_email)} for ticket #${ticket_id} via ${sendResult.provider} (Message-ID: ${maskIdentifier(sendResult.messageId)})`);
                             await trackTicketEmailMessageIds(ticket.empresa_id, ticket_id, outboundMessageId, sendResult);
                         }
                         else {

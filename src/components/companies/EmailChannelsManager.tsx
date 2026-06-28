@@ -134,13 +134,23 @@ const SMTP_PROVIDERS: SmtpProvider[] = [
 
 interface EmailChannelsManagerProps {
   empresaId: number;
+  canCreate?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
+  canTest?: boolean;
 }
 
 interface CreateEmailChannelResponse {
   id: number;
 }
 
-export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) => {
+export const EmailChannelsManager = ({
+  empresaId,
+  canCreate = true,
+  canEdit = true,
+  canDelete = true,
+  canTest = true,
+}: EmailChannelsManagerProps) => {
   const [channels, setChannels] = useState<EmailChannel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -183,6 +193,7 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
     !!c && !!c.smtp_status && c.smtp_status !== 'not_configured';
 
   const openSmtpModal = (channel: EmailChannel) => {
+    if (!canEdit && !canTest) return;
     setSmtpModalChannel(channel);
     setSmtpForm({
       smtp_enabled: !!Number(channel.smtp_enabled),
@@ -208,6 +219,10 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
   const handleSaveSmtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!smtpModalChannel) return;
+    if (!canEdit) {
+      setSmtpError('Sem permissao para alterar o envio deste canal.');
+      return;
+    }
 
     const hasStored = channelHasStoredPassword(smtpModalChannel);
     if (smtpForm.smtp_enabled) {
@@ -246,6 +261,10 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
 
   const handleTestSmtp = async () => {
     if (!smtpModalChannel) return;
+    if (!canTest) {
+      setSmtpError('Sem permissao para testar o envio deste canal.');
+      return;
+    }
     try {
       setSmtpTesting(true);
       setSmtpError(null);
@@ -286,6 +305,10 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
   }, [feedback]);
 
   const openCreateModal = () => {
+    if (!canCreate) {
+      setFeedback({ type: 'error', message: 'Sem permissao para criar canais de e-mail.' });
+      return;
+    }
     setNewEmail('');
     setNewNome('');
     setCreateError(null);
@@ -300,6 +323,10 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canCreate) {
+      setCreateError('Sem permissao para criar canais de e-mail.');
+      return;
+    }
     if (!newEmail) return;
 
     try {
@@ -324,6 +351,10 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
   };
 
   const handleDelete = async (id: number) => {
+    if (!canDelete) {
+      setFeedback({ type: 'error', message: 'Sem permissao para remover canais de e-mail.' });
+      return;
+    }
     if (!confirm('Remover este canal de e-mail? Nenhum novo ticket sera recebido por este endereco tecnico.')) return;
 
     try {
@@ -336,6 +367,10 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
   };
 
   const handleRegenerate = async (id: number) => {
+    if (!canEdit) {
+      setFeedback({ type: 'error', message: 'Sem permissao para regenerar canais de e-mail.' });
+      return;
+    }
     if (!confirm('Regerar o endereco de encaminhamento? O endereco antigo para de funcionar imediatamente.')) return;
 
     try {
@@ -362,9 +397,11 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
             Receba tickets por encaminhamento e responda pelo SMTP configurado no sistema.
           </p>
         </div>
-        <Button size="sm" onClick={openCreateModal} className="h-8 text-xs shrink-0 bg-blue-600 hover:bg-blue-700">
-          <Plus size={14} className="mr-1" /> Adicionar Canal
-        </Button>
+        {canCreate && (
+          <Button size="sm" onClick={openCreateModal} className="h-8 text-xs shrink-0 bg-blue-600 hover:bg-blue-700">
+            <Plus size={14} className="mr-1" /> Adicionar Canal
+          </Button>
+        )}
       </div>
 
       {feedback && (
@@ -409,9 +446,11 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
             <p className="text-sm font-semibold text-slate-700">Nenhum canal configurado</p>
             <p className="text-xs text-slate-500 max-w-xs mx-auto">Transforme e-mails encaminhados em chamados no Gestifique.</p>
           </div>
-          <Button size="sm" onClick={openCreateModal} variant="outline" className="h-8 text-xs">
-            Configurar
-          </Button>
+          {canCreate && (
+            <Button size="sm" onClick={openCreateModal} variant="outline" className="h-8 text-xs">
+              Configurar
+            </Button>
+          )}
         </div>
       ) : (
         <div className="grid gap-3">
@@ -443,25 +482,31 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-2 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRegenerate(channel.id)}
-                      title="Regerar endereco inbound"
-                      className="h-7 w-7 p-0 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md"
-                    >
-                      <RefreshCw size={14} />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(channel.id)}
-                      className="h-7 w-7 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md"
-                    >
-                      <Trash2 size={14} />
-                    </Button>
-                  </div>
+                  {(canEdit || canDelete) && (
+                    <div className="flex gap-2 shrink-0">
+                      {canEdit && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRegenerate(channel.id)}
+                          title="Regerar endereco inbound"
+                          className="h-7 w-7 p-0 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md"
+                        >
+                          <RefreshCw size={14} />
+                        </Button>
+                      )}
+                      {canDelete && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(channel.id)}
+                          className="h-7 w-7 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md"
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -521,16 +566,18 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
                     </p>
                   )}
 
-                  <div className="flex justify-end">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-[11px]"
-                      onClick={() => openSmtpModal(channel)}
-                    >
-                      Configurar envio
-                    </Button>
-                  </div>
+                  {(canEdit || canTest) && (
+                    <div className="flex justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-[11px]"
+                        onClick={() => openSmtpModal(channel)}
+                      >
+                        Configurar envio
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 {channel.ultimo_erro ? (
@@ -684,7 +731,7 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
                 <select
                   value={smtpProvider}
                   onChange={(e) => applyProvider(e.target.value)}
-                  disabled={smtpSaving}
+                  disabled={smtpSaving || !canEdit}
                   className="w-full h-8 text-sm rounded-md border border-slate-200 bg-white px-2 text-slate-700"
                 >
                   <option value="">Selecione (preenche host/porta automaticamente)…</option>
@@ -704,7 +751,7 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
                   type="checkbox"
                   checked={smtpForm.smtp_enabled}
                   onChange={(e) => setSmtpForm((f) => ({ ...f, smtp_enabled: e.target.checked }))}
-                  disabled={smtpSaving}
+                  disabled={smtpSaving || !canEdit}
                 />
                 Habilitar envio por este canal
               </label>
@@ -717,7 +764,7 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
                     value={smtpForm.smtp_host}
                     onChange={(e) => setSmtpForm((f) => ({ ...f, smtp_host: e.target.value }))}
                     className="h-8 text-sm"
-                    disabled={smtpSaving}
+                    disabled={smtpSaving || !canEdit}
                   />
                 </div>
                 <div className="space-y-1">
@@ -728,7 +775,7 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
                     value={String(smtpForm.smtp_port ?? '')}
                     onChange={(e) => setSmtpForm((f) => ({ ...f, smtp_port: Number(e.target.value) }))}
                     className="h-8 text-sm"
-                    disabled={smtpSaving}
+                    disabled={smtpSaving || !canEdit}
                   />
                 </div>
               </div>
@@ -738,7 +785,7 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
                   type="checkbox"
                   checked={smtpForm.smtp_secure}
                   onChange={(e) => setSmtpForm((f) => ({ ...f, smtp_secure: e.target.checked }))}
-                  disabled={smtpSaving}
+                  disabled={smtpSaving || !canEdit}
                 />
                 Conexão segura SSL/TLS (porta 465). Deixe desmarcado para STARTTLS (porta 587).
               </label>
@@ -755,7 +802,7 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
                   value={smtpForm.smtp_user}
                   onChange={(e) => setSmtpForm((f) => ({ ...f, smtp_user: e.target.value }))}
                   className="h-8 text-sm"
-                  disabled={smtpSaving}
+                  disabled={smtpSaving || !canEdit}
                   autoComplete="off"
                 />
               </div>
@@ -768,7 +815,7 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
                   value={smtpPassword}
                   onChange={(e) => setSmtpPassword(e.target.value)}
                   className="h-8 text-sm"
-                  disabled={smtpSaving}
+                  disabled={smtpSaving || !canEdit}
                   autoComplete="new-password"
                 />
                 <p className="text-[10px] text-slate-400">A senha é armazenada de forma cifrada e nunca é exibida novamente.</p>
@@ -781,7 +828,7 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
                   value={smtpForm.smtp_from_name}
                   onChange={(e) => setSmtpForm((f) => ({ ...f, smtp_from_name: e.target.value }))}
                   className="h-8 text-sm"
-                  disabled={smtpSaving}
+                  disabled={smtpSaving || !canEdit}
                 />
               </div>
             </div>
@@ -864,24 +911,30 @@ export const EmailChannelsManager = ({ empresaId }: EmailChannelsManagerProps) =
           )}
 
           <div className="pt-2 flex justify-between gap-2 border-t border-slate-100">
-            <Button
-              size="sm"
-              type="button"
-              variant="outline"
-              onClick={handleTestSmtp}
-              loading={smtpTesting}
-              disabled={smtpSaving || !channelHasStoredPassword(smtpModalChannel)}
-              title={!channelHasStoredPassword(smtpModalChannel) ? 'Salve a configuração antes de testar.' : 'Envia um e-mail de teste usando a configuração salva.'}
-            >
-              <Send size={14} className="mr-1" /> Testar envio
-            </Button>
+            {canTest ? (
+              <Button
+                size="sm"
+                type="button"
+                variant="outline"
+                onClick={handleTestSmtp}
+                loading={smtpTesting}
+                disabled={smtpSaving || !channelHasStoredPassword(smtpModalChannel)}
+                title={!channelHasStoredPassword(smtpModalChannel) ? 'Salve a configuração antes de testar.' : 'Envia um e-mail de teste usando a configuração salva.'}
+              >
+                <Send size={14} className="mr-1" /> Testar envio
+              </Button>
+            ) : (
+              <span />
+            )}
             <div className="flex gap-2">
               <Button size="sm" type="button" variant="ghost" onClick={closeSmtpModal} disabled={smtpSaving || smtpTesting}>
                 Cancelar
               </Button>
-              <Button size="sm" type="submit" loading={smtpSaving}>
-                Salvar configuração
-              </Button>
+              {canEdit && (
+                <Button size="sm" type="submit" loading={smtpSaving}>
+                  Salvar configuração
+                </Button>
+              )}
             </div>
           </div>
         </form>

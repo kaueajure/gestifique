@@ -187,6 +187,8 @@ export interface TicketView {
     search?: string;
     advanced?: TicketAdvancedFilters;
     mode?: 'list' | 'kanban';
+    sort_by?: 'operacional' | 'id' | 'updated_at' | 'prioridade' | 'status' | 'titulo';
+    sort_order?: 'asc' | 'desc';
   };
   created_at: string;
   updated_at: string;

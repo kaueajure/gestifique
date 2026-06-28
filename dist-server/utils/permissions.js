@@ -1,6 +1,15 @@
+import { PERMISSIONS_CATALOG } from '../constants/permissions.js';
+const ADMIN_GLOBAL_DENYLIST = new Set([
+    'empresas.criar',
+    'empresas.excluir',
+    'empresas.desativar',
+    'configuracoes.sistema',
+]);
 export const RolePermissions = {
     desenvolvedor: ['*'],
-    administrador: ['*'],
+    administrador: PERMISSIONS_CATALOG
+        .map(item => item.key)
+        .filter(key => !key.startsWith('sistema.') && !key.startsWith('telas.') && !ADMIN_GLOBAL_DENYLIST.has(key)),
     gestor: [
         'tickets.visualizar', 'tickets.criar', 'tickets.editar', 'tickets.finalizar', 'tickets.arquivar', 'tickets.atribuir', 'tickets.comentar_interno', 'tickets.ver_todos',
         'relatorios.visualizar',
@@ -18,8 +27,8 @@ export const RolePermissions = {
 export function hasPermission(user, permission) {
     if (!user)
         return false;
-    if (user.desenvolvedor || user.administrador)
-        return true; // fallback backwards compatibility
+    if (user.desenvolvedor)
+        return true;
     const perfil = (user.perfil || 'atendente'); // default fallback if null
     const perms = RolePermissions[perfil] || RolePermissions['atendente'];
     if (perms.includes('*'))

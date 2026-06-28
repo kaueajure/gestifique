@@ -1,5 +1,44 @@
 import dotenv from 'dotenv';
 dotenv.config();
+const DEFAULT_FORWARDING_CONFIRMATION_ALLOWED_HOSTS = [
+    // Gmail / Google Workspace forwarding confirmations.
+    'mail.google.com',
+    'mail-settings.google.com',
+    'isolated.mail.google.com',
+    // Yahoo Mail and AOL Mail forwarding confirmations.
+    'login.yahoo.com',
+    'mail.yahoo.com',
+    'account.yahoo.com',
+    'api.login.yahoo.com',
+    'login.aol.com',
+    'mail.aol.com',
+    'account.aol.com',
+    'api.login.aol.com',
+    // Cloudflare Email Routing destination-address verification.
+    'dash.cloudflare.com',
+    // Proton Mail forwarding invitations.
+    'account.proton.me',
+    'mail.proton.me',
+    'proton.me',
+    // Squarespace domain email forwarding verification.
+    'account.squarespace.com',
+    'domains.squarespace.com',
+    'squarespace.com',
+    'www.squarespace.com',
+    // Zoho Mail uses verification codes and, in some regions, authenticated links.
+    'accounts.zoho.com',
+    'mail.zoho.com',
+    'accounts.zoho.eu',
+    'mail.zoho.eu',
+    'accounts.zoho.in',
+    'mail.zoho.in',
+    'accounts.zoho.com.au',
+    'mail.zoho.com.au',
+    'accounts.zoho.jp',
+    'mail.zoho.jp',
+    'accounts.zohocloud.ca',
+    'mail.zohocloud.ca',
+];
 const requiredEnvVars = [
     'JWT_SECRET',
     'DB_HOST',
@@ -14,6 +53,14 @@ requiredEnvVars.forEach((varName) => {
         process.exit(1);
     }
 });
+function parsePositiveIntEnv(name, fallback) {
+    const parsed = Number(process.env[name]);
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+function parseNonNegativeIntEnv(name, fallback) {
+    const parsed = Number(process.env[name]);
+    return Number.isInteger(parsed) && parsed >= 0 ? parsed : fallback;
+}
 // S6: validação de força do JWT_SECRET.
 // Rejeita segredo vazio, curto (< 32) ou igual a valores de exemplo conhecidos.
 // Em produção é fatal (aborta o boot); em desenvolvimento apenas avisa.
@@ -53,6 +100,9 @@ export const env = {
         PASSWORD: process.env.DB_PASSWORD,
         NAME: process.env.DB_NAME,
         PORT: parseInt(process.env.DB_PORT),
+        CONNECTION_LIMIT: parsePositiveIntEnv('DB_CONNECTION_LIMIT', 10),
+        QUEUE_LIMIT: parseNonNegativeIntEnv('DB_QUEUE_LIMIT', 100),
+        CONNECT_TIMEOUT_MS: parsePositiveIntEnv('DB_CONNECT_TIMEOUT_MS', 10000),
     },
     IS_PROD: process.env.NODE_ENV === 'production',
     CORS_ORIGINS: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : [],
@@ -60,6 +110,14 @@ export const env = {
     DEV_PASSWORD: process.env.DEV_PASSWORD,
     INBOUND_EMAIL_DOMAIN: process.env.INBOUND_EMAIL_DOMAIN || 'inbound.gestifique.com.br',
     INBOUND_EMAIL_PREFIX: process.env.INBOUND_EMAIL_PREFIX || 'canal',
+    // Confirma automaticamente e-mails de validacao de encaminhamento recebidos
+    // no inbound tecnico. Por seguranca, apenas links HTTPS em hosts permitidos
+    // sao acessados (padrao: provedores conhecidos de confirmacao).
+    AUTO_CONFIRM_EMAIL_FORWARDING: process.env.AUTO_CONFIRM_EMAIL_FORWARDING !== 'false',
+    FORWARDING_CONFIRMATION_ALLOWED_HOSTS: (process.env.FORWARDING_CONFIRMATION_ALLOWED_HOSTS || DEFAULT_FORWARDING_CONFIRMATION_ALLOWED_HOSTS.join(','))
+        .split(',')
+        .map(host => host.trim().toLowerCase())
+        .filter(Boolean),
     IMAP: {
         HOST: process.env.IMAP_HOST,
         PORT: parseInt(process.env.IMAP_PORT || '993'),
@@ -91,6 +149,10 @@ export const env = {
     ENABLE_WEB_SERVER: process.env.ENABLE_WEB_SERVER !== 'false',
     ENABLE_EMAIL_LISTENER: process.env.ENABLE_EMAIL_LISTENER === 'true',
     ENABLE_TICKET_JOBS: process.env.ENABLE_TICKET_JOBS !== 'false',
+    // Em producao, migrations devem rodar em etapa controlada de deploy.
+    AUTO_RUN_MIGRATIONS: process.env.AUTO_RUN_MIGRATIONS !== undefined
+        ? process.env.AUTO_RUN_MIGRATIONS === 'true'
+        : process.env.NODE_ENV !== 'production',
     // Proxy configuration for express-rate-limit compatibility.
     TRUST_PROXY: (() => {
         const val = process.env.TRUST_PROXY;
@@ -112,5 +174,6 @@ export const env = {
 };
 // S1: aviso explícito quando a validação TLS de e-mail está desativada.
 if (env.MAIL_TLS_INSECURE) {
-    console.warn('[SECURITY] ⚠️ MAIL_TLS_INSECURE=true: validação de certificado TLS do e-mail DESATIVADA (SMTP/IMAP). Use apenas em ambiente controlado/cert inválido. NÃO use em produção real.');
+    const severity = env.IS_PROD ? 'CRITICAL' : 'WARN';
+    console.warn(`[SECURITY] ${severity}: MAIL_TLS_INSECURE=true desativa validacao TLS do e-mail (SMTP/IMAP). Use apenas em ambiente controlado com certificado invalido.`);
 }

@@ -45,13 +45,17 @@ Na opção de adicionar variáveis de ambiente no painel Node.js da Hostinger, a
 | `DB_PORT` | `3306` |
 | `DEV_EMAIL` | `admin@gestifique.com.br` |
 | `DEV_PASSWORD` | `SenhaForte123@#` |
+| `AUTO_RUN_MIGRATIONS` | `false` |
+
+Em produção, rode `npm run db:migrate` manualmente antes do start. Evite migrations automáticas no boot.
 
 ## 4. O Fluxo de Build
 
 Ao clicar em compilar ou realizar o deploy pela Hostinger, o sistema executará os passos:
 1. `npm install`: Baixa todas as dependências do projeto.
 2. `npm run build`: Vai gerar o Frontend para a pasta `/dist` e o Backend compilado para a pasta `/dist-server`.
-3. `npm run start`: Vai invocar `node dist-server/server.js`, que no modo `production` servirá com segurança tanto as APIs backend quanto arquivos na pasta `dist`.
+3. `npm run db:migrate`: Aplica as migrations pendentes com controle.
+4. `npm run start`: Vai invocar `node dist-server/server.js`, que no modo `production` servirá com segurança tanto as APIs backend quanto arquivos na pasta `dist`.
 
 ## Dicas Adicionais
 - Use a opção 'Stop app' e 'Start app' dentro do cPanel da Hostinger caso sinta que a versão alterada não foi atualizada no painel.

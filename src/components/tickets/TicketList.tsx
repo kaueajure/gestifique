@@ -22,6 +22,7 @@ import { cn, formatRelativeTime, getSlaInfo, getFirstResponseSlaInfo } from '../
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { api } from '../../lib/api';
+import { hasPermission } from '../../lib/permissions';
 
 interface TicketListProps {
   tickets: Ticket[];
@@ -40,20 +41,22 @@ interface TicketListProps {
   selectedTicketIds?: number[];
   onSelectionChange?: (ids: number[]) => void;
   canSelectBulk?: boolean;
+  sortKey?: TicketSortKey;
+  sortOrder?: TicketSortOrder;
+  onSortChange?: (key: TicketSortKey, order: TicketSortOrder) => void;
 }
 
-type SortKey = 'id' | 'updated_at' | 'prioridade' | 'status' | 'titulo';
-type SortOrder = 'asc' | 'desc';
+export type TicketSortKey = 'operacional' | 'id' | 'updated_at' | 'prioridade' | 'status' | 'titulo';
+export type TicketSortOrder = 'asc' | 'desc';
 
 export const TicketList = ({ 
   tickets, onSelectTicket, currentUser, onStatusChange, searchTerm, hasFilters, meta, 
-  onPageChange, selectedTicketIds = [], onSelectionChange, canSelectBulk 
+  onPageChange, selectedTicketIds = [], onSelectionChange, canSelectBulk,
+  sortKey = 'operacional', sortOrder = 'desc', onSortChange
 }: TicketListProps) => {
 
-  const [sortKey, setSortKey] = React.useState<SortKey>('updated_at');
-  const [sortOrder, setSortOrder] = React.useState<SortOrder>('desc');
-
-  const canManage = !!(currentUser.administrador || currentUser.desenvolvedor);
+  const canAssumeTicket = hasPermission(currentUser, 'tickets.assumir');
+  const canEditStatus = hasPermission(currentUser, 'tickets.editar_status');
 
   const handleAssumirTicket = async (e: React.MouseEvent, ticketId: number) => {
     e.stopPropagation();
@@ -80,28 +83,10 @@ export const TicketList = ({
     navigator.clipboard.writeText(id.toString());
   };
 
-  const handleSort = (key: SortKey) => {
-    if (sortKey === key) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortKey(key);
-      setSortOrder('asc');
-    }
+  const handleSort = (key: TicketSortKey) => {
+    const nextOrder = sortKey === key && sortOrder === 'asc' ? 'desc' : 'asc';
+    onSortChange?.(key, nextOrder);
   };
-
-  const sortedTickets = [...tickets].sort((a, b) => {
-    let valA: any = a[sortKey as keyof Ticket];
-    let valB: any = b[sortKey as keyof Ticket];
-    
-    if (sortKey === 'updated_at' || sortKey === 'id') {
-      valA = valA ? (typeof valA === 'string' ? new Date(valA).getTime() : valA) : 0;
-      valB = valB ? (typeof valB === 'string' ? new Date(valB).getTime() : valB) : 0;
-    }
-
-    if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
-    if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
-    return 0;
-  });
 
   const getPriorityInfo = (prio: string) => {
     switch (prio) {
@@ -138,7 +123,7 @@ export const TicketList = ({
   const getStatusColor = (status: string) =>
     statusColors[status] || { color: 'text-slate-700', bg: 'bg-slate-100' };
 
-  const SortHeader = ({ label, k, className }: { label: string, k: SortKey, className?: string }) => (
+  const SortHeader = ({ label, k, className }: { label: string, k: TicketSortKey, className?: string }) => (
     <th 
       className={cn("px-3 py-2 text-[11px] font-semibold text-slate-500 cursor-pointer hover:text-slate-700 transition-colors group/th", className)}
       onClick={() => handleSort(k)}
@@ -228,7 +213,7 @@ export const TicketList = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {sortedTickets.map((ticket) => {
+            {tickets.map((ticket) => {
               const sla = getSlaInfo(ticket.prazo_sla, ticket.status, ticket.sla_status_operacional);
               const statusColor = getStatusColor(ticket.status);
               const isAbertoESemResp = ticket.status === 'aberto' && !ticket.responsavel_id;
@@ -354,12 +339,12 @@ export const TicketList = ({
                  <td className="px-3 py-2 text-right">
                   <div className="flex items-center justify-end">
                     <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-all">
-                      {canManage && isAbertoESemResp && (
+                      {canAssumeTicket && isAbertoESemResp && (
                         <button onClick={(e) => handleAssumirTicket(e, ticket.id)} title="Assumir" className="w-7 h-7 flex items-center justify-center hover:bg-slate-100 text-blue-600 rounded transition-all">
                           <UserPlus size={14} />
                         </button>
                       )}
-                      {canManage && ticket.status === 'aberto' && ticket.responsavel_id === currentUser.id && (
+                      {canEditStatus && ticket.status === 'aberto' && ticket.responsavel_id === currentUser.id && (
                         <button onClick={(e) => handleMudarStatus(e, ticket.id, 'em_andamento')} title="Iniciar" className="w-7 h-7 flex items-center justify-center hover:bg-slate-100 text-indigo-600 rounded transition-all">
                           <Play size={14} />
                         </button>

@@ -47,10 +47,19 @@ export async function distributeTicket(ticket) {
             return null;
         let assignedAgentId = null;
         if (matchedRule.metodo === 'menor_carga') {
+            const agentIds = agents.map(agent => Number(agent.id)).filter(Boolean);
+            const [loadRows] = await pool.query(`
+           SELECT responsavel_id, COUNT(*) as cnt
+           FROM tickets
+           WHERE empresa_id = ?
+             AND responsavel_id IN (?)
+             AND status IN ('aberto', 'em_andamento')
+           GROUP BY responsavel_id
+         `, [empresa_id, agentIds]);
+            const loads = new Map(loadRows.map((row) => [Number(row.responsavel_id), Number(row.cnt || 0)]));
             let lowestLoad = Infinity;
             for (const agent of agents) {
-                const [res] = await pool.query("SELECT COUNT(*) as cnt FROM tickets WHERE responsavel_id = ? AND status IN ('aberto', 'em_andamento')", [agent.id]);
-                const load = res[0].cnt;
+                const load = loads.get(Number(agent.id)) || 0;
                 if (load < lowestLoad) {
                     lowestLoad = load;
                     assignedAgentId = agent.id;

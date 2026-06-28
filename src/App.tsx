@@ -606,56 +606,59 @@ export default function App() {
                       : "mx-auto h-[calc(100%-24px)] w-full max-w-[1560px]"
                   )}
                 >
-                  {activeTab === "dashboard" && (
-                    <DashboardPage
-                      onNavigate={(tab) => setActiveTab(tab as ActiveTab)}
-                    />
-                  )}
+                  {activeTab === "dashboard" &&
+                    (hasPermission(currentUser, "dashboard.visualizar") ? (
+                      <DashboardPage
+                        onNavigate={(tab) => setActiveTab(tab as ActiveTab)}
+                      />
+                    ) : (
+                      <AccessDenied />
+                    ))}
 
-                  {activeTab === "tickets" && !selectedTicketId && (
-                    <TicketsPage
-                      onSelectTicket={setSelectedTicketId}
-                      currentUser={currentUser}
-                    />
-                  )}
+                  {activeTab === "tickets" && !selectedTicketId &&
+                    (hasPermission(currentUser, "tickets.visualizar") ? (
+                      <TicketsPage
+                        onSelectTicket={setSelectedTicketId}
+                        currentUser={currentUser}
+                      />
+                    ) : (
+                      <AccessDenied />
+                    ))}
 
-                  {activeTab === "tickets" && selectedTicketId && (
-                    <TicketDetailsPage
-                      ticketId={selectedTicketId}
-                      onBack={() => setSelectedTicketId(null)}
-                      currentUser={currentUser}
-                    />
-                  )}
+                  {activeTab === "tickets" && selectedTicketId &&
+                    (hasPermission(currentUser, "tickets.ver_detalhes") ? (
+                      <TicketDetailsPage
+                        ticketId={selectedTicketId}
+                        onBack={() => setSelectedTicketId(null)}
+                        currentUser={currentUser}
+                      />
+                    ) : (
+                      <AccessDenied />
+                    ))}
 
                   {activeTab === "users" &&
-                    (!!(
-                      currentUser.administrador || currentUser.desenvolvedor
-                    ) ? (
+                    (hasPermission(currentUser, "usuarios.visualizar") ? (
                       <UsersPage currentUser={currentUser} />
                     ) : (
                       <AccessDenied />
                     ))}
 
                   {activeTab === "companies" &&
-                    (!!currentUser.desenvolvedor ? (
+                    (hasPermission(currentUser, "empresas.visualizar") ? (
                       <CompaniesPage currentUser={currentUser} />
                     ) : (
                       <AccessDenied />
                     ))}
 
                   {activeTab === "logs" &&
-                    (!!(
-                      currentUser.administrador || currentUser.desenvolvedor
-                    ) ? (
+                    (hasPermission(currentUser, "auditoria.visualizar") ? (
                       <LogsPage />
                     ) : (
                       <AccessDenied />
                     ))}
 
                   {activeTab === "reports" &&
-                    (!!(
-                      currentUser.administrador || currentUser.desenvolvedor
-                    ) ? (
+                    (hasPermission(currentUser, "relatorios.visualizar") ? (
                       <ReportsPage currentUser={currentUser} />
                     ) : (
                       <AccessDenied />
@@ -665,7 +668,7 @@ export default function App() {
                     (hasPermission(
                       currentUser,
                       "base_conhecimento.visualizar",
-                    ) || !!currentUser.administrador ? (
+                    ) ? (
                       <KnowledgePage currentUser={currentUser} />
                     ) : (
                       <AccessDenied />
@@ -685,13 +688,16 @@ export default function App() {
                     />
                   )}
 
-                  {activeTab === "settings" && (
-                    <SettingsPage
-                      currentUser={currentUser}
-                      onNavigate={(tab) => setActiveTab(tab)}
-                      onUpdateUser={setCurrentUser}
-                    />
-                  )}
+                  {activeTab === "settings" &&
+                    (hasPermission(currentUser, "configuracoes.visualizar") ? (
+                      <SettingsPage
+                        currentUser={currentUser}
+                        onNavigate={(tab) => setActiveTab(tab)}
+                        onUpdateUser={setCurrentUser}
+                      />
+                    ) : (
+                      <AccessDenied />
+                    ))}
                 </motion.div>
               </AnimatePresence>
             </div>

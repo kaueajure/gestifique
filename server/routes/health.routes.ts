@@ -83,8 +83,8 @@ router.get('/security', (req, res) => {
     }
   }
 
-  if (!env.JWT_SECRET || env.JWT_SECRET.length < 16) {
-    warnings.push('JWT_SECRET está configurado, mas muito curto. Use pelo menos 16 caracteres complexos.');
+  if (!env.JWT_SECRET || env.JWT_SECRET.length < 32) {
+    warnings.push('JWT_SECRET esta configurado, mas muito curto. Use pelo menos 32 caracteres complexos.');
   }
 
   res.json({
@@ -160,8 +160,8 @@ router.get('/overview', async (req, res) => {
     }
   }
 
-  if (!env.JWT_SECRET || env.JWT_SECRET.length < 16) {
-    warnings.push('JWT_SECRET está configurado, mas muito curto. Use pelo menos 16 caracteres complexos.');
+  if (!env.JWT_SECRET || env.JWT_SECRET.length < 32) {
+    warnings.push('JWT_SECRET esta configurado, mas muito curto. Use pelo menos 32 caracteres complexos.');
   }
 
   const securityResult = {

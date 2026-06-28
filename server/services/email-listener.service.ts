@@ -9,6 +9,8 @@ import { env } from '../config/env.js';
 import { io } from '../server.js';
 import path from 'path';
 import { createHash } from 'crypto';
+import { validateAttachmentBuffer } from '../utils/file-security.js';
+import { maskEmail, maskIdentifier } from '../utils/sanitize.js';
 
 function normalizeEmailAddress(value?: string | null): string | null {
   if (!value) return null;
@@ -422,12 +424,12 @@ export class EmailListenerService {
     return Number(result?.affectedRows || 0) === 1;
   }
 
-  private static async attachProcessedEmailToTicket(messageKey: string | null, ticketId: number) {
+  private static async attachProcessedEmailToTicket(messageKey: string | null, ticketId: number, empresaId: number) {
     if (!messageKey) return;
 
     await pool.query(
-      'UPDATE processed_emails SET ticket_id = ? WHERE message_id = ?',
-      [ticketId, messageKey]
+      'UPDATE processed_emails SET ticket_id = ? WHERE message_id = ? AND empresa_id = ?',
+      [ticketId, messageKey, empresaId]
     );
   }
 
@@ -454,13 +456,13 @@ export class EmailListenerService {
     return null;
   }
 
-  private static async releasePendingEmailClaim(messageKey: string | null) {
-    if (!messageKey) return;
+  private static async releasePendingEmailClaim(messageKey: string | null, empresaId: number | null) {
+    if (!messageKey || !empresaId) return;
 
     try {
       await pool.query(
-        'DELETE FROM processed_emails WHERE message_id = ? AND ticket_id IS NULL',
-        [messageKey]
+        'DELETE FROM processed_emails WHERE message_id = ? AND empresa_id = ? AND ticket_id IS NULL',
+        [messageKey, empresaId]
       );
     } catch (err) {
       console.error(`[Email Listener] Failed to release pending email claim ${messageKey}:`, err);
@@ -618,6 +620,7 @@ export class EmailListenerService {
         const uid = item.attributes.uid;
         let senderEmailStr = 'unknown';
         let claimedMessageKey: string | null = null;
+        let claimedEmpresaId: number | null = null;
         let claimedMessageHandled = false;
         try {
           const bodyPart: any = item.parts.find((part: any) => part.which === '');
@@ -631,57 +634,113 @@ export class EmailListenerService {
           const senderName = fromObj?.name || senderEmail || 'Sem Nome';
           const subject = parsed.subject || 'Sem Assunto';
 
-          // 1. Deduplication using messageId from database
-          if (messageId) {
-            const [processed]: any = await pool.query(
-              'SELECT ticket_id FROM processed_emails WHERE message_id = ? LIMIT 1',
-              [messageId]
-            );
-            if (processed.length > 0) {
-              console.log(`[Email Listener] Email already processed: ${messageId}. Skipping.`);
-             claimedMessageHandled = true;
-             await this.connection.addFlags(uid, '\\Seen');
-             continue;
-           }
-          }
-
-          // 2. Identify existing ticket (Reply check)
+          // 1. Identify recipient company/channel before any ticket lookup
           let targetTicketId: number | null = null;
           let targetEmpresaId: number | null = null;
           let matchedChannelId: number | null = null;
-          
-          console.log(`[Email Listener] [UID:${uid}] Processing message from ${senderEmail}: "${subject}" (MessageID: ${messageId})`);
 
-          const identifyTicket = async (): Promise<{ ticketId: number | null; companyId: number | null; hadExplicitTicketReference: boolean; invalidTicketId?: number }> => {
-             // A) By X-Gestifique-Ticket-ID in headers
+          console.log(`[Email Listener] [UID:${uid}] Processing message from ${maskEmail(senderEmail)}: "${subject}" (MessageID: ${maskIdentifier(messageId)})`);
+
+          let potentialRecipients: string[] = [];
+
+          const extractAddresses = (field: any): string[] => {
+            if (!field) return [];
+            if (Array.isArray(field)) {
+              return field.flatMap(f => extractAddresses(f));
+            }
+            if (field.value && Array.isArray(field.value)) {
+              return field.value.map((v: any) => v.address).filter(Boolean).map((a: string) => a.toLowerCase().trim());
+            }
+            if (typeof field === 'string') {
+              const match = field.match(/<(.+?)>/);
+              return [match ? match[1].toLowerCase().trim() : field.toLowerCase().trim()];
+            }
+            if (field.address) return [field.address.toLowerCase().trim()];
+            return [];
+          };
+
+          potentialRecipients.push(...extractAddresses(parsed.to));
+          potentialRecipients.push(...extractAddresses(parsed.cc));
+          potentialRecipients.push(...extractAddresses(parsed.bcc));
+
+          const headerKeys = ['delivered-to', 'x-original-to', 'envelope-to', 'x-forwarded-to', 'apparently-to', 'x-real-to'];
+          for (const key of headerKeys) {
+             const val = parsed.headers.get(key);
+             potentialRecipients.push(...extractAddresses(val));
+          }
+
+          potentialRecipients = [...new Set(potentialRecipients.filter(a => !!a).map(a => a.toLowerCase().trim()))];
+          const maskedRecipients = potentialRecipients.map(recipient => maskEmail(recipient)).join(', ');
+          console.log(`[Email Listener] [UID:${uid}] Detected recipients: ${maskedRecipients}`);
+
+          if (potentialRecipients.length > 0) {
+            const [canaisMatch]: any = await pool.query(
+              'SELECT id, empresa_id, status FROM empresa_email_canais WHERE LOWER(TRIM(inbound_address)) IN (?) OR LOWER(TRIM(email_publico)) IN (?) LIMIT 2',
+              [potentialRecipients, potentialRecipients]
+            );
+
+            if (canaisMatch.length === 1) {
+              matchedChannelId = canaisMatch[0].id;
+              targetEmpresaId = canaisMatch[0].empresa_id;
+              console.log(`[Email Listener] [UID:${uid}] Matched channel ID ${matchedChannelId} for company ${targetEmpresaId}`);
+            } else if (canaisMatch.length > 1) {
+              console.warn(`[Email Listener] [UID:${uid}] Ambiguous channel match for recipients: ${maskedRecipients}. Skipping.`);
+              await this.logSystem(null, 'EMAIL_AMBIGUOUS_CHANNEL', `Mais de um canal encontrado para destinatarios: ${maskedRecipients}. E-mail ignorado.`);
+              await this.connection.addFlags(uid, '\\Seen');
+              continue;
+            } else {
+              const [empresasMatch]: any = await pool.query(
+                'SELECT id FROM empresas WHERE LOWER(TRIM(email)) IN (?) OR LOWER(TRIM(email_suporte)) IN (?) LIMIT 2',
+                [potentialRecipients, potentialRecipients]
+              );
+              if (empresasMatch.length === 1) {
+                targetEmpresaId = empresasMatch[0].id;
+                console.log(`[Email Listener] [UID:${uid}] Matched company ${targetEmpresaId} via legacy support email fallback.`);
+              } else if (empresasMatch.length > 1) {
+                console.warn(`[Email Listener] [UID:${uid}] Ambiguous legacy company match for recipients: ${maskedRecipients}. Skipping.`);
+                await this.logSystem(null, 'EMAIL_AMBIGUOUS_COMPANY', `Mais de uma empresa encontrada para destinatarios: ${maskedRecipients}. E-mail ignorado.`);
+                await this.connection.addFlags(uid, '\\Seen');
+                continue;
+              }
+            }
+          }
+
+          if (!targetEmpresaId) {
+             console.warn(`[Email Listener] [UID:${uid}] No company found for recipients: ${maskedRecipients}. From: ${maskEmail(senderEmail)}.`);
+             await this.logSystem(null, 'EMAIL_WITHOUT_COMPANY', `Falha ao identificar empresa para email de ${maskEmail(senderEmail)} (Para: ${maskedRecipients}).`);
+             continue;
+          }
+
+          const identifyTicket = async (companyId: number): Promise<{ ticketId: number | null; hadExplicitTicketReference: boolean; invalidTicketId?: number }> => {
+             // A) By X-Gestifique-Ticket-ID in headers, scoped to the recipient company
              const headerTicketIdStr = parsed.headers.get('x-gestifique-ticket-id');
              if (headerTicketIdStr && typeof headerTicketIdStr === 'string' && !isNaN(parseInt(headerTicketIdStr))) {
                 const id = parseInt(headerTicketIdStr);
-                const [rows]: any = await pool.query('SELECT id, empresa_id FROM tickets WHERE id = ? LIMIT 1', [id]);
+                const [rows]: any = await pool.query('SELECT id, empresa_id FROM tickets WHERE id = ? AND empresa_id = ? LIMIT 1', [id, companyId]);
                 if (rows.length > 0) {
-                   console.log(`[Email Listener] Identified existing ticket #${id} via X-Gestifique-Ticket-ID header.`);
-                   return { ticketId: id, companyId: rows[0].empresa_id, hadExplicitTicketReference: true };
-                } else {
-                   console.warn(`[Email Listener] X-Gestifique-Ticket-ID header indicated ticket #${id} but it does not exist.`);
-                   return { ticketId: null, companyId: null, hadExplicitTicketReference: true, invalidTicketId: id };
+                   console.log(`[Email Listener] Identified existing ticket #${id} via X-Gestifique-Ticket-ID header for company ${companyId}.`);
+                   return { ticketId: id, hadExplicitTicketReference: true };
                 }
+
+                console.warn(`[Email Listener] X-Gestifique-Ticket-ID header indicated ticket #${id}, but it is not in company ${companyId}.`);
+                return { ticketId: null, hadExplicitTicketReference: true, invalidTicketId: id };
              }
 
-             // B) By [Ticket #ID], Chamado #ID, etc in subject
+             // B) By [Ticket #ID], Chamado #ID, etc in subject, scoped to the recipient company
              const subjectMatch = subject.match(/(?:\[Ticket\s*#(\d+)\]|Chamado\s*#(\d+)|Ticket\s*#(\d+))/i);
              if (subjectMatch) {
                 const id = parseInt(subjectMatch[1] || subjectMatch[2] || subjectMatch[3]);
-                const [rows]: any = await pool.query('SELECT id, empresa_id FROM tickets WHERE id = ? LIMIT 1', [id]);
+                const [rows]: any = await pool.query('SELECT id, empresa_id FROM tickets WHERE id = ? AND empresa_id = ? LIMIT 1', [id, companyId]);
                 if (rows.length > 0) {
-                   console.log(`[Email Listener] Identified existing ticket #${id} via Subject.`);
-                   return { ticketId: id, companyId: rows[0].empresa_id, hadExplicitTicketReference: true };
-                } else {
-                   console.warn(`[Email Listener] Subject indicated ticket #${id} but it does not exist.`);
-                   return { ticketId: null, companyId: null, hadExplicitTicketReference: true, invalidTicketId: id };
+                   console.log(`[Email Listener] Identified existing ticket #${id} via Subject for company ${companyId}.`);
+                   return { ticketId: id, hadExplicitTicketReference: true };
                 }
+
+                console.warn(`[Email Listener] Subject indicated ticket #${id}, but it is not in company ${companyId}.`);
+                return { ticketId: null, hadExplicitTicketReference: true, invalidTicketId: id };
              }
 
-             // C) Try pattern-based extraction on messageId / inReplyTo / references before falling back to processed_emails table
+             // C) Try pattern-based extraction on Message-ID / In-Reply-To / References, scoped to company
              const inReplyTo = parsed.inReplyTo;
              const references = Array.isArray(parsed.references) ? parsed.references : (parsed.references ? [parsed.references] : []);
              const candidates = [
@@ -693,135 +752,68 @@ export class EmailListenerService {
              for (const candidate of candidates) {
                const extractedTicketId = extractTicketIdFromGestifiqueMessageId(candidate);
                if (extractedTicketId) {
-                 const [rows]: any = await pool.query('SELECT id, empresa_id FROM tickets WHERE id = ? LIMIT 1', [extractedTicketId]);
+                 const [rows]: any = await pool.query('SELECT id, empresa_id FROM tickets WHERE id = ? AND empresa_id = ? LIMIT 1', [extractedTicketId, companyId]);
                  if (rows.length > 0) {
-                   console.log(`[Email Listener] Identified existing ticket #${extractedTicketId} via Gestifique Message-ID pattern.`);
-                   return { ticketId: extractedTicketId, companyId: rows[0].empresa_id, hadExplicitTicketReference: true };
-                 } else {
-                   console.warn(`[Email Listener] Gestifique Message-ID pattern indicated ticket #${extractedTicketId} but it does not exist.`);
-                   return { ticketId: null, companyId: null, hadExplicitTicketReference: true, invalidTicketId: extractedTicketId };
+                   console.log(`[Email Listener] Identified existing ticket #${extractedTicketId} via Gestifique Message-ID pattern for company ${companyId}.`);
+                   return { ticketId: extractedTicketId, hadExplicitTicketReference: true };
                  }
+
+                 console.warn(`[Email Listener] Gestifique Message-ID pattern indicated ticket #${extractedTicketId}, but it is not in company ${companyId}.`);
+                 return { ticketId: null, hadExplicitTicketReference: true, invalidTicketId: extractedTicketId };
                }
              }
 
-             // D) By In-Reply-To or References headers inside processed_emails table
-             const allRefs = [inReplyTo, ...references].filter(r => !!r);
+             // D) By In-Reply-To or References headers inside processed_emails table, scoped to company
+             const allRefs = [inReplyTo, ...references].filter((r): r is string => !!r);
              if (allRefs.length > 0) {
                 const [refMatch]: any = await pool.query(
-                  `SELECT ticket_id FROM processed_emails WHERE message_id IN (?) AND ticket_id IS NOT NULL ORDER BY created_at DESC LIMIT 1`,
-                  [allRefs]
+                  `SELECT pe.ticket_id
+                   FROM processed_emails pe
+                   INNER JOIN tickets t ON t.id = pe.ticket_id AND t.empresa_id = pe.empresa_id
+                   WHERE pe.empresa_id = ? AND pe.message_id IN (?) AND pe.ticket_id IS NOT NULL
+                   ORDER BY pe.created_at DESC
+                   LIMIT 1`,
+                  [companyId, allRefs]
                 );
                 if (refMatch.length > 0) {
-                   const dbTicketId = refMatch[0].ticket_id;
-                   const [rows]: any = await pool.query('SELECT id, empresa_id FROM tickets WHERE id = ? LIMIT 1', [dbTicketId]);
-                   if (rows.length > 0) {
-                     console.log(`[Email Listener] Identified existing ticket #${dbTicketId} via headers (References DB).`);
-                     return { ticketId: dbTicketId, companyId: rows[0].empresa_id, hadExplicitTicketReference: false };
-                   } else {
-                     console.warn(`[Email Listener] DB references indicated ticket #${dbTicketId} but it does not exist.`);
-                     return { ticketId: null, companyId: null, hadExplicitTicketReference: true, invalidTicketId: dbTicketId };
-                   }
+                   const dbTicketId = Number(refMatch[0].ticket_id);
+                   console.log(`[Email Listener] Identified existing ticket #${dbTicketId} via headers (References DB) for company ${companyId}.`);
+                   return { ticketId: dbTicketId, hadExplicitTicketReference: false };
                 }
              }
 
-             return { ticketId: null, companyId: null, hadExplicitTicketReference: false };
+             return { ticketId: null, hadExplicitTicketReference: false };
           };
 
-          const identificationResult = await identifyTicket();
+          const identificationResult = await identifyTicket(targetEmpresaId);
           targetTicketId = identificationResult.ticketId;
-          targetEmpresaId = identificationResult.companyId;
 
           if (identificationResult.hadExplicitTicketReference && !targetTicketId) {
              const invalidId = identificationResult.invalidTicketId || 'Desconhecido';
-             console.warn(`[Email Listener] [UID:${uid}] Email had explicit reference to non-existent ticket #${invalidId}. Skipping processing to prevent duplicate tickets.`);
+             console.warn(`[Email Listener] [UID:${uid}] Email referenced ticket #${invalidId} outside company ${targetEmpresaId}. Skipping.`);
              await this.logSystem(
-               null, 
-               'EMAIL_TICKET_REFERENCE_NOT_FOUND', 
-               `E-mail de ${senderEmail} com referência explícita para o ticket inválido/inexistente #${invalidId}. Ignorado para prevenção de duplicidade.`
+               targetEmpresaId,
+               'EMAIL_TICKET_REFERENCE_NOT_FOUND',
+               `E-mail de ${maskEmail(senderEmail)} com referencia explicita para ticket invalido/fora da empresa #${invalidId}. Ignorado.`
              );
              await this.connection.addFlags(uid, '\\Seen');
              continue;
           }
 
-          // 3. Identify Recipient Company/Channel if not already found via ticket
-          let potentialRecipients: string[] = [];
-          
-          const extractAddresses = (field: any) => {
-            if (!field) return [];
-            if (Array.isArray(field)) {
-              return field.flatMap(f => extractAddresses(f));
-            }
-            if (field.value && Array.isArray(field.value)) {
-              return field.value.map((v: any) => v.address).filter(Boolean);
-            }
-            if (typeof field === 'string') {
-               // Try to extract email from "Name <email@domain.com>"
-               const match = field.match(/<(.+?)>/);
-               return [match ? match[1].toLowerCase().trim() : field.toLowerCase().trim()];
-            }
-            if (field.address) return [field.address.toLowerCase().trim()];
-            return [];
-          };
-
-          potentialRecipients.push(...extractAddresses(parsed.to));
-          potentialRecipients.push(...extractAddresses(parsed.cc));
-          potentialRecipients.push(...extractAddresses(parsed.bcc));
-
-          // Check common standard headers for original recipient
-          const headerKeys = ['delivered-to', 'x-original-to', 'envelope-to', 'x-forwarded-to', 'apparently-to', 'x-real-to'];
-          for (const key of headerKeys) {
-             const val = parsed.headers.get(key);
-             potentialRecipients.push(...extractAddresses(val));
-          }
-          
-          potentialRecipients = [...new Set(potentialRecipients.filter(a => !!a).map(a => a.toLowerCase().trim()))];
-          console.log(`[Email Listener] [UID:${uid}] Detected recipients: ${potentialRecipients.join(', ')}`);
-
-          if (!targetEmpresaId) {
-              if (potentialRecipients.length > 0) {
-                  // Try normalized inbound_address first
-                  const [canaisMatch]: any = await pool.query(
-                      'SELECT id, empresa_id, status FROM empresa_email_canais WHERE LOWER(inbound_address) IN (?) OR LOWER(email_publico) IN (?) LIMIT 1',
-                      [potentialRecipients, potentialRecipients]
-                  );
-                  
-                  if (canaisMatch.length > 0) {
-                      matchedChannelId = canaisMatch[0].id;
-                      targetEmpresaId = canaisMatch[0].empresa_id;
-                      console.log(`[Email Listener] [UID:${uid}] Matched channel ID ${matchedChannelId} for company ${targetEmpresaId}`);
-                  } else {
-                      // Fallback to legacy support email check
-                      const [empresasMatch]: any = await pool.query(
-                          'SELECT id FROM empresas WHERE LOWER(email) IN (?) OR LOWER(email_suporte) IN (?) LIMIT 1',
-                          [potentialRecipients, potentialRecipients]
-                      );
-                      if (empresasMatch.length > 0) {
-                          targetEmpresaId = empresasMatch[0].id;
-                          console.log(`[Email Listener] [UID:${uid}] Matched company ${targetEmpresaId} via legacy support email fallback.`);
-                      }
-                  }
-              }
-          }
-
-          if (!targetEmpresaId) {
-             console.warn(`[Email Listener] [UID:${uid}] No company found for recipients: ${potentialRecipients.join(', ')}. From: ${senderEmail}.`);
-             await this.logSystem(null, 'EMAIL_WITHOUT_COMPANY', `Falha ao identificar empresa para email de ${senderEmail} (Para: ${potentialRecipients.join(', ')}).`);
-             continue; 
-          }
-
           const messageKey = messageId || buildFallbackEmailDedupKey(parsed, subject, senderEmail, potentialRecipients);
           const claimed = await this.claimEmailForProcessing(messageKey, targetEmpresaId);
           if (!claimed) {
-             console.log(`[Email Listener] [UID:${uid}] Email already claimed/processed (${messageKey}). Skipping duplicate.`);
+             console.log(`[Email Listener] [UID:${uid}] Email already claimed/processed for company ${targetEmpresaId} (${maskIdentifier(messageKey)}). Skipping duplicate.`);
              await this.connection.addFlags(uid, '\\Seen');
              continue;
           }
           claimedMessageKey = messageKey;
+          claimedEmpresaId = targetEmpresaId;
 
           const persistedEmailTicketId = await this.findPersistedEmailTicket(messageId, targetEmpresaId);
           if (persistedEmailTicketId) {
-             await this.attachProcessedEmailToTicket(claimedMessageKey, persistedEmailTicketId);
-             console.log(`[Email Listener] [UID:${uid}] Message-ID already persisted in ticket #${persistedEmailTicketId}. Skipping duplicate.`);
+             await this.attachProcessedEmailToTicket(claimedMessageKey, persistedEmailTicketId, targetEmpresaId);
+             console.log(`[Email Listener] [UID:${uid}] Message-ID already persisted in ticket #${persistedEmailTicketId} for company ${targetEmpresaId}. Skipping duplicate.`);
              claimedMessageHandled = true;
              await this.connection.addFlags(uid, '\\Seen');
              continue;
@@ -875,8 +867,8 @@ export class EmailListenerService {
           const isAutoMsg = precedence === 'bulk' || precedence === 'junk' || precedence === 'list' || (autoSubmitted && autoSubmitted !== 'no');
 
           if (isSystemSender || isAutoMsg || isSystemHeader) {
-             console.warn(`[Email Listener] [UID:${uid}] Anti-Loop triggered for ${senderEmail} (isSystemSender: ${isSystemSender}, isAuto: ${isAutoMsg}, isSystemHeader: ${isSystemHeader})`);
-             await this.logSystem(targetEmpresaId, 'EMAIL_LOOP_PREVENTED', `Email de ${senderEmail} ignorado via anti-loop (Precedence: ${precedence}, Auto-Submitted: ${autoSubmitted}, HeaderSistema: ${isSystemHeader}).`);
+             console.warn(`[Email Listener] [UID:${uid}] Anti-Loop triggered for ${maskEmail(senderEmail)} (isSystemSender: ${isSystemSender}, isAuto: ${isAutoMsg}, isSystemHeader: ${isSystemHeader})`);
+             await this.logSystem(targetEmpresaId, 'EMAIL_LOOP_PREVENTED', `Email de ${maskEmail(senderEmail)} ignorado via anti-loop (Precedence: ${precedence}, Auto-Submitted: ${autoSubmitted}, HeaderSistema: ${isSystemHeader}).`);
              claimedMessageHandled = true;
              await this.connection.addFlags(uid, '\\Seen');
              continue;
@@ -884,8 +876,8 @@ export class EmailListenerService {
 
           // Thread duplication prevention check for responses that look like Gestifique thread and have system indicators but no valid DB match
           if (!targetTicketId && looksLikeGestifiqueTicketThread(subject, parsed)) {
-             console.warn(`[Email Listener] [UID:${uid}] Ignored email from ${senderEmail} because it looks like a Gestifique ticket thread fallback replica without active matching ticket.`);
-             await this.logSystem(targetEmpresaId, 'EMAIL_THREAD_REPLICA_IGNORED', `Email de ${senderEmail} (Assunto: "${subject}") ignorado pois aparenta ser uma réplica antiga/inválida de thread sem ticket correspondente ativo.`);
+             console.warn(`[Email Listener] [UID:${uid}] Ignored email from ${maskEmail(senderEmail)} because it looks like a Gestifique ticket thread fallback replica without active matching ticket.`);
+             await this.logSystem(targetEmpresaId, 'EMAIL_THREAD_REPLICA_IGNORED', `Email de ${maskEmail(senderEmail)} (Assunto: "${subject}") ignorado pois aparenta ser uma réplica antiga/inválida de thread sem ticket correspondente ativo.`);
              claimedMessageHandled = true;
              await this.connection.addFlags(uid, '\\Seen');
              continue;
@@ -926,11 +918,12 @@ export class EmailListenerService {
                 usuario_id: userId || null, // Allow system fallback down line if needed
                 mensagem: text,
                 interno: 0,
-                message_id: messageId
+                message_id: messageId,
+                empresa_id: targetEmpresaId
               });
-              await this.attachProcessedEmailToTicket(claimedMessageKey, targetTicketId);
+              await this.attachProcessedEmailToTicket(claimedMessageKey, targetTicketId, targetEmpresaId);
 
-              await this.logSystem(targetEmpresaId, 'EMAIL_MESSAGE_ADDED', `Nova mensagem via e-mail no ticket #${targetTicketId} de ${senderEmail}.`);
+              await this.logSystem(targetEmpresaId, 'EMAIL_MESSAGE_ADDED', `Nova mensagem via e-mail no ticket #${targetTicketId} de ${maskEmail(senderEmail)}.`);
 
               await this.processAttachments(parsed, targetTicketId, msgId, userId, targetEmpresaId);
 
@@ -955,9 +948,9 @@ export class EmailListenerService {
               message_id: messageId
             });
 
-            await this.attachProcessedEmailToTicket(claimedMessageKey, newTicketId);
+            await this.attachProcessedEmailToTicket(claimedMessageKey, newTicketId, targetEmpresaId);
 
-            await this.logSystem(targetEmpresaId, 'EMAIL_TICKET_CREATED', `Ticket #${newTicketId} criado via e-mail de ${senderEmail}.`);
+            await this.logSystem(targetEmpresaId, 'EMAIL_TICKET_CREATED', `Ticket #${newTicketId} criado via e-mail de ${maskEmail(senderEmail)}.`);
             
             const newTicket = await ticketsService.getById(newTicketId);
             if (newTicket && io) {
@@ -974,10 +967,10 @@ export class EmailListenerService {
 
         } catch (itemError: any) {
           if (!claimedMessageHandled) {
-            await this.releasePendingEmailClaim(claimedMessageKey);
+            await this.releasePendingEmailClaim(claimedMessageKey, claimedEmpresaId);
           }
           console.error(`[Email Listener] [UID:${uid}] Error processing item:`, itemError);
-          await this.logSystem(null, 'EMAIL_PROCESS_ERROR', `Erro ao processar e-mail UID ${uid} de ${senderEmailStr}: ${itemError.message}`);
+          await this.logSystem(null, 'EMAIL_PROCESS_ERROR', `Erro ao processar e-mail UID ${uid} de ${maskEmail(senderEmailStr)}: ${itemError.message}`);
         }
       }
     } catch (e) {
@@ -992,19 +985,28 @@ export class EmailListenerService {
 
     for (const att of parsed.attachments) {
       // Basic security validation
+      const originalName = att.filename || 'anexo_email.bin';
+      const contentType = att.contentType || 'application/octet-stream';
+      const contentValidation = validateAttachmentBuffer(att.content, originalName, contentType);
+      if (!contentValidation.ok) {
+         console.warn(`[Email Listener] Blocked attachment ${originalName}: ${contentValidation.error}`);
+         await this.logSystem(empresaId, 'ATTACHMENT_BLOCKED', `Anexo bloqueado: ${originalName} no Ticket #${ticketId}. Motivo: ${contentValidation.error}`);
+         continue;
+      }
+
       const forbiddenExts = ['.exe', '.bat', '.sh', '.js', '.vbs', '.scr', '.cmd'];
-      const ext = path.extname(att.filename || '').toLowerCase();
+      const ext = path.extname(originalName).toLowerCase();
       
       if (forbiddenExts.includes(ext)) {
-         console.warn(`[Email Listener] Blocked dangerous attachment: ${att.filename}`);
-         await this.logSystem(empresaId, 'ATTACHMENT_BLOCKED', `Anexo perigoso bloqueado: ${att.filename} no Ticket #${ticketId}.`);
+         console.warn(`[Email Listener] Blocked dangerous attachment: ${originalName}`);
+         await this.logSystem(empresaId, 'ATTACHMENT_BLOCKED', `Anexo perigoso bloqueado: ${originalName} no Ticket #${ticketId}.`);
          continue;
       }
 
       // Max size check: 10MB
       if (att.size > 10 * 1024 * 1024) {
-         console.warn(`[Email Listener] Attachment too large: ${att.filename} (${att.size} bytes)`);
-         await this.logSystem(empresaId, 'ATTACHMENT_REJECTED', `Anexo muito grande rejeitado: ${att.filename} (${Math.round(att.size / 1024 / 1024)}MB).`);
+         console.warn(`[Email Listener] Attachment too large: ${originalName} (${att.size} bytes)`);
+         await this.logSystem(empresaId, 'ATTACHMENT_REJECTED', `Anexo muito grande rejeitado: ${originalName} (${Math.round(att.size / 1024 / 1024)}MB).`);
          continue;
       }
 
@@ -1017,7 +1019,7 @@ export class EmailListenerService {
         // Usar StorageService em vez de fs direto
         const filePath = await storageService.save(att.content, {
           filename: uniqueFilename,
-          mimeType: att.contentType || 'application/octet-stream'
+          mimeType: contentType
         });
 
         await attachmentsService.create({
@@ -1025,17 +1027,17 @@ export class EmailListenerService {
           mensagem_id: msgId,
           usuario_id: userId || null,
           empresa_id: empresaId,
-          nome_original: att.filename || 'anexo_email.bin',
+          nome_original: originalName,
           nome_arquivo: uniqueFilename,
           caminho: filePath,
-          mime_type: att.contentType || 'application/octet-stream',
+          mime_type: contentType,
           tamanho_bytes: att.size,
           interno: false
         });
         
-        console.log(`[Email Listener] Attachment saved: ${att.filename}`);
+        console.log(`[Email Listener] Attachment saved: ${originalName}`);
       } catch (err) {
-        console.error(`[Email Listener] Error processing attachment ${att.filename}:`, err);
+        console.error(`[Email Listener] Error processing attachment ${originalName}:`, err);
       }
     }
   }
@@ -1053,7 +1055,7 @@ export class EmailListenerService {
       if (match) return { userId: match.id };
       
       // If user exists but in another company
-      await this.logSystem(targetEmpresaId, 'EMAIL_SENDER_CROSS_COMPANY', `Email de ${email} recebido, mas usuário pertence à empresa ${rows[0].empresa_id}. Tratado como externo.`);
+      await this.logSystem(targetEmpresaId, 'EMAIL_SENDER_CROSS_COMPANY', `Email de ${maskEmail(email)} recebido, mas usuario pertence a empresa ${rows[0].empresa_id}. Tratado como externo.`);
       return { userId: null };
     }
     

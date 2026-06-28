@@ -28,7 +28,9 @@ interface TicketReplyBoxProps {
   loadingSend: boolean;
   actionError: string | null;
   actionSuccess: string | null;
+  canSendPublicReply: boolean;
   canAddInternalNote: boolean;
+  canAttachFiles: boolean;
 }
 
 export const TicketReplyBox = ({ 
@@ -38,7 +40,9 @@ export const TicketReplyBox = ({
   loadingSend, 
   actionError, 
   actionSuccess, 
-  canAddInternalNote 
+  canSendPublicReply,
+  canAddInternalNote,
+  canAttachFiles
 }: TicketReplyBoxProps) => {
   const [newMessage, setNewMessage] = useState('');
   const [isInternal, setIsInternal] = useState(false);
@@ -46,6 +50,14 @@ export const TicketReplyBox = ({
   const [showMacros, setShowMacros] = useState(false);
   const [suggestedReply, setSuggestedReply] = useState<string | null>(null);
   const [loadingSuggestion, setLoadingSuggestion] = useState(false);
+
+  React.useEffect(() => {
+    if (!canSendPublicReply && canAddInternalNote) {
+      setIsInternal(true);
+    } else if (isInternal && !canAddInternalNote) {
+      setIsInternal(false);
+    }
+  }, [canSendPublicReply, canAddInternalNote, isInternal]);
 
   const handleSuggestReply = async () => {
     setLoadingSuggestion(true);
@@ -66,6 +78,8 @@ export const TicketReplyBox = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if ((!newMessage.trim() && selectedFiles.length === 0) || loadingSend) return;
+    if (!isInternal && !canSendPublicReply) return;
+    if (isInternal && !canAddInternalNote) return;
 
     const ok = await onSendMessage(newMessage, isInternal, selectedFiles);
     
@@ -97,12 +111,14 @@ export const TicketReplyBox = ({
           <div className="inline-flex w-full rounded-md border border-slate-200 bg-white p-0.5 sm:w-auto">
               <button
                 type="button"
-                onClick={() => setIsInternal(false)}
+                disabled={!canSendPublicReply}
+                onClick={() => canSendPublicReply && setIsInternal(false)}
                 className={cn(
                   "flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5 text-xs font-semibold transition-all sm:flex-none",
                   !isInternal 
                     ? "bg-white text-blue-700 shadow-sm ring-1 ring-slate-200" 
-                    : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                    : "text-slate-500 hover:text-slate-700 hover:bg-slate-50",
+                  !canSendPublicReply && "cursor-not-allowed opacity-50 hover:bg-transparent"
                 )}
              >
                 <User size={12} />
@@ -267,11 +283,17 @@ export const TicketReplyBox = ({
           isInternal ? "border-slate-200 bg-slate-100/70" : "border-slate-200 bg-slate-50"
         )}>
           <div className="flex min-w-0 flex-1">
-             <FileUpload 
-               onFilesChange={setSelectedFiles}
-               className="w-full"
-               compact
-             />
+             {canAttachFiles ? (
+               <FileUpload
+                 onFilesChange={setSelectedFiles}
+                 className="w-full"
+                 compact
+               />
+             ) : (
+               <span className="text-[10px] font-medium text-slate-400">
+                 Sem permissao para anexar arquivos.
+               </span>
+             )}
           </div>
 
           <div className="flex items-center justify-between gap-3 sm:justify-end">

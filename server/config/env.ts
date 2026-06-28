@@ -58,6 +58,16 @@ requiredEnvVars.forEach((varName) => {
   }
 });
 
+function parsePositiveIntEnv(name: string, fallback: number): number {
+  const parsed = Number(process.env[name]);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function parseNonNegativeIntEnv(name: string, fallback: number): number {
+  const parsed = Number(process.env[name]);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
 // S6: validação de força do JWT_SECRET.
 // Rejeita segredo vazio, curto (< 32) ou igual a valores de exemplo conhecidos.
 // Em produção é fatal (aborta o boot); em desenvolvimento apenas avisa.
@@ -98,6 +108,9 @@ export const env = {
     PASSWORD: process.env.DB_PASSWORD as string,
     NAME: process.env.DB_NAME as string,
     PORT: parseInt(process.env.DB_PORT as string),
+    CONNECTION_LIMIT: parsePositiveIntEnv('DB_CONNECTION_LIMIT', 10),
+    QUEUE_LIMIT: parseNonNegativeIntEnv('DB_QUEUE_LIMIT', 100),
+    CONNECT_TIMEOUT_MS: parsePositiveIntEnv('DB_CONNECT_TIMEOUT_MS', 10000),
   },
   IS_PROD: process.env.NODE_ENV === 'production',
   CORS_ORIGINS: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : [],
@@ -153,6 +166,10 @@ export const env = {
   ENABLE_WEB_SERVER: process.env.ENABLE_WEB_SERVER !== 'false',
   ENABLE_EMAIL_LISTENER: process.env.ENABLE_EMAIL_LISTENER === 'true',
   ENABLE_TICKET_JOBS: process.env.ENABLE_TICKET_JOBS !== 'false',
+  // Em producao, migrations devem rodar em etapa controlada de deploy.
+  AUTO_RUN_MIGRATIONS: process.env.AUTO_RUN_MIGRATIONS !== undefined
+    ? process.env.AUTO_RUN_MIGRATIONS === 'true'
+    : process.env.NODE_ENV !== 'production',
 
   // Proxy configuration for express-rate-limit compatibility.
   TRUST_PROXY: (() => {
@@ -175,5 +192,6 @@ export const env = {
 
 // S1: aviso explícito quando a validação TLS de e-mail está desativada.
 if (env.MAIL_TLS_INSECURE) {
-  console.warn('[SECURITY] ⚠️ MAIL_TLS_INSECURE=true: validação de certificado TLS do e-mail DESATIVADA (SMTP/IMAP). Use apenas em ambiente controlado/cert inválido. NÃO use em produção real.');
+  const severity = env.IS_PROD ? 'CRITICAL' : 'WARN';
+  console.warn(`[SECURITY] ${severity}: MAIL_TLS_INSECURE=true desativa validacao TLS do e-mail (SMTP/IMAP). Use apenas em ambiente controlado com certificado invalido.`);
 }

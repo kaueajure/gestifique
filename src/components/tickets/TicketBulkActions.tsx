@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
+import { hasAnyPermission, hasPermission } from '../../lib/permissions';
 import { TicketStatus, TicketPriority, User } from '../../types';
 
 interface TicketBulkActionsProps {
@@ -17,9 +18,10 @@ interface TicketBulkActionsProps {
   onAction: (action: string, value?: any) => void;
   onClear: () => void;
   agents: User[];
+  currentUser: User;
 }
 
-export const TicketBulkActions = ({ selectedCount, onAction, onClear, agents }: TicketBulkActionsProps) => {
+export const TicketBulkActions = ({ selectedCount, onAction, onClear, agents, currentUser }: TicketBulkActionsProps) => {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   if (selectedCount === 0) return null;
@@ -44,6 +46,23 @@ export const TicketBulkActions = ({ selectedCount, onAction, onClear, agents }: 
     setOpenMenu(null);
   };
 
+  const canEditStatus = hasPermission(currentUser, 'tickets.editar_status');
+  const canFinalize = hasPermission(currentUser, 'tickets.finalizar');
+  const canCloseTicket = hasPermission(currentUser, 'tickets.fechar');
+  const canEditPriority = hasPermission(currentUser, 'tickets.editar_prioridade');
+  const canAssignResponsavel = hasAnyPermission(currentUser, ['tickets.assumir', 'tickets.atribuir', 'tickets.transferir']);
+  const canRemoveResponsavel = hasPermission(currentUser, 'tickets.remover_responsavel');
+  const canManageTags = hasPermission(currentUser, 'tickets.gerenciar_tags');
+
+  const visibleStatusOptions = STATUS_OPTIONS.filter((opt) => {
+    if (opt.value === 'resolvido') return canFinalize;
+    if (opt.value === 'fechado') return canCloseTicket;
+    return canEditStatus;
+  });
+  const showStatusAction = canEditStatus && visibleStatusOptions.length > 0;
+  const showAgentAction = canAssignResponsavel || canRemoveResponsavel;
+  const hasSecondaryActions = showStatusAction || canEditPriority || showAgentAction || canManageTags;
+
   return (
     <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300 w-[calc(100vw-24px)] md:w-auto max-w-[560px] overflow-x-auto no-scrollbar rounded-xl">
       <div className="bg-white text-slate-900 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-200 p-1.5 flex items-center gap-1 w-max mx-auto">
@@ -56,6 +75,7 @@ export const TicketBulkActions = ({ selectedCount, onAction, onClear, agents }: 
         {/* Actions */}
         <div className="flex items-center gap-0.5">
           {/* Status */}
+          {showStatusAction && (
           <div className="relative">
             <Button 
               variant="ghost" 
@@ -72,7 +92,7 @@ export const TicketBulkActions = ({ selectedCount, onAction, onClear, agents }: 
             </Button>
             {openMenu === 'status' && (
               <div className="absolute bottom-full mb-2 left-0 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden min-w-[140px]">
-                {STATUS_OPTIONS.map((opt) => (
+                {visibleStatusOptions.map((opt) => (
                   <button
                     key={opt.value}
                     onClick={() => handleAction('status', opt.value)}
@@ -84,8 +104,10 @@ export const TicketBulkActions = ({ selectedCount, onAction, onClear, agents }: 
               </div>
             )}
           </div>
+          )}
 
           {/* Priority */}
+          {canEditPriority && (
           <div className="relative">
             <Button 
               variant="ghost" 
@@ -114,8 +136,10 @@ export const TicketBulkActions = ({ selectedCount, onAction, onClear, agents }: 
               </div>
             )}
           </div>
+          )}
 
           {/* Agent */}
+          {showAgentAction && (
           <div className="relative">
             <Button 
               variant="ghost" 
@@ -132,13 +156,15 @@ export const TicketBulkActions = ({ selectedCount, onAction, onClear, agents }: 
             </Button>
             {openMenu === 'agent' && (
               <div className="absolute bottom-full mb-2 left-0 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden min-w-[180px] max-h-[250px] overflow-y-auto custom-scrollbar">
+                {canRemoveResponsavel && (
                 <button
                   onClick={() => handleAction('responsavel', null)}
                   className="w-full text-left px-3 py-2 text-[11px] font-medium text-red-600 hover:bg-red-50 transition-colors border-b border-slate-100"
                 >
                   Remover Responsável
                 </button>
-                {agents.map((agent) => (
+                )}
+                {canAssignResponsavel && agents.map((agent) => (
                   <button
                     key={agent.id}
                     onClick={() => handleAction('responsavel', agent.id)}
@@ -150,8 +176,10 @@ export const TicketBulkActions = ({ selectedCount, onAction, onClear, agents }: 
               </div>
             )}
           </div>
+          )}
 
           {/* Tag */}
+          {canManageTags && (
           <div className="relative">
             <Button 
               variant="ghost" 
@@ -182,10 +210,12 @@ export const TicketBulkActions = ({ selectedCount, onAction, onClear, agents }: 
               </div>
             )}
           </div>
+          )}
 
-          <div className="w-px h-5 bg-slate-200 mx-1" />
+          {canCloseTicket && hasSecondaryActions && <div className="w-px h-5 bg-slate-200 mx-1" />}
 
           {/* Close */}
+          {canCloseTicket && (
           <Button 
             variant="ghost" 
             size="sm"
@@ -195,6 +225,7 @@ export const TicketBulkActions = ({ selectedCount, onAction, onClear, agents }: 
             <Archive size={14} />
             Fechar
           </Button>
+          )}
         </div>
 
         {/* Clear */}

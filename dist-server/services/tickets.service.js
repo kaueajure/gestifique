@@ -1,11 +1,14 @@
 import pool from '../db/connection.js';
+import { permissionsService } from './permissions.service.js';
 import notificationsService from './notifications.service.js';
 import { emailOutboundService, trackTicketEmailMessageIds } from './email-outbound.service.js';
 import { recordTicketEvent } from './ticket-events.service.js';
 import ticketMessagesService from './ticket-messages.service.js';
 import slaService from './sla.service.js';
 import { getTicketScope } from '../utils/ticket-permissions.js';
+import { isDeveloperUser } from '../utils/user-scope.js';
 import { recomputeTicketMessageState } from '../utils/ticket-state.js';
+import { maskEmail, maskIdentifier } from '../utils/sanitize.js';
 export function toPositiveInt(value) {
     if (value === undefined || value === null || value === '')
         return undefined;
@@ -35,6 +38,44 @@ function labelFromStatus(status) {
         fechado: 'Fechado'
     };
     return labels[status] || status.replace(/_/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
+}
+const MAX_TICKET_LIST_LIMIT = 100;
+const FINAL_TICKET_STATUS_SET = new Set(['resolvido', 'fechado']);
+const DEFAULT_TICKET_LIST_ORDER = `
+      t.aguardando_resposta_atendente DESC,
+      (CASE WHEN t.prazo_sla < NOW() AND t.status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.prioridade = 'urgente' THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.prioridade = 'alta' THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.responsavel_id IS NULL THEN 1 ELSE 0 END) DESC,
+      t.updated_at DESC,
+      t.id DESC
+    `;
+const TICKET_LIST_SORT_COLUMNS = {
+    id: 't.id',
+    updated_at: 't.updated_at',
+    titulo: 't.titulo',
+    status: 't.status',
+    prioridade: `
+      CASE t.prioridade
+        WHEN 'urgente' THEN 4
+        WHEN 'alta' THEN 3
+        WHEN 'media' THEN 2
+        WHEN 'baixa' THEN 1
+        ELSE 0
+      END
+    `
+};
+function buildTicketListOrderBy(sortBy, sortOrder) {
+    const column = typeof sortBy === 'string' ? TICKET_LIST_SORT_COLUMNS[sortBy] : undefined;
+    if (!column)
+        return DEFAULT_TICKET_LIST_ORDER;
+    const direction = sortOrder === 'asc' ? 'ASC' : 'DESC';
+    return `
+      ${column} ${direction},
+      t.updated_at DESC,
+      t.id DESC
+    `;
 }
 class TicketsService {
     isValidDateOnly(value) {
@@ -134,7 +175,7 @@ class TicketsService {
     async list(filters) {
         const { empresa_id, usuario_id, is_dev, is_admin, status, prioridade, categoria, servico, search, responsavel_id, fila, page = 1, limit = 20, 
         // Advanced Filters
-        tag, origem, created_from, created_to, updated_from, updated_to, sla_status, custom_field_search } = filters;
+        tag, origem, created_from, created_to, updated_from, updated_to, sla_status, custom_field_search, sort_by, sort_order } = filters;
         const searchTerm = search;
         let baseWhere = 'WHERE 1=1';
         let summaryWhere = 'WHERE 1=1';
@@ -252,6 +293,7 @@ class TicketsService {
             baseWhere += ' AND t.status = ?';
             finalParams.push(status);
         }
+        const requesterJoinForSummary = searchTerm ? 'LEFT JOIN usuarios u ON t.usuario_id = u.id' : '';
         // Summary calculation
         const [summaryRows] = await pool.query(`
       SELECT 
@@ -262,30 +304,17 @@ class TicketsService {
         SUM(CASE WHEN t.status = 'resolvido' THEN 1 ELSE 0 END) as resolvido,
         SUM(CASE WHEN t.status = 'fechado' THEN 1 ELSE 0 END) as fechado
       FROM tickets t
-      LEFT JOIN usuarios u ON t.usuario_id = u.id
+      ${requesterJoinForSummary}
       ${summaryWhere}
     `, summaryParams);
         const summary = summaryRows[0] || { total: 0, aberto: 0, em_andamento: 0, aguardando_cliente: 0, resolvido: 0, fechado: 0 };
         const total = Number(summary.total || 0);
         // Fetch items
         const safePage = toPositiveInt(page) ?? 1;
-        const safeLimit = toPositiveInt(limit) ?? 20;
+        const safeLimit = Math.min(toPositiveInt(limit) ?? 20, MAX_TICKET_LIST_LIMIT);
         const offset = (safePage - 1) * safeLimit;
-        // Prioridade operacional: 
-        // 1. Precisa resposta
-        // 2. SLA vencido
-        // 3. Vence breve
-        // 4. Urgente
-        // 5. Sem responsável
-        const orderBy = `
-      t.aguardando_resposta_atendente DESC,
-      (CASE WHEN t.prazo_sla < NOW() AND t.status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) DESC,
-      (CASE WHEN t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) DESC,
-      (CASE WHEN t.prioridade = 'urgente' THEN 1 ELSE 0 END) DESC,
-      (CASE WHEN t.prioridade = 'alta' THEN 1 ELSE 0 END) DESC,
-      (CASE WHEN t.responsavel_id IS NULL THEN 1 ELSE 0 END) DESC,
-      t.updated_at DESC
-    `;
+        // Default keeps the operational queue order; explicit UI sorting uses a safe whitelist.
+        const orderBy = buildTicketListOrderBy(sort_by, sort_order);
         const [items] = await pool.query(`
       SELECT t.*, 
              COALESCE(t.solicitante_nome, u.nome, 'Usuário Removido') as cliente_nome, 
@@ -498,6 +527,7 @@ class TicketsService {
             finalParams.push(status);
         }
         const summaryParams = [...finalParams];
+        const requesterJoinForSummary = searchTerm ? 'LEFT JOIN usuarios u ON t.usuario_id = u.id' : '';
         // Prioridade operacional
         const orderBy_K = `
       t.aguardando_resposta_atendente DESC,
@@ -506,7 +536,8 @@ class TicketsService {
       (CASE WHEN t.prioridade = 'urgente' THEN 1 ELSE 0 END) DESC,
       (CASE WHEN t.prioridade = 'alta' THEN 1 ELSE 0 END) DESC,
       (CASE WHEN t.responsavel_id IS NULL THEN 1 ELSE 0 END) DESC,
-      t.updated_at DESC
+      t.updated_at DESC,
+      t.id DESC
     `;
         // C2 fix: NÃO buscamos todos os tickets de uma vez.
         // 1) Primeiro calculamos summary e contagens REAIS por status (precisamos
@@ -520,14 +551,14 @@ class TicketsService {
         SUM(CASE WHEN t.status = 'resolvido' THEN 1 ELSE 0 END) as resolvido,
         SUM(CASE WHEN t.status = 'fechado' THEN 1 ELSE 0 END) as fechado
       FROM tickets t
-      LEFT JOIN usuarios u ON t.usuario_id = u.id
+      ${requesterJoinForSummary}
       ${summaryWhere}
     `, summaryParams);
         const summary = summaryRows[0] || { total: 0, aberto: 0, em_andamento: 0, aguardando_cliente: 0, resolvido: 0, fechado: 0 };
         const [statusCountRows] = await pool.query(`
       SELECT t.status, COUNT(*) as count
       FROM tickets t
-      LEFT JOIN usuarios u ON t.usuario_id = u.id
+      ${requesterJoinForSummary}
       ${summaryWhere}
       GROUP BY t.status
     `, summaryParams);
@@ -621,6 +652,13 @@ class TicketsService {
     async create(data) {
         const { empresa_id, usuario_id, solicitante_nome, solicitante_email, titulo, descricao, categoria, servico, origem, email_channel_id, message_id } = data;
         let prioridade = data.prioridade || 'media';
+        if (message_id) {
+            const [existingTicket] = await pool.query('SELECT id FROM tickets WHERE message_id = ? AND empresa_id = ? ORDER BY id ASC LIMIT 1', [message_id, empresa_id]);
+            if (existingTicket.length > 0) {
+                console.warn(`[TicketsService] Duplicate ticket message_id ignored: ${maskIdentifier(message_id)}`);
+                return existingTicket[0].id;
+            }
+        }
         // Check SLA policy
         let minutosSla = 24 * 60; // media padrão
         let minutosPrimeiraResposta = 60; // 1 hora padrão
@@ -767,7 +805,7 @@ class TicketsService {
                     references: message_id ? [message_id] : undefined,
                 }).then(async (sendResult) => {
                     if (sendResult.success) {
-                        console.log(`[TicketsService] External notification email sent to ${authorEmail} for ticket #${ticketId} via ${sendResult.provider} (Message-ID: ${sendResult.messageId})`);
+                        console.log(`[TicketsService] External notification email sent to ${maskEmail(authorEmail)} for ticket #${ticketId} via ${sendResult.provider} (Message-ID: ${maskIdentifier(sendResult.messageId)})`);
                         await trackTicketEmailMessageIds(empresa_id, ticketId, outboundMessageId, sendResult);
                     }
                 }).catch((err) => console.error('[TicketsService] Email error:', err));
@@ -782,14 +820,10 @@ class TicketsService {
         const ticket = await this.getById(id);
         if (!ticket)
             return null;
-        const isSuperUser = currentUser.desenvolvedor === 1 ||
-            currentUser.desenvolvedor === true ||
-            currentUser.perfil === 'desenvolvedor' ||
-            currentUser.administrador === 1 ||
-            currentUser.administrador === true ||
-            currentUser.perfil === 'administrador';
-        if (!isSuperUser) {
-            if (ticket.empresa_id !== currentUser.empresa_id)
+        if (!currentUser)
+            return { error: 'forbidden' };
+        if (!isDeveloperUser(currentUser)) {
+            if (Number(ticket.empresa_id) !== Number(currentUser.empresa_id))
                 return { error: 'forbidden' };
             // Enforce ticket view scopes
             const scope = await getTicketScope(currentUser);
@@ -875,9 +909,13 @@ class TicketsService {
         }
         if (oldTicket.status === status)
             return;
+        const finalStatuses = ['resolvido', 'fechado'];
+        const wasFinalStatus = finalStatuses.includes(oldTicket.status);
+        const willBeFinalStatus = finalStatuses.includes(status);
+        const isReopening = wasFinalStatus && !willBeFinalStatus;
         let finalizado_em = null;
         let sla_resolucao_status = oldTicket.sla_resolucao_status;
-        if (['resolvido', 'fechado'].includes(status)) {
+        if (willBeFinalStatus) {
             finalizado_em = new Date().toISOString().slice(0, 19).replace('T', ' ');
             if (oldTicket.prazo_sla) {
                 const finalData = new Date();
@@ -885,7 +923,24 @@ class TicketsService {
                 sla_resolucao_status = finalData <= prazoData ? 'cumprido' : 'violado';
             }
         }
-        await pool.query(`UPDATE tickets SET status = ?, finalizado_em = ${finalizado_em ? '?' : 'NULL'}, sla_resolucao_status = ?, updated_at = NOW() WHERE id = ?`, finalizado_em ? [status, finalizado_em, sla_resolucao_status, id] : [status, sla_resolucao_status, id]);
+        const updateFields = ['status = ?'];
+        const updateParams = [status];
+        if (finalizado_em) {
+            updateFields.push('finalizado_em = ?');
+            updateParams.push(finalizado_em);
+        }
+        else {
+            updateFields.push('finalizado_em = NULL');
+        }
+        updateFields.push('sla_resolucao_status = ?');
+        updateParams.push(sla_resolucao_status);
+        if (isReopening) {
+            updateFields.push('reaberto_em = NOW()', 'reaberto_por = ?');
+            updateParams.push(changedByUserId || null);
+        }
+        updateFields.push('updated_at = NOW()');
+        updateParams.push(id);
+        await pool.query(`UPDATE tickets SET ${updateFields.join(', ')} WHERE id = ?`, updateParams);
         // Sprint 2: SLA Pause/Resume logic
         if (status === 'aguardando_cliente') {
             await slaService.pauseSla(id, changedByUserId);
@@ -896,7 +951,7 @@ class TicketsService {
         else {
             await slaService.updateOperationalStatus(id);
         }
-        if (['resolvido', 'fechado'].includes(status) && !['resolvido', 'fechado'].includes(oldTicket.status)) {
+        if (willBeFinalStatus && !wasFinalStatus) {
             await this.ensureSatisfactionSurvey(id, oldTicket.empresa_id, changedByUserId);
             try {
                 await recordTicketEvent({
@@ -905,6 +960,18 @@ class TicketsService {
                     usuario_id: changedByUserId,
                     tipo: 'ticket_finalizado',
                     descricao: `Chamado ${status}`
+                });
+            }
+            catch (err) { }
+        }
+        if (isReopening) {
+            try {
+                await recordTicketEvent({
+                    ticket_id: id,
+                    empresa_id: oldTicket.empresa_id,
+                    usuario_id: changedByUserId,
+                    tipo: 'ticket_reaberto',
+                    descricao: `Chamado reaberto com status "${status}"`
                 });
             }
             catch (err) { }
@@ -1066,7 +1133,7 @@ class TicketsService {
                         references: oldTicket.message_id ? [oldTicket.message_id] : undefined,
                     }).then(async (sendResult) => {
                         if (sendResult.success) {
-                            console.log(`[TicketsService] External notification email sent to ${oldTicket.cliente_email} for ticket #${id} via ${sendResult.provider} (Status: ${data.status})`);
+                            console.log(`[TicketsService] External notification email sent to ${maskEmail(oldTicket.cliente_email)} for ticket #${id} via ${sendResult.provider} (Status: ${data.status})`);
                             await trackTicketEmailMessageIds(oldTicket.empresa_id, id, outboundMessageId, sendResult);
                         }
                     }).catch((err) => console.error('[TicketsService] Email error:', err));
@@ -1301,6 +1368,16 @@ class TicketsService {
         else {
             await slaService.updateOperationalStatus(id);
         }
+        try {
+            await recordTicketEvent({
+                ticket_id: id,
+                empresa_id: ticket.empresa_id,
+                usuario_id: currentUser?.id || null,
+                tipo: 'ticket_reaberto',
+                descricao: 'Chamado reaberto para atendimento'
+            });
+        }
+        catch (err) { }
         // Reabertura volta o ticket para fila de resposta conforme a regra -> recomputa.
         try {
             await recomputeTicketMessageState(id);
@@ -1513,8 +1590,11 @@ class TicketsService {
     }
     async setTags(ticketId, tags) {
         await pool.query('DELETE FROM ticket_tags WHERE ticket_id = ?', [ticketId]);
-        for (const tag of tags) {
-            await this.addTag(ticketId, tag);
+        const normalizedTags = Array.from(new Set((tags || []).map(tag => this.normalizeTag(tag)).filter(Boolean)));
+        if (normalizedTags.length > 0) {
+            const placeholders = normalizedTags.map(() => '(?, ?)').join(', ');
+            const params = normalizedTags.flatMap(tag => [ticketId, tag]);
+            await pool.query(`INSERT IGNORE INTO ticket_tags (ticket_id, tag) VALUES ${placeholders}`, params);
         }
     }
     // CUSTOM FIELDS
@@ -1553,16 +1633,90 @@ class TicketsService {
         // Mas para remover quem não está no array, precisamos de uma lógica extra ou deletar antes.
         await pool.query('DELETE FROM ticket_custom_fields WHERE ticket_id = ?', [ticketId]);
         const processedKeys = new Set();
+        const values = [];
         for (const field of fields) {
             const key = this.normalizeFieldKey(field.field_key || field.field_label);
             if (key && !processedKeys.has(key)) {
-                await this.updateCustomField(ticketId, field);
+                const label = String(field.field_label || key).substring(0, 120);
+                const value = String(field.field_value || '').substring(0, 1000);
+                values.push(ticketId, key, label, value);
                 processedKeys.add(key);
             }
+        }
+        if (values.length > 0) {
+            const placeholders = Array.from({ length: values.length / 4 }, () => '(?, ?, ?, ?)').join(', ');
+            await pool.query(`INSERT INTO ticket_custom_fields (ticket_id, field_key, field_label, field_value) VALUES ${placeholders}`, values);
         }
     }
     async removeCustomField(ticketId, fieldKey) {
         await pool.query('DELETE FROM ticket_custom_fields WHERE ticket_id = ? AND field_key = ?', [ticketId, fieldKey]);
+    }
+    async getStatusTransitionPermissionError(currentUser, oldStatus, newStatus) {
+        const oldValue = String(oldStatus || '');
+        const newValue = String(newStatus || '');
+        if (!newValue || oldValue === newValue)
+            return null;
+        if (FINAL_TICKET_STATUS_SET.has(oldValue) && !FINAL_TICKET_STATUS_SET.has(newValue)) {
+            const hasReopenPerm = await permissionsService.hasPermission(currentUser, 'tickets.reabrir');
+            if (!hasReopenPerm)
+                return 'Sem permissao para reabrir chamados (tickets.reabrir).';
+        }
+        if (newValue === 'resolvido') {
+            const hasFinalizePerm = await permissionsService.hasPermission(currentUser, 'tickets.finalizar');
+            if (!hasFinalizePerm)
+                return 'Sem permissao para finalizar chamados (tickets.finalizar).';
+        }
+        if (newValue === 'fechado') {
+            const hasClosePerm = await permissionsService.hasPermission(currentUser, 'tickets.fechar');
+            if (!hasClosePerm)
+                return 'Sem permissao para fechar chamados (tickets.fechar).';
+        }
+        return null;
+    }
+    async getBulkActionPermissionError(action, value, currentUser, ticket) {
+        const hasBulkPerm = await permissionsService.hasPermission(currentUser, 'tickets.acoes_em_massa');
+        if (!hasBulkPerm)
+            return 'Sem permissao para realizar acoes em massa (tickets.acoes_em_massa).';
+        switch (action) {
+            case 'status': {
+                if (!isValidTicketStatus(value))
+                    return 'Status invalido.';
+                const hasStatusPerm = await permissionsService.hasPermission(currentUser, 'tickets.editar_status');
+                if (!hasStatusPerm)
+                    return 'Sem permissao para alterar status (tickets.editar_status).';
+                return this.getStatusTransitionPermissionError(currentUser, ticket.status, value);
+            }
+            case 'fechar':
+                return this.getStatusTransitionPermissionError(currentUser, ticket.status, 'fechado');
+            case 'prioridade': {
+                const hasPriorityPerm = await permissionsService.hasPermission(currentUser, 'tickets.editar_prioridade');
+                return hasPriorityPerm ? null : 'Sem permissao para alterar prioridade (tickets.editar_prioridade).';
+            }
+            case 'responsavel': {
+                const wantsRemove = value === null || value === undefined || value === '';
+                if (wantsRemove) {
+                    const hasRemovePerm = await permissionsService.hasPermission(currentUser, 'tickets.remover_responsavel');
+                    return hasRemovePerm ? null : 'Sem permissao para remover responsavel (tickets.remover_responsavel).';
+                }
+                const newResponsavelId = toPositiveInt(value);
+                if (!newResponsavelId)
+                    return 'Responsavel invalido.';
+                const isTakingUnassigned = !ticket.responsavel_id && Number(newResponsavelId) === Number(currentUser.id);
+                const requiredPerm = isTakingUnassigned
+                    ? 'tickets.assumir'
+                    : ticket.responsavel_id
+                        ? 'tickets.transferir'
+                        : 'tickets.atribuir';
+                const allowed = await permissionsService.hasPermission(currentUser, requiredPerm);
+                return allowed ? null : `Sem permissao para alterar responsavel (${requiredPerm}).`;
+            }
+            case 'add_tag': {
+                const hasTagPerm = await permissionsService.hasPermission(currentUser, 'tickets.gerenciar_tags');
+                return hasTagPerm ? null : 'Sem permissao para gerenciar tags (tickets.gerenciar_tags).';
+            }
+            default:
+                return 'Acao invalida.';
+        }
     }
     // BULK ACTIONS
     async bulkUpdate(params) {
@@ -1586,6 +1740,12 @@ class TicketsService {
                     errors.push(`Ticket #${id}: Acesso negado ou não encontrado.`);
                     continue;
                 }
+                const permissionError = await this.getBulkActionPermissionError(action, value, currentUser, ticket);
+                if (permissionError) {
+                    skipped++;
+                    errors.push(`Ticket #${id}: ${permissionError}`);
+                    continue;
+                }
                 switch (action) {
                     case 'status':
                         if (isValidTicketStatus(value)) {
@@ -1607,9 +1767,10 @@ class TicketsService {
                         }
                         break;
                     case 'responsavel':
+                        const responsavelValue = value === undefined || value === '' ? null : value;
                         // Se value for informado, verificar se o usuário existe e pertence à mesma empresa
-                        if (value !== null) {
-                            const [agent] = await pool.query('SELECT id, empresa_id FROM usuarios WHERE id = ? AND ativo = 1', [value]);
+                        if (responsavelValue !== null) {
+                            const [agent] = await pool.query('SELECT id, empresa_id FROM usuarios WHERE id = ? AND ativo = 1', [responsavelValue]);
                             if (!agent[0] || (!currentUser.desenvolvedor && agent[0].empresa_id !== ticket.empresa_id)) {
                                 skipped++;
                                 errors.push(`Ticket #${id}: Responsável inválido para esta empresa.`);
@@ -1622,7 +1783,7 @@ class TicketsService {
                                 continue;
                             }
                         }
-                        await this.update(id, { responsavel_id: value });
+                        await this.update(id, { responsavel_id: responsavelValue });
                         updated++;
                         break;
                     case 'add_tag':

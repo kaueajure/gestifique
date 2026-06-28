@@ -13,6 +13,7 @@ import { cn, getSlaInfo } from '../../lib/utils';
 import { api } from '../../lib/api';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { getSocket } from '../../lib/socket';
+import { hasAnyPermission, hasPermission } from '../../lib/permissions';
 
 const DraggableComp = Draggable as any;
 const DroppableComp = Droppable as any;
@@ -89,7 +90,15 @@ export const TicketKanban = ({
   onStatusChange,
   devCompanyId
 }: TicketKanbanProps) => {
-  const canManage = !!(currentUser.administrador || currentUser.desenvolvedor);
+  const canEditStatus = hasPermission(currentUser, 'tickets.editar_status');
+  const canReopen = hasPermission(currentUser, 'tickets.reabrir');
+  const canMoveResponsavel = hasAnyPermission(currentUser, [
+    'tickets.assumir',
+    'tickets.atribuir',
+    'tickets.transferir',
+    'tickets.remover_responsavel'
+  ]);
+  const canDragCards = canEditStatus || canMoveResponsavel;
 
   const [localData, setLocalData] = useState<TicketKanbanResponse>(kanbanData);
   const [team, setTeam] = useState<TeamMember[]>([]);
@@ -294,19 +303,25 @@ export const TicketKanban = ({
     });
   };
 
-  const persistTicketMove = async (ticketId: number, status: string, row: RowUser) => {
+  const persistTicketMove = async (ticketId: number, status: string, row: RowUser, currentTicket: Ticket) => {
     const responsavelId = row.isUnassigned ? null : row.id;
+    const statusChanged = currentTicket.status !== status;
+    const responsavelChanged = Number(currentTicket.responsavel_id || 0) !== Number(responsavelId || 0);
 
-    await api.patch(`/tickets/${ticketId}`, { responsavel_id: responsavelId });
-    await api.patch(`/tickets/${ticketId}/status`, { status });
+    if (responsavelChanged) {
+      await api.patch(`/tickets/${ticketId}`, { responsavel_id: responsavelId });
+    }
+    if (statusChanged) {
+      await api.patch(`/tickets/${ticketId}/status`, { status });
+    }
   };
 
   const onDragEnd = async (result: DropResult) => {
     const { destination, draggableId } = result;
     if (!destination) return;
 
-    if (!canManage) {
-      setErrorMsg('Apenas administradores podem mover chamados.');
+    if (!canDragCards) {
+      setErrorMsg('Sem permissao para mover chamados.');
       setTimeout(() => setErrorMsg(null), 3000);
       return;
     }
@@ -317,10 +332,54 @@ export const TicketKanban = ({
 
     if (!targetRow || !targetStatus || !ticketId) return;
 
+    const currentTicket = getAllTickets(localData.columns).find(ticket => Number(ticket.id) === ticketId);
+    if (!currentTicket) return;
+
+    const targetResponsavelId = targetRow.isUnassigned ? null : targetRow.id;
+    const statusChanged = currentTicket.status !== targetStatus;
+    const responsavelChanged = Number(currentTicket.responsavel_id || 0) !== Number(targetResponsavelId || 0);
+    const finalStatuses = new Set(['resolvido', 'fechado']);
+
+    if (statusChanged) {
+      if (!canEditStatus) {
+        setErrorMsg('Sem permissao para alterar status.');
+        setTimeout(() => setErrorMsg(null), 3000);
+        return;
+      }
+
+      if (finalStatuses.has(targetStatus) && !finalStatuses.has(currentTicket.status)) {
+        setErrorMsg('Finalize o chamado pela tela de detalhe para registrar o motivo.');
+        setTimeout(() => setErrorMsg(null), 3000);
+        return;
+      }
+
+      if (finalStatuses.has(currentTicket.status) && !finalStatuses.has(targetStatus) && !canReopen) {
+        setErrorMsg('Sem permissao para reabrir chamados.');
+        setTimeout(() => setErrorMsg(null), 3000);
+        return;
+      }
+    }
+
+    if (responsavelChanged) {
+      const requiredPermission = targetResponsavelId === null
+        ? 'tickets.remover_responsavel'
+        : Number(targetResponsavelId) === Number(currentUser.id)
+          ? 'tickets.assumir'
+          : currentTicket.responsavel_id
+            ? 'tickets.transferir'
+            : 'tickets.atribuir';
+
+      if (!hasPermission(currentUser, requiredPermission)) {
+        setErrorMsg('Sem permissao para alterar responsavel.');
+        setTimeout(() => setErrorMsg(null), 3000);
+        return;
+      }
+    }
+
     try {
       setUpdatingId(ticketId);
       updateTicketLocally(ticketId, targetStatus, targetRow);
-      await persistTicketMove(ticketId, targetStatus, targetRow);
+      await persistTicketMove(ticketId, targetStatus, targetRow, currentTicket);
       onStatusChange();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao mover ticket.';
@@ -455,7 +514,7 @@ export const TicketKanban = ({
                                           key={ticket.id.toString()}
                                           draggableId={ticket.id.toString()}
                                           index={index}
-                                          isDragDisabled={!canManage}
+                                          isDragDisabled={!canDragCards}
                                         >
                                           {(dragProvided: any, dragSnapshot: any) => (
                                             <div
