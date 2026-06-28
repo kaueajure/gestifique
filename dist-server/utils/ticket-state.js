@@ -18,8 +18,8 @@ import pool from '../db/connection.js';
  *   - qualquer outro autor                                => 'atendente'
  *
  * aguardando_resposta_atendente = 1 quando:
- *   - status NÃO em (resolvido, fechado) E
- *   - status != 'aguardando_cliente' E
+ *   - status não marcado como finalizado/encerrado E
+ *   - status não marcado como aguardando cliente E
  *   - (não há mensagem pública OU a última pública é do 'cliente')
  */
 export async function recomputeTicketMessageState(ticketId) {
@@ -50,9 +50,12 @@ export async function recomputeTicketMessageState(ticketId) {
     // 2. Flag "precisa resposta do atendente".
     await pool.query(`
     UPDATE tickets t
+    LEFT JOIN empresa_ticket_status status_cfg
+      ON status_cfg.empresa_id = t.empresa_id
+     AND status_cfg.valor = t.status
     SET t.aguardando_resposta_atendente = CASE
-      WHEN t.status IN ('resolvido', 'fechado') THEN 0
-      WHEN t.status = 'aguardando_cliente' THEN 0
+      WHEN status_cfg.especial IN ('finalizado', 'encerrado') THEN 0
+      WHEN status_cfg.especial = 'aguardando_cliente' THEN 0
       WHEN t.ultima_mensagem_publica_em IS NULL THEN 1
       WHEN t.ultima_mensagem_publica_origem = 'cliente' THEN 1
       ELSE 0

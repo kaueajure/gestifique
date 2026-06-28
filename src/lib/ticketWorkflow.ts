@@ -1,15 +1,26 @@
-import { TicketKanbanResponse, TicketStatus } from "../types";
+import { TicketKanbanResponse, TicketStatus, TicketStatusSpecial } from "../types";
 
 export interface TicketWorkflowStatus {
   id: TicketStatus;
   label: string;
   visible: boolean;
+  active: boolean;
+  color: string;
+  special: TicketStatusSpecial;
 }
 
 export const DEFAULT_TICKET_WORKFLOW: TicketWorkflowStatus[] = [
-  { id: "aberto", label: "Aberto", visible: true },
-  { id: "em_andamento", label: "Em Atendimento", visible: true },
-  { id: "resolvido", label: "Finalizado", visible: true },
+  { id: "aberto", label: "Aberto", visible: true, active: true, color: "#2563eb", special: "inicial" },
+  { id: "em_andamento", label: "Em Atendimento", visible: true, active: true, color: "#4f46e5", special: "normal" },
+  { id: "resolvido", label: "Finalizado", visible: true, active: true, color: "#059669", special: "finalizado" },
+];
+
+export const TICKET_STATUS_SPECIAL_OPTIONS: { value: TicketStatusSpecial; label: string; description: string }[] = [
+  { value: "normal", label: "Normal", description: "Etapa operacional comum do atendimento." },
+  { value: "inicial", label: "Inicial", description: "Todo ticket novo ou reaberto entra neste status." },
+  { value: "aguardando_cliente", label: "Aguardando cliente", description: "Pausa a fila de resposta do atendente e indica espera pelo cliente." },
+  { value: "finalizado", label: "Finalizado", description: "Conta como resolvido, gera fechamento operacional e pesquisa de satisfação." },
+  { value: "encerrado", label: "Encerrado", description: "Encerramento definitivo. Exige permissão de fechar." },
 ];
 
 const STORAGE_KEY_PREFIX = "gestifique.ticketWorkflow";
@@ -36,7 +47,7 @@ export const loadTicketWorkflow = (
         /^[a-z0-9_]{2,80}$/.test(item.id) &&
         typeof item.label === "string" &&
         item.label.trim().length > 0,
-    );
+    ).map((item) => normalizeWorkflowStatus(item));
     const missing = DEFAULT_TICKET_WORKFLOW.filter(
       (item) => !sanitized.some((storedItem) => storedItem.id === item.id),
     );
@@ -69,6 +80,17 @@ export const labelFromTicketStatus = (status: string) =>
     .replace(/_/g, " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
+export const normalizeWorkflowStatus = (item: Partial<TicketWorkflowStatus> & { id: TicketStatus; label: string }): TicketWorkflowStatus => ({
+  id: item.id,
+  label: item.label,
+  visible: item.visible !== false,
+  active: item.active !== false,
+  color: /^#[0-9a-fA-F]{6}$/.test(item.color || "") ? item.color as string : "#0891b2",
+  special: TICKET_STATUS_SPECIAL_OPTIONS.some(option => option.value === item.special)
+    ? item.special as TicketStatusSpecial
+    : "normal",
+});
+
 export const applyTicketWorkflowToKanban = (
   kanbanData: TicketKanbanResponse,
   workflow: TicketWorkflowStatus[],
@@ -76,7 +98,7 @@ export const applyTicketWorkflowToKanban = (
   const sourceColumns = kanbanData.columns || [];
 
   const columns = workflow
-    .filter((item) => item.visible)
+    .filter((item) => item.active && item.visible)
     .map((item) => {
       const sourceColumn = sourceColumns.find((column) => column.id === item.id);
       return {

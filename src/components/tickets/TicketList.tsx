@@ -1,5 +1,5 @@
 import React from 'react';
-import { Ticket, User } from '../../types';
+import { Ticket, TicketStatus, TicketStatusSpecial, User } from '../../types';
 import { 
   MessageSquare, 
   ChevronRight, 
@@ -44,6 +44,7 @@ interface TicketListProps {
   sortKey?: TicketSortKey;
   sortOrder?: TicketSortOrder;
   onSortChange?: (key: TicketSortKey, order: TicketSortOrder) => void;
+  statusOptions?: { value: TicketStatus; label: string; special?: TicketStatusSpecial | string | null }[];
 }
 
 export type TicketSortKey = 'operacional' | 'id' | 'updated_at' | 'prioridade' | 'status' | 'titulo';
@@ -52,11 +53,13 @@ export type TicketSortOrder = 'asc' | 'desc';
 export const TicketList = ({ 
   tickets, onSelectTicket, currentUser, onStatusChange, searchTerm, hasFilters, meta, 
   onPageChange, selectedTicketIds = [], onSelectionChange, canSelectBulk,
-  sortKey = 'operacional', sortOrder = 'desc', onSortChange
+  sortKey = 'operacional', sortOrder = 'desc', onSortChange, statusOptions = []
 }: TicketListProps) => {
 
   const canAssumeTicket = hasPermission(currentUser, 'tickets.assumir');
   const canEditStatus = hasPermission(currentUser, 'tickets.editar_status');
+  const statusSpecialMap = new Map(statusOptions.map((status) => [status.value, status.special || 'normal']));
+  const inProgressStatus = statusOptions.find((status) => status.special === 'normal')?.value;
 
   const handleAssumirTicket = async (e: React.MouseEvent, ticketId: number) => {
     e.stopPropagation();
@@ -216,12 +219,11 @@ export const TicketList = ({
             {tickets.map((ticket) => {
               const sla = getSlaInfo(ticket.prazo_sla, ticket.status, ticket.sla_status_operacional);
               const statusColor = getStatusColor(ticket.status);
-              const isAbertoESemResp = ticket.status === 'aberto' && !ticket.responsavel_id;
+              const isInitialStatus = statusSpecialMap.get(ticket.status) === 'inicial' || ticket.status === 'aberto';
+              const isAbertoESemResp = isInitialStatus && !ticket.responsavel_id;
               const isSelected = selectedTicketIds.includes(ticket.id);
               const priority = getPriorityInfo(ticket.prioridade);
               const estadoInfo = getEstadoAtendimentoInfo(ticket.estado_atendimento);
-
-              const needsAgentAction = ticket.status === 'aberto' || ticket.status === 'em_andamento';
               
               return (
                 <tr 
@@ -344,8 +346,8 @@ export const TicketList = ({
                           <UserPlus size={14} />
                         </button>
                       )}
-                      {canEditStatus && ticket.status === 'aberto' && ticket.responsavel_id === currentUser.id && (
-                        <button onClick={(e) => handleMudarStatus(e, ticket.id, 'em_andamento')} title="Iniciar" className="w-7 h-7 flex items-center justify-center hover:bg-slate-100 text-indigo-600 rounded transition-all">
+                      {canEditStatus && inProgressStatus && isInitialStatus && ticket.responsavel_id === currentUser.id && (
+                        <button onClick={(e) => handleMudarStatus(e, ticket.id, inProgressStatus)} title="Iniciar" className="w-7 h-7 flex items-center justify-center hover:bg-slate-100 text-indigo-600 rounded transition-all">
                           <Play size={14} />
                         </button>
                       )}

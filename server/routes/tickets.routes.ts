@@ -11,6 +11,10 @@ import { validateUploadedFile } from '../utils/file-security.js';
 import pool from '../db/connection.js';
 import { emailOutboundService, trackTicketEmailMessageIds } from '../services/email-outbound.service.js';
 import { maskEmail, maskIdentifier } from '../utils/sanitize.js';
+import {
+  getTicketStatusConfig,
+  isFinalTicketStatusSpecial
+} from '../utils/ticket-status-config.js';
 
 const router = Router();
 
@@ -30,7 +34,6 @@ function parseTicketQueue(value: unknown): string {
 
 const isAgentUser = (user: any) => !!(user.administrador || user.desenvolvedor || user.perfil === 'gestor' || user.perfil === 'atendente');
 const canManageTickets = (user: any) => !!(user.administrador || user.desenvolvedor || user.perfil === 'gestor');
-const FINAL_TICKET_STATUSES = new Set(['resolvido', 'fechado']);
 
 function isTicketStatusValidationError(message: string): boolean {
   return message.includes('Status inválido')
@@ -38,26 +41,31 @@ function isTicketStatusValidationError(message: string): boolean {
     || message.includes('Nenhum status ativo disponível');
 }
 
-async function ensureStatusTransitionPermission(res: any, currentUser: any, oldStatus: unknown, newStatus: unknown) {
+async function ensureStatusTransitionPermission(res: any, currentUser: any, empresaId: number, oldStatus: unknown, newStatus: unknown) {
   const oldValue = String(oldStatus || '');
   const newValue = String(newStatus || '');
   if (!newValue || oldValue === newValue) return null;
 
-  if (FINAL_TICKET_STATUSES.has(oldValue) && !FINAL_TICKET_STATUSES.has(newValue)) {
+  const oldStatusConfig = await getTicketStatusConfig(empresaId, oldValue);
+  const newStatusConfig = await getTicketStatusConfig(empresaId, newValue);
+  const oldIsFinal = isFinalTicketStatusSpecial(oldStatusConfig?.especial);
+  const newIsFinal = isFinalTicketStatusSpecial(newStatusConfig?.especial);
+
+  if (oldIsFinal && !newIsFinal) {
     const hasReopenPerm = await permissionsService.hasPermission(currentUser, 'tickets.reabrir');
     if (!hasReopenPerm) {
       return sendError(res, 'Acesso proibido: Sem permissao para reabrir chamados (tickets.reabrir).', 403);
     }
   }
 
-  if (newValue === 'resolvido') {
+  if (newStatusConfig?.especial === 'finalizado') {
     const hasFinalizePerm = await permissionsService.hasPermission(currentUser, 'tickets.finalizar');
     if (!hasFinalizePerm) {
       return sendError(res, 'Acesso proibido: Sem permissao para finalizar chamados (tickets.finalizar).', 403);
     }
   }
 
-  if (newValue === 'fechado') {
+  if (newStatusConfig?.especial === 'encerrado') {
     const hasClosePerm = await permissionsService.hasPermission(currentUser, 'tickets.fechar');
     if (!hasClosePerm) {
       return sendError(res, 'Acesso proibido: Sem permissao para fechar chamados (tickets.fechar).', 403);
@@ -563,21 +571,28 @@ router.patch('/:id/resolve', async (req: AuthRequest, res) => {
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
 
     const { status } = req.body;
-    const requiredPerm = status === 'fechado' ? 'tickets.fechar' : 'tickets.finalizar';
-    const hasResolvePerm = await permissionsService.hasPermission(currentUser, requiredPerm);
-    if (!hasResolvePerm) {
-      return sendError(res, `Acesso proibido: Você não possui permissão para ${status === 'fechado' ? 'fechar' : 'finalizar'} chamados (${requiredPerm}).`, 403);
-    }
+    if (!status || !isValidTicketStatus(status)) return sendError(res, 'Status inválido para resolução', 400);
 
     const id = parseInt(req.params.id);
     const ticket: any = await ticketsService.getByIdForUser(id, currentUser);
     if (!ticket) return sendError(res, 'Ticket não encontrado', 404);
     if (ticket.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
+    const targetStatusConfig = await getTicketStatusConfig(ticket.empresa_id, status);
+    if (!targetStatusConfig || targetStatusConfig.ativo !== 1 || !isFinalTicketStatusSpecial(targetStatusConfig.especial)) {
+      return sendError(res, 'Status inválido para resolução', 400);
+    }
+
+    const requiredPerm = targetStatusConfig.especial === 'encerrado' ? 'tickets.fechar' : 'tickets.finalizar';
+    const hasResolvePerm = await permissionsService.hasPermission(currentUser, requiredPerm);
+    if (!hasResolvePerm) {
+      return sendError(res, `Acesso proibido: Você não possui permissão para ${targetStatusConfig.especial === 'encerrado' ? 'fechar' : 'finalizar'} chamados (${requiredPerm}).`, 403);
+    }
+
     await ticketsService.resolveTicket(id, req.body, currentUser);
     await logSystemAction(req, currentUser.id, ticket.empresa_id, 'TICKET_COMPLETE', `Chamado #${id} marcado como ${req.body.status} (Motivo: ${req.body.resolucao_motivo})`);
     
-    sendSuccess(res, null, `Chamado ${req.body.status === 'resolvido' ? 'resolvido' : 'fechado'} com sucesso`);
+    sendSuccess(res, null, `Chamado ${targetStatusConfig.nome} com sucesso`);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erro ao finalizar ticket';
     sendError(res, message, isTicketStatusValidationError(message) ? 400 : 500);
@@ -704,7 +719,7 @@ router.patch('/:id/status', async (req: AuthRequest, res) => {
         return sendError(res, 'Acesso proibido: Sem permissão para alterar status (tickets.editar_status).', 403);
     }
 
-    const transitionDenied = await ensureStatusTransitionPermission(res, currentUser, ticket.status, status);
+    const transitionDenied = await ensureStatusTransitionPermission(res, currentUser, ticket.empresa_id, ticket.status, status);
     if (transitionDenied) return transitionDenied;
 
     const updateResult = await ticketsService.updateStatus(id, status, currentUser.id, req);
@@ -776,7 +791,7 @@ router.patch('/:id', async (req: AuthRequest, res) => {
       );
       if (denied) return denied;
 
-      const transitionDenied = await ensureStatusTransitionPermission(res, currentUser, ticket.status, req.body.status);
+      const transitionDenied = await ensureStatusTransitionPermission(res, currentUser, ticket.empresa_id, ticket.status, req.body.status);
       if (transitionDenied) return transitionDenied;
     }
 

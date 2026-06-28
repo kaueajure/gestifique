@@ -20,12 +20,10 @@ const parseJsonArray = (value: any) => {
   return [];
 };
 
-const STATUS_OPTIONS = [
+const DEFAULT_STATUS_OPTIONS = [
   { value: 'aberto', label: 'Aberto' },
-  { value: 'em_andamento', label: 'Em Andamento' },
-  { value: 'aguardando_cliente', label: 'Aguardando Cliente' },
-  { value: 'resolvido', label: 'Resolvido' },
-  { value: 'fechado', label: 'Fechado' },
+  { value: 'em_andamento', label: 'Em Atendimento' },
+  { value: 'resolvido', label: 'Finalizado' },
 ];
 
 const PRIORITY_OPTIONS = [
@@ -74,6 +72,7 @@ const ACAO_TIPOS = [
 export const AutomationsManager = ({ currentCompanyId }: { currentCompanyId: number }) => {
   const [automations, setAutomations] = useState<any[]>([]);
   const [agents, setAgents] = useState<any[]>([]);
+  const [statusOptions, setStatusOptions] = useState<{ value: string; label: string }[]>(DEFAULT_STATUS_OPTIONS);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
@@ -93,11 +92,16 @@ export const AutomationsManager = ({ currentCompanyId }: { currentCompanyId: num
       setLoading(true);
       Promise.all([
         api.get(`/automations/company/${currentCompanyId}`),
-        api.get(`/usuarios/empresa/${currentCompanyId}`)
-      ]).then(([autoRes, userRes]) => {
+        api.get(`/usuarios/empresa/${currentCompanyId}`),
+        api.get<any[]>(`/companies/${currentCompanyId}/ticket-statuses`).catch(() => [])
+      ]).then(([autoRes, userRes, statusRows]) => {
          setAutomations((autoRes as any).data || autoRes);
          const allUsers = (userRes as any).data || userRes;
          setAgents(allUsers.filter((u: any) => u.atendente || u.administrador));
+         const mappedStatuses = (statusRows as any[])
+           .filter((status: any) => Number(status.ativo) === 1)
+           .map((status: any) => ({ value: status.valor, label: status.nome }));
+         setStatusOptions(mappedStatuses.length > 0 ? mappedStatuses : DEFAULT_STATUS_OPTIONS);
       }).catch(err => {
          console.error('Error fetching data', err);
       }).finally(() => setLoading(false));
@@ -189,12 +193,12 @@ export const AutomationsManager = ({ currentCompanyId }: { currentCompanyId: num
   };
   const removeCondicao = (index: number) => setCondicoes(condicoes.filter((_, i) => i !== index));
 
-  const addAcao = () => setAcoes([...acoes, { tipo: 'alterar_status', valor: '' }]);
+  const addAcao = () => setAcoes([...acoes, { tipo: 'alterar_status', valor: statusOptions[0]?.value || '' }]);
   const updateAcao = (index: number, key: string, value: string) => {
     const newAcoes = [...acoes];
     newAcoes[index][key] = value;
     if (key === 'tipo') {
-       if (value === 'alterar_status') newAcoes[index].valor = 'aberto';
+       if (value === 'alterar_status') newAcoes[index].valor = statusOptions[0]?.value || '';
        else if (value === 'alterar_prioridade') newAcoes[index].valor = 'media';
        else newAcoes[index].valor = '';
     }
@@ -399,7 +403,7 @@ export const AutomationsManager = ({ currentCompanyId }: { currentCompanyId: num
                               value={cond.valor}
                               onChange={e => updateCondicao(i, 'valor', e.target.value)}
                             >
-                              {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                              {statusOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                             </select>
                           ) : cond.campo === 'prioridade' ? (
                             <select 
@@ -477,7 +481,7 @@ export const AutomationsManager = ({ currentCompanyId }: { currentCompanyId: num
                                value={acao.valor}
                                onChange={e => updateAcao(i, 'valor', e.target.value)}
                              >
-                               {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                {statusOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                              </select>
                           ) : acao.tipo === 'alterar_prioridade' ? (
                              <select 

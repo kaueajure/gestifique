@@ -57,10 +57,11 @@ class CompaniesService {
         }
         const [result] = await pool.query('INSERT INTO empresas (nome, cnpj, email, email_suporte, telefone, cor_principal, logo) VALUES (?, ?, ?, ?, ?, ?, ?)', [nome, cnpj, email, email_suporte || null, telefone, cor_principal, logo]);
         const companyId = result.insertId;
-        await pool.query(`INSERT IGNORE INTO empresa_ticket_status (empresa_id, nome, valor, ativo, ordem)
-       VALUES (?, 'Aberto', 'aberto', 1, 0),
-              (?, 'Em Atendimento', 'em_andamento', 1, 1),
-              (?, 'Finalizado', 'resolvido', 1, 2)`, [companyId, companyId, companyId]);
+        await pool.query(`INSERT IGNORE INTO empresa_ticket_status
+       (empresa_id, nome, valor, ativo, kanban_visivel, cor, especial, ordem)
+       VALUES (?, 'Aberto', 'aberto', 1, 1, '#2563eb', 'inicial', 0),
+              (?, 'Em Atendimento', 'em_andamento', 1, 1, '#4f46e5', 'normal', 1),
+              (?, 'Finalizado', 'resolvido', 1, 1, '#059669', 'finalizado', 2)`, [companyId, companyId, companyId]);
         return companyId;
     }
     async update(id, data) {

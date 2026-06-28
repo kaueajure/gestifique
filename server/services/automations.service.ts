@@ -3,8 +3,13 @@ import { recordTicketEvent } from './ticket-events.service.js';
 import ticketMessagesService from './ticket-messages.service.js';
 import slaService from './sla.service.js';
 import { recomputeTicketMessageState } from '../utils/ticket-state.js';
+import {
+  getClosedTicketStatusValue,
+  getTicketStatusConfig,
+  isCustomerWaitingTicketStatusSpecial,
+  isFinalTicketStatusSpecial
+} from '../utils/ticket-status-config.js';
 
-const FINAL_TICKET_STATUSES = new Set(['resolvido', 'fechado']);
 const FINALIZED_TICKET_MUTATION_ACTIONS = new Set([
   'alterar_status',
   'alterar_prioridade',
@@ -149,14 +154,20 @@ export async function runAutomations(evento: string, ticket: any, contexto: any)
 
         for (const acao of acoes) {
           try {
-            if (FINAL_TICKET_STATUSES.has(String(ticket.status)) && FINALIZED_TICKET_MUTATION_ACTIONS.has(acao.tipo)) {
+            const currentStatusConfig = await getTicketStatusConfig(ticket.empresa_id, String(ticket.status || ''));
+            if (isFinalTicketStatusSpecial(currentStatusConfig?.especial) && FINALIZED_TICKET_MUTATION_ACTIONS.has(acao.tipo)) {
               continue;
             }
 
             if (acao.tipo === 'alterar_status' && acao.valor) {
               const oldStatus = ticket.status;
               const newStatus = String(acao.valor);
-              const willBeFinalStatus = FINAL_TICKET_STATUSES.has(newStatus);
+              const oldStatusConfig = currentStatusConfig;
+              const newStatusConfig = await getTicketStatusConfig(ticket.empresa_id, newStatus);
+              if (!newStatusConfig || Number(newStatusConfig.ativo) !== 1) {
+                continue;
+              }
+              const willBeFinalStatus = isFinalTicketStatusSpecial(newStatusConfig.especial);
               const updateFields = ['status = ?', 'updated_at = NOW()'];
               const updateParams: any[] = [newStatus];
 
@@ -176,9 +187,9 @@ export async function runAutomations(evento: string, ticket: any, contexto: any)
               statusChanged = true;
               
               // Handle SLA for the new status
-              if (newStatus === 'aguardando_cliente') {
+              if (isCustomerWaitingTicketStatusSpecial(newStatusConfig.especial)) {
                 await slaService.pauseSla(ticket.id, contexto?.usuario_id || null);
-              } else if (oldStatus === 'aguardando_cliente' && newStatus !== 'aguardando_cliente') {
+              } else if (isCustomerWaitingTicketStatusSpecial(oldStatusConfig?.especial) && !isCustomerWaitingTicketStatusSpecial(newStatusConfig.especial)) {
                 await slaService.resumeSla(ticket.id, contexto?.usuario_id || null);
               } else {
                 await slaService.updateOperationalStatus(ticket.id);
@@ -228,19 +239,22 @@ export async function runAutomations(evento: string, ticket: any, contexto: any)
             }
             else if (acao.tipo === 'fechar_com_motivo' && acao.valor) {
                const oldStatus = ticket.status;
+               const oldStatusConfig = await getTicketStatusConfig(ticket.empresa_id, String(oldStatus || ''));
+               const closedStatus = await getClosedTicketStatusValue(ticket.empresa_id);
+               if (!closedStatus) continue;
                let slaResolucaoStatus = ticket.sla_resolucao_status;
                if (ticket.prazo_sla) {
                  slaResolucaoStatus = new Date() <= new Date(ticket.prazo_sla) ? 'cumprido' : 'violado';
                }
                await pool.query(
-                 'UPDATE tickets SET status = "fechado", resolucao_motivo = ?, finalizado_em = NOW(), sla_resolucao_status = ?, updated_at = NOW() WHERE id = ?',
-                 [acao.valor, slaResolucaoStatus, ticket.id]
+                 'UPDATE tickets SET status = ?, resolucao_motivo = ?, finalizado_em = NOW(), sla_resolucao_status = ?, updated_at = NOW() WHERE id = ?',
+                 [closedStatus, acao.valor, slaResolucaoStatus, ticket.id]
                );
-               ticket.status = 'fechado';
+               ticket.status = closedStatus;
                ticket.sla_resolucao_status = slaResolucaoStatus;
                statusChanged = true;
 
-               if (oldStatus === 'aguardando_cliente') {
+               if (isCustomerWaitingTicketStatusSpecial(oldStatusConfig?.especial)) {
                  await slaService.resumeSla(ticket.id, contexto?.usuario_id || null);
                } else {
                  await slaService.updateOperationalStatus(ticket.id);

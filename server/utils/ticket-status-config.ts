@@ -130,6 +130,14 @@ export async function getReopenTicketStatusValue(empresaId: number): Promise<str
   return getInitialTicketStatusValue(empresaId);
 }
 
+export async function getInProgressTicketStatusValue(empresaId: number): Promise<string> {
+  const configs = await getTicketStatusConfigs(empresaId);
+  const normal = configs.find(status => status.ativo === 1 && status.especial === 'normal');
+  if (normal) return normal.valor;
+
+  return getInitialTicketStatusValue(empresaId);
+}
+
 export async function getClosedTicketStatusValue(empresaId: number): Promise<string | null> {
   const configs = await getTicketStatusConfigs(empresaId);
   return configs.find(status => status.ativo === 1 && status.especial === 'encerrado')?.valor || null;

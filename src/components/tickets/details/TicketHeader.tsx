@@ -64,7 +64,8 @@ export const TicketHeader = ({
     .filter(option => Number(option.ativo) === 1)
     .map(option => ({
       value: option.valor,
-      label: option.nome
+      label: option.nome,
+      special: option.especial || 'normal'
     }));
   const statusOptions = activeStatusOptions.some(option => option.value === status)
     ? activeStatusOptions
@@ -72,21 +73,23 @@ export const TicketHeader = ({
         ...activeStatusOptions,
         {
           value: status || 'aberto',
-          label: (status || 'aberto').replace(/_/g, ' ')
+          label: (status || 'aberto').replace(/_/g, ' '),
+          special: 'normal'
         }
       ];
-  const finalStatuses = new Set(['resolvido', 'fechado']);
-  const hasResolvidoStatus = statusOptions.some(option => option.value === 'resolvido');
-  const hasFechadoStatus = statusOptions.some(option => option.value === 'fechado');
-  const reopenTargetStatus = statusOptions.find(option => option.value === 'aberto')?.value
-    || statusOptions.find(option => !finalStatuses.has(option.value))?.value;
-  const showResolveButton = canFinalize && hasResolvidoStatus && !finalStatuses.has(status);
-  const showReopenButton = canReopen && finalStatuses.has(status) && Boolean(reopenTargetStatus);
+  const currentStatusOption = statusOptions.find(option => option.value === status);
+  const isFinalStatus = currentStatusOption?.special === 'finalizado' || currentStatusOption?.special === 'encerrado';
+  const hasFinalizableStatus = statusOptions.some(option => option.special === 'finalizado');
+  const hasCloseStatus = statusOptions.some(option => option.special === 'encerrado');
+  const reopenTargetStatus = statusOptions.find(option => option.special === 'inicial')?.value
+    || statusOptions.find(option => option.special !== 'finalizado' && option.special !== 'encerrado')?.value;
+  const showResolveButton = !isFinalStatus && ((canFinalize && hasFinalizableStatus) || (canCloseTicket && hasCloseStatus));
+  const showReopenButton = canReopen && isFinalStatus && Boolean(reopenTargetStatus);
   const filteredStatusOptions = statusOptions.filter(option => {
     if (option.value === status) return true;
-    if (option.value === 'resolvido') return canFinalize;
-    if (option.value === 'fechado') return canCloseTicket;
-    if (finalStatuses.has(status)) return canReopen && canEditStatus;
+    if (option.special === 'finalizado') return canFinalize;
+    if (option.special === 'encerrado') return canCloseTicket;
+    if (isFinalStatus) return canReopen && canEditStatus;
     return true;
   });
 
@@ -175,7 +178,7 @@ export const TicketHeader = ({
               options={filteredStatusOptions}
               buttonClassName="h-7 rounded-md border-slate-200 bg-white text-xs font-semibold text-slate-800 capitalize"
               dropdownClassName="min-w-[180px]"
-              disabled={!canEditStatus || filteredStatusOptions.length <= 1 || (finalStatuses.has(status) && !canReopen)}
+              disabled={!canEditStatus || filteredStatusOptions.length <= 1 || (isFinalStatus && !canReopen)}
             />
           </HeaderSelectMeta>
           <HeaderSelectMeta

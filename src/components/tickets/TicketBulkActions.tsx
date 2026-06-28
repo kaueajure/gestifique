@@ -11,7 +11,7 @@ import {
 import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
 import { hasAnyPermission, hasPermission } from '../../lib/permissions';
-import { TicketStatus, TicketPriority, User } from '../../types';
+import { TicketStatus, TicketPriority, TicketStatusSpecial, User } from '../../types';
 
 interface TicketBulkActionsProps {
   selectedCount: number;
@@ -19,20 +19,13 @@ interface TicketBulkActionsProps {
   onClear: () => void;
   agents: User[];
   currentUser: User;
+  statusOptions: { value: TicketStatus; label: string; special?: TicketStatusSpecial | string | null }[];
 }
 
-export const TicketBulkActions = ({ selectedCount, onAction, onClear, agents, currentUser }: TicketBulkActionsProps) => {
+export const TicketBulkActions = ({ selectedCount, onAction, onClear, agents, currentUser, statusOptions }: TicketBulkActionsProps) => {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   if (selectedCount === 0) return null;
-
-  const STATUS_OPTIONS: { value: TicketStatus; label: string }[] = [
-    { value: 'aberto', label: 'Aberto' },
-    { value: 'em_andamento', label: 'Em Andamento' },
-    { value: 'aguardando_cliente', label: 'Aguardando Cliente' },
-    { value: 'resolvido', label: 'Resolvido' },
-    { value: 'fechado', label: 'Fechado' },
-  ];
 
   const PRIORITY_OPTIONS: { value: TicketPriority; label: string }[] = [
     { value: 'baixa', label: 'Baixa' },
@@ -54,9 +47,9 @@ export const TicketBulkActions = ({ selectedCount, onAction, onClear, agents, cu
   const canRemoveResponsavel = hasPermission(currentUser, 'tickets.remover_responsavel');
   const canManageTags = hasPermission(currentUser, 'tickets.gerenciar_tags');
 
-  const visibleStatusOptions = STATUS_OPTIONS.filter((opt) => {
-    if (opt.value === 'resolvido') return canFinalize;
-    if (opt.value === 'fechado') return canCloseTicket;
+  const visibleStatusOptions = statusOptions.filter((opt) => {
+    if (opt.special === 'finalizado') return canFinalize;
+    if (opt.special === 'encerrado') return canCloseTicket;
     return canEditStatus;
   });
   const showStatusAction = canEditStatus && visibleStatusOptions.length > 0;
@@ -215,7 +208,7 @@ export const TicketBulkActions = ({ selectedCount, onAction, onClear, agents, cu
           {canCloseTicket && hasSecondaryActions && <div className="w-px h-5 bg-slate-200 mx-1" />}
 
           {/* Close */}
-          {canCloseTicket && (
+          {canCloseTicket && statusOptions.some((opt) => opt.special === 'encerrado') && (
           <Button 
             variant="ghost" 
             size="sm"

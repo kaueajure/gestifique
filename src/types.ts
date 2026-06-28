@@ -61,6 +61,7 @@ export interface CompanyFormData {
 }
 
 export type TicketStatus = string;
+export type TicketStatusSpecial = 'normal' | 'inicial' | 'aguardando_cliente' | 'finalizado' | 'encerrado';
 export type TicketPriority = 'baixa' | 'media' | 'alta' | 'urgente';
 export type TicketQueue = 'todos' | 'meus' | 'sem_responsavel' | 'urgentes' | 'sla_vencido' | 'vence_em_breve' | 'aguardando_cliente' | 'precisa_resposta';
 
@@ -103,6 +104,9 @@ export interface TicketOption {
   sigla?: string | null;
   valor: string;
   ativo: boolean | number | string;
+  kanban_visivel?: boolean | number | string;
+  cor?: string | null;
+  especial?: TicketStatusSpecial | string | null;
   ordem?: number;
 }
 

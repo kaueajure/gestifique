@@ -24,8 +24,13 @@ import {
   Tag,
   ChevronDown,
   Settings2,
+  HelpCircle,
   Eye,
   EyeOff,
+  Palette,
+  RotateCcw,
+  Save,
+  ShieldCheck,
   ArrowUp,
   ArrowDown,
   Trash2,
@@ -45,6 +50,7 @@ import { ErrorState } from "../ui/ErrorState";
 import { EmptyState } from "../ui/EmptyState";
 import {
   TicketAdvancedFilters as IAdvancedFilters,
+  TicketStatusSpecial,
   TicketView,
 } from "../../types";
 import { Select } from "../ui/Select";
@@ -62,7 +68,9 @@ import {
   DEFAULT_TICKET_WORKFLOW,
   labelFromTicketStatus,
   loadTicketWorkflow,
+  normalizeWorkflowStatus,
   slugifyTicketStatus,
+  TICKET_STATUS_SPECIAL_OPTIONS,
   TicketWorkflowStatus,
 } from "../../lib/ticketWorkflow";
 import { getCategoryShortLabel } from "../../lib/ticketOptions";
@@ -147,6 +155,16 @@ const queueChipActiveClass = "bg-slate-100 text-slate-900";
 
 const MORE_QUEUES_MENU_WIDTH = 192;
 const CATEGORY_MENU_WIDTH = 240;
+const STATUS_COLOR_SWATCHES = [
+  "#2563eb",
+  "#4f46e5",
+  "#0891b2",
+  "#0f766e",
+  "#059669",
+  "#d97706",
+  "#dc2626",
+  "#64748b",
+];
 
 const getFloatingMenuPosition = (
   element: HTMLElement | null,
@@ -231,10 +249,21 @@ export const TicketsPage = ({
   const [showAddWorkflowStatus, setShowAddWorkflowStatus] = useState(false);
   const [pendingRemoveWorkflowStatusId, setPendingRemoveWorkflowStatusId] =
     useState<TicketStatus | null>(null);
+  const [specialStatusModalId, setSpecialStatusModalId] =
+    useState<TicketStatus | null>(null);
   const [workflowStatuses, setWorkflowStatuses] = useState<TicketWorkflowStatus[]>(
     DEFAULT_TICKET_WORKFLOW,
   );
+  const [workflowDraftStatuses, setWorkflowDraftStatuses] = useState<TicketWorkflowStatus[]>(
+    DEFAULT_TICKET_WORKFLOW,
+  );
+  const [workflowUsage, setWorkflowUsage] = useState<{
+    tickets: Record<string, number>;
+    automations: Record<string, number>;
+  }>({ tickets: {}, automations: {} });
   const [workflowLoading, setWorkflowLoading] = useState(false);
+  const [workflowSaving, setWorkflowSaving] = useState(false);
+  const [workflowError, setWorkflowError] = useState<string | null>(null);
   const [newWorkflowStatusLabel, setNewWorkflowStatusLabel] = useState("");
 
   // Saved Views
@@ -277,28 +306,53 @@ export const TicketsPage = ({
     : currentUser.empresa_id;
 
   const mapWorkflowRows = (rows: any[]): TicketWorkflowStatus[] =>
-    rows.map((row) => ({
+    rows.map((row) => normalizeWorkflowStatus({
       id: row.valor,
       label: row.nome,
-      visible: Number(row.ativo) === 1,
+      visible: Number(row.kanban_visivel ?? row.ativo) === 1,
+      active: Number(row.ativo) === 1,
+      color: row.cor || "#0891b2",
+      special: row.especial || "normal",
+    }));
+
+  const buildWorkflowPayload = (items: TicketWorkflowStatus[]) =>
+    items.map((status) => ({
+      id: status.id,
+      label: status.label.trim(),
+      visible: status.visible,
+      active: status.active,
+      color: status.color,
+      special: status.special,
     }));
 
   useEffect(() => {
     const fetchWorkflowStatuses = async () => {
       if (!workflowCompanyKey || workflowCompanyKey === "dev") {
         setWorkflowStatuses([]);
+        setWorkflowDraftStatuses([]);
+        setWorkflowUsage({ tickets: {}, automations: {} });
         return;
       }
 
       try {
         setWorkflowLoading(true);
-        const rows = await api.get<any[]>(
-          `/companies/${workflowCompanyKey}/ticket-statuses`,
-        );
-        setWorkflowStatuses(mapWorkflowRows(rows));
+        setWorkflowError(null);
+        const [rows, usage] = await Promise.all([
+          api.get<any[]>(`/companies/${workflowCompanyKey}/ticket-statuses`),
+          api.get<{ tickets: Record<string, number>; automations: Record<string, number> }>(
+            `/companies/${workflowCompanyKey}/ticket-statuses/usage`,
+          ).catch(() => ({ tickets: {}, automations: {} })),
+        ]);
+        const mapped = mapWorkflowRows(rows);
+        setWorkflowStatuses(mapped);
+        setWorkflowDraftStatuses(mapped);
+        setWorkflowUsage(usage);
       } catch (err) {
-        setWorkflowStatuses(loadTicketWorkflow(workflowCompanyKey));
-        addToast("Erro ao carregar tipos de atendimento.", "error");
+        const fallback = loadTicketWorkflow(workflowCompanyKey);
+        setWorkflowStatuses(fallback);
+        setWorkflowDraftStatuses(fallback);
+        setWorkflowError("Erro ao carregar status de atendimento.");
+        addToast("Erro ao carregar status de atendimento.", "error");
       } finally {
         setWorkflowLoading(false);
       }
@@ -307,49 +361,76 @@ export const TicketsPage = ({
     fetchWorkflowStatuses();
     setShowAddWorkflowStatus(false);
     setPendingRemoveWorkflowStatusId(null);
+    setSpecialStatusModalId(null);
     setNewWorkflowStatusLabel("");
   }, [workflowCompanyKey]);
 
-  const persistWorkflowStatuses = async (next: TicketWorkflowStatus[]) => {
-    setWorkflowStatuses(next);
+  const validateWorkflowDraft = (next: TicketWorkflowStatus[]): string | null => {
+    const activeStatuses = next.filter((status) => status.active);
+    if (activeStatuses.length === 0) return "Mantenha ao menos um status ativo.";
+    if (activeStatuses.filter((status) => status.special === "inicial").length !== 1) {
+      return "Configure exatamente um status como Inicial.";
+    }
+    if (!activeStatuses.some((status) => status.special === "finalizado" || status.special === "encerrado")) {
+      return "Configure ao menos um status Finalizado ou Encerrado.";
+    }
+    if (next.some((status) => !status.label.trim())) return "Nenhum status pode ficar sem nome.";
+    return null;
+  };
 
+  const saveWorkflowStatuses = async () => {
     if (!workflowCompanyKey || workflowCompanyKey === "dev") return;
 
+    const validation = validateWorkflowDraft(workflowDraftStatuses);
+    if (validation) {
+      setWorkflowError(validation);
+      addToast(validation, "error");
+      return;
+    }
+
     try {
+      setWorkflowSaving(true);
+      setWorkflowError(null);
       const rows = await api.put<any[]>(
         `/companies/${workflowCompanyKey}/ticket-statuses`,
-        { statuses: next },
+        { statuses: buildWorkflowPayload(workflowDraftStatuses) },
       );
-      setWorkflowStatuses(mapWorkflowRows(rows));
+      const mapped = mapWorkflowRows(rows);
+      setWorkflowStatuses(mapped);
+      setWorkflowDraftStatuses(mapped);
+      const usage = await api.get<{ tickets: Record<string, number>; automations: Record<string, number> }>(
+        `/companies/${workflowCompanyKey}/ticket-statuses/usage`,
+      ).catch(() => ({ tickets: {}, automations: {} }));
+      setWorkflowUsage(usage);
+      addToast("Fluxo de atendimento salvo.", "success");
     } catch (err) {
-      addToast("Erro ao salvar tipos de atendimento.", "error");
+      const message = err instanceof Error ? err.message : "Erro ao salvar status de atendimento.";
+      setWorkflowError(message);
+      addToast(message, "error");
+    } finally {
+      setWorkflowSaving(false);
     }
   };
 
   const updateWorkflowStatus = (
     id: TicketStatus,
     changes: Partial<TicketWorkflowStatus>,
-    shouldPersist = true,
   ) => {
-    const next = workflowStatuses.map((status) =>
+    const next = workflowDraftStatuses.map((status) =>
         status.id === id ? { ...status, ...changes } : status,
     );
 
-    if (shouldPersist) {
-      persistWorkflowStatuses(next);
-    } else {
-      setWorkflowStatuses(next);
-    }
+    setWorkflowDraftStatuses(next);
   };
 
   const moveWorkflowStatus = (index: number, direction: -1 | 1) => {
     const targetIndex = index + direction;
-    if (targetIndex < 0 || targetIndex >= workflowStatuses.length) return;
+    if (targetIndex < 0 || targetIndex >= workflowDraftStatuses.length) return;
 
-    const next = [...workflowStatuses];
+    const next = [...workflowDraftStatuses];
     const [item] = next.splice(index, 1);
     next.splice(targetIndex, 0, item);
-    persistWorkflowStatuses(next);
+    setWorkflowDraftStatuses(next);
   };
 
   const requestRemoveWorkflowStatus = (id: TicketStatus) => {
@@ -357,9 +438,22 @@ export const TicketsPage = ({
   };
 
   const confirmRemoveWorkflowStatus = (id: TicketStatus) => {
-    persistWorkflowStatuses(workflowStatuses.filter((item) => item.id !== id));
+    setWorkflowDraftStatuses(workflowDraftStatuses.filter((item) => item.id !== id));
     setPendingRemoveWorkflowStatusId(null);
-    addToast("Tipo removido da configuração.", "success");
+    addToast("Status removido do rascunho.", "info");
+  };
+
+  const setWorkflowStatusSpecial = (id: TicketStatus, special: TicketStatusSpecial) => {
+    setWorkflowDraftStatuses((current) =>
+      current.map((status) => {
+        if (status.id === id) return { ...status, special, active: true };
+        if (special === "inicial" && status.special === "inicial") {
+          return { ...status, special: "normal" };
+        }
+        return status;
+      }),
+    );
+    setSpecialStatusModalId(null);
   };
 
   const addWorkflowStatus = () => {
@@ -372,18 +466,21 @@ export const TicketsPage = ({
       return;
     }
 
-    if (workflowStatuses.some((status) => status.id === id)) {
-      addToast("Esse tipo de atendimento já está configurado.", "info");
+    if (workflowDraftStatuses.some((status) => status.id === id)) {
+      addToast("Esse status já está configurado.", "info");
       return;
     }
 
-    persistWorkflowStatuses([
-      ...workflowStatuses,
-      {
+    setWorkflowDraftStatuses([
+      ...workflowDraftStatuses,
+      normalizeWorkflowStatus({
         id,
         label,
+        active: true,
         visible: true,
-      },
+        color: "#0891b2",
+        special: "normal",
+      }),
     ]);
     setShowAddWorkflowStatus(false);
     setPendingRemoveWorkflowStatusId(null);
@@ -391,13 +488,38 @@ export const TicketsPage = ({
   };
 
   const resetWorkflowStatuses = () => {
-    persistWorkflowStatuses(DEFAULT_TICKET_WORKFLOW);
-    addToast("Configuração de atendimento restaurada.", "success");
+    setWorkflowDraftStatuses(DEFAULT_TICKET_WORKFLOW);
+    setPendingRemoveWorkflowStatusId(null);
+    addToast("Padrão aplicado ao rascunho.", "info");
+  };
+
+  const cancelWorkflowDraft = () => {
+    setWorkflowDraftStatuses(workflowStatuses);
+    setWorkflowError(null);
+    setPendingRemoveWorkflowStatusId(null);
+    setSpecialStatusModalId(null);
+    setShowWorkflowSettings(false);
   };
 
   const configuredKanbanResponse = kanbanResponse
     ? applyTicketWorkflowToKanban(kanbanResponse, workflowStatuses)
     : null;
+  const activeWorkflowStatusOptions = workflowStatuses
+    .filter((status) => status.active)
+    .map((status) => ({
+      value: status.id,
+      label: status.label,
+      special: status.special,
+      color: status.color,
+    }));
+  const workflowDraftPayload = JSON.stringify(buildWorkflowPayload(workflowDraftStatuses));
+  const workflowSavedPayload = JSON.stringify(buildWorkflowPayload(workflowStatuses));
+  const hasWorkflowDraftChanges = workflowDraftPayload !== workflowSavedPayload;
+  const specialModalStatus = workflowDraftStatuses.find((status) => status.id === specialStatusModalId) || null;
+  const getWorkflowUsage = (statusId: string) => ({
+    tickets: workflowUsage.tickets[statusId] || 0,
+    automations: workflowUsage.automations[statusId] || 0,
+  });
 
   const canCreateTicket = hasPermission(currentUser, "tickets.criar");
   const canBulkActions = hasPermission(currentUser, "tickets.acoes_em_massa");
@@ -1013,7 +1135,7 @@ export const TicketsPage = ({
     { value: "", label: "Mais" },
     { value: "filtros", label: "Filtros" },
     ...(canViewTeam ? [{ value: "equipe", label: "Ver Equipe" }] : []),
-    ...(canConfigureTicketStatuses ? [{ value: "config_status", label: "Configurar tipos" }] : []),
+    ...(canConfigureTicketStatuses ? [{ value: "config_status", label: "Configurar status" }] : []),
     { value: "exportar", label: "Exportar CSV" },
     { value: "atualizar", label: "Atualizar" },
   ];
@@ -1407,6 +1529,7 @@ export const TicketsPage = ({
                 currentUser={currentUser}
                 onStatusChange={() => fetchData()}
                 devCompanyId={devCompanyId}
+                statusOptions={activeWorkflowStatusOptions}
               />
             ) : viewMode === "list" && ticketsResponse ? (
               <TicketList
@@ -1424,6 +1547,7 @@ export const TicketsPage = ({
                 sortKey={sortBy}
                 sortOrder={sortOrder}
                 onSortChange={handleSortChange}
+                statusOptions={activeWorkflowStatusOptions}
               />
             ) : null}
           </div>
@@ -1451,6 +1575,7 @@ export const TicketsPage = ({
           onClear={() => setSelectedTicketIds([])}
           agents={agents}
           currentUser={currentUser}
+          statusOptions={activeWorkflowStatusOptions}
         />
       )}
 
@@ -1471,6 +1596,7 @@ export const TicketsPage = ({
         agents={agents}
         categoryOptions={categoryOptionsForFilter}
         serviceOptions={serviceOptionsForFilter}
+        statusOptions={activeWorkflowStatusOptions}
       />
 
       <CreateTicketModal
@@ -1485,155 +1611,210 @@ export const TicketsPage = ({
 
       <Modal
         isOpen={showWorkflowSettings}
-        onClose={() => setShowWorkflowSettings(false)}
-        title="Tipos de atendimento"
-        size="lg"
+        onClose={cancelWorkflowDraft}
+        title="Fluxo de atendimento"
+        size="xl"
         footer={
           <>
             <Button
               variant="outline"
               size="sm"
+              onClick={cancelWorkflowDraft}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={resetWorkflowStatuses}
             >
-              Restaurar padrão
+              <RotateCcw size={14} />
+              Padrão
             </Button>
             <Button
               size="sm"
-              onClick={() => setShowWorkflowSettings(false)}
+              onClick={saveWorkflowStatuses}
+              disabled={!hasWorkflowDraftChanges || workflowSaving}
             >
-              Concluir
+              <Save size={14} />
+              {workflowSaving ? "Salvando..." : "Salvar fluxo"}
             </Button>
           </>
         }
       >
         <div className="space-y-4">
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-            <div className="flex items-start gap-2">
-              <Settings2 size={16} className="mt-0.5 text-slate-500" />
-              <div>
-                <h4 className="text-sm font-semibold text-slate-900">
-                  Colunas do atendimento
-                </h4>
-                <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                  Renomeie os tipos e escolha quais aparecem no kanban. Tipos
-                  ocultos continuam disponíveis para movimentação em outras ações
-                  do ticket.
-                </p>
+          <div className="grid gap-3 lg:grid-cols-[1fr_260px]">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <div className="flex items-start gap-2">
+                <Settings2 size={16} className="mt-0.5 text-slate-500" />
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-900">
+                    Status reais do atendimento
+                  </h4>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                    Defina as etapas usadas no ticket, filtros, Kanban, ações em massa e automações. A função especial altera o comportamento real do sistema.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-white p-3">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Validação</div>
+              <div className="mt-2 space-y-1.5 text-xs text-slate-600">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck size={13} className="text-emerald-600" />
+                  1 status inicial obrigatório
+                </div>
+                <div className="flex items-center gap-2">
+                  <ShieldCheck size={13} className="text-emerald-600" />
+                  Finalizado ou encerrado obrigatório
+                </div>
               </div>
             </div>
           </div>
 
+          {workflowError && (
+            <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
+              {workflowError}
+            </div>
+          )}
+
           <div className="space-y-2">
             {workflowLoading && (
               <div className="rounded-lg border border-slate-200 bg-white p-3 text-xs font-semibold text-slate-500">
-                Carregando tipos de atendimento...
+                Carregando status de atendimento...
               </div>
             )}
-            {!workflowLoading && workflowStatuses.length === 0 && (
+            {!workflowLoading && workflowDraftStatuses.length === 0 && (
               <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-xs font-medium text-slate-500">
-                Nenhum tipo configurado. Adicione um tipo para exibir colunas no kanban.
+                Nenhum status configurado. Adicione um status para exibir o fluxo.
               </div>
             )}
-            {workflowStatuses.map((status, index) => (
-              <div
+            {workflowDraftStatuses.map((status, index) => {
+              const usage = getWorkflowUsage(status.id);
+              const specialLabel = TICKET_STATUS_SPECIAL_OPTIONS.find((option) => option.value === status.special)?.label || "Normal";
+              return (
+                <div
                 key={status.id}
-                className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-3 sm:flex-row sm:items-center"
+                className={cn(
+                  "rounded-lg border bg-white p-3 shadow-sm",
+                  status.active ? "border-slate-200" : "border-slate-200 bg-slate-50/70 opacity-80",
+                )}
               >
-                <div className="flex items-center gap-1 sm:self-end">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => moveWorkflowStatus(index, -1)}
-                    disabled={index === 0}
-                    title="Mover para cima"
-                    className="h-8 w-8"
-                  >
-                    <ArrowUp size={14} />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => moveWorkflowStatus(index, 1)}
-                    disabled={index === workflowStatuses.length - 1}
-                    title="Mover para baixo"
-                    className="h-8 w-8"
-                  >
-                    <ArrowDown size={14} />
-                  </Button>
-                </div>
-                <div className="flex-1">
+                <div className="grid gap-3 lg:grid-cols-[88px_1fr_180px_210px_84px] lg:items-end">
+                  <div className="flex items-center gap-1">
+                    <Button type="button" variant="ghost" size="icon" onClick={() => moveWorkflowStatus(index, -1)} disabled={index === 0} title="Mover para cima" className="h-8 w-8">
+                      <ArrowUp size={14} />
+                    </Button>
+                    <Button type="button" variant="ghost" size="icon" onClick={() => moveWorkflowStatus(index, 1)} disabled={index === workflowDraftStatuses.length - 1} title="Mover para baixo" className="h-8 w-8">
+                      <ArrowDown size={14} />
+                    </Button>
+                  </div>
+
                   <Input
                     inputSize="sm"
                     label={labelFromTicketStatus(status.id)}
                     value={status.label}
-                    onChange={(event) =>
-                      updateWorkflowStatus(status.id, {
-                        label: event.target.value,
-                      }, false)
-                    }
-                    onBlur={() => persistWorkflowStatuses(workflowStatuses)}
+                    onChange={(event) => updateWorkflowStatus(status.id, { label: event.target.value })}
+                    hint={`ID: ${status.id}`}
                   />
-                </div>
-                <Button
-                  type="button"
-                  variant={status.visible ? "secondary" : "outline"}
-                  size="sm"
-                  onClick={() =>
-                    updateWorkflowStatus(status.id, {
-                      visible: !status.visible,
-                    })
-                  }
-                  className="w-full sm:w-32"
-                  title={status.visible ? "Ocultar coluna" : "Mostrar coluna"}
-                >
-                  {status.visible ? <Eye size={14} /> : <EyeOff size={14} />}
-                  {status.visible ? "Visível" : "Oculto"}
-                </Button>
-                {pendingRemoveWorkflowStatusId === status.id ? (
-                  <div className="flex h-8 w-full items-center justify-end gap-1 sm:w-auto">
+
+                  <div className="space-y-1">
+                    <div className="text-xs font-semibold text-slate-700">Cor</div>
+                    <div className="flex items-center gap-1.5">
+                      {STATUS_COLOR_SWATCHES.map((color) => (
+                        <button
+                          key={color}
+                          type="button"
+                          onClick={() => updateWorkflowStatus(status.id, { color })}
+                          className={cn(
+                            "h-6 w-6 rounded-md border shadow-sm",
+                            status.color === color ? "border-slate-900 ring-2 ring-slate-200" : "border-white",
+                          )}
+                          style={{ backgroundColor: color }}
+                          title={color}
+                        />
+                      ))}
+                      <Palette size={14} className="text-slate-400" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="text-xs font-semibold text-slate-700">Função</div>
                     <button
                       type="button"
-                      onClick={() => confirmRemoveWorkflowStatus(status.id)}
-                      title="Confirmar remoção"
-                      className="inline-flex h-8 items-center gap-1.5 rounded-md border border-rose-200 bg-white px-2.5 text-[11px] font-semibold text-rose-700 shadow-sm transition-colors hover:bg-rose-50"
+                      onClick={() => setSpecialStatusModalId(status.id)}
+                      className="flex h-8 w-full items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-white"
                     >
-                      <Check size={13} />
-                      Remover
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPendingRemoveWorkflowStatusId(null)}
-                      title="Cancelar remoção"
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-400 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-700"
-                    >
-                      <X size={14} />
+                      <span>{specialLabel}</span>
+                      <HelpCircle size={13} className="text-slate-400" />
                     </button>
                   </div>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => requestRemoveWorkflowStatus(status.id)}
-                    title="Remover tipo"
-                    className="h-8 w-8 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                  >
-                    <Trash2 size={14} />
-                  </Button>
+
+                  <div className="flex items-center justify-end gap-1">
+                    <Button
+                      type="button"
+                      variant={status.active ? "secondary" : "outline"}
+                      size="icon"
+                      onClick={() => updateWorkflowStatus(status.id, { active: !status.active })}
+                      title={status.active ? "Desativar uso" : "Ativar uso"}
+                      className="h-8 w-8"
+                    >
+                      <Check size={14} />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={status.visible ? "secondary" : "outline"}
+                      size="icon"
+                      onClick={() => updateWorkflowStatus(status.id, { visible: !status.visible })}
+                      title={status.visible ? "Ocultar no Kanban" : "Mostrar no Kanban"}
+                      className="h-8 w-8"
+                    >
+                      {status.visible ? <Eye size={14} /> : <EyeOff size={14} />}
+                    </Button>
+                    {pendingRemoveWorkflowStatusId === status.id ? (
+                      <button
+                        type="button"
+                        onClick={() => confirmRemoveWorkflowStatus(status.id)}
+                        title="Confirmar remoção"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-rose-200 bg-white text-rose-700 shadow-sm hover:bg-rose-50"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    ) : (
+                      <Button type="button" variant="ghost" size="icon" onClick={() => requestRemoveWorkflowStatus(status.id)} title="Remover status" className="h-8 w-8 text-rose-600 hover:bg-rose-50 hover:text-rose-700">
+                        <Trash2 size={14} />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {(usage.tickets > 0 || usage.automations > 0 || pendingRemoveWorkflowStatusId === status.id) && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-2 text-[11px] font-semibold text-slate-500">
+                    <span>{usage.tickets} ticket(s)</span>
+                    <span>{usage.automations} regra(s)</span>
+                    {pendingRemoveWorkflowStatusId === status.id && (
+                      <button
+                        type="button"
+                        onClick={() => setPendingRemoveWorkflowStatusId(null)}
+                        className="ml-auto text-slate-500 hover:text-slate-800"
+                      >
+                        cancelar remoção
+                      </button>
+                    )}
+                  </div>
                 )}
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
 
           <div className="flex items-center justify-between gap-3">
             <div>
               <h4 className="text-sm font-semibold text-slate-900">
-                Adicionar tipo
+                Adicionar status
               </h4>
               <p className="mt-0.5 text-xs text-slate-500">
-                Inclua outro tipo de atendimento no fluxo da empresa.
+                Inclua outra etapa operacional no fluxo da empresa.
               </p>
             </div>
             <Button
@@ -1652,7 +1833,7 @@ export const TicketsPage = ({
               <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
                 <Input
                   inputSize="sm"
-                  label="Nome do tipo"
+                  label="Nome do status"
                   placeholder="Ex.: Backlog, Em Análise, Aguardando financeiro"
                   value={newWorkflowStatusLabel}
                   onChange={(event) =>
@@ -1664,7 +1845,7 @@ export const TicketsPage = ({
                   hint={
                     newWorkflowStatusLabel.trim()
                       ? `Identificador: ${slugifyTicketStatus(newWorkflowStatusLabel)}`
-                      : "Você pode criar qualquer tipo personalizado."
+                      : "Você pode criar qualquer status personalizado."
                   }
                 />
                 <Button
@@ -1679,6 +1860,46 @@ export const TicketsPage = ({
               </div>
             </div>
           )}
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={!!specialModalStatus}
+        onClose={() => setSpecialStatusModalId(null)}
+        title={specialModalStatus ? `Função de ${specialModalStatus.label}` : "Função do status"}
+        size="lg"
+      >
+        <div className="space-y-3">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs leading-relaxed text-slate-600">
+            A função especial define como o sistema interpreta este status em criação, SLA, reabertura, finalização, filas e automações.
+          </div>
+
+          <div className="grid gap-2">
+            {TICKET_STATUS_SPECIAL_OPTIONS.map((option) => {
+              const selected = specialModalStatus?.special === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => specialModalStatus && setWorkflowStatusSpecial(specialModalStatus.id, option.value)}
+                  className={cn(
+                    "rounded-lg border p-3 text-left transition-colors",
+                    selected
+                      ? "border-blue-200 bg-blue-50 text-blue-900"
+                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm font-semibold">{option.label}</div>
+                    {selected && <Check size={15} />}
+                  </div>
+                  <div className="mt-1 text-xs leading-relaxed text-slate-500">
+                    {option.description}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </Modal>
 

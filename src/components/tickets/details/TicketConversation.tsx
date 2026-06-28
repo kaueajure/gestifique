@@ -235,6 +235,7 @@ export const TicketConversation = ({
     ...messages.map(msg => ({ ...msg, isAbertura: false }))
   ];
 
+  const isTicketFinalized = ticket.estado_atendimento === 'finalizado' || ticket.status === 'resolvido' || ticket.status === 'fechado';
   let lastDateLabel = '';
 
   return (
@@ -289,7 +290,7 @@ export const TicketConversation = ({
 
       <div className="shrink-0 border-t border-slate-200 bg-white">
         <div className="w-full p-3 sm:px-5">
-          {ticket.status === 'resolvido' || ticket.status === 'fechado' ? (
+          {isTicketFinalized ? (
             <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 py-4">
               <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-slate-200/50 text-slate-400">
                 <Lock size={14} />

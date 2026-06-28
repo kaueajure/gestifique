@@ -117,6 +117,7 @@ export const TicketProperties = ({
 
   const aiSentimentoTag = ticket.tags?.find(t => t.startsWith('ia-sentimento:'));
   const aiCategoriaTag = ticket.tags?.find(t => t.startsWith('ia-categoria:'));
+  const isTicketFinalized = ticket.estado_atendimento === 'finalizado' || ticket.status === 'resolvido' || ticket.status === 'fechado';
 
   const sentimento = aiSentimentoTag ? aiSentimentoTag.split(':')[1] : null;
   const categoriaSugerida = aiCategoriaTag ? aiCategoriaTag.split(':')[1] : null;
@@ -410,7 +411,7 @@ export const TicketProperties = ({
       </Section>
 
       {/* Seção 6: Resolução info se finalizado */}
-      {(ticket.status === 'resolvido' || ticket.status === 'fechado') && (
+      {isTicketFinalized && (
         <Section title="Conclusão" icon={CheckCircle2}>
            <div className="space-y-3 py-1">
               <div className="flex flex-col px-1">
@@ -428,7 +429,7 @@ export const TicketProperties = ({
       )}
 
       {/* Seção 7: Arquivar */}
-      {canCloseTicket && canArchiveStatus && ticket.status !== 'fechado' && (
+      {canCloseTicket && canArchiveStatus && !isTicketFinalized && (
         <div className="pt-2">
            <Button 
              variant="outline"

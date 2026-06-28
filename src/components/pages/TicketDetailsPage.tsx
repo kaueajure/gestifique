@@ -176,13 +176,18 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
     setActionError(null);
     setActionSuccess(null);
     try {
-        if (data.status === 'resolvido' || data.status === 'fechado') {
+        const targetStatusOption = data.status
+          ? ticketStatusOptions.find(option => option.valor === data.status)
+          : null;
+        const targetIsFinal = targetStatusOption?.especial === 'finalizado' || targetStatusOption?.especial === 'encerrado';
+
+        if (data.status && targetIsFinal) {
             setResolutionData(prev => ({ ...prev, status: data.status as TicketStatus }));
             setIsResolveModalOpen(true);
             return;
         }
 
-        if (data.status === 'aberto' && (ticket?.status === 'resolvido' || ticket?.status === 'fechado')) {
+        if (data.status && isCurrentFinalStatus) {
              await api.patch(`/tickets/${ticketId}/reopen`, {});
              setActionSuccess('Atendimento reaberto com sucesso!');
              fetchData();
@@ -226,7 +231,11 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
   };
 
   const handleArchiveTicket = async () => {
-    await handleUpdateTicket({ status: 'fechado' });
+    if (!closedStatus) {
+      setActionError('Nenhum status especial de encerramento foi configurado.');
+      return;
+    }
+    await handleUpdateTicket({ status: closedStatus.valor });
   };
 
   const handleUpdateTags = async (tags: string[]) => {
@@ -298,12 +307,12 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
   const canAddInternalNote = hasPermission(currentUser, 'ticket_mensagens.comentar_interno');
   const canAttachFiles = hasPermission(currentUser, 'ticket_mensagens.anexar');
   const canDeleteAttachments = hasPermission(currentUser, 'ticket_mensagens.excluir_anexos');
-  const activeTicketStatusValues = new Set(
-    ticketStatusOptions
-      .filter(option => Number(option.ativo) === 1)
-      .map(option => option.valor)
-  );
-  const hasFechadoStatus = activeTicketStatusValues.has('fechado');
+  const activeTicketStatusOptions = ticketStatusOptions.filter(option => Number(option.ativo) === 1);
+  const currentStatusOption = ticketStatusOptions.find(option => option.valor === ticket.status);
+  const isCurrentFinalStatus = currentStatusOption?.especial === 'finalizado' || currentStatusOption?.especial === 'encerrado';
+  const finalResolutionStatus = activeTicketStatusOptions.find(option => option.especial === 'finalizado')
+    || activeTicketStatusOptions.find(option => option.especial === 'encerrado');
+  const closedStatus = activeTicketStatusOptions.find(option => option.especial === 'encerrado');
 
   return (
     <PageShell
@@ -317,7 +326,11 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
            currentUser={currentUser}
            onUpdate={handleUpdateTicket}
            onResolve={() => {
-              setResolutionData(prev => ({ ...prev, status: 'resolvido' }));
+              if (!finalResolutionStatus) {
+                setActionError('Nenhum status finalizado ou encerrado foi configurado.');
+                return;
+              }
+              setResolutionData(prev => ({ ...prev, status: finalResolutionStatus.valor as TicketStatus }));
               setIsResolveModalOpen(true);
            }}
            onBack={onBack}
@@ -391,7 +404,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                       attachments={ticketAttachments}
                       onUpdate={handleUpdateTicket}
                       onArchive={handleArchiveTicket}
-                      canArchiveStatus={hasFechadoStatus}
+                      canArchiveStatus={Boolean(closedStatus)}
                       onUpdateTags={handleUpdateTags}
                       onUpdateCustomFields={handleUpdateCustomFields}
                     />

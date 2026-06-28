@@ -6,6 +6,7 @@ import { io } from '../server.js';
 import slaService from './sla.service.js';
 import { recomputeTicketMessageState } from '../utils/ticket-state.js';
 import { maskEmail, maskIdentifier } from '../utils/sanitize.js';
+import { getInitialTicketStatusValue, getInProgressTicketStatusValue, getTicketStatusConfig, isCustomerWaitingTicketStatusSpecial, isFinalTicketStatusSpecial } from '../utils/ticket-status-config.js';
 class TicketMessagesService {
     /**
      * Centralized method to add a message to a ticket.
@@ -108,10 +109,13 @@ class TicketMessagesService {
                 (usuario_id === null && (isExternalEmail || isPortalCustomer || !currentUser)));
             // A response from agent is public, not from the client, and written by an agent user.
             const isAgentResponse = !finalInterno && !isClient && isAgent;
-            const finalStatuses = ['resolvido', 'fechado'];
-            if (isClient && finalStatuses.includes(ticket.status)) {
+            let ticketStatusConfig = await getTicketStatusConfig(ticket.empresa_id, ticket.status);
+            let ticketIsFinal = isFinalTicketStatusSpecial(ticketStatusConfig?.especial) || ['resolvido', 'fechado'].includes(ticket.status);
+            let ticketIsCustomerWaiting = isCustomerWaitingTicketStatusSpecial(ticketStatusConfig?.especial) || ticket.status === 'aguardando_cliente';
+            if (isClient && ticketIsFinal) {
                 const reopenedByUserId = messageUserId && messageUserId > 0 ? messageUserId : null;
-                await pool.query('UPDATE tickets SET status = "aberto", finalizado_em = NULL, reaberto_em = NOW(), reaberto_por = ?, updated_at = NOW() WHERE id = ?', [reopenedByUserId, ticket_id]);
+                const reopenedStatus = await getInitialTicketStatusValue(ticket.empresa_id);
+                await pool.query('UPDATE tickets SET status = ?, finalizado_em = NULL, reaberto_em = NOW(), reaberto_por = ?, updated_at = NOW() WHERE id = ?', [reopenedStatus, reopenedByUserId, ticket_id]);
                 await recordTicketEvent({
                     ticket_id,
                     empresa_id: ticket.empresa_id,
@@ -119,10 +123,13 @@ class TicketMessagesService {
                     tipo: 'ticket_reaberto',
                     descricao: 'Chamado reaberto automaticamente por resposta do cliente'
                 });
-                ticket.status = 'aberto';
+                ticket.status = reopenedStatus;
                 ticket.finalizado_em = null;
+                ticketStatusConfig = await getTicketStatusConfig(ticket.empresa_id, ticket.status);
+                ticketIsFinal = isFinalTicketStatusSpecial(ticketStatusConfig?.especial) || ['resolvido', 'fechado'].includes(ticket.status);
+                ticketIsCustomerWaiting = isCustomerWaitingTicketStatusSpecial(ticketStatusConfig?.especial) || ticket.status === 'aguardando_cliente';
             }
-            if (!finalStatuses.includes(ticket.status)) {
+            if (!ticketIsFinal) {
                 // A) SLA Primera Resposta (only if from agent and public)
                 if (isAgentResponse && !ticket.primeira_resposta_em) {
                     const agora = new Date();
@@ -144,31 +151,33 @@ class TicketMessagesService {
                 }
                 // B) Status Transitions
                 if (isAgentResponse) {
-                    // If agent replies publicly and it was 'aberto', move to 'em_andamento'
-                    if (ticket.status === 'aberto') {
-                        await pool.query('UPDATE tickets SET status = "em_andamento" WHERE id = ?', [ticket_id]);
+                    if (ticketStatusConfig?.especial === 'inicial' || ticket.status === 'aberto') {
+                        const nextStatus = await getInProgressTicketStatusValue(ticket.empresa_id);
+                        await pool.query('UPDATE tickets SET status = ? WHERE id = ?', [nextStatus, ticket_id]);
                         await slaService.updateOperationalStatus(ticket_id);
                         await recordTicketEvent({
                             ticket_id,
                             empresa_id: ticket.empresa_id,
                             usuario_id,
                             tipo: 'status_alterado',
-                            descricao: 'Status alterado de "Aberto" para "Em Andamento" pela resposta do atendente'
+                            descricao: 'Status alterado pela resposta pública do atendente'
                         });
+                        ticket.status = nextStatus;
                     }
                 }
                 else if (isClient) {
-                    // If client replies and it was 'aguardando_cliente', move back to 'em_andamento'
-                    if (ticket.status === 'aguardando_cliente') {
-                        await pool.query('UPDATE tickets SET status = "em_andamento" WHERE id = ?', [ticket_id]);
+                    if (ticketIsCustomerWaiting) {
+                        const nextStatus = await getInProgressTicketStatusValue(ticket.empresa_id);
+                        await pool.query('UPDATE tickets SET status = ? WHERE id = ?', [nextStatus, ticket_id]);
                         await slaService.resumeSla(ticket_id, usuario_id);
                         await recordTicketEvent({
                             ticket_id,
                             empresa_id: ticket.empresa_id,
                             usuario_id,
                             tipo: 'status_alterado',
-                            descricao: 'Status alterado de "Aguardando Cliente" para "Em Andamento" pela resposta do cliente'
+                            descricao: 'Status alterado pela resposta do cliente'
                         });
+                        ticket.status = nextStatus;
                     }
                     else {
                         await slaService.updateOperationalStatus(ticket_id);

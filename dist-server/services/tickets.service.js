@@ -9,6 +9,7 @@ import { getTicketScope } from '../utils/ticket-permissions.js';
 import { isDeveloperUser } from '../utils/user-scope.js';
 import { recomputeTicketMessageState } from '../utils/ticket-state.js';
 import { maskEmail, maskIdentifier } from '../utils/sanitize.js';
+import { getClosedTicketStatusValue, getTicketStatusConfigs, getInitialTicketStatusValue, getReopenTicketStatusValue, getTicketStatusConfig, isCustomerWaitingTicketStatusSpecial, isFinalTicketStatusSpecial, isValidTicketStatusValue } from '../utils/ticket-status-config.js';
 export function toPositiveInt(value) {
     if (value === undefined || value === null || value === '')
         return undefined;
@@ -27,33 +28,7 @@ export function toPositiveInt(value) {
     return Number.isInteger(n) && n > 0 ? n : undefined;
 }
 export function isValidTicketStatus(value) {
-    return typeof value === 'string' && /^[a-z0-9_]{2,80}$/.test(value);
-}
-export async function isConfiguredTicketStatusForCompany(empresaId, status) {
-    if (!empresaId || !isValidTicketStatus(status))
-        return false;
-    const [rows] = await pool.query(`SELECT id
-     FROM empresa_ticket_status
-     WHERE empresa_id = ?
-       AND valor = ?
-       AND ativo = 1
-     LIMIT 1`, [empresaId, status]);
-    return rows.length > 0;
-}
-async function getReopenStatusForCompany(empresaId) {
-    const [rows] = await pool.query(`SELECT valor
-     FROM empresa_ticket_status
-     WHERE empresa_id = ?
-       AND ativo = 1
-     ORDER BY
-       CASE WHEN valor = 'aberto' THEN 0 ELSE 1 END,
-       ordem ASC,
-       id ASC`, [empresaId]);
-    const candidate = rows.find((row) => !FINAL_TICKET_STATUS_SET.has(row.valor));
-    if (!candidate) {
-        throw new Error('Nenhum status ativo disponível para reabrir este chamado');
-    }
-    return candidate.valor;
+    return isValidTicketStatusValue(value);
 }
 function labelFromStatus(status) {
     const labels = {
@@ -66,17 +41,6 @@ function labelFromStatus(status) {
     return labels[status] || status.replace(/_/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
 }
 const MAX_TICKET_LIST_LIMIT = 100;
-const FINAL_TICKET_STATUS_SET = new Set(['resolvido', 'fechado']);
-const DEFAULT_TICKET_LIST_ORDER = `
-      t.aguardando_resposta_atendente DESC,
-      (CASE WHEN t.prazo_sla < NOW() AND t.status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) DESC,
-      (CASE WHEN t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) DESC,
-      (CASE WHEN t.prioridade = 'urgente' THEN 1 ELSE 0 END) DESC,
-      (CASE WHEN t.prioridade = 'alta' THEN 1 ELSE 0 END) DESC,
-      (CASE WHEN t.responsavel_id IS NULL THEN 1 ELSE 0 END) DESC,
-      t.updated_at DESC,
-      t.id DESC
-    `;
 const TICKET_LIST_SORT_COLUMNS = {
     id: 't.id',
     updated_at: 't.updated_at',
@@ -95,13 +59,38 @@ const TICKET_LIST_SORT_COLUMNS = {
 function buildTicketListOrderBy(sortBy, sortOrder) {
     const column = typeof sortBy === 'string' ? TICKET_LIST_SORT_COLUMNS[sortBy] : undefined;
     if (!column)
-        return DEFAULT_TICKET_LIST_ORDER;
+        return buildDefaultTicketListOrderBy();
     const direction = sortOrder === 'asc' ? 'ASC' : 'DESC';
     return `
       ${column} ${direction},
       t.updated_at DESC,
       t.id DESC
     `;
+}
+function buildDefaultTicketListOrderBy() {
+    return `
+      t.aguardando_resposta_atendente DESC,
+      (CASE WHEN t.prazo_sla < NOW() AND ${buildStatusSpecialCondition('t', ['finalizado', 'encerrado'], true)} THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND ${buildStatusSpecialCondition('t', ['finalizado', 'encerrado'], true)} THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.prioridade = 'urgente' THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.prioridade = 'alta' THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.responsavel_id IS NULL THEN 1 ELSE 0 END) DESC,
+      t.updated_at DESC,
+      t.id DESC
+    `;
+}
+function buildStatusSpecialCondition(ticketAlias, specials, negate = false) {
+    const safeSpecials = specials
+        .filter((special) => /^[a-z_]+$/.test(special))
+        .map((special) => `'${special}'`)
+        .join(', ');
+    return `${negate ? 'NOT ' : ''}EXISTS (
+    SELECT 1
+    FROM empresa_ticket_status status_cfg
+    WHERE status_cfg.empresa_id = ${ticketAlias}.empresa_id
+      AND status_cfg.valor = ${ticketAlias}.status
+      AND status_cfg.especial IN (${safeSpecials})
+  )`;
 }
 class TicketsService {
     isValidDateOnly(value) {
@@ -152,13 +141,13 @@ class TicketsService {
             let slaPart = '';
             switch (sla_status) {
                 case 'dentro_sla':
-                    slaPart = " AND t.prazo_sla > DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado')";
+                    slaPart = ` AND t.prazo_sla > DATE_ADD(NOW(), INTERVAL 2 HOUR) AND ${buildStatusSpecialCondition('t', ['finalizado', 'encerrado'], true)}`;
                     break;
                 case 'vencendo':
-                    slaPart = " AND t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado')";
+                    slaPart = ` AND t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND ${buildStatusSpecialCondition('t', ['finalizado', 'encerrado'], true)}`;
                     break;
                 case 'vencido':
-                    slaPart = " AND t.prazo_sla < NOW() AND t.status NOT IN ('resolvido', 'fechado')";
+                    slaPart = ` AND t.prazo_sla < NOW() AND ${buildStatusSpecialCondition('t', ['finalizado', 'encerrado'], true)}`;
                     break;
                 case 'sem_sla':
                     slaPart = " AND t.prazo_sla IS NULL";
@@ -262,16 +251,16 @@ class TicketsService {
                     summaryWhere += " AND t.prioridade IN ('alta', 'urgente')";
                     break;
                 case 'sla_vencido':
-                    baseWhere += " AND t.prazo_sla < NOW() AND t.status NOT IN ('resolvido', 'fechado')";
-                    summaryWhere += " AND t.prazo_sla < NOW() AND t.status NOT IN ('resolvido', 'fechado')";
+                    baseWhere += ` AND t.prazo_sla < NOW() AND ${buildStatusSpecialCondition('t', ['finalizado', 'encerrado'], true)}`;
+                    summaryWhere += ` AND t.prazo_sla < NOW() AND ${buildStatusSpecialCondition('t', ['finalizado', 'encerrado'], true)}`;
                     break;
                 case 'vence_em_breve':
-                    baseWhere += " AND t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado')";
-                    summaryWhere += " AND t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado')";
+                    baseWhere += ` AND t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND ${buildStatusSpecialCondition('t', ['finalizado', 'encerrado'], true)}`;
+                    summaryWhere += ` AND t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND ${buildStatusSpecialCondition('t', ['finalizado', 'encerrado'], true)}`;
                     break;
                 case 'aguardando_cliente':
-                    baseWhere += " AND t.status = 'aguardando_cliente'";
-                    summaryWhere += " AND t.status = 'aguardando_cliente'";
+                    baseWhere += ` AND ${buildStatusSpecialCondition('t', ['aguardando_cliente'])}`;
+                    summaryWhere += ` AND ${buildStatusSpecialCondition('t', ['aguardando_cliente'])}`;
                     break;
                 case 'precisa_resposta':
                     // Usa campo materializado (mantido por utils/ticket-state.ts).
@@ -413,9 +402,9 @@ class TicketsService {
         SUM(CASE WHEN responsavel_id = ? THEN 1 ELSE 0 END) as meus,
         SUM(CASE WHEN responsavel_id IS NULL THEN 1 ELSE 0 END) as sem_responsavel,
         SUM(CASE WHEN prioridade IN ('alta', 'urgente') THEN 1 ELSE 0 END) as urgentes,
-        SUM(CASE WHEN prazo_sla < NOW() AND status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) as sla_vencido,
-        SUM(CASE WHEN prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) as vence_em_breve,
-        SUM(CASE WHEN status = 'aguardando_cliente' THEN 1 ELSE 0 END) as aguardando_cliente,
+        SUM(CASE WHEN prazo_sla < NOW() AND ${buildStatusSpecialCondition('tickets', ['finalizado', 'encerrado'], true)} THEN 1 ELSE 0 END) as sla_vencido,
+        SUM(CASE WHEN prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND ${buildStatusSpecialCondition('tickets', ['finalizado', 'encerrado'], true)} THEN 1 ELSE 0 END) as vence_em_breve,
+        SUM(CASE WHEN ${buildStatusSpecialCondition('tickets', ['aguardando_cliente'])} THEN 1 ELSE 0 END) as aguardando_cliente,
         SUM(aguardando_resposta_atendente) as precisa_resposta
       FROM tickets
       ${baseWhere}
@@ -437,6 +426,7 @@ class TicketsService {
         // Advanced Filters
         tag, origem, created_from, created_to, updated_from, updated_to, sla_status, custom_field_search } = filters;
         const searchTerm = search;
+        const statusConfigEmpresaId = !is_dev ? toPositiveInt(empresa_id) : toPositiveInt(filters.empresa_id_filter);
         let baseWhere = 'WHERE 1=1';
         let summaryWhere = 'WHERE 1=1';
         const params = [];
@@ -496,16 +486,16 @@ class TicketsService {
                     summaryWhere += " AND t.prioridade IN ('alta', 'urgente')";
                     break;
                 case 'sla_vencido':
-                    baseWhere += " AND t.prazo_sla < NOW() AND t.status NOT IN ('resolvido', 'fechado')";
-                    summaryWhere += " AND t.prazo_sla < NOW() AND t.status NOT IN ('resolvido', 'fechado')";
+                    baseWhere += ` AND t.prazo_sla < NOW() AND ${buildStatusSpecialCondition('t', ['finalizado', 'encerrado'], true)}`;
+                    summaryWhere += ` AND t.prazo_sla < NOW() AND ${buildStatusSpecialCondition('t', ['finalizado', 'encerrado'], true)}`;
                     break;
                 case 'vence_em_breve':
-                    baseWhere += " AND t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado')";
-                    summaryWhere += " AND t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado')";
+                    baseWhere += ` AND t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND ${buildStatusSpecialCondition('t', ['finalizado', 'encerrado'], true)}`;
+                    summaryWhere += ` AND t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND ${buildStatusSpecialCondition('t', ['finalizado', 'encerrado'], true)}`;
                     break;
                 case 'aguardando_cliente':
-                    baseWhere += " AND t.status = 'aguardando_cliente'";
-                    summaryWhere += " AND t.status = 'aguardando_cliente'";
+                    baseWhere += ` AND ${buildStatusSpecialCondition('t', ['aguardando_cliente'])}`;
+                    summaryWhere += ` AND ${buildStatusSpecialCondition('t', ['aguardando_cliente'])}`;
                     break;
                 case 'precisa_resposta':
                     // Usa campo materializado (mantido por utils/ticket-state.ts).
@@ -557,8 +547,8 @@ class TicketsService {
         // Prioridade operacional
         const orderBy_K = `
       t.aguardando_resposta_atendente DESC,
-      (CASE WHEN t.prazo_sla < NOW() AND t.status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) DESC,
-      (CASE WHEN t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND t.status NOT IN ('resolvido', 'fechado') THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.prazo_sla < NOW() AND ${buildStatusSpecialCondition('t', ['finalizado', 'encerrado'], true)} THEN 1 ELSE 0 END) DESC,
+      (CASE WHEN t.prazo_sla BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 2 HOUR) AND ${buildStatusSpecialCondition('t', ['finalizado', 'encerrado'], true)} THEN 1 ELSE 0 END) DESC,
       (CASE WHEN t.prioridade = 'urgente' THEN 1 ELSE 0 END) DESC,
       (CASE WHEN t.prioridade = 'alta' THEN 1 ELSE 0 END) DESC,
       (CASE WHEN t.responsavel_id IS NULL THEN 1 ELSE 0 END) DESC,
@@ -625,16 +615,22 @@ class TicketsService {
         }
         // Enriquecer com produtividade
         await this.enrichTicketsWithProductivity(tickets, filters.usuario_id);
-        const defaultStatusOrder = ['aberto', 'em_andamento', 'aguardando_cliente', 'resolvido', 'fechado'];
+        const configuredStatusRows = statusConfigEmpresaId
+            ? await getTicketStatusConfigs(statusConfigEmpresaId)
+            : [];
+        const configuredStatusMap = new Map(configuredStatusRows.map((row) => [row.valor, row]));
+        const configuredStatusOrder = configuredStatusRows
+            .filter((row) => row.ativo === 1 && row.kanban_visivel === 1)
+            .map((row) => row.valor);
         const ticketStatuses = tickets.map((ticket) => ticket.status).filter(Boolean);
         const discoveredStatuses = [
-            ...defaultStatusOrder,
+            ...configuredStatusOrder,
             ...Array.from(statusCounts.keys()),
             ...ticketStatuses
         ].filter((status, index, all) => all.indexOf(status) === index);
         const columnsConfig = discoveredStatuses.map(status => ({
             id: status,
-            title: labelFromStatus(status)
+            title: configuredStatusMap.get(status)?.nome || labelFromStatus(status)
         }));
         let totalLoaded = 0;
         let truncated = false;
@@ -678,6 +674,7 @@ class TicketsService {
     async create(data) {
         const { empresa_id, usuario_id, solicitante_nome, solicitante_email, titulo, descricao, categoria, servico, origem, email_channel_id, message_id } = data;
         let prioridade = data.prioridade || 'media';
+        const initialStatus = await getInitialTicketStatusValue(empresa_id);
         if (message_id) {
             const [existingTicket] = await pool.query('SELECT id FROM tickets WHERE message_id = ? AND empresa_id = ? ORDER BY id ASC LIMIT 1', [message_id, empresa_id]);
             if (existingTicket.length > 0) {
@@ -737,12 +734,12 @@ class TicketsService {
         const [result] = await pool.query(`INSERT INTO tickets (
         empresa_id, usuario_id, solicitante_nome, solicitante_email, 
         titulo, descricao, prioridade, categoria, servico, 
-        origem, email_channel_id, message_id,
+        origem, email_channel_id, message_id, status,
         prazo_sla, prazo_primeira_resposta, sla_primeira_resposta_status, responsavel_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
             empresa_id, usuario_id || null, solicitante_nome || null, solicitante_email || null,
             titulo, descricao, prioridade || 'media', categoria || 'suporte', servico || null,
-            origem || 'sistema', email_channel_id || null, message_id || null,
+            origem || 'sistema', email_channel_id || null, message_id || null, initialStatus,
             prazoSlaFormatado, prazoPRFormatado, 'aguardando', responsavel_id
         ]);
         const ticketId = result.insertId;
@@ -764,7 +761,7 @@ class TicketsService {
         try {
             const { runAutomations } = await import('./automations.service.js');
             // Pass the fully assembled ticket object
-            await runAutomations('ticket_criado', { id: ticketId, empresa_id, status: 'aberto', prioridade: prioridade || 'media', categoria, servico, responsavel_id }, { usuario_id });
+            await runAutomations('ticket_criado', { id: ticketId, empresa_id, status: initialStatus, prioridade: prioridade || 'media', categoria, servico, responsavel_id }, { usuario_id });
         }
         catch (err) {
             console.warn('Erro ao rodar automações', err);
@@ -935,13 +932,13 @@ class TicketsService {
         }
         if (oldTicket.status === status)
             return;
-        const statusExists = await isConfiguredTicketStatusForCompany(oldTicket.empresa_id, status);
-        if (!statusExists) {
+        const oldStatusConfig = await getTicketStatusConfig(oldTicket.empresa_id, oldTicket.status);
+        const newStatusConfig = await getTicketStatusConfig(oldTicket.empresa_id, status);
+        if (!newStatusConfig || newStatusConfig.ativo !== 1) {
             throw new Error('Status não existe no fluxo de atendimento desta empresa');
         }
-        const finalStatuses = ['resolvido', 'fechado'];
-        const wasFinalStatus = finalStatuses.includes(oldTicket.status);
-        const willBeFinalStatus = finalStatuses.includes(status);
+        const wasFinalStatus = isFinalTicketStatusSpecial(oldStatusConfig?.especial);
+        const willBeFinalStatus = isFinalTicketStatusSpecial(newStatusConfig.especial);
         const isReopening = wasFinalStatus && !willBeFinalStatus;
         let finalizado_em = null;
         let sla_resolucao_status = oldTicket.sla_resolucao_status;
@@ -971,11 +968,13 @@ class TicketsService {
         updateFields.push('updated_at = NOW()');
         updateParams.push(id);
         await pool.query(`UPDATE tickets SET ${updateFields.join(', ')} WHERE id = ?`, updateParams);
+        const oldWasCustomerWaiting = isCustomerWaitingTicketStatusSpecial(oldStatusConfig?.especial);
+        const newIsCustomerWaiting = isCustomerWaitingTicketStatusSpecial(newStatusConfig.especial);
         // Sprint 2: SLA Pause/Resume logic
-        if (status === 'aguardando_cliente') {
+        if (newIsCustomerWaiting) {
             await slaService.pauseSla(id, changedByUserId);
         }
-        else if (oldTicket.status === 'aguardando_cliente' && status !== 'aguardando_cliente') {
+        else if (oldWasCustomerWaiting && !newIsCustomerWaiting) {
             await slaService.resumeSla(id, changedByUserId);
         }
         else {
@@ -1009,8 +1008,7 @@ class TicketsService {
         // Notificações de Status
         // ... (rest of the code seems fine)
         try {
-            const translateStatus = { aberto: 'Aberto', em_andamento: 'Em Andamento', aguardando_cliente: 'Aguardando Cliente', resolvido: 'Resolvido', fechado: 'Fechado' };
-            const newStatusText = translateStatus[status] || status;
+            const newStatusText = newStatusConfig.nome || labelFromStatus(status);
             // Notificar cliente
             if (oldTicket.usuario_id && oldTicket.usuario_id !== changedByUserId) {
                 await notificationsService.create({
@@ -1066,12 +1064,15 @@ class TicketsService {
         const oldTicket = await this.getById(id);
         if (!oldTicket)
             return;
+        let oldStatusConfig = null;
+        let newStatusConfig = null;
         if (data.status && data.status !== oldTicket.status) {
             if (!isValidTicketStatus(data.status)) {
                 throw new Error(`Status inválido: ${data.status}`);
             }
-            const statusExists = await isConfiguredTicketStatusForCompany(oldTicket.empresa_id, data.status);
-            if (!statusExists) {
+            oldStatusConfig = await getTicketStatusConfig(oldTicket.empresa_id, oldTicket.status);
+            newStatusConfig = await getTicketStatusConfig(oldTicket.empresa_id, data.status);
+            if (!newStatusConfig || newStatusConfig.ativo !== 1) {
                 throw new Error('Status não existe no fluxo de atendimento desta empresa');
             }
         }
@@ -1079,7 +1080,7 @@ class TicketsService {
         const paramsList = [];
         // Finalizado_em logic
         if (data.status) {
-            if (['resolvido', 'fechado'].includes(data.status)) {
+            if (isFinalTicketStatusSpecial(newStatusConfig?.especial)) {
                 fields.push('finalizado_em = NOW()');
             }
             else {
@@ -1098,10 +1099,12 @@ class TicketsService {
         await pool.query(`UPDATE tickets SET ${fields.join(', ')} WHERE id = ?`, paramsList);
         // Sprint 2: Handle SLA status Operational and Pause/Resume if status changed
         if (data.status && data.status !== oldTicket.status) {
-            if (data.status === 'aguardando_cliente') {
+            const oldWasCustomerWaiting = isCustomerWaitingTicketStatusSpecial(oldStatusConfig?.especial);
+            const newIsCustomerWaiting = isCustomerWaitingTicketStatusSpecial(newStatusConfig?.especial);
+            if (newIsCustomerWaiting) {
                 await slaService.pauseSla(id, currentUser?.id || null);
             }
-            else if (oldTicket.status === 'aguardando_cliente' && data.status !== 'aguardando_cliente') {
+            else if (oldWasCustomerWaiting && !newIsCustomerWaiting) {
                 await slaService.resumeSla(id, currentUser?.id || null);
             }
             else {
@@ -1125,8 +1128,7 @@ class TicketsService {
                 });
             }
             if (data.status && data.status !== oldTicket.status) {
-                const translateStatus = { aberto: 'Aberto', em_andamento: 'Em Andamento', aguardando_cliente: 'Aguardando Cliente', resolvido: 'Resolvido', fechado: 'Fechado' };
-                const newStatusText = translateStatus[data.status] || data.status;
+                const newStatusText = newStatusConfig?.nome || labelFromStatus(data.status);
                 // Notificar cliente
                 if (oldTicket.usuario_id) {
                     await notificationsService.create({
@@ -1151,7 +1153,7 @@ class TicketsService {
                     });
                 }
                 // Disparar e-mail externo para cliente se resolvido ou fechado
-                if ((data.status === 'resolvido' || data.status === 'fechado') && oldTicket.cliente_email && oldTicket.cliente_email !== 'removido@sistema.com') {
+                if (isFinalTicketStatusSpecial(newStatusConfig?.especial) && oldTicket.cliente_email && oldTicket.cliente_email !== 'removido@sistema.com') {
                     // Determine reason if available (it might be in 'data' object being updated now)
                     const motivo = data.resolucao_motivo || oldTicket.resolucao_motivo;
                     const observacao = data.resolucao_observacao || oldTicket.resolucao_observacao;
@@ -1161,7 +1163,7 @@ class TicketsService {
                         ticketId: id,
                         empresaId: oldTicket.empresa_id,
                         emailChannelId: oldTicket.email_channel_id,
-                        type: data.status === 'resolvido' ? 'ticket_resolved' : 'ticket_closed',
+                        type: newStatusConfig?.especial === 'encerrado' ? 'ticket_closed' : 'ticket_resolved',
                         title: oldTicket.titulo,
                         customerName: oldTicket.cliente_nome,
                         status: newStatusText,
@@ -1184,7 +1186,7 @@ class TicketsService {
         }
         // Automations & CSAT
         try {
-            if (data.status && ['resolvido', 'fechado'].includes(data.status) && !['resolvido', 'fechado'].includes(oldTicket.status)) {
+            if (data.status && isFinalTicketStatusSpecial(newStatusConfig?.especial) && !isFinalTicketStatusSpecial(oldStatusConfig?.especial)) {
                 await this.ensureSatisfactionSurvey(id, oldTicket.empresa_id, currentUser?.id || null);
                 await recordTicketEvent({
                     ticket_id: id,
@@ -1343,7 +1345,7 @@ class TicketsService {
     }
     async resolveTicket(id, data, currentUser) {
         const { status, resolucao_motivo, resolucao_observacao } = data;
-        if (!['resolvido', 'fechado'].includes(status))
+        if (!isValidTicketStatus(status))
             throw new Error('Status inválido para resolução');
         if (!resolucao_motivo)
             throw new Error('Motivo de resolução é obrigatório');
@@ -1359,9 +1361,10 @@ class TicketsService {
         const oldTicket = await this.getById(id);
         if (!oldTicket)
             throw new Error('Ticket não encontrado');
-        const statusExists = await isConfiguredTicketStatusForCompany(oldTicket.empresa_id, status);
-        if (!statusExists) {
-            throw new Error('Status não existe no fluxo de atendimento desta empresa');
+        const oldStatusConfig = await getTicketStatusConfig(oldTicket.empresa_id, oldTicket.status);
+        const newStatusConfig = await getTicketStatusConfig(oldTicket.empresa_id, status);
+        if (!newStatusConfig || newStatusConfig.ativo !== 1 || !isFinalTicketStatusSpecial(newStatusConfig.especial)) {
+            throw new Error('Status inválido para resolução');
         }
         const observacao = resolucao_observacao ? String(resolucao_observacao).substring(0, 2000) : null;
         let sla_resolucao_status = oldTicket.sla_resolucao_status;
@@ -1372,13 +1375,13 @@ class TicketsService {
         }
         await pool.query('UPDATE tickets SET status = ?, resolucao_motivo = ?, resolucao_observacao = ?, finalizado_em = NOW(), sla_resolucao_status = ?, updated_at = NOW() WHERE id = ?', [status, resolucao_motivo, observacao, sla_resolucao_status, id]);
         // Sprint 2: Sync SLA Status
-        if (oldTicket.status === 'aguardando_cliente') {
+        if (isCustomerWaitingTicketStatusSpecial(oldStatusConfig?.especial)) {
             await slaService.resumeSla(id, currentUser?.id || null);
         }
         else {
             await slaService.updateOperationalStatus(id);
         }
-        if (!['resolvido', 'fechado'].includes(oldTicket.status)) {
+        if (!isFinalTicketStatusSpecial(oldStatusConfig?.especial)) {
             await this.ensureSatisfactionSurvey(id, oldTicket.empresa_id, currentUser?.id || null);
             await recordTicketEvent({
                 ticket_id: id,
@@ -1401,12 +1404,14 @@ class TicketsService {
         const ticket = await this.getById(id);
         if (!ticket)
             throw new Error('Ticket não encontrado');
-        if (!['resolvido', 'fechado'].includes(ticket.status))
+        const currentStatusConfig = await getTicketStatusConfig(ticket.empresa_id, ticket.status);
+        if (!isFinalTicketStatusSpecial(currentStatusConfig?.especial)) {
             throw new Error('Apenas tickets resolvidos ou fechados podem ser reabertos');
-        const reopenStatus = await getReopenStatusForCompany(ticket.empresa_id);
+        }
+        const reopenStatus = await getReopenTicketStatusValue(ticket.empresa_id);
         await pool.query('UPDATE tickets SET status = ?, finalizado_em = NULL, reaberto_em = NOW(), reaberto_por = ?, updated_at = NOW() WHERE id = ?', [reopenStatus, currentUser.id, id]);
         // Sprint 2: Sync SLA Status
-        if (ticket.status === 'aguardando_cliente') {
+        if (isCustomerWaitingTicketStatusSpecial(currentStatusConfig?.especial)) {
             await slaService.resumeSla(id, currentUser.id);
         }
         else {
@@ -1695,22 +1700,26 @@ class TicketsService {
     async removeCustomField(ticketId, fieldKey) {
         await pool.query('DELETE FROM ticket_custom_fields WHERE ticket_id = ? AND field_key = ?', [ticketId, fieldKey]);
     }
-    async getStatusTransitionPermissionError(currentUser, oldStatus, newStatus) {
+    async getStatusTransitionPermissionError(currentUser, empresaId, oldStatus, newStatus) {
         const oldValue = String(oldStatus || '');
         const newValue = String(newStatus || '');
         if (!newValue || oldValue === newValue)
             return null;
-        if (FINAL_TICKET_STATUS_SET.has(oldValue) && !FINAL_TICKET_STATUS_SET.has(newValue)) {
+        const oldStatusConfig = await getTicketStatusConfig(empresaId, oldValue);
+        const newStatusConfig = await getTicketStatusConfig(empresaId, newValue);
+        const oldIsFinal = isFinalTicketStatusSpecial(oldStatusConfig?.especial);
+        const newIsFinal = isFinalTicketStatusSpecial(newStatusConfig?.especial);
+        if (oldIsFinal && !newIsFinal) {
             const hasReopenPerm = await permissionsService.hasPermission(currentUser, 'tickets.reabrir');
             if (!hasReopenPerm)
                 return 'Sem permissao para reabrir chamados (tickets.reabrir).';
         }
-        if (newValue === 'resolvido') {
+        if (newStatusConfig?.especial === 'finalizado') {
             const hasFinalizePerm = await permissionsService.hasPermission(currentUser, 'tickets.finalizar');
             if (!hasFinalizePerm)
                 return 'Sem permissao para finalizar chamados (tickets.finalizar).';
         }
-        if (newValue === 'fechado') {
+        if (newStatusConfig?.especial === 'encerrado') {
             const hasClosePerm = await permissionsService.hasPermission(currentUser, 'tickets.fechar');
             if (!hasClosePerm)
                 return 'Sem permissao para fechar chamados (tickets.fechar).';
@@ -1728,10 +1737,12 @@ class TicketsService {
                 const hasStatusPerm = await permissionsService.hasPermission(currentUser, 'tickets.editar_status');
                 if (!hasStatusPerm)
                     return 'Sem permissao para alterar status (tickets.editar_status).';
-                return this.getStatusTransitionPermissionError(currentUser, ticket.status, value);
+                return this.getStatusTransitionPermissionError(currentUser, ticket.empresa_id, ticket.status, value);
             }
             case 'fechar':
-                return this.getStatusTransitionPermissionError(currentUser, ticket.status, 'fechado');
+                return await permissionsService.hasPermission(currentUser, 'tickets.fechar')
+                    ? null
+                    : 'Sem permissao para fechar chamados (tickets.fechar).';
             case 'prioridade': {
                 const hasPriorityPerm = await permissionsService.hasPermission(currentUser, 'tickets.editar_prioridade');
                 return hasPriorityPerm ? null : 'Sem permissao para alterar prioridade (tickets.editar_prioridade).';
@@ -1840,7 +1851,13 @@ class TicketsService {
                         }
                         break;
                     case 'fechar':
-                        await this.updateStatus(id, 'fechado', currentUser.id);
+                        const closedStatus = await getClosedTicketStatusValue(ticket.empresa_id);
+                        if (!closedStatus) {
+                            skipped++;
+                            errors.push(`Ticket #${id}: Nenhum status especial "Encerrado" configurado para esta empresa.`);
+                            continue;
+                        }
+                        await this.updateStatus(id, closedStatus, currentUser.id);
                         updated++;
                         break;
                     default:
@@ -1892,15 +1909,31 @@ class TicketsService {
             acc[m.ticket_id] = m;
             return acc;
         }, {});
+        const statusEmpresaIds = Array.from(new Set(tickets
+            .map((ticket) => Number(ticket.empresa_id))
+            .filter((empresaId) => Number.isFinite(empresaId) && empresaId > 0)));
+        const statusValues = Array.from(new Set(tickets
+            .map((ticket) => String(ticket.status || '').trim())
+            .filter(Boolean)));
+        const statusSpecialMap = new Map();
+        if (statusEmpresaIds.length > 0 && statusValues.length > 0) {
+            const [statusRows] = await pool.query(`SELECT empresa_id, valor, especial
+         FROM empresa_ticket_status
+         WHERE empresa_id IN (?) AND valor IN (?)`, [statusEmpresaIds, statusValues]);
+            for (const row of statusRows) {
+                statusSpecialMap.set(`${Number(row.empresa_id)}:${row.valor}`, String(row.especial || 'normal'));
+            }
+        }
         tickets.forEach(t => {
             const lmAll = lastMsgMap[t.id];
             const lastRead = readReceiptsMap[t.id];
+            const statusSpecial = statusSpecialMap.get(`${Number(t.empresa_id)}:${t.status}`) || 'normal';
             // Calculate estado_atendimento
             let estado = 'sem_resposta';
-            if (['resolvido', 'fechado'].includes(t.status)) {
+            if (isFinalTicketStatusSpecial(statusSpecial) || ['resolvido', 'fechado'].includes(t.status)) {
                 estado = 'finalizado';
             }
-            else if (t.status === 'aguardando_cliente') {
+            else if (isCustomerWaitingTicketStatusSpecial(statusSpecial) || t.status === 'aguardando_cliente') {
                 estado = 'aguardando_cliente';
             }
             else if (!t.ultima_mensagem_publica_em) {

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Ticket, TicketKanbanColumn, TicketKanbanResponse, User } from '../../types';
+import { Ticket, TicketKanbanColumn, TicketKanbanResponse, TicketStatus, TicketStatusSpecial, User } from '../../types';
 import {
   AlertCircle,
   ChevronDown,
@@ -25,6 +25,7 @@ interface TicketKanbanProps {
   currentUser: User;
   onStatusChange: () => void;
   devCompanyId?: string;
+  statusOptions?: { value: TicketStatus; label: string; special?: TicketStatusSpecial | string | null }[];
 }
 
 interface TeamMember {
@@ -88,7 +89,8 @@ export const TicketKanban = ({
   onSelectTicket,
   currentUser,
   onStatusChange,
-  devCompanyId
+  devCompanyId,
+  statusOptions = []
 }: TicketKanbanProps) => {
   const canEditStatus = hasPermission(currentUser, 'tickets.editar_status');
   const canReopen = hasPermission(currentUser, 'tickets.reabrir');
@@ -106,6 +108,14 @@ export const TicketKanban = ({
   const [loadingTeam, setLoadingTeam] = useState(true);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const statusSpecialMap = useMemo(
+    () => new Map(statusOptions.map((status) => [status.value, status.special || 'normal'])),
+    [statusOptions]
+  );
+  const isFinalStatus = (status: string) => {
+    const special = statusSpecialMap.get(status as TicketStatus);
+    return special === 'finalizado' || special === 'encerrado' || status === 'resolvido' || status === 'fechado';
+  };
   const boardColumns = localData.columns.length || 1;
   const boardGridStyle = {
     gridTemplateColumns: `${rowColumnWidth}px repeat(${boardColumns}, ${statusColumnWidth}px)`,
@@ -338,7 +348,6 @@ export const TicketKanban = ({
     const targetResponsavelId = targetRow.isUnassigned ? null : targetRow.id;
     const statusChanged = currentTicket.status !== targetStatus;
     const responsavelChanged = Number(currentTicket.responsavel_id || 0) !== Number(targetResponsavelId || 0);
-    const finalStatuses = new Set(['resolvido', 'fechado']);
 
     if (statusChanged) {
       if (!canEditStatus) {
@@ -347,13 +356,13 @@ export const TicketKanban = ({
         return;
       }
 
-      if (finalStatuses.has(targetStatus) && !finalStatuses.has(currentTicket.status)) {
+      if (isFinalStatus(targetStatus) && !isFinalStatus(currentTicket.status)) {
         setErrorMsg('Finalize o chamado pela tela de detalhe para registrar o motivo.');
         setTimeout(() => setErrorMsg(null), 3000);
         return;
       }
 
-      if (finalStatuses.has(currentTicket.status) && !finalStatuses.has(targetStatus) && !canReopen) {
+      if (isFinalStatus(currentTicket.status) && !isFinalStatus(targetStatus) && !canReopen) {
         setErrorMsg('Sem permissao para reabrir chamados.');
         setTimeout(() => setErrorMsg(null), 3000);
         return;

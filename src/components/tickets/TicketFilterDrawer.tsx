@@ -2,7 +2,7 @@ import React from 'react';
 import { X, Calendar, Tag as TagIcon, User, Globe, Clock, Search, Layers, ShieldAlert } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Select } from '../ui/Select';
-import { TicketAdvancedFilters as IFilters } from '../../types';
+import { TicketAdvancedFilters as IFilters, TicketStatus, TicketStatusSpecial } from '../../types';
 import { AnimatePresence, motion } from 'motion/react';
 
 interface TicketFilterDrawerProps {
@@ -22,6 +22,7 @@ interface TicketFilterDrawerProps {
   agents: any[];
   categoryOptions?: {value: string; label: string}[];
   serviceOptions?: {value: string; label: string}[];
+  statusOptions?: { value: TicketStatus; label: string; special?: TicketStatusSpecial | string | null }[];
 }
 
 export const TicketFilterDrawer: React.FC<TicketFilterDrawerProps> = ({
@@ -40,7 +41,8 @@ export const TicketFilterDrawer: React.FC<TicketFilterDrawerProps> = ({
   onClear,
   agents,
   categoryOptions,
-  serviceOptions
+  serviceOptions,
+  statusOptions = []
 }) => {
   const handleChange = (field: keyof IFilters, value: any) => {
     onFilterChange({ ...filters, [field]: value });
@@ -89,11 +91,10 @@ export const TicketFilterDrawer: React.FC<TicketFilterDrawerProps> = ({
                   buttonClassName="h-8 text-xs font-medium bg-slate-50 border-slate-200 rounded-md px-3"
                   options={[
                     { value: 'todos', label: 'Todos os Status' },
-                    { value: 'aberto', label: 'Aberto' },
-                    { value: 'em_andamento', label: 'Em Andamento' },
-                    { value: 'aguardando_cliente', label: 'Aguardando' },
-                    { value: 'resolvido', label: 'Resolvido' },
-                    { value: 'fechado', label: 'Fechado' }
+                    ...statusOptions.map((status) => ({
+                      value: status.value,
+                      label: status.label
+                    }))
                   ]}
                   className="w-full"
                 />

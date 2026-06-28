@@ -1,14 +1,19 @@
 import pool from '../db/connection.js';
 import { recordTicketEvent } from './ticket-events.service.js';
+import { isCustomerWaitingTicketStatusSpecial, isFinalTicketStatusSpecial, normalizeTicketStatusSpecial } from '../utils/ticket-status-config.js';
 class SlaService {
     /**
      * Calculates the operational status based on ticket data
      */
     calculateOperationalStatus(ticket) {
-        if (['resolvido', 'fechado'].includes(ticket.status)) {
+        const statusSpecial = normalizeTicketStatusSpecial(ticket.status_especial || ticket.especial);
+        if (isFinalTicketStatusSpecial(statusSpecial) || ['resolvido', 'fechado'].includes(ticket.status)) {
             return ticket.sla_resolucao_status === 'cumprido' ? 'cumprido' : 'violado';
         }
-        if (ticket.sla_pausado_em || ticket.status === 'aguardando_cliente' || ticket.sla_status_operacional === 'pausado') {
+        if (ticket.sla_pausado_em
+            || isCustomerWaitingTicketStatusSpecial(statusSpecial)
+            || ticket.status === 'aguardando_cliente'
+            || ticket.sla_status_operacional === 'pausado') {
             return 'pausado';
         }
         if (!ticket.prazo_sla) {
@@ -48,7 +53,12 @@ class SlaService {
      * Resumes SLA for a ticket and adjusts the deadline
      */
     async resumeSla(ticketId, usuarioId = null) {
-        const [rows] = await pool.query('SELECT * FROM tickets WHERE id = ?', [ticketId]);
+        const [rows] = await pool.query(`SELECT t.*, status_cfg.especial as status_especial
+       FROM tickets t
+       LEFT JOIN empresa_ticket_status status_cfg
+         ON status_cfg.empresa_id = t.empresa_id
+        AND status_cfg.valor = t.status
+       WHERE t.id = ?`, [ticketId]);
         const ticket = rows[0];
         if (!ticket || !ticket.sla_pausado_em)
             return;
@@ -83,7 +93,12 @@ class SlaService {
      * Updates only the operational status field based on current data
      */
     async updateOperationalStatus(ticketId) {
-        const [rows] = await pool.query('SELECT * FROM tickets WHERE id = ?', [ticketId]);
+        const [rows] = await pool.query(`SELECT t.*, status_cfg.especial as status_especial
+       FROM tickets t
+       LEFT JOIN empresa_ticket_status status_cfg
+         ON status_cfg.empresa_id = t.empresa_id
+        AND status_cfg.valor = t.status
+       WHERE t.id = ?`, [ticketId]);
         const ticket = rows[0];
         if (!ticket)
             return;
