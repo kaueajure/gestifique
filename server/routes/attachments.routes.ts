@@ -59,7 +59,20 @@ router.get('/:id/download', async (req: AuthRequest, res: Response) => {
        return sendError(res, 'Arquivo físico não encontrado no servidor', 404);
     }
 
+    const wantsInlinePreview = req.query.inline === '1' && /^image\//i.test(attachment.mime_type || '');
+    const safeFileName = String(attachment.nome_original || 'anexo')
+      .replace(/[\r\n"]/g, '_')
+      .slice(0, 180);
+
     res.setHeader('X-Content-Type-Options', 'nosniff');
+
+    if (wantsInlinePreview) {
+      res.setHeader('Content-Type', attachment.mime_type || 'application/octet-stream');
+      res.setHeader('Content-Disposition', `inline; filename="${safeFileName}"`);
+      res.setHeader('Cache-Control', 'private, max-age=300');
+      return res.sendFile(absolutePath);
+    }
+
     res.download(absolutePath, attachment.nome_original);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erro ao processar download';

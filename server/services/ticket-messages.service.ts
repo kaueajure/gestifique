@@ -15,6 +15,7 @@ export interface AddMessageData {
   message_id?: string | null;
   empresa_id?: number | null;
   tipo?: string;
+  suppressEmailNotification?: boolean;
 }
 
 class TicketMessagesService {
@@ -24,6 +25,7 @@ class TicketMessagesService {
    */
   async addMessage(data: AddMessageData, currentUser?: any) {
     const { ticket_id, usuario_id, mensagem, interno, message_id, empresa_id, tipo = 'texto' } = data;
+    const suppressEmailNotification = !!data.suppressEmailNotification;
 
     if (!mensagem || mensagem.trim() === '') {
       throw new Error('A mensagem não pode estar vazia');
@@ -246,7 +248,7 @@ class TicketMessagesService {
         }
 
         // Send email to the external contact or registered user email
-        if (ticket.cliente_email && ticket.cliente_email !== 'removido@sistema.com') {
+        if (!suppressEmailNotification && ticket.cliente_email && ticket.cliente_email !== 'removido@sistema.com') {
           // Get the original messageId from the ticket or the latest message for threading
           const replyToId = ticket.message_id;
           

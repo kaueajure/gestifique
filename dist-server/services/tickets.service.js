@@ -29,6 +29,32 @@ export function toPositiveInt(value) {
 export function isValidTicketStatus(value) {
     return typeof value === 'string' && /^[a-z0-9_]{2,80}$/.test(value);
 }
+export async function isConfiguredTicketStatusForCompany(empresaId, status) {
+    if (!empresaId || !isValidTicketStatus(status))
+        return false;
+    const [rows] = await pool.query(`SELECT id
+     FROM empresa_ticket_status
+     WHERE empresa_id = ?
+       AND valor = ?
+       AND ativo = 1
+     LIMIT 1`, [empresaId, status]);
+    return rows.length > 0;
+}
+async function getReopenStatusForCompany(empresaId) {
+    const [rows] = await pool.query(`SELECT valor
+     FROM empresa_ticket_status
+     WHERE empresa_id = ?
+       AND ativo = 1
+     ORDER BY
+       CASE WHEN valor = 'aberto' THEN 0 ELSE 1 END,
+       ordem ASC,
+       id ASC`, [empresaId]);
+    const candidate = rows.find((row) => !FINAL_TICKET_STATUS_SET.has(row.valor));
+    if (!candidate) {
+        throw new Error('Nenhum status ativo disponível para reabrir este chamado');
+    }
+    return candidate.valor;
+}
 function labelFromStatus(status) {
     const labels = {
         aberto: 'Aberto',
@@ -909,6 +935,10 @@ class TicketsService {
         }
         if (oldTicket.status === status)
             return;
+        const statusExists = await isConfiguredTicketStatusForCompany(oldTicket.empresa_id, status);
+        if (!statusExists) {
+            throw new Error('Status não existe no fluxo de atendimento desta empresa');
+        }
         const finalStatuses = ['resolvido', 'fechado'];
         const wasFinalStatus = finalStatuses.includes(oldTicket.status);
         const willBeFinalStatus = finalStatuses.includes(status);
@@ -1036,6 +1066,15 @@ class TicketsService {
         const oldTicket = await this.getById(id);
         if (!oldTicket)
             return;
+        if (data.status && data.status !== oldTicket.status) {
+            if (!isValidTicketStatus(data.status)) {
+                throw new Error(`Status inválido: ${data.status}`);
+            }
+            const statusExists = await isConfiguredTicketStatusForCompany(oldTicket.empresa_id, data.status);
+            if (!statusExists) {
+                throw new Error('Status não existe no fluxo de atendimento desta empresa');
+            }
+        }
         const fields = [];
         const paramsList = [];
         // Finalizado_em logic
@@ -1320,6 +1359,10 @@ class TicketsService {
         const oldTicket = await this.getById(id);
         if (!oldTicket)
             throw new Error('Ticket não encontrado');
+        const statusExists = await isConfiguredTicketStatusForCompany(oldTicket.empresa_id, status);
+        if (!statusExists) {
+            throw new Error('Status não existe no fluxo de atendimento desta empresa');
+        }
         const observacao = resolucao_observacao ? String(resolucao_observacao).substring(0, 2000) : null;
         let sla_resolucao_status = oldTicket.sla_resolucao_status;
         if (oldTicket.prazo_sla) {
@@ -1360,7 +1403,8 @@ class TicketsService {
             throw new Error('Ticket não encontrado');
         if (!['resolvido', 'fechado'].includes(ticket.status))
             throw new Error('Apenas tickets resolvidos ou fechados podem ser reabertos');
-        await pool.query('UPDATE tickets SET status = "aberto", finalizado_em = NULL, reaberto_em = NOW(), reaberto_por = ?, updated_at = NOW() WHERE id = ?', [currentUser.id, id]);
+        const reopenStatus = await getReopenStatusForCompany(ticket.empresa_id);
+        await pool.query('UPDATE tickets SET status = ?, finalizado_em = NULL, reaberto_em = NOW(), reaberto_por = ?, updated_at = NOW() WHERE id = ?', [reopenStatus, currentUser.id, id]);
         // Sprint 2: Sync SLA Status
         if (ticket.status === 'aguardando_cliente') {
             await slaService.resumeSla(id, currentUser.id);

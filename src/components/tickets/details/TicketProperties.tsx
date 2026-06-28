@@ -61,6 +61,7 @@ interface TicketPropertiesProps {
   attachments: TicketAttachment[];
   onUpdate: (data: Partial<Ticket>) => void;
   onArchive: () => void;
+  canArchiveStatus: boolean;
   onUpdateTags?: (tags: string[]) => void;
   onUpdateCustomFields?: (fields: any[]) => void;
 }
@@ -71,6 +72,7 @@ export const TicketProperties = ({
   attachments,
   onUpdate,
   onArchive,
+  canArchiveStatus,
   onUpdateTags,
   onUpdateCustomFields
 }: TicketPropertiesProps) => {
@@ -426,7 +428,7 @@ export const TicketProperties = ({
       )}
 
       {/* Seção 7: Arquivar */}
-      {canCloseTicket && ticket.status !== 'fechado' && (
+      {canCloseTicket && canArchiveStatus && ticket.status !== 'fechado' && (
         <div className="pt-2">
            <Button 
              variant="outline"

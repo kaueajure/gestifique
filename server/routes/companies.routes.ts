@@ -6,7 +6,7 @@ import { permissionsService } from '../services/permissions.service.js';
 import  { sendSuccess, sendError } from  '../utils/response.js';
 import  { logSystemAction } from  '../utils/logger.js';
 import { isValidEmail, isValidHexColor } from '../utils/validators.js';
-import { isValidTicketStatus } from '../services/tickets.service.js';
+import { isValidTicketStatusValue, normalizeTicketStatusSpecial, TICKET_STATUS_SPECIALS } from '../utils/ticket-status-config.js';
 import { recomputeTicketMessageState } from '../utils/ticket-state.js';
 import { isDeveloperUser } from '../utils/user-scope.js';
 
@@ -360,12 +360,72 @@ router.get('/:id/ticket-statuses', async (req: AuthRequest, res) => {
     if (!currentUser.desenvolvedor && currentUser.empresa_id !== id) return sendError(res, 'Acesso negado', 403);
 
     const [rows]: any = await pool.query(
-      'SELECT id, nome, valor, ativo, ordem FROM empresa_ticket_status WHERE empresa_id = ? ORDER BY ordem ASC, id ASC',
+      `SELECT id, nome, valor, ativo, kanban_visivel, cor, especial, ordem
+       FROM empresa_ticket_status
+       WHERE empresa_id = ?
+       ORDER BY ordem ASC, id ASC`,
       [id]
     );
     sendSuccess(res, rows);
   } catch(error: unknown) {
     sendError(res, 'Erro ao buscar tipos de atendimento');
+  }
+});
+
+router.get('/:id/ticket-statuses/usage', async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+    const id = parseInt(req.params.id);
+    if (!currentUser.desenvolvedor && currentUser.empresa_id !== id) return sendError(res, 'Acesso negado', 403);
+
+    const [ticketRows]: any = await pool.query(
+      `SELECT status, COUNT(*) AS total
+       FROM tickets
+       WHERE empresa_id = ?
+       GROUP BY status`,
+      [id]
+    );
+
+    const [automationRows]: any = await pool.query(
+      `SELECT id, nome, condicoes_json, acoes_json
+       FROM ticket_automacoes
+       WHERE empresa_id = ?`,
+      [id]
+    );
+
+    const automationUsage: Record<string, number> = {};
+    const addAutomationUse = (status: unknown) => {
+      if (typeof status !== 'string' || !status) return;
+      automationUsage[status] = (automationUsage[status] || 0) + 1;
+    };
+    const parseJsonArray = (value: any) => {
+      if (Array.isArray(value)) return value;
+      if (typeof value !== 'string') return [];
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    };
+
+    for (const automation of automationRows) {
+      for (const condition of parseJsonArray(automation.condicoes_json)) {
+        if (condition?.campo === 'status') addAutomationUse(condition.valor);
+      }
+      for (const action of parseJsonArray(automation.acoes_json)) {
+        if (action?.tipo === 'alterar_status') addAutomationUse(action.valor);
+        if (action?.tipo === 'fechar_com_motivo') addAutomationUse('fechado');
+      }
+    }
+
+    sendSuccess(res, {
+      tickets: Object.fromEntries(ticketRows.map((row: any) => [row.status, Number(row.total || 0)])),
+      automations: automationUsage
+    });
+  } catch(error: unknown) {
+    sendError(res, 'Erro ao buscar uso dos status');
   }
 });
 
@@ -383,6 +443,9 @@ router.put('/:id/ticket-statuses', async (req: AuthRequest, res) => {
     if (!statuses) return sendError(res, 'Lista de tipos inválida', 400);
     if (statuses.length > 40) return sendError(res, 'Máximo de 40 tipos de atendimento', 400);
 
+    const remapStatuses = req.body?.remap_statuses && typeof req.body.remap_statuses === 'object'
+      ? req.body.remap_statuses
+      : {};
     const seen = new Set<string>();
     const sanitized = statuses.map((status: any, index: number) => {
       const nome = typeof status.label === 'string'
@@ -395,31 +458,87 @@ router.put('/:id/ticket-statuses', async (req: AuthRequest, res) => {
         : typeof status.valor === 'string'
           ? status.valor.trim()
           : '';
-      const ativo = status.visible === undefined ? Number(status.ativo ?? 1) : status.visible ? 1 : 0;
+      const ativo = status.active === undefined
+        ? Number(status.ativo ?? 1)
+        : status.active ? 1 : 0;
+      const kanbanVisivel = status.visible === undefined
+        ? Number(status.kanban_visivel ?? ativo)
+        : status.visible ? 1 : 0;
+      const corRaw = typeof status.color === 'string'
+        ? status.color.trim()
+        : typeof status.cor === 'string'
+          ? status.cor.trim()
+          : '';
+      const cor = /^#[0-9a-fA-F]{6}$/.test(corRaw) ? corRaw : '#0891b2';
+      const especial = normalizeTicketStatusSpecial(status.special || status.especial);
 
       if (!nome || nome.length > 100) throw new Error('Nome de tipo inválido');
-      if (!isValidTicketStatus(valor)) throw new Error(`Identificador de tipo inválido: ${valor}`);
+      if (!isValidTicketStatusValue(valor)) throw new Error(`Identificador de tipo inválido: ${valor}`);
       if (seen.has(valor)) throw new Error(`Tipo duplicado: ${valor}`);
       seen.add(valor);
 
-      return { nome, valor, ativo, ordem: index };
+      return { nome, valor, ativo, kanban_visivel: kanbanVisivel, cor, especial, ordem: index };
     });
 
+    const activeStatuses = sanitized.filter((status) => status.ativo === 1);
+    if (activeStatuses.length === 0) throw new Error('Mantenha ao menos um status ativo');
+    if (!activeStatuses.some((status) => status.especial === 'inicial')) {
+      throw new Error('Configure um status especial como status inicial');
+    }
+    if (activeStatuses.filter((status) => status.especial === 'inicial').length > 1) {
+      throw new Error('Configure apenas um status inicial');
+    }
+    if (!activeStatuses.some((status) => status.especial === 'finalizado' || status.especial === 'encerrado')) {
+      throw new Error('Configure ao menos um status finalizado ou encerrado');
+    }
+    for (const special of sanitized.map((status) => status.especial)) {
+      if (!TICKET_STATUS_SPECIALS.includes(special)) throw new Error('Status especial inválido');
+    }
+
     await connection.beginTransaction();
+    const [oldRows]: any = await connection.query(
+      'SELECT valor FROM empresa_ticket_status WHERE empresa_id = ?',
+      [id]
+    );
+    const oldStatusValues = oldRows.map((row: any) => row.valor);
+
     await connection.query('DELETE FROM empresa_ticket_status WHERE empresa_id = ?', [id]);
 
 	    for (const status of sanitized) {
 	      await connection.query(
-	        'INSERT INTO empresa_ticket_status (empresa_id, nome, valor, ativo, ordem) VALUES (?, ?, ?, ?, ?)',
-	        [id, status.nome, status.valor, status.ativo, status.ordem]
+	        `INSERT INTO empresa_ticket_status
+           (empresa_id, nome, valor, ativo, kanban_visivel, cor, especial, ordem)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+	        [id, status.nome, status.valor, status.ativo, status.kanban_visivel, status.cor, status.especial, status.ordem]
 	      );
 	    }
 
 	    let affectedTicketIds: number[] = [];
 	    if (sanitized.length > 0) {
 	      const configuredStatusValues = sanitized.map((status) => status.valor);
-	      const fallbackStatus = configuredStatusValues[0];
+	      const fallbackStatus = activeStatuses.find((status) => status.especial === 'inicial')?.valor || activeStatuses[0].valor;
 	      const placeholders = configuredStatusValues.map(() => '?').join(', ');
+
+        for (const oldStatus of oldStatusValues) {
+          const targetStatus = typeof remapStatuses[oldStatus] === 'string'
+            ? remapStatuses[oldStatus]
+            : null;
+          if (!targetStatus || !configuredStatusValues.includes(targetStatus)) continue;
+          if (configuredStatusValues.includes(oldStatus)) continue;
+
+          const [explicitRows]: any = await connection.query(
+            `SELECT id FROM tickets WHERE empresa_id = ? AND status = ?`,
+            [id, oldStatus]
+          );
+          affectedTicketIds.push(...explicitRows.map((r: any) => Number(r.id)));
+
+          await connection.query(
+            `UPDATE tickets
+             SET status = ?, updated_at = NOW()
+             WHERE empresa_id = ? AND status = ?`,
+            [targetStatus, id, oldStatus]
+          );
+        }
 
 	      // BUG 4 fix: captura os tickets que serão remapeados ANTES do update,
 	      // para recomputar o estado materializado deles após o commit.
@@ -429,7 +548,7 @@ router.put('/:id/ticket-statuses', async (req: AuthRequest, res) => {
 	         AND status NOT IN (${placeholders})`,
 	        [id, ...configuredStatusValues]
 	      );
-	      affectedTicketIds = affectedRows.map((r: any) => Number(r.id));
+	      affectedTicketIds.push(...affectedRows.map((r: any) => Number(r.id)));
 
 	      await connection.query(
 	        `UPDATE tickets
@@ -444,7 +563,7 @@ router.put('/:id/ticket-statuses', async (req: AuthRequest, res) => {
 
 	    // BUG 4 fix: recomputa o estado materializado dos tickets remapeados.
 	    // Operação administrativa rara; o loop por IDs reusa a regra canônica única.
-	    for (const remappedTicketId of affectedTicketIds) {
+	    for (const remappedTicketId of Array.from(new Set(affectedTicketIds))) {
 	      try {
 	        await recomputeTicketMessageState(remappedTicketId);
 	      } catch (stateErr) {
@@ -453,7 +572,10 @@ router.put('/:id/ticket-statuses', async (req: AuthRequest, res) => {
 	    }
 
     const [rows]: any = await pool.query(
-      'SELECT id, nome, valor, ativo, ordem FROM empresa_ticket_status WHERE empresa_id = ? ORDER BY ordem ASC, id ASC',
+      `SELECT id, nome, valor, ativo, kanban_visivel, cor, especial, ordem
+       FROM empresa_ticket_status
+       WHERE empresa_id = ?
+       ORDER BY ordem ASC, id ASC`,
       [id]
     );
     sendSuccess(res, rows);

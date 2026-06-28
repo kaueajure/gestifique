@@ -11,7 +11,7 @@ import {
   CalendarDays,
   Building2
 } from 'lucide-react';
-import { Ticket, TicketStatus, User } from '../../../types';
+import { Ticket, TicketOption, TicketStatus, User } from '../../../types';
 import { cn, getSlaInfo } from '../../../lib/utils';
 
 interface TicketHeaderProps {
@@ -27,6 +27,7 @@ interface TicketHeaderProps {
   canEditPriority: boolean;
   canEditResponsavel: boolean;
   agents: User[];
+  statusOptions: TicketOption[];
 }
 
 export const TicketHeader = ({ 
@@ -41,7 +42,8 @@ export const TicketHeader = ({
   canReopen,
   canEditPriority,
   canEditResponsavel,
-  agents
+  agents,
+  statusOptions: configuredStatusOptions
 }: TicketHeaderProps) => {
   const { 
     id, 
@@ -57,27 +59,29 @@ export const TicketHeader = ({
     created_at
   } = ticket;
 
-  const showResolveButton = canFinalize && status !== 'resolvido' && status !== 'fechado';
-  const showReopenButton = canReopen && (status === 'resolvido' || status === 'fechado');
-  
   const slaInfo = getSlaInfo(prazo_sla, status, sla_status_operacional);
-  const defaultStatusOptions = [
-    { value: 'aberto', label: 'Aberto' },
-    { value: 'em_andamento', label: 'Em andamento' },
-    { value: 'aguardando_cliente', label: 'Aguard. cliente' },
-    { value: 'resolvido', label: 'Resolvido' },
-    { value: 'fechado', label: 'Fechado' }
-  ];
-  const statusOptions = defaultStatusOptions.some(option => option.value === status)
-    ? defaultStatusOptions
+  const activeStatusOptions = configuredStatusOptions
+    .filter(option => Number(option.ativo) === 1)
+    .map(option => ({
+      value: option.valor,
+      label: option.nome
+    }));
+  const statusOptions = activeStatusOptions.some(option => option.value === status)
+    ? activeStatusOptions
     : [
-        ...defaultStatusOptions,
+        ...activeStatusOptions,
         {
           value: status || 'aberto',
           label: (status || 'aberto').replace(/_/g, ' ')
         }
       ];
   const finalStatuses = new Set(['resolvido', 'fechado']);
+  const hasResolvidoStatus = statusOptions.some(option => option.value === 'resolvido');
+  const hasFechadoStatus = statusOptions.some(option => option.value === 'fechado');
+  const reopenTargetStatus = statusOptions.find(option => option.value === 'aberto')?.value
+    || statusOptions.find(option => !finalStatuses.has(option.value))?.value;
+  const showResolveButton = canFinalize && hasResolvidoStatus && !finalStatuses.has(status);
+  const showReopenButton = canReopen && finalStatuses.has(status) && Boolean(reopenTargetStatus);
   const filteredStatusOptions = statusOptions.filter(option => {
     if (option.value === status) return true;
     if (option.value === 'resolvido') return canFinalize;
@@ -150,7 +154,7 @@ export const TicketHeader = ({
               <Button 
                 variant="outline"
                 size="sm"
-                onClick={() => onUpdate({ status: 'aberto' })}
+                onClick={() => onUpdate({ status: reopenTargetStatus as TicketStatus })}
                 className="text-xs font-semibold border-blue-200 text-blue-600 hover:bg-blue-50 shadow-sm h-9 px-3 rounded-lg"
               >
                 <RefreshCw size={14} className="mr-1.5" />
@@ -171,7 +175,7 @@ export const TicketHeader = ({
               options={filteredStatusOptions}
               buttonClassName="h-7 rounded-md border-slate-200 bg-white text-xs font-semibold text-slate-800 capitalize"
               dropdownClassName="min-w-[180px]"
-              disabled={!canEditStatus || (finalStatuses.has(status) && !canReopen)}
+              disabled={!canEditStatus || filteredStatusOptions.length <= 1 || (finalStatuses.has(status) && !canReopen)}
             />
           </HeaderSelectMeta>
           <HeaderSelectMeta

@@ -10,6 +10,19 @@ import { getTicketScope } from '../utils/ticket-permissions.js';
 import { isDeveloperUser } from '../utils/user-scope.js';
 import { recomputeTicketMessageState } from '../utils/ticket-state.js';
 import { maskEmail, maskIdentifier } from '../utils/sanitize.js';
+import {
+  buildStatusInCondition,
+  getClosedTicketStatusValue,
+  getCustomerWaitingTicketStatusValues,
+  getFinalTicketStatusValues,
+  getInitialTicketStatusValue,
+  getReopenTicketStatusValue,
+  getTicketStatusConfig,
+  isConfiguredActiveTicketStatus,
+  isCustomerWaitingTicketStatusSpecial,
+  isFinalTicketStatusSpecial,
+  isValidTicketStatusValue
+} from '../utils/ticket-status-config.js';
 
 export function toPositiveInt(value: unknown): number | undefined {
   if (value === undefined || value === null || value === '') return undefined;
@@ -33,7 +46,7 @@ export function toPositiveInt(value: unknown): number | undefined {
 }
 
 export function isValidTicketStatus(value: unknown): value is string {
-  return typeof value === 'string' && /^[a-z0-9_]{2,80}$/.test(value);
+  return isValidTicketStatusValue(value);
 }
 
 function labelFromStatus(status: string): string {
@@ -753,6 +766,7 @@ class TicketsService {
     } = data;
     
     let prioridade = data.prioridade || 'media';
+    const initialStatus = await getInitialTicketStatusValue(empresa_id);
 
     if (message_id) {
       const [existingTicket]: any = await pool.query(
@@ -822,13 +836,13 @@ class TicketsService {
       `INSERT INTO tickets (
         empresa_id, usuario_id, solicitante_nome, solicitante_email, 
         titulo, descricao, prioridade, categoria, servico, 
-        origem, email_channel_id, message_id,
+        origem, email_channel_id, message_id, status,
         prazo_sla, prazo_primeira_resposta, sla_primeira_resposta_status, responsavel_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         empresa_id, usuario_id || null, solicitante_nome || null, solicitante_email || null, 
         titulo, descricao, prioridade || 'media', categoria || 'suporte', servico || null, 
-        origem || 'sistema', email_channel_id || null, message_id || null,
+        origem || 'sistema', email_channel_id || null, message_id || null, initialStatus,
         prazoSlaFormatado, prazoPRFormatado, 'aguardando', responsavel_id
       ]
     );
@@ -856,7 +870,7 @@ class TicketsService {
     try {
       const { runAutomations } = await import('./automations.service.js');
       // Pass the fully assembled ticket object
-      await runAutomations('ticket_criado', { id: ticketId, empresa_id, status: 'aberto', prioridade: prioridade || 'media', categoria, servico, responsavel_id }, { usuario_id });
+      await runAutomations('ticket_criado', { id: ticketId, empresa_id, status: initialStatus, prioridade: prioridade || 'media', categoria, servico, responsavel_id }, { usuario_id });
     } catch(err) {
       console.warn('Erro ao rodar automações', err);
     }
@@ -1046,9 +1060,14 @@ class TicketsService {
 
     if (oldTicket.status === status) return;
 
-    const finalStatuses = ['resolvido', 'fechado'];
-    const wasFinalStatus = finalStatuses.includes(oldTicket.status);
-    const willBeFinalStatus = finalStatuses.includes(status);
+    const oldStatusConfig = await getTicketStatusConfig(oldTicket.empresa_id, oldTicket.status);
+    const newStatusConfig = await getTicketStatusConfig(oldTicket.empresa_id, status);
+    if (!newStatusConfig || newStatusConfig.ativo !== 1) {
+      throw new Error('Status não existe no fluxo de atendimento desta empresa');
+    }
+
+    const wasFinalStatus = isFinalTicketStatusSpecial(oldStatusConfig?.especial);
+    const willBeFinalStatus = isFinalTicketStatusSpecial(newStatusConfig.especial);
     const isReopening = wasFinalStatus && !willBeFinalStatus;
 
     let finalizado_em = null;
@@ -1089,10 +1108,13 @@ class TicketsService {
       updateParams
     );
 
+    const oldWasCustomerWaiting = isCustomerWaitingTicketStatusSpecial(oldStatusConfig?.especial);
+    const newIsCustomerWaiting = isCustomerWaitingTicketStatusSpecial(newStatusConfig.especial);
+
     // Sprint 2: SLA Pause/Resume logic
-    if (status === 'aguardando_cliente') {
+    if (newIsCustomerWaiting) {
       await slaService.pauseSla(id, changedByUserId);
-    } else if (oldTicket.status === 'aguardando_cliente' && status !== 'aguardando_cliente') {
+    } else if (oldWasCustomerWaiting && !newIsCustomerWaiting) {
       await slaService.resumeSla(id, changedByUserId);
     } else {
       await slaService.updateOperationalStatus(id);
@@ -1127,8 +1149,7 @@ class TicketsService {
     // Notificações de Status
 // ... (rest of the code seems fine)
     try {
-      const translateStatus: any = { aberto: 'Aberto', em_andamento: 'Em Andamento', aguardando_cliente: 'Aguardando Cliente', resolvido: 'Resolvido', fechado: 'Fechado' };
-      const newStatusText = translateStatus[status] || status;
+      const newStatusText = newStatusConfig.nome || labelFromStatus(status);
 
       // Notificar cliente
       if (oldTicket.usuario_id && oldTicket.usuario_id !== changedByUserId) {
@@ -1187,12 +1208,26 @@ class TicketsService {
     const oldTicket = await this.getById(id);
     if (!oldTicket) return;
 
+    let oldStatusConfig = null;
+    let newStatusConfig = null;
+    if (data.status && data.status !== oldTicket.status) {
+      if (!isValidTicketStatus(data.status)) {
+        throw new Error(`Status inválido: ${data.status}`);
+      }
+
+      oldStatusConfig = await getTicketStatusConfig(oldTicket.empresa_id, oldTicket.status);
+      newStatusConfig = await getTicketStatusConfig(oldTicket.empresa_id, data.status);
+      if (!newStatusConfig || newStatusConfig.ativo !== 1) {
+        throw new Error('Status não existe no fluxo de atendimento desta empresa');
+      }
+    }
+
     const fields: string[] = [];
     const paramsList: any[] = [];
 
     // Finalizado_em logic
     if (data.status) {
-      if (['resolvido', 'fechado'].includes(data.status)) {
+      if (isFinalTicketStatusSpecial(newStatusConfig?.especial)) {
         fields.push('finalizado_em = NOW()');
       } else {
         fields.push('finalizado_em = NULL');
@@ -1213,9 +1248,12 @@ class TicketsService {
 
     // Sprint 2: Handle SLA status Operational and Pause/Resume if status changed
     if (data.status && data.status !== oldTicket.status) {
-      if (data.status === 'aguardando_cliente') {
+      const oldWasCustomerWaiting = isCustomerWaitingTicketStatusSpecial(oldStatusConfig?.especial);
+      const newIsCustomerWaiting = isCustomerWaitingTicketStatusSpecial(newStatusConfig?.especial);
+
+      if (newIsCustomerWaiting) {
         await slaService.pauseSla(id, currentUser?.id || null);
-      } else if (oldTicket.status === 'aguardando_cliente' && data.status !== 'aguardando_cliente') {
+      } else if (oldWasCustomerWaiting && !newIsCustomerWaiting) {
         await slaService.resumeSla(id, currentUser?.id || null);
       } else {
         await slaService.updateOperationalStatus(id);
@@ -1239,8 +1277,7 @@ class TicketsService {
       }
 
       if (data.status && data.status !== oldTicket.status) {
-        const translateStatus: any = { aberto: 'Aberto', em_andamento: 'Em Andamento', aguardando_cliente: 'Aguardando Cliente', resolvido: 'Resolvido', fechado: 'Fechado' };
-        const newStatusText = translateStatus[data.status] || data.status;
+        const newStatusText = newStatusConfig?.nome || labelFromStatus(data.status);
 
         // Notificar cliente
         if (oldTicket.usuario_id) {
@@ -1268,7 +1305,7 @@ class TicketsService {
         }
         
         // Disparar e-mail externo para cliente se resolvido ou fechado
-        if ((data.status === 'resolvido' || data.status === 'fechado') && oldTicket.cliente_email && oldTicket.cliente_email !== 'removido@sistema.com') {
+        if (isFinalTicketStatusSpecial(newStatusConfig?.especial) && oldTicket.cliente_email && oldTicket.cliente_email !== 'removido@sistema.com') {
           // Determine reason if available (it might be in 'data' object being updated now)
           const motivo = data.resolucao_motivo || oldTicket.resolucao_motivo;
           const observacao = data.resolucao_observacao || oldTicket.resolucao_observacao;
@@ -1279,7 +1316,7 @@ class TicketsService {
             ticketId: id,
             empresaId: oldTicket.empresa_id,
             emailChannelId: oldTicket.email_channel_id,
-            type: data.status === 'resolvido' ? 'ticket_resolved' : 'ticket_closed',
+            type: newStatusConfig?.especial === 'encerrado' ? 'ticket_closed' : 'ticket_resolved',
             title: oldTicket.titulo,
             customerName: oldTicket.cliente_nome,
             status: newStatusText,
@@ -1302,7 +1339,7 @@ class TicketsService {
     
     // Automations & CSAT
     try {
-      if (data.status && ['resolvido', 'fechado'].includes(data.status) && !['resolvido', 'fechado'].includes(oldTicket.status)) {
+      if (data.status && isFinalTicketStatusSpecial(newStatusConfig?.especial) && !isFinalTicketStatusSpecial(oldStatusConfig?.especial)) {
         await this.ensureSatisfactionSurvey(id, oldTicket.empresa_id, currentUser?.id || null);
 
         await recordTicketEvent({
@@ -1472,7 +1509,7 @@ class TicketsService {
 
   async resolveTicket(id: number, data: any, currentUser: any) {
     const { status, resolucao_motivo, resolucao_observacao } = data;
-    if (!['resolvido', 'fechado'].includes(status)) throw new Error('Status inválido para resolução');
+    if (!isValidTicketStatus(status)) throw new Error('Status inválido para resolução');
     if (!resolucao_motivo) throw new Error('Motivo de resolução é obrigatório');
 
     const validMotivos = [
@@ -1489,6 +1526,12 @@ class TicketsService {
     const oldTicket = await this.getById(id);
     if (!oldTicket) throw new Error('Ticket não encontrado');
 
+    const oldStatusConfig = await getTicketStatusConfig(oldTicket.empresa_id, oldTicket.status);
+    const newStatusConfig = await getTicketStatusConfig(oldTicket.empresa_id, status);
+    if (!newStatusConfig || newStatusConfig.ativo !== 1 || !isFinalTicketStatusSpecial(newStatusConfig.especial)) {
+      throw new Error('Status inválido para resolução');
+    }
+
     const observacao = resolucao_observacao ? String(resolucao_observacao).substring(0, 2000) : null;
     let sla_resolucao_status = oldTicket.sla_resolucao_status;
     if (oldTicket.prazo_sla) {
@@ -1503,13 +1546,13 @@ class TicketsService {
     );
 
     // Sprint 2: Sync SLA Status
-    if (oldTicket.status === 'aguardando_cliente') {
+    if (isCustomerWaitingTicketStatusSpecial(oldStatusConfig?.especial)) {
       await slaService.resumeSla(id, currentUser?.id || null);
     } else {
       await slaService.updateOperationalStatus(id);
     }
 
-    if (!['resolvido', 'fechado'].includes(oldTicket.status)) {
+    if (!isFinalTicketStatusSpecial(oldStatusConfig?.especial)) {
       await this.ensureSatisfactionSurvey(id, oldTicket.empresa_id, currentUser?.id || null);
 
       await recordTicketEvent({
@@ -1534,15 +1577,20 @@ class TicketsService {
   async reopenTicket(id: number, currentUser: any) {
     const ticket = await this.getById(id);
     if (!ticket) throw new Error('Ticket não encontrado');
-    if (!['resolvido', 'fechado'].includes(ticket.status)) throw new Error('Apenas tickets resolvidos ou fechados podem ser reabertos');
+    const currentStatusConfig = await getTicketStatusConfig(ticket.empresa_id, ticket.status);
+    if (!isFinalTicketStatusSpecial(currentStatusConfig?.especial)) {
+      throw new Error('Apenas tickets resolvidos ou fechados podem ser reabertos');
+    }
+
+    const reopenStatus = await getReopenTicketStatusValue(ticket.empresa_id);
 
     await pool.query(
-      'UPDATE tickets SET status = "aberto", finalizado_em = NULL, reaberto_em = NOW(), reaberto_por = ?, updated_at = NOW() WHERE id = ?',
-      [currentUser.id, id]
+      'UPDATE tickets SET status = ?, finalizado_em = NULL, reaberto_em = NOW(), reaberto_por = ?, updated_at = NOW() WHERE id = ?',
+      [reopenStatus, currentUser.id, id]
     );
 
     // Sprint 2: Sync SLA Status
-    if (ticket.status === 'aguardando_cliente') {
+    if (isCustomerWaitingTicketStatusSpecial(currentStatusConfig?.especial)) {
       await slaService.resumeSla(id, currentUser.id);
     } else {
       await slaService.updateOperationalStatus(id);

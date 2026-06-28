@@ -104,7 +104,11 @@ const escapeHtml = (unsafe) => {
 export const buildTicketEmailTemplate = (params) => {
     const { type, ticketId, title, customerName = 'Cliente', agentName = 'Nossa equipe', message = '', status = 'Aberto', priority = 'Normal', category = 'Geral', resolutionReason = '', resolutionObservation = '' } = params;
     let subject = '';
-    let contentHtml = '';
+    let headline = '';
+    let leadText = '';
+    let messageLabel = 'Mensagem';
+    let messageHtml = '';
+    let actionHtml = '';
     const safeTitle = escapeHtml(title);
     const safeCustomerName = escapeHtml(customerName);
     const safeAgentName = escapeHtml(agentName);
@@ -112,83 +116,156 @@ export const buildTicketEmailTemplate = (params) => {
     const safeCategory = escapeHtml(category);
     const safePriority = escapeHtml(priority);
     const safeStatus = escapeHtml(status);
+    const safeResolutionReason = escapeHtml(resolutionReason);
+    const safeResolutionObservation = escapeHtml(resolutionObservation);
+    const safeSubjectTitle = String(title || '').replace(/[\r\n]+/g, ' ').trim();
+    const normalizedStatus = String(status || '').toLowerCase();
+    const statusColor = normalizedStatus.includes('resol') || normalizedStatus.includes('fech')
+        ? '#15803d'
+        : normalizedStatus.includes('aguard')
+            ? '#b45309'
+            : '#2563eb';
+    const statusBg = normalizedStatus.includes('resol') || normalizedStatus.includes('fech')
+        ? '#dcfce7'
+        : normalizedStatus.includes('aguard')
+            ? '#fef3c7'
+            : '#dbeafe';
     switch (type) {
         case 'ticket_created':
-            subject = `[Ticket #${ticketId}] Recebemos sua solicitação: ${title}`;
-            contentHtml = `
-        <p>Olá, ${safeCustomerName}.</p>
-        <p>Recebemos sua solicitação e abrimos o chamado <strong>#${ticketId}</strong>.</p>
-        <div style="background-color: #f8fafc; padding: 16px; border-radius: 8px; margin: 16px 0; border: 1px solid #e2e8f0;">
-          <h4 style="margin-top: 0; color: #334155; font-size: 14px; text-transform: uppercase;">Resumo do chamado</h4>
-          <p style="margin: 4px 0;"><strong>Título:</strong> ${safeTitle}</p>
-          <p style="margin: 4px 0;"><strong>Categoria:</strong> ${safeCategory}</p>
-          <p style="margin: 4px 0;"><strong>Prioridade:</strong> ${safePriority}</p>
-          <p style="margin: 4px 0;"><strong>Status:</strong> ${safeStatus}</p>
-        </div>
-        <div style="margin: 16px 0;">
-          <h4 style="margin-bottom: 8px; color: #334155; font-size: 14px; text-transform: uppercase;">Mensagem recebida:</h4>
-          <blockquote style="margin: 0; padding-left: 12px; border-left: 4px solid #cbd5e1; color: #475569; font-style: italic;">
-            ${safeMessage}
-          </blockquote>
-        </div>
-        <p>Nossa equipe irá analisar sua solicitação e responderá por este mesmo e-mail.</p>
-        <p>Para adicionar novas informações, basta responder esta mensagem.</p>
-      `;
+            subject = `[Ticket #${ticketId}] Recebemos sua solicitação: ${safeSubjectTitle}`;
+            headline = 'Recebemos sua solicitação';
+            leadText = `Olá, ${safeCustomerName}. Abrimos o chamado <strong>#${ticketId}</strong> e nossa equipe vai acompanhar por este mesmo e-mail.`;
+            messageLabel = 'Mensagem recebida';
+            messageHtml = safeMessage;
+            actionHtml = 'Para adicionar novas informações, basta responder este e-mail. Sua resposta será registrada automaticamente no chamado.';
             break;
         case 'agent_reply':
-            subject = `[Ticket #${ticketId}] Nova resposta: ${title}`;
-            // S5 fix: usar SEMPRE safeMessage (escapado via escapeHtml, que também
-            // converte quebras de linha em <br>). Não interpolar a mensagem crua.
-            contentHtml = `
-        <p>Olá, ${safeCustomerName}.</p>
-        <p><strong>${safeAgentName}</strong> respondeu ao seu chamado <strong>#${ticketId}</strong>.</p>
-        <div style="background-color: #f8fafc; padding: 16px; border-radius: 8px; margin: 16px 0; border: 1px solid #e2e8f0;">
-          <p style="margin: 0;">${safeMessage}</p>
-        </div>
-        <p>Status atual: <strong>${safeStatus}</strong></p>
-        <p>Para continuar o atendimento, responda este e-mail. Sua resposta será adicionada automaticamente ao chamado.</p>
-      `;
+            subject = `[Ticket #${ticketId}] Nova resposta: ${safeSubjectTitle}`;
+            headline = 'Nova resposta no seu chamado';
+            leadText = `Olá, ${safeCustomerName}. <strong>${safeAgentName}</strong> respondeu ao chamado <strong>#${ticketId}</strong>.`;
+            messageLabel = 'Resposta do atendimento';
+            messageHtml = safeMessage;
+            actionHtml = 'Para continuar o atendimento, responda este e-mail. Sua resposta será adicionada automaticamente ao chamado.';
             break;
         case 'ticket_resolved':
-            subject = `[Ticket #${ticketId}] Chamado resolvido: ${title}`;
-            contentHtml = `
-        <p>Olá, ${safeCustomerName}.</p>
-        <p>Seu chamado <strong>#${ticketId}</strong> foi marcado como <strong>resolvido</strong>.</p>
-        <div style="background-color: #f8fafc; padding: 16px; border-radius: 8px; margin: 16px 0; border: 1px solid #e2e8f0;">
-          <h4 style="margin-top: 0; color: #334155; font-size: 14px; text-transform: uppercase;">Resumo do fechamento</h4>
-          <p style="margin: 4px 0;"><strong>Título:</strong> ${safeTitle}</p>
-          <p style="margin: 4px 0;"><strong>Status:</strong> Resolvido</p>
-          ${resolutionReason ? `<p style="margin: 4px 0;"><strong>Motivo da resolução:</strong> ${escapeHtml(resolutionReason)}</p>` : ''}
-          ${resolutionObservation ? `<p style="margin: 4px 0;"><strong>Observação:</strong> ${escapeHtml(resolutionObservation)}</p>` : ''}
-        </div>
-        <p>Se ainda precisar de ajuda, responda este e-mail. Nossa equipe poderá reavaliar o atendimento.</p>
+            subject = `[Ticket #${ticketId}] Chamado resolvido: ${safeSubjectTitle}`;
+            headline = 'Chamado resolvido';
+            leadText = `Olá, ${safeCustomerName}. Seu chamado <strong>#${ticketId}</strong> foi marcado como resolvido.`;
+            messageLabel = 'Resumo do fechamento';
+            messageHtml = `
+        ${safeResolutionReason ? `<p style="margin:0 0 8px 0;"><strong>Motivo:</strong> ${safeResolutionReason}</p>` : ''}
+        ${safeResolutionObservation ? `<p style="margin:0;"><strong>Observação:</strong> ${safeResolutionObservation}</p>` : '<p style="margin:0;">O atendimento foi marcado como resolvido pela nossa equipe.</p>'}
       `;
+            actionHtml = 'Se ainda precisar de ajuda, responda este e-mail. Nossa equipe poderá reavaliar o atendimento.';
             break;
         case 'ticket_closed':
-            subject = `[Ticket #${ticketId}] Chamado encerrado: ${title}`;
-            contentHtml = `
-        <p>Olá, ${safeCustomerName}.</p>
-        <p>Seu chamado <strong>#${ticketId}</strong> foi <strong>encerrado</strong>.</p>
-        <div style="background-color: #f8fafc; padding: 16px; border-radius: 8px; margin: 16px 0; border: 1px solid #e2e8f0;">
-          <p style="margin: 4px 0;"><strong>Título:</strong> ${safeTitle}</p>
-          <p style="margin: 4px 0;"><strong>Status:</strong> Fechado</p>
-          <p style="margin: 4px 0;"><strong>Data de encerramento:</strong> ${new Date().toLocaleDateString('pt-BR')}</p>
-        </div>
-        <p>Este atendimento foi finalizado. Caso precise de ajuda novamente, responda este e-mail ou abra uma nova solicitação.</p>
+            subject = `[Ticket #${ticketId}] Chamado encerrado: ${safeSubjectTitle}`;
+            headline = 'Chamado encerrado';
+            leadText = `Olá, ${safeCustomerName}. Seu chamado <strong>#${ticketId}</strong> foi encerrado.`;
+            messageLabel = 'Encerramento';
+            messageHtml = `
+        <p style="margin:0 0 8px 0;"><strong>Data:</strong> ${new Date().toLocaleDateString('pt-BR')}</p>
+        <p style="margin:0;">Este atendimento foi finalizado.</p>
       `;
+            actionHtml = 'Caso precise de ajuda novamente, responda este e-mail ou abra uma nova solicitação.';
             break;
     }
     const html = `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6; color: #334155;">
-      <div style="padding: 32px 0;">
-        ${contentHtml}
-        <div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid #e2e8f0; font-size: 14px; color: #64748b;">
-          <p style="margin: 0;">Atenciosamente,</p>
-          <p style="margin: 4px 0 0 0; font-weight: 600; color: #334155;">Equipe de Atendimento</p>
-          <p style="margin: 4px 0 0 0;">Gestifique</p>
-        </div>
-      </div>
+    <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
+      Atualização do chamado #${ticketId}: ${safeSubjectTitle}
     </div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%; background:#f4f7fb; margin:0; padding:0; border-collapse:collapse;">
+      <tr>
+        <td align="center" style="padding:24px 12px;">
+          <table role="presentation" width="720" cellspacing="0" cellpadding="0" style="width:100%; max-width:720px; border-collapse:collapse;">
+            <tr>
+              <td style="background:#0f172a; border-radius:16px 16px 0 0; padding:22px 26px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+                  <tr>
+                    <td style="font-family:Arial, Helvetica, sans-serif; color:#ffffff;">
+                      <div style="font-size:13px; letter-spacing:.04em; text-transform:uppercase; color:#93c5fd; font-weight:700;">Gestifique</div>
+                      <div style="font-size:22px; line-height:1.25; font-weight:700; margin-top:6px;">${headline}</div>
+                    </td>
+                    <td align="right" style="font-family:Arial, Helvetica, sans-serif; color:#cbd5e1; font-size:13px; white-space:nowrap;">
+                      <span style="display:inline-block; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.16); color:#ffffff; border-radius:999px; padding:8px 12px; font-weight:700;">Ticket #${ticketId}</span>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="background:#ffffff; border:1px solid #dbe3ef; border-top:0; border-radius:0 0 16px 16px; overflow:hidden;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+                  <tr>
+                    <td style="padding:28px 30px 18px 30px; font-family:Arial, Helvetica, sans-serif; color:#1f2937;">
+                      <p style="margin:0; font-size:15px; line-height:1.65;">${leadText}</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:0 30px 20px 30px;">
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate; border-spacing:0; background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px;">
+                        <tr>
+                          <td style="padding:16px 18px; font-family:Arial, Helvetica, sans-serif;">
+                            <div style="font-size:12px; letter-spacing:.04em; text-transform:uppercase; color:#64748b; font-weight:700; margin-bottom:8px;">Resumo do chamado</div>
+                            <div style="font-size:17px; line-height:1.35; color:#0f172a; font-weight:700; margin-bottom:14px;">${safeTitle}</div>
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+                              <tr>
+                                <td style="padding:6px 0; font-size:13px; color:#64748b;">Status</td>
+                                <td align="right" style="padding:6px 0;">
+                                  <span style="display:inline-block; background:${statusBg}; color:${statusColor}; border-radius:999px; padding:5px 10px; font-size:12px; font-weight:700;">${safeStatus}</span>
+                                </td>
+                              </tr>
+                              <tr>
+                                <td style="padding:6px 0; font-size:13px; color:#64748b;">Prioridade</td>
+                                <td align="right" style="padding:6px 0; font-size:13px; color:#111827; font-weight:700;">${safePriority}</td>
+                              </tr>
+                              <tr>
+                                <td style="padding:6px 0; font-size:13px; color:#64748b;">Categoria</td>
+                                <td align="right" style="padding:6px 0; font-size:13px; color:#111827; font-weight:700;">${safeCategory}</td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:0 30px 20px 30px;">
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate; border-spacing:0; border:1px solid #dbeafe; border-radius:12px; background:#ffffff;">
+                        <tr>
+                          <td style="padding:18px 20px; font-family:Arial, Helvetica, sans-serif;">
+                            <div style="font-size:12px; letter-spacing:.04em; text-transform:uppercase; color:#2563eb; font-weight:700; margin-bottom:10px;">${messageLabel}</div>
+                            <div style="font-size:15px; line-height:1.65; color:#1f2937;">${messageHtml}</div>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:0 30px 24px 30px;">
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate; border-spacing:0; background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px;">
+                        <tr>
+                          <td style="padding:14px 18px; font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:1.6; color:#1e3a8a;">
+                            ${actionHtml}
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:20px 30px 28px 30px; background:#fbfdff; border-top:1px solid #e5edf7; font-family:Arial, Helvetica, sans-serif;">
+                      <p style="margin:0 0 6px 0; font-size:13px; color:#64748b;">Atenciosamente,</p>
+                      <p style="margin:0; font-size:15px; color:#0f172a; font-weight:700;">Equipe de Atendimento</p>
+                      <p style="margin:4px 0 0 0; font-size:13px; color:#64748b;">Gestifique</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
   `;
     return { subject, html, text: html.replace(/<[^>]*>?/gm, '') };
 };
@@ -231,6 +308,13 @@ export const sendTicketEmail = async (params, options) => {
         html: template.html,
         text: template.text,
     };
+    if (params.attachments && params.attachments.length > 0) {
+        mailOptions.attachments = params.attachments.map(attachment => ({
+            filename: attachment.filename,
+            path: attachment.path,
+            contentType: attachment.contentType
+        }));
+    }
     if (params.inReplyTo) {
         mailOptions.inReplyTo = params.inReplyTo;
         mailOptions.references = params.references || [params.inReplyTo];

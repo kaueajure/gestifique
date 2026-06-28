@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
-import { Ticket, Message, User, TicketAttachment, TicketTimelineItem, TicketStatus } from '../../types';
+import { Ticket, Message, User, TicketAttachment, TicketTimelineItem, TicketOption, TicketStatus } from '../../types';
 import { AlertCircle, Loader2, CheckCircle2, X } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -35,6 +35,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [agents, setAgents] = useState<User[]>([]);
   const [ticketAttachments, setTicketAttachments] = useState<TicketAttachment[]>([]);
+  const [ticketStatusOptions, setTicketStatusOptions] = useState<TicketOption[]>([]);
 
   // Resolution Modal State
   const [isResolveModalOpen, setIsResolveModalOpen] = useState(false);
@@ -63,6 +64,16 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
       setMessages(messagesData);
       setTicketAttachments(attachmentsData);
       setTimeline(timelineData);
+
+      if (ticketData.empresa_id) {
+        try {
+          const statusRows = await api.get<TicketOption[]>(`/companies/${ticketData.empresa_id}/ticket-statuses`);
+          setTicketStatusOptions(statusRows);
+        } catch (statusErr) {
+          console.error('Erro ao carregar status do atendimento:', statusErr);
+          setTicketStatusOptions([]);
+        }
+      }
 
       // Marcar como lido
       api.post(`/tickets/${ticketId}/read`, {}).catch(err => {
@@ -129,7 +140,8 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
       // 1. Create Message
       const messageResponse = await api.post<{ id: number }>(`/tickets/${ticketId}/messages`, {
         mensagem: mensagem.trim() || 'Anexo enviado.',
-        interno: isInternal
+        interno: isInternal,
+        suppress_email: !isInternal && files.length > 0
       });
 
       const messageId = messageResponse.id;
@@ -286,6 +298,12 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
   const canAddInternalNote = hasPermission(currentUser, 'ticket_mensagens.comentar_interno');
   const canAttachFiles = hasPermission(currentUser, 'ticket_mensagens.anexar');
   const canDeleteAttachments = hasPermission(currentUser, 'ticket_mensagens.excluir_anexos');
+  const activeTicketStatusValues = new Set(
+    ticketStatusOptions
+      .filter(option => Number(option.ativo) === 1)
+      .map(option => option.valor)
+  );
+  const hasFechadoStatus = activeTicketStatusValues.has('fechado');
 
   return (
     <PageShell
@@ -307,10 +325,11 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
            canFinalize={canFinalize}
            canCloseTicket={canCloseTicket}
            canReopen={canReopen}
-           canEditPriority={canEditPriority}
-           canEditResponsavel={canEditResponsavel}
-           agents={agents}
-          />
+            canEditPriority={canEditPriority}
+            canEditResponsavel={canEditResponsavel}
+            agents={agents}
+            statusOptions={ticketStatusOptions}
+           />
       </div>
 
       {/* Main Workspace Grid */}
@@ -369,12 +388,13 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                    <TicketProperties 
                      ticket={ticket}
                      currentUser={currentUser}
-                     attachments={ticketAttachments}
-                     onUpdate={handleUpdateTicket}
-                     onArchive={handleArchiveTicket}
-                     onUpdateTags={handleUpdateTags}
-                     onUpdateCustomFields={handleUpdateCustomFields}
-                   />
+                      attachments={ticketAttachments}
+                      onUpdate={handleUpdateTicket}
+                      onArchive={handleArchiveTicket}
+                      canArchiveStatus={hasFechadoStatus}
+                      onUpdateTags={handleUpdateTags}
+                      onUpdateCustomFields={handleUpdateCustomFields}
+                    />
                  </motion.div>
                ) : (
                  <motion.div

@@ -9,6 +9,8 @@ import { logSystemAction } from '../utils/logger.js';
 import { ticketUpload } from '../middlewares/upload.js';
 import { validateUploadedFile } from '../utils/file-security.js';
 import pool from '../db/connection.js';
+import { emailOutboundService, trackTicketEmailMessageIds } from '../services/email-outbound.service.js';
+import { maskEmail, maskIdentifier } from '../utils/sanitize.js';
 const router = Router();
 function parseTicketQueue(value) {
     const validQueues = [
@@ -26,6 +28,11 @@ function parseTicketQueue(value) {
 const isAgentUser = (user) => !!(user.administrador || user.desenvolvedor || user.perfil === 'gestor' || user.perfil === 'atendente');
 const canManageTickets = (user) => !!(user.administrador || user.desenvolvedor || user.perfil === 'gestor');
 const FINAL_TICKET_STATUSES = new Set(['resolvido', 'fechado']);
+function isTicketStatusValidationError(message) {
+    return message.includes('Status inválido')
+        || message.includes('Status não existe')
+        || message.includes('Nenhum status ativo disponível');
+}
 async function ensureStatusTransitionPermission(res, currentUser, oldStatus, newStatus) {
     const oldValue = String(oldStatus || '');
     const newValue = String(newStatus || '');
@@ -102,6 +109,76 @@ async function getBulkActionPermissionError(currentUser, action, value) {
                 : 'Acesso proibido: Sem permissao para gerenciar tags em massa (tickets.gerenciar_tags).';
         default:
             return 'Acao invalida';
+    }
+}
+async function sendPublicAttachmentEmail(params) {
+    const { ticketId, messageId, currentUser, files } = params;
+    if (!isAgentUser(currentUser) || files.length === 0)
+        return;
+    const [rows] = await pool.query(`
+      SELECT
+        m.id AS message_id,
+        m.usuario_id AS message_usuario_id,
+        m.mensagem,
+        m.interno,
+        t.id AS ticket_id,
+        t.empresa_id,
+        t.usuario_id AS ticket_usuario_id,
+        t.titulo,
+        t.status,
+        t.email_channel_id,
+        t.message_id AS thread_message_id,
+        COALESCE(t.solicitante_nome, requester.nome, 'Cliente') AS cliente_nome,
+        COALESCE(t.solicitante_email, requester.email, 'removido@sistema.com') AS cliente_email,
+        COALESCE(author.nome, 'Equipe de Atendimento') AS author_name
+      FROM ticket_mensagens m
+      INNER JOIN tickets t ON t.id = m.ticket_id
+      LEFT JOIN usuarios requester ON requester.id = t.usuario_id
+      LEFT JOIN usuarios author ON author.id = m.usuario_id
+      WHERE m.id = ? AND m.ticket_id = ?
+      LIMIT 1
+    `, [messageId, ticketId]);
+    const row = rows[0];
+    if (!row || Number(row.interno) === 1)
+        return;
+    if (!row.cliente_email || row.cliente_email === 'removido@sistema.com')
+        return;
+    const messageAuthorId = row.message_usuario_id !== null && row.message_usuario_id !== undefined
+        ? Number(row.message_usuario_id)
+        : null;
+    const requesterUserId = row.ticket_usuario_id !== null && row.ticket_usuario_id !== undefined
+        ? Number(row.ticket_usuario_id)
+        : null;
+    if (messageAuthorId !== null && requesterUserId !== null && messageAuthorId === requesterUserId) {
+        return;
+    }
+    const outboundMessageId = `<ticket-${ticketId}-msg-${messageId}-attachments-${Date.now()}@gestifique.com.br>`;
+    const sendResult = await emailOutboundService.sendTicketEmail({
+        to: row.cliente_email,
+        ticketId,
+        empresaId: row.empresa_id,
+        emailChannelId: row.email_channel_id,
+        type: 'agent_reply',
+        title: row.titulo,
+        customerName: row.cliente_nome,
+        agentName: row.author_name,
+        message: row.mensagem || 'Anexo enviado.',
+        status: row.status || 'Aberto',
+        messageId: outboundMessageId,
+        inReplyTo: row.thread_message_id,
+        references: row.thread_message_id ? [row.thread_message_id] : undefined,
+        attachments: files.map(file => ({
+            filename: file.originalname,
+            path: file.path,
+            contentType: file.mimetype
+        }))
+    });
+    if (sendResult.success) {
+        console.log(`[TicketsRoutes] Attachment email sent to ${maskEmail(row.cliente_email)} for ticket #${ticketId} via ${sendResult.provider} (Message-ID: ${maskIdentifier(sendResult.messageId)})`);
+        await trackTicketEmailMessageIds(row.empresa_id, ticketId, outboundMessageId, sendResult);
+    }
+    else {
+        console.error('[TicketsRoutes] Attachment email failed:', sendResult.error);
     }
 }
 router.use(authMiddleware);
@@ -437,7 +514,7 @@ router.patch('/:id/resolve', async (req, res) => {
     }
     catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao finalizar ticket';
-        sendError(res, message);
+        sendError(res, message, isTicketStatusValidationError(message) ? 400 : 500);
     }
 });
 router.patch('/:id/reopen', async (req, res) => {
@@ -461,7 +538,7 @@ router.patch('/:id/reopen', async (req, res) => {
     }
     catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao reabrir ticket';
-        sendError(res, message);
+        sendError(res, message, isTicketStatusValidationError(message) ? 400 : 500);
     }
 });
 router.get('/:id', requirePermission('tickets.ver_detalhes'), async (req, res) => {
@@ -572,7 +649,7 @@ router.patch('/:id/status', async (req, res) => {
     }
     catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao atualizar status';
-        sendError(res, message);
+        sendError(res, message, isTicketStatusValidationError(message) ? 400 : 500);
     }
 });
 router.patch('/:id', async (req, res) => {
@@ -745,7 +822,7 @@ router.patch('/:id', async (req, res) => {
     }
     catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao atualizar ticket';
-        sendError(res, message);
+        sendError(res, message, isTicketStatusValidationError(message) ? 400 : 500);
     }
 });
 router.get('/:id/messages', async (req, res) => {
@@ -808,9 +885,12 @@ router.post('/:id/messages', async (req, res) => {
         if (!currentUser)
             return sendError(res, 'Não autenticado', 401);
         const id = parseInt(req.params.id);
-        const { mensagem, interno } = req.body;
+        const { mensagem, interno, suppress_email } = req.body;
         const isAgent = isAgentUser(currentUser);
         const isInternalCom = isAgent ? !!interno : false;
+        const suppressEmailNotification = isAgent
+            && !isInternalCom
+            && (suppress_email === true || suppress_email === 'true');
         const ticketResult = await ticketsService.getByIdForUser(id, currentUser);
         if (!ticketResult)
             return sendError(res, 'Ticket nÃ£o encontrado', 404);
@@ -833,7 +913,8 @@ router.post('/:id/messages', async (req, res) => {
             ticket_id: id,
             usuario_id: currentUser.id,
             mensagem,
-            interno: isInternalCom
+            interno: isInternalCom,
+            suppressEmailNotification
         }, currentUser);
         const empresaId = ticketResult.empresa_id || currentUser.empresa_id;
         await logSystemAction(req, currentUser.id, empresaId, 'MESSAGE_SEND', `Nova mensagem no chamado #${id}`);
@@ -948,6 +1029,19 @@ router.post('/:id/attachments', ticketUpload.array('files', 5), async (req, res)
             };
         }));
         await logSystemAction(req, currentUser.id, ticket.empresa_id, 'ATTACHMENT_UPLOAD', `Anexo(s) enviado(s) para o chamado #${id}`);
+        if (!isInternal && mensagem_id) {
+            try {
+                await sendPublicAttachmentEmail({
+                    ticketId: id,
+                    messageId: parseInt(mensagem_id),
+                    currentUser,
+                    files
+                });
+            }
+            catch (mailErr) {
+                console.error('[TicketsRoutes] Falha ao enviar anexos por e-mail:', mailErr);
+            }
+        }
         // Real-time update via WebSocket
         const io = req.app.get('io');
         if (io) {

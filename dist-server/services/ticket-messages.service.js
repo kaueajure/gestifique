@@ -13,6 +13,7 @@ class TicketMessagesService {
      */
     async addMessage(data, currentUser) {
         const { ticket_id, usuario_id, mensagem, interno, message_id, empresa_id, tipo = 'texto' } = data;
+        const suppressEmailNotification = !!data.suppressEmailNotification;
         if (!mensagem || mensagem.trim() === '') {
             throw new Error('A mensagem não pode estar vazia');
         }
@@ -185,7 +186,7 @@ class TicketMessagesService {
                     recipients.add(ticket.usuario_id);
                 }
                 // Send email to the external contact or registered user email
-                if (ticket.cliente_email && ticket.cliente_email !== 'removido@sistema.com') {
+                if (!suppressEmailNotification && ticket.cliente_email && ticket.cliente_email !== 'removido@sistema.com') {
                     // Get the original messageId from the ticket or the latest message for threading
                     const replyToId = ticket.message_id;
                     const outboundMessageId = `<ticket-${ticket_id}-msg-${messageId}-${Date.now()}@gestifique.com.br>`;
