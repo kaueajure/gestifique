@@ -16,11 +16,11 @@ export const DEFAULT_TICKET_WORKFLOW: TicketWorkflowStatus[] = [
 ];
 
 export const TICKET_STATUS_SPECIAL_OPTIONS: { value: TicketStatusSpecial; label: string; description: string }[] = [
-  { value: "normal", label: "Normal", description: "Etapa operacional comum do atendimento." },
-  { value: "inicial", label: "Inicial", description: "Todo ticket novo ou reaberto entra neste status." },
-  { value: "aguardando_cliente", label: "Aguardando cliente", description: "Pausa a fila de resposta do atendente e indica espera pelo cliente." },
-  { value: "finalizado", label: "Finalizado", description: "Conta como resolvido, gera fechamento operacional e pesquisa de satisfação." },
-  { value: "encerrado", label: "Encerrado", description: "Encerramento definitivo. Exige permissão de fechar." },
+  { value: "normal", label: "Normal", description: "Etapa de atendimento sem automação especial de entrada, pausa ou fechamento." },
+  { value: "inicial", label: "Inicial", description: "Ponto de entrada dos tickets novos e dos chamados reabertos." },
+  { value: "aguardando_cliente", label: "Aguardando cliente", description: "Indica que a próxima resposta depende do cliente e pausa o SLA operacional." },
+  { value: "finalizado", label: "Finalizado", description: "Registra a resolução do chamado e mantém possibilidade de reabertura." },
+  { value: "encerrado", label: "Encerrado", description: "Fechamento administrativo do ticket, protegido por permissão específica." },
 ];
 
 const STORAGE_KEY_PREFIX = "gestifique.ticketWorkflow";

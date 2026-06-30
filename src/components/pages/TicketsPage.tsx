@@ -36,6 +36,11 @@ import {
   Trash2,
   Check,
   X,
+  CircleDot,
+  PlayCircle,
+  PauseCircle,
+  CheckCircle2,
+  LockKeyhole,
 } from "lucide-react";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
@@ -165,6 +170,47 @@ const STATUS_COLOR_SWATCHES = [
   "#dc2626",
   "#64748b",
 ];
+
+const STATUS_SPECIAL_PRESENTATION: Record<
+  TicketStatusSpecial,
+  {
+    icon: React.ComponentType<{ size?: number; className?: string }>;
+    badge: string;
+    impact: string;
+    rule: string;
+  }
+> = {
+  normal: {
+    icon: CircleDot,
+    badge: "Etapa de trabalho",
+    impact: "Mantém o ticket ativo nas filas e no SLA.",
+    rule: "Use para triagem, atendimento, análise ou qualquer etapa operacional.",
+  },
+  inicial: {
+    icon: PlayCircle,
+    badge: "Entrada do fluxo",
+    impact: "Recebe tickets novos e chamados reabertos.",
+    rule: "A empresa precisa ter exatamente um status inicial ativo.",
+  },
+  aguardando_cliente: {
+    icon: PauseCircle,
+    badge: "Espera externa",
+    impact: "Pausa o SLA e tira o chamado da fila de resposta do atendente.",
+    rule: "Use quando a próxima ação depende do cliente.",
+  },
+  finalizado: {
+    icon: CheckCircle2,
+    badge: "Resolução",
+    impact: "Marca conclusão, grava dados de resolução e permite reabertura.",
+    rule: "Use para chamados resolvidos pela equipe.",
+  },
+  encerrado: {
+    icon: LockKeyhole,
+    badge: "Encerramento",
+    impact: "Exige permissão de fechamento e remove o ticket das pendências.",
+    rule: "Use para arquivamento, cancelamento definitivo ou fechamento administrativo.",
+  },
+};
 
 const getFloatingMenuPosition = (
   element: HTMLElement | null,
@@ -1866,39 +1912,120 @@ export const TicketsPage = ({
       <Modal
         isOpen={!!specialModalStatus}
         onClose={() => setSpecialStatusModalId(null)}
-        title={specialModalStatus ? `Função de ${specialModalStatus.label}` : "Função do status"}
+        title={specialModalStatus ? `Regra operacional de ${specialModalStatus.label}` : "Regra operacional do status"}
         size="lg"
       >
-        <div className="space-y-3">
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs leading-relaxed text-slate-600">
-            A função especial define como o sistema interpreta este status em criação, SLA, reabertura, finalização, filas e automações.
-          </div>
+        <div className="space-y-4">
+          {specialModalStatus && (
+            <div className="rounded-lg border border-slate-200 bg-white p-4">
+              <div className="flex items-start gap-3">
+                <div
+                  className="mt-0.5 h-9 w-9 shrink-0 rounded-md border border-white shadow-sm ring-1 ring-slate-200"
+                  style={{ backgroundColor: specialModalStatus.color || "#0891b2" }}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                    Status especial
+                  </div>
+                  <p className="mt-1 text-sm font-semibold leading-snug text-slate-900">
+                    Escolha como o sistema deve tratar este status nas filas, SLA, reabertura e fechamento.
+                  </p>
+                  <div className="mt-3 grid gap-2 text-xs sm:grid-cols-3">
+                    <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+                      <div className="font-semibold text-slate-400">Status</div>
+                      <div className="mt-0.5 truncate font-semibold text-slate-800">{specialModalStatus.label}</div>
+                    </div>
+                    <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+                      <div className="font-semibold text-slate-400">Identificador</div>
+                      <div className="mt-0.5 truncate font-mono text-[11px] font-semibold text-slate-700">{specialModalStatus.id}</div>
+                    </div>
+                    <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+                      <div className="font-semibold text-slate-400">Publicação</div>
+                      <div className="mt-0.5 font-semibold text-slate-800">Rascunho do fluxo</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid gap-2">
             {TICKET_STATUS_SPECIAL_OPTIONS.map((option) => {
               const selected = specialModalStatus?.special === option.value;
+              const presentation = STATUS_SPECIAL_PRESENTATION[option.value];
+              const SpecialIcon = presentation.icon;
               return (
                 <button
                   key={option.value}
                   type="button"
                   onClick={() => specialModalStatus && setWorkflowStatusSpecial(specialModalStatus.id, option.value)}
                   className={cn(
-                    "rounded-lg border p-3 text-left transition-colors",
+                    "group rounded-lg border p-3 text-left transition-colors",
                     selected
-                      ? "border-blue-200 bg-blue-50 text-blue-900"
-                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+                      ? "border-slate-900 bg-slate-950 text-white shadow-sm"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50",
                   )}
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm font-semibold">{option.label}</div>
-                    {selected && <Check size={15} />}
-                  </div>
-                  <div className="mt-1 text-xs leading-relaxed text-slate-500">
-                    {option.description}
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={cn(
+                        "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md border",
+                        selected
+                          ? "border-white/15 bg-white/10 text-white"
+                          : "border-slate-200 bg-slate-50 text-slate-500 group-hover:bg-white",
+                      )}
+                    >
+                      <SpecialIcon size={17} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="text-sm font-semibold">{option.label}</div>
+                        <span
+                          className={cn(
+                            "rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                            selected
+                              ? "border-white/15 bg-white/10 text-slate-200"
+                              : "border-slate-200 bg-slate-50 text-slate-500",
+                          )}
+                        >
+                          {presentation.badge}
+                        </span>
+                      </div>
+                      <p className={cn("mt-1 text-xs leading-relaxed", selected ? "text-slate-300" : "text-slate-500")}>
+                        {option.description}
+                      </p>
+                      <div className="mt-2 grid gap-1.5 text-[11px] sm:grid-cols-2">
+                        <div className={cn("rounded-md px-2 py-1.5", selected ? "bg-white/10 text-slate-200" : "bg-slate-50 text-slate-600")}>
+                          <span className="font-bold">Impacto:</span> {presentation.impact}
+                        </div>
+                        <div className={cn("rounded-md px-2 py-1.5", selected ? "bg-white/10 text-slate-200" : "bg-slate-50 text-slate-600")}>
+                          <span className="font-bold">Quando usar:</span> {presentation.rule}
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      className={cn(
+                        "mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border",
+                        selected
+                          ? "border-white bg-white text-slate-950"
+                          : "border-slate-300 text-transparent",
+                      )}
+                    >
+                      <Check size={13} />
+                    </div>
                   </div>
                 </button>
               );
             })}
+          </div>
+
+          <div className="flex flex-col gap-3 border-t border-slate-200 pt-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs leading-relaxed text-slate-500">
+              A escolha é aplicada ao rascunho. Para publicar, feche esta janela e clique em <span className="font-semibold text-slate-700">Salvar fluxo</span>.
+            </p>
+            <Button type="button" size="sm" onClick={() => setSpecialStatusModalId(null)}>
+              Concluir
+            </Button>
           </div>
         </div>
       </Modal>
