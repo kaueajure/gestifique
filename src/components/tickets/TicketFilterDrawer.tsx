@@ -73,6 +73,7 @@ export const TicketFilterDrawer: React.FC<TicketFilterDrawerProps> = ({
               </div>
               <button
                 onClick={onClose}
+                aria-label="Fechar filtros"
                 className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
               >
                 <X size={16} />
@@ -241,6 +242,7 @@ export const TicketFilterDrawer: React.FC<TicketFilterDrawerProps> = ({
                   setStatusFilter('todos');
                   setPriorityFilter('todas');
                   setCategoryFilter('todas');
+                  setServiceFilter('todos');
                   onClear();
                 }}
               >

@@ -4,7 +4,7 @@ import { Button } from '../ui/Button';
 import { Select } from '../ui/Select';
 import { BookOpen, Plus, Search, Edit2, Trash2, ShieldCheck, Globe, AlertCircle, X, Check, Save, Tag, LayoutGrid, LayoutList } from 'lucide-react';
 import { User } from '../../types';
-import MDEditor from '@uiw/react-md-editor';
+import MDEditor from '@uiw/react-md-editor/nohighlight';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { PageShell } from '../layout/PageShell';

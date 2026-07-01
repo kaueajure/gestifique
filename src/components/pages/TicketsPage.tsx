@@ -232,11 +232,64 @@ const getFloatingMenuPosition = (
 
 import { PageShell } from "../layout/PageShell";
 
+type TicketFilterSnapshot = TicketView["filtros_json"];
+
+const TICKET_FILTER_STATE_PREFIX = "gestifique.ticketFilters";
+const TICKET_LOCAL_VIEWS_PREFIX = "gestifique.ticketViews.local";
+
+const getTicketFilterStateKey = (userId: number) =>
+  `${TICKET_FILTER_STATE_PREFIX}.${userId}`;
+
+const getTicketLocalViewsKey = (userId: number, companyScope: string | number | null | undefined) =>
+  `${TICKET_LOCAL_VIEWS_PREFIX}.${userId}.${companyScope || "global"}`;
+
+const readStoredFilters = (userId: number): TicketFilterSnapshot | null => {
+  if (typeof window === "undefined") return null;
+  try {
+    const stored = window.localStorage.getItem(getTicketFilterStateKey(userId));
+    if (!stored) return null;
+    const parsed = JSON.parse(stored) as TicketFilterSnapshot;
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const readLocalViews = (
+  userId: number,
+  companyScope: string | number | null | undefined,
+): TicketView[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const stored = window.localStorage.getItem(getTicketLocalViewsKey(userId, companyScope));
+    if (!stored) return [];
+    const parsed = JSON.parse(stored) as TicketView[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeLocalViews = (
+  userId: number,
+  companyScope: string | number | null | undefined,
+  views: TicketView[],
+) => {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(
+    getTicketLocalViewsKey(userId, companyScope),
+    JSON.stringify(views),
+  );
+};
+
 export const TicketsPage = ({
   onSelectTicket,
   currentUser,
 }: TicketsPageProps) => {
-  const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
+  const initialStoredFilters = useRef(readStoredFilters(currentUser.id));
+  const [viewMode, setViewMode] = useState<"kanban" | "list">(
+    initialStoredFilters.current?.mode || "kanban",
+  );
   const [isMobileViewport, setIsMobileViewport] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth < 768 : false,
   );
@@ -266,18 +319,25 @@ export const TicketsPage = ({
   };
 
   // Filters
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("todos");
-  const [priorityFilter, setPriorityFilter] = useState("todas");
-  const [categoryFilter, setCategoryFilter] = useState("todas");
-  const [serviceFilter, setServiceFilter] = useState("todos");
-  const [selectedQueue, setSelectedQueue] = useState<TicketQueue>("todos");
-  const [sortBy, setSortBy] = useState<TicketSortKey>("operacional");
-  const [sortOrder, setSortOrder] = useState<TicketSortOrder>("desc");
+  const [searchTerm, setSearchTerm] = useState<string>(initialStoredFilters.current?.search || "");
+  const [statusFilter, setStatusFilter] = useState<string>(initialStoredFilters.current?.status || "todos");
+  const [priorityFilter, setPriorityFilter] = useState<string>(initialStoredFilters.current?.prioridade || "todas");
+  const [categoryFilter, setCategoryFilter] = useState<string>(initialStoredFilters.current?.categoria || "todas");
+  const [serviceFilter, setServiceFilter] = useState<string>(initialStoredFilters.current?.servico || "todos");
+  const [selectedQueue, setSelectedQueue] = useState<TicketQueue>(
+    initialStoredFilters.current?.fila || "todos",
+  );
+  const [sortBy, setSortBy] = useState<TicketSortKey>(
+    initialStoredFilters.current?.sort_by || "operacional",
+  );
+  const [sortOrder, setSortOrder] = useState<TicketSortOrder>(
+    initialStoredFilters.current?.sort_order || "desc",
+  );
 
   // Advanced Filters
   const [advancedFilters, setAdvancedFilters] = useState<IAdvancedFilters>({
-    sla_status: "todos",
+    ...(initialStoredFilters.current?.advanced || {}),
+    sla_status: initialStoredFilters.current?.advanced?.sla_status || "todos",
   });
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showTeamSidebar, setShowTeamSidebar] = useState(false);
@@ -285,6 +345,7 @@ export const TicketsPage = ({
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const moreQueuesButtonRef = useRef<HTMLButtonElement | null>(null);
   const categoryButtonRef = useRef<HTMLButtonElement | null>(null);
+  const fetchRunRef = useRef(0);
   const [moreQueuesMenuPosition, setMoreQueuesMenuPosition] = useState<{
     top: number;
     left: number;
@@ -319,6 +380,8 @@ export const TicketsPage = ({
   // Saved Views
   const [savedViews, setSavedViews] = useState<TicketView[]>([]);
   const [currentViewId, setCurrentViewId] = useState<number | null>(null);
+  const [showSaveViewModal, setShowSaveViewModal] = useState(false);
+  const [newViewName, setNewViewName] = useState("");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -680,7 +743,21 @@ export const TicketsPage = ({
     setDevCompanyId(companyId);
     setCategoryFilter("todas");
     setServiceFilter("todos");
+    setCurrentViewId(null);
   };
+
+  const getCurrentFilterSnapshot = (): TicketFilterSnapshot => ({
+    status: statusFilter as any,
+    prioridade: priorityFilter as any,
+    categoria: categoryFilter,
+    servico: serviceFilter,
+    fila: selectedQueue,
+    search: searchTerm,
+    advanced: advancedFilters,
+    mode: viewMode,
+    sort_by: sortBy,
+    sort_order: sortOrder,
+  });
 
   const updateFloatingMenuPositions = () => {
     if (showMoreQueues) {
@@ -745,18 +822,23 @@ export const TicketsPage = ({
   }, [currentUser, devCompanyId]);
 
   const fetchViews = async (empresaId?: string) => {
+    const localViews = readLocalViews(currentUser.id, empresaId || currentUser.empresa_id);
     try {
       const url = empresaId
         ? `/tickets/views?empresa_id=${empresaId}`
         : "/tickets/views";
       const views = await api.get<TicketView[]>(url);
-      setSavedViews(views);
+      setSavedViews([...views, ...localViews]);
     } catch (err) {
       console.error("Erro ao carregar views:", err);
+      setSavedViews(localViews);
     }
   };
 
   const fetchData = async () => {
+    const runId = fetchRunRef.current + 1;
+    fetchRunRef.current = runId;
+
     if (!!currentUser.desenvolvedor && !devCompanyId) {
       setTicketsResponse({
         data: [],
@@ -783,7 +865,7 @@ export const TicketsPage = ({
         },
         queues: EMPTY_QUEUES,
       });
-      setLoading(false);
+      if (fetchRunRef.current === runId) setLoading(false);
       return;
     }
 
@@ -835,6 +917,7 @@ export const TicketsPage = ({
         // Compatibility check in case the backend hasn't been reloaded yet to return the new format
         const response = await api.get(`/tickets?${query.toString()}`);
         if (Array.isArray(response)) {
+          if (fetchRunRef.current !== runId) return;
           setTicketsResponse({
             data: response as Ticket[],
             meta: { page: 1, limit: 15, total: response.length, totalPages: 1 },
@@ -848,6 +931,7 @@ export const TicketsPage = ({
             },
           });
         } else {
+          if (fetchRunRef.current !== runId) return;
           setTicketsResponse(response as TicketListResponse);
         }
       } else {
@@ -855,17 +939,19 @@ export const TicketsPage = ({
         const kanbanData = await api.get<TicketKanbanResponse>(
           `/tickets/kanban?${query.toString()}`,
         );
+        if (fetchRunRef.current !== runId) return;
         setKanbanResponse(kanbanData);
       }
 
       // Clear selection on refresh
-      setSelectedTicketIds([]);
+      if (fetchRunRef.current === runId) setSelectedTicketIds([]);
     } catch (err) {
+      if (fetchRunRef.current !== runId) return;
       const message =
         err instanceof Error ? err.message : "Erro ao carregar chamados.";
       setError(message);
     } finally {
-      setLoading(false);
+      if (fetchRunRef.current === runId) setLoading(false);
     }
   };
 
@@ -877,6 +963,7 @@ export const TicketsPage = ({
     statusFilter,
     priorityFilter,
     categoryFilter,
+    serviceFilter,
     effectiveViewMode,
     devCompanyId,
     selectedQueue,
@@ -895,11 +982,54 @@ export const TicketsPage = ({
     statusFilter,
     priorityFilter,
     categoryFilter,
+    serviceFilter,
     effectiveViewMode,
     currentPage,
     devCompanyId,
     selectedQueue,
     advancedFilters,
+    sortBy,
+    sortOrder,
+  ]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(
+      getTicketFilterStateKey(currentUser.id),
+      JSON.stringify(getCurrentFilterSnapshot()),
+    );
+  }, [
+    currentUser.id,
+    searchTerm,
+    statusFilter,
+    priorityFilter,
+    categoryFilter,
+    serviceFilter,
+    selectedQueue,
+    advancedFilters,
+    viewMode,
+    sortBy,
+    sortOrder,
+  ]);
+
+  useEffect(() => {
+    if (!currentViewId) return;
+    const activeView = savedViews.find((view) => view.id === currentViewId);
+    if (!activeView) return;
+    if (JSON.stringify(activeView.filtros_json) !== JSON.stringify(getCurrentFilterSnapshot())) {
+      setCurrentViewId(null);
+    }
+  }, [
+    currentViewId,
+    savedViews,
+    searchTerm,
+    statusFilter,
+    priorityFilter,
+    categoryFilter,
+    serviceFilter,
+    selectedQueue,
+    advancedFilters,
+    viewMode,
     sortBy,
     sortOrder,
   ]);
@@ -969,33 +1099,27 @@ export const TicketsPage = ({
       return;
     }
 
+    const cleanName = nome.trim();
+    if (!cleanName) {
+      addToast("Informe um nome para o filtro salvo.", "error");
+      return;
+    }
+
+    const filtros_json = getCurrentFilterSnapshot();
+    const empresa_id = currentUser.desenvolvedor
+      ? Number(devCompanyId)
+      : currentUser.empresa_id;
+
     try {
-      const filtros_json = {
-        status: statusFilter as any,
-        prioridade: priorityFilter as any,
-        categoria: categoryFilter,
-        servico: serviceFilter,
-        fila: selectedQueue,
-        search: searchTerm,
-        advanced: advancedFilters,
-        mode: viewMode,
-        sort_by: sortBy,
-        sort_order: sortOrder,
-      };
-
-      const empresa_id = currentUser.desenvolvedor
-        ? Number(devCompanyId)
-        : currentUser.empresa_id;
-
       const response = await api.post<{ id: number }>("/tickets/views", {
-        nome,
+        nome: cleanName,
         filtros_json,
         empresa_id,
       });
 
       const newView: TicketView = {
         id: response.id,
-        nome,
+        nome: cleanName,
         filtros_json,
         empresa_id: empresa_id || 0,
         usuario_id: currentUser.id,
@@ -1006,14 +1130,40 @@ export const TicketsPage = ({
       setCurrentViewId(response.id);
       addToast("Visualização salva com sucesso!");
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Erro ao salvar view";
-      addToast(message, "error");
+      const companyScope = currentUser.desenvolvedor ? devCompanyId : currentUser.empresa_id;
+      const localView: TicketView = {
+        id: -Date.now(),
+        nome: cleanName,
+        filtros_json,
+        empresa_id: empresa_id || 0,
+        usuario_id: currentUser.id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      const nextLocalViews = [
+        ...readLocalViews(currentUser.id, companyScope),
+        localView,
+      ];
+      writeLocalViews(currentUser.id, companyScope, nextLocalViews);
+      setSavedViews((prev) => [...prev, localView]);
+      setCurrentViewId(localView.id);
+      addToast("Filtro salvo localmente neste navegador.", "info");
+      return;
     }
   };
 
   const handleDeleteView = async (id: number) => {
     if (!confirm("Deseja excluir esta view?")) return;
+    if (id < 0) {
+      const companyScope = currentUser.desenvolvedor ? devCompanyId : currentUser.empresa_id;
+      const nextLocalViews = readLocalViews(currentUser.id, companyScope).filter((v) => v.id !== id);
+      writeLocalViews(currentUser.id, companyScope, nextLocalViews);
+      setSavedViews((prev) => prev.filter((v) => v.id !== id));
+      if (currentViewId === id) setCurrentViewId(null);
+      addToast("Filtro salvo removido.");
+      return;
+    }
+
     try {
       await api.delete(`/tickets/views/${id}`);
       setSavedViews((prev) => prev.filter((v) => v.id !== id));
@@ -1198,6 +1348,19 @@ export const TicketsPage = ({
   const queueCounts =
     effectiveViewMode === "list" ? ticketsResponse?.queues : kanbanResponse?.queues;
 
+  const activeSavedView = savedViews.find((view) => view.id === currentViewId) || null;
+  const savedViewOptions = [
+    {
+      value: "",
+      label: savedViews.length > 0 ? "Filtros salvos" : "Sem filtros salvos",
+      disabled: savedViews.length === 0,
+    },
+    ...savedViews.map((view) => ({
+      value: String(view.id),
+      label: view.nome,
+    })),
+  ];
+
   const moreActionOptions = [
     { value: "", label: "Mais" },
     { value: "filtros", label: "Filtros" },
@@ -1287,6 +1450,49 @@ export const TicketsPage = ({
                     />
                   </div>
                 )}
+
+                <div className="flex min-w-[180px] flex-1 items-center gap-1 sm:flex-none">
+                  <Select
+                    size="sm"
+                    value={currentViewId ? String(currentViewId) : ""}
+                    onChange={(value) => {
+                      if (!value) return;
+                      const selected = savedViews.find((view) => String(view.id) === value);
+                      if (selected) handleSelectView(selected);
+                    }}
+                    options={savedViewOptions}
+                    className="min-w-0 flex-1 sm:w-44"
+                    buttonClassName={cn(
+                      "h-9 bg-slate-50 border-slate-200 text-[11px]",
+                      activeSavedView && "border-blue-200 bg-blue-50 text-blue-700",
+                    )}
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-9 w-9 rounded-md p-0"
+                    onClick={() => {
+                      setNewViewName(activeSavedView?.nome || "");
+                      setShowSaveViewModal(true);
+                    }}
+                    title="Salvar filtro atual"
+                    aria-label="Salvar filtro atual"
+                  >
+                    <Save size={14} />
+                  </Button>
+                  {activeSavedView && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-9 w-9 rounded-md p-0 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                      onClick={() => handleDeleteView(activeSavedView.id)}
+                      title="Excluir filtro salvo"
+                      aria-label="Excluir filtro salvo"
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+                  )}
+                </div>
 
                 <Button
                   size="sm"
@@ -1685,6 +1891,56 @@ export const TicketsPage = ({
           fetchData();
         }}
       />
+
+      <Modal
+        isOpen={showSaveViewModal}
+        onClose={() => setShowSaveViewModal(false)}
+        title="Salvar filtro"
+        size="sm"
+        footer={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowSaveViewModal(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              onClick={async () => {
+                await handleSaveView(newViewName);
+                setShowSaveViewModal(false);
+                setNewViewName("");
+              }}
+              disabled={!newViewName.trim()}
+            >
+              <Save size={14} />
+              Salvar
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <Input
+            label="Nome do filtro"
+            placeholder="Ex.: Vencidos sem responsável"
+            value={newViewName}
+            onChange={(event) => setNewViewName(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && newViewName.trim()) {
+                handleSaveView(newViewName);
+                setShowSaveViewModal(false);
+                setNewViewName("");
+              }
+            }}
+            autoFocus
+          />
+          <p className="text-xs leading-relaxed text-slate-500">
+            O filtro salva busca, fila, status, prioridade, responsável, SLA, período e modo de visualização.
+          </p>
+        </div>
+      </Modal>
 
       <Modal
         isOpen={showWorkflowSettings}

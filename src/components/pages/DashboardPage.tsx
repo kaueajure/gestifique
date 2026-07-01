@@ -3,6 +3,7 @@ import {
   AlertCircle,
   BarChart3,
   Building,
+  CalendarDays,
   CheckCircle2,
   ChevronRight,
   Clock3,
@@ -12,12 +13,13 @@ import {
   User as UserIcon,
 } from "lucide-react";
 import { api } from "../../lib/api";
-import { DashboardData, Ticket } from "../../types";
+import { DashboardData, Empresa, Ticket, User } from "../../types";
 import { PageShell } from "../layout/PageShell";
 import { MetricCard } from "../ui/MetricCard";
 import { Card, CardHeader } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
+import { Select } from "../ui/Select";
 import { LoadingState } from "../ui/LoadingState";
 import { ErrorState } from "../ui/ErrorState";
 import { EmptyState } from "../ui/EmptyState";
@@ -27,8 +29,10 @@ import {
   statusToBadgeVariant,
 } from "../../lib/utils";
 import { cn } from "../../lib/utils";
+import { hasPermission } from "../../lib/permissions";
 
 interface DashboardPageProps {
+  currentUser: User;
   onNavigate?: (
     tab:
       | "dashboard"
@@ -47,6 +51,7 @@ type ChartRow = {
 };
 
 const numberFormatter = new Intl.NumberFormat("pt-BR");
+const dateFormatter = new Intl.DateTimeFormat("pt-BR");
 
 const toNumber = (value: unknown) => {
   const parsed = Number(value || 0);
@@ -80,6 +85,30 @@ const priorityLabel = (priority: string) => {
     sem_prioridade: "Sem prioridade",
   };
   return labels[priority] || statusLabel(priority);
+};
+
+const todayInputValue = () => new Date().toISOString().slice(0, 10);
+
+const daysAgoInputValue = (days: number) => {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date.toISOString().slice(0, 10);
+};
+
+const periodLabel = (period: string, from?: string, to?: string) => {
+  const labels: Record<string, string> = {
+    month: "Mês atual",
+    "7d": "Últimos 7 dias",
+    "30d": "Últimos 30 dias",
+    "90d": "Últimos 90 dias",
+    custom: "Período personalizado",
+  };
+
+  if (period === "custom" && from && to) {
+    return `${dateFormatter.format(new Date(`${from}T00:00:00`))} a ${dateFormatter.format(new Date(`${to}T00:00:00`))}`;
+  }
+
+  return labels[period] || labels.month;
 };
 
 const normalizeRows = <T extends Record<string, unknown>>(
@@ -155,17 +184,38 @@ const BarList = ({
   );
 };
 
-export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
+export const DashboardPage = ({ currentUser, onNavigate }: DashboardPageProps) => {
   const [stats, setStats] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [period, setPeriod] = useState("month");
+  const [dateFrom, setDateFrom] = useState(daysAgoInputValue(29));
+  const [dateTo, setDateTo] = useState(todayInputValue());
+  const [companyId, setCompanyId] = useState("");
+  const [responsavelId, setResponsavelId] = useState("");
+  const [companies, setCompanies] = useState<Empresa[]>([]);
+  const [agents, setAgents] = useState<User[]>([]);
+
+  const canFilterCompanies = currentUser.desenvolvedor;
+  const canFilterResponsavel =
+    currentUser.desenvolvedor ||
+    currentUser.administrador ||
+    hasPermission(currentUser, "relatorios.ver_todos_usuarios");
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       setError(null);
       try {
-        const data = await api.get<DashboardData>("/dashboard/summary");
+        const params = new URLSearchParams({ period });
+        if (period === "custom") {
+          if (dateFrom) params.set("from", dateFrom);
+          if (dateTo) params.set("to", dateTo);
+        }
+        if (canFilterCompanies && companyId) params.set("empresa_id", companyId);
+        if (canFilterResponsavel && responsavelId) params.set("responsavel_id", responsavelId);
+
+        const data = await api.get<DashboardData>(`/dashboard/summary?${params.toString()}`);
         setStats(data);
       } catch (err) {
         setError(
@@ -178,7 +228,25 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
       }
     };
     fetchData();
-  }, []);
+  }, [period, dateFrom, dateTo, companyId, responsavelId, canFilterCompanies, canFilterResponsavel]);
+
+  useEffect(() => {
+    if (!canFilterCompanies) return;
+    api.get<Empresa[]>("/companies").then(setCompanies).catch(() => setCompanies([]));
+  }, [canFilterCompanies]);
+
+  useEffect(() => {
+    if (!canFilterResponsavel) return;
+    api
+      .get<User[]>("/users?status=ativo")
+      .then((users) => {
+        const filtered = companyId
+          ? users.filter((user) => Number(user.empresa_id) === Number(companyId))
+          : users;
+        setAgents(filtered.filter((user) => user.ativo));
+      })
+      .catch(() => setAgents([]));
+  }, [canFilterResponsavel, companyId]);
 
   const recentTickets = stats?.recentTickets || [];
   const chamadosAtivos = stats?.chamadosAtivos || 0;
@@ -206,6 +274,11 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
     () => normalizeRows(stats?.backlogPorIdade, "faixa", "qtd", (value) => value),
     [stats?.backlogPorIdade],
   );
+  const displayedPeriod = periodLabel(
+    stats?.filters?.period || period,
+    stats?.filters?.from || (period === "custom" ? dateFrom : undefined),
+    stats?.filters?.to || (period === "custom" ? dateTo : undefined),
+  );
 
   if (error) {
     return (
@@ -220,6 +293,94 @@ export const DashboardPage = ({ onNavigate }: DashboardPageProps) => {
       flush
     >
       <div className="w-full space-y-4 p-3 sm:p-5">
+        <Card className="overflow-visible">
+          <div className="flex flex-col gap-3 p-3 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex items-start gap-2">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-500">
+                <CalendarDays size={16} />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-950">Filtros gerenciais</h3>
+                <p className="mt-0.5 text-xs font-medium text-slate-500">
+                  Recorte atual: <span className="font-semibold text-slate-700">{displayedPeriod}</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="grid w-full gap-2 sm:grid-cols-2 lg:w-auto lg:grid-cols-none lg:auto-cols-[180px] lg:grid-flow-col">
+              <Select
+                size="sm"
+                value={period}
+                onChange={setPeriod}
+                options={[
+                  { value: "month", label: "Mês atual" },
+                  { value: "7d", label: "Últimos 7 dias" },
+                  { value: "30d", label: "Últimos 30 dias" },
+                  { value: "90d", label: "Últimos 90 dias" },
+                  { value: "custom", label: "Personalizado" },
+                ]}
+                buttonClassName="h-9 bg-slate-50 border-slate-200"
+              />
+
+              {period === "custom" && (
+                <>
+                  <input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(event) => setDateFrom(event.target.value)}
+                    className="h-9 rounded-md border border-slate-200 bg-slate-50 px-2 text-xs font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    aria-label="Data inicial do dashboard"
+                  />
+                  <input
+                    type="date"
+                    value={dateTo}
+                    onChange={(event) => setDateTo(event.target.value)}
+                    className="h-9 rounded-md border border-slate-200 bg-slate-50 px-2 text-xs font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    aria-label="Data final do dashboard"
+                  />
+                </>
+              )}
+
+              {canFilterCompanies && (
+                <Select
+                  size="sm"
+                  value={companyId}
+                  onChange={(value) => {
+                    setCompanyId(value);
+                    setResponsavelId("");
+                  }}
+                  placeholder="Todas empresas"
+                  options={[
+                    { value: "", label: "Todas empresas" },
+                    ...companies.map((company) => ({
+                      value: String(company.id),
+                      label: company.nome,
+                    })),
+                  ]}
+                  buttonClassName="h-9 bg-slate-50 border-slate-200"
+                />
+              )}
+
+              {canFilterResponsavel && (
+                <Select
+                  size="sm"
+                  value={responsavelId}
+                  onChange={setResponsavelId}
+                  placeholder="Todos responsáveis"
+                  options={[
+                    { value: "", label: "Todos responsáveis" },
+                    ...agents.map((agent) => ({
+                      value: String(agent.id),
+                      label: agent.nome,
+                    })),
+                  ]}
+                  buttonClassName="h-9 bg-slate-50 border-slate-200"
+                />
+              )}
+            </div>
+          </div>
+        </Card>
+
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard
             compact

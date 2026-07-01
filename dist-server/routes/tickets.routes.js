@@ -410,7 +410,7 @@ router.patch('/bulk', async (req, res) => {
     }
 });
 // VIEWS ROUTES
-router.get('/views', async (req, res) => {
+router.get('/views', requirePermission('tickets.visualizar'), async (req, res) => {
     try {
         const currentUser = req.user;
         if (!currentUser)
@@ -429,7 +429,7 @@ router.get('/views', async (req, res) => {
         sendError(res, 'Erro ao carregar views salvas');
     }
 });
-router.post('/views', async (req, res) => {
+router.post('/views', requirePermission('tickets.visualizar'), async (req, res) => {
     try {
         const currentUser = req.user;
         if (!currentUser)
@@ -469,7 +469,7 @@ router.post('/views', async (req, res) => {
         sendError(res, message);
     }
 });
-router.put('/views/:viewId', async (req, res) => {
+router.put('/views/:viewId', requirePermission('tickets.visualizar'), async (req, res) => {
     try {
         const currentUser = req.user;
         if (!currentUser)
@@ -482,7 +482,7 @@ router.put('/views/:viewId', async (req, res) => {
         sendError(res, 'Erro ao atualizar view');
     }
 });
-router.delete('/views/:viewId', async (req, res) => {
+router.delete('/views/:viewId', requirePermission('tickets.visualizar'), async (req, res) => {
     try {
         const currentUser = req.user;
         if (!currentUser)

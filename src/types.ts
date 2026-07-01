@@ -306,6 +306,13 @@ export interface DashboardData {
     faixa: string;
     qtd: number;
   }>;
+  filters?: {
+    period: string;
+    from: string;
+    to: string;
+    empresa_id?: number | null;
+    responsavel_id?: number | null;
+  };
 }
 
 export interface Notification {

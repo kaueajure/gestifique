@@ -483,7 +483,7 @@ router.patch('/bulk', async (req: AuthRequest, res) => {
 });
 
 // VIEWS ROUTES
-router.get('/views', async (req: AuthRequest, res) => {
+router.get('/views', requirePermission('tickets.visualizar'), async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
@@ -503,7 +503,7 @@ router.get('/views', async (req: AuthRequest, res) => {
   }
 });
 
-router.post('/views', async (req: AuthRequest, res) => {
+router.post('/views', requirePermission('tickets.visualizar'), async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
@@ -541,7 +541,7 @@ router.post('/views', async (req: AuthRequest, res) => {
   }
 });
 
-router.put('/views/:viewId', async (req: AuthRequest, res) => {
+router.put('/views/:viewId', requirePermission('tickets.visualizar'), async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
@@ -553,7 +553,7 @@ router.put('/views/:viewId', async (req: AuthRequest, res) => {
   }
 });
 
-router.delete('/views/:viewId', async (req: AuthRequest, res) => {
+router.delete('/views/:viewId', requirePermission('tickets.visualizar'), async (req: AuthRequest, res) => {
   try {
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);

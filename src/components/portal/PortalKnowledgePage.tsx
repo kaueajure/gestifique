@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { Search, ChevronRight, FileText, Loader2, ArrowLeft, Tag, BookOpen, Clock } from 'lucide-react';
-import MDEditor from '@uiw/react-md-editor';
+import MDEditor from '@uiw/react-md-editor/nohighlight';
 import { PortalTab } from './PortalLayout';
 import { cn } from '../../lib/utils';
 

@@ -2,21 +2,41 @@ import React, { lazy, Suspense, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Sidebar } from "./components/layout/Sidebar";
 import { Topbar } from "./components/layout/Topbar";
-import { DashboardPage } from "./components/pages/DashboardPage";
 import { AccessDenied } from "./components/ui/AccessDenied";
-import { PublicSite } from "./components/public/PublicSite";
-import { SatisfactionPage } from "./components/public/SatisfactionPage";
 import { LoginPage } from "./components/auth/LoginPage";
 import { ForgotPasswordPage } from "./components/auth/ForgotPasswordPage";
 import { ResetPasswordPage } from "./components/auth/ResetPasswordPage";
-import { PortalAccessPage } from "./components/portal/PortalAccessPage";
 import { hasPermission } from "./lib/permissions";
 import { User } from "./types";
 import { api } from "./lib/api";
 import { cn } from "./lib/utils";
 import { Loader2 } from "lucide-react";
 
-import { PortalLayout } from "./components/portal/PortalLayout";
+const DashboardPage = lazy(() =>
+  import("./components/pages/DashboardPage").then((module) => ({
+    default: module.DashboardPage,
+  })),
+);
+const PublicSite = lazy(() =>
+  import("./components/public/PublicSite").then((module) => ({
+    default: module.PublicSite,
+  })),
+);
+const SatisfactionPage = lazy(() =>
+  import("./components/public/SatisfactionPage").then((module) => ({
+    default: module.SatisfactionPage,
+  })),
+);
+const PortalAccessPage = lazy(() =>
+  import("./components/portal/PortalAccessPage").then((module) => ({
+    default: module.PortalAccessPage,
+  })),
+);
+const PortalLayout = lazy(() =>
+  import("./components/portal/PortalLayout").then((module) => ({
+    default: module.PortalLayout,
+  })),
+);
 
 const UsersPage = lazy(() =>
   import("./components/pages/UsersPage").then((module) => ({
@@ -176,7 +196,11 @@ export default function App() {
   const path = window.location.pathname;
   if (path.startsWith("/csat/")) {
     const token = path.replace("/csat/", "");
-    return <SatisfactionPage token={token} />;
+    return (
+      <Suspense fallback={<LazyPageFallback />}>
+        <SatisfactionPage token={token} />
+      </Suspense>
+    );
   }
 
   const restorePortalSession = async () => {
@@ -485,12 +509,14 @@ export default function App() {
 
   if (view === "landing") {
     return (
-      <PublicSite
-        onLogin={() => {
-          setView("login");
-          window.history.pushState({}, "", "/login");
-        }}
-      />
+      <Suspense fallback={<LazyPageFallback />}>
+        <PublicSite
+          onLogin={() => {
+            setView("login");
+            window.history.pushState({}, "", "/login");
+          }}
+        />
+      </Suspense>
     );
   }
 
@@ -565,20 +591,26 @@ export default function App() {
 
   if (view === "portal-access") {
     return (
-      <PortalAccessPage
-        onAuthenticated={handlePortalAuthenticated}
-        onBackToLogin={() => {
-          setView("login");
-          setAuthError(null);
-          setAuthSuccess(null);
-          window.history.pushState({}, "", "/login");
-        }}
-      />
+      <Suspense fallback={<LazyPageFallback />}>
+        <PortalAccessPage
+          onAuthenticated={handlePortalAuthenticated}
+          onBackToLogin={() => {
+            setView("login");
+            setAuthError(null);
+            setAuthSuccess(null);
+            window.history.pushState({}, "", "/login");
+          }}
+        />
+      </Suspense>
     );
   }
 
   if (view === "portal" && currentUser) {
-    return <PortalLayout currentUser={currentUser} onLogout={handleLogout} />;
+    return (
+      <Suspense fallback={<LazyPageFallback />}>
+        <PortalLayout currentUser={currentUser} onLogout={handleLogout} />
+      </Suspense>
+    );
   }
 
   // --- DASHBOARD LAYOUT ---
@@ -677,6 +709,7 @@ export default function App() {
                   {activeTab === "dashboard" &&
                     (hasPermission(currentUser, "dashboard.visualizar") ? (
                       <DashboardPage
+                        currentUser={currentUser}
                         onNavigate={(tab) => setActiveTab(tab as ActiveTab)}
                       />
                     ) : (
