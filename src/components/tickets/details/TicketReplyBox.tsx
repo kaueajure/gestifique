@@ -98,6 +98,18 @@ export const TicketReplyBox = ({
   };
 
   const isMessageEmpty = !newMessage.trim() && selectedFiles.length === 0;
+  const modePermissionBlocked =
+    (!isInternal && !canSendPublicReply) || (isInternal && !canAddInternalNote);
+  const disabledReason = loadingSend
+    ? 'Enviando mensagem...'
+    : modePermissionBlocked
+      ? isInternal
+        ? 'Você não tem permissão para postar notas internas.'
+        : 'Você não tem permissão para enviar respostas públicas.'
+      : isMessageEmpty
+        ? 'Escreva uma resposta ou anexe um arquivo para enviar.'
+        : null;
+  const isSubmitDisabled = Boolean(disabledReason);
 
   return (
     <form onSubmit={handleSubmit} className={cn(
@@ -146,6 +158,8 @@ export const TicketReplyBox = ({
               type="button"
               disabled={loadingSuggestion}
               onClick={handleSuggestReply}
+              title="Gerar sugestão de resposta com IA"
+              aria-label="Gerar sugestão de resposta com IA"
               className="flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 transition-all hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 disabled:opacity-50"
             >
               {loadingSuggestion ? (
@@ -153,13 +167,15 @@ export const TicketReplyBox = ({
               ) : (
                 <Bot size={12} className="text-indigo-600" />
               )}
-              Sugerir
+              {loadingSuggestion ? "Gerando..." : "Sugestão IA"}
             </button>
 
             <div className="relative">
               <button
               type="button"
               onClick={() => setShowMacros(!showMacros)}
+              title="Abrir respostas prontas e macros"
+              aria-label="Abrir respostas prontas e macros"
               className={cn(
                   "flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-all",
                   showMacros 
@@ -168,7 +184,7 @@ export const TicketReplyBox = ({
                 )}
               >
                 <Zap size={12} />
-                Atalhos
+                Respostas prontas
               </button>
 
               {showMacros && (
@@ -205,7 +221,7 @@ export const TicketReplyBox = ({
           <textarea 
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            placeholder={isInternal ? "Escreva uma nota interna..." : "Escreva a resposta do atendimento..."}
+            placeholder={isInternal ? "Escreva uma nota interna..." : "Escreva a resposta do chamado..."}
             className={cn(
               "min-h-[104px] w-full resize-none border-0 bg-transparent py-4 pl-11 pr-4 text-sm font-medium leading-6 transition-all focus:outline-none focus:ring-0 sm:pr-48",
               isInternal 
@@ -250,7 +266,7 @@ export const TicketReplyBox = ({
           <div className="relative mx-3 my-2.5 rounded-xl border border-indigo-100 bg-indigo-50 p-3 px-3.5">
             <div className="mb-1.5 flex items-center justify-between">
                <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-indigo-700">
-                 <Sparkles size={11} className="text-indigo-600 animate-pulse" /> Resposta Sugerida por IA
+                 <Sparkles size={11} className="text-indigo-600 animate-pulse" /> Sugestão de resposta por IA
                </span>
                <button 
                  type="button"
@@ -272,14 +288,14 @@ export const TicketReplyBox = ({
                  }}
                  className="rounded-lg bg-indigo-600 px-3 py-1.5 text-[10px] font-bold text-white shadow-sm transition-all hover:bg-indigo-500"
                >
-                 Usar Resposta
+                 Usar sugestão
                </button>
             </div>
           </div>
         )}
 
          <div className={cn(
-          "flex flex-col gap-3 border-t p-3 sm:flex-row sm:items-end sm:justify-between",
+          "flex flex-col gap-3 border-t p-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between",
           isInternal ? "border-slate-200 bg-slate-100/70" : "border-slate-200 bg-slate-50"
         )}>
           <div className="flex min-w-0 flex-1">
@@ -291,7 +307,7 @@ export const TicketReplyBox = ({
                />
              ) : (
                <span className="text-[10px] font-medium text-slate-400">
-                 Sem permissao para anexar arquivos.
+                 Sem permissão para anexar arquivos.
                </span>
              )}
           </div>
@@ -302,14 +318,14 @@ export const TicketReplyBox = ({
              </span>
              <Button 
                 type="submit"
-                disabled={isMessageEmpty || loadingSend}
+                disabled={isSubmitDisabled}
                 size="sm"
                 className={cn(
                   "h-9 rounded-md px-4 text-xs font-semibold shadow-sm",
                   isInternal 
                     ? "bg-slate-700 hover:bg-slate-600 text-white" 
                     : "bg-blue-600 hover:bg-blue-500 text-white",
-                  isMessageEmpty && "opacity-50 grayscale"
+                  isSubmitDisabled && "opacity-50 grayscale"
                 )}
               >
                 {loadingSend ? (
@@ -317,9 +333,14 @@ export const TicketReplyBox = ({
                 ) : (
                   <Send size={12} className="mr-1.5" />
                 )}
-                {isInternal ? "Postar Nota" : "Enviar Resposta"}
+                {isInternal ? "Postar nota" : "Enviar resposta"}
               </Button>
           </div>
+          {disabledReason && !loadingSend && (
+            <p className="text-right text-[10px] font-medium text-slate-500 sm:basis-full">
+              {disabledReason}
+            </p>
+          )}
         </div>
     </form>
   );

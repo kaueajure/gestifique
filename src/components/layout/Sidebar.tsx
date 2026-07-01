@@ -11,7 +11,6 @@ import {
   LogOut,
   X,
   BookOpen,
-  Bot
 } from "lucide-react";
 import { User } from "../../types";
 import { cn } from "../../lib/utils";
@@ -61,7 +60,12 @@ export const Sidebar = ({
           label: "Dashboard",
           access: hasPermission(currentUser, "dashboard.visualizar"),
         },
-        { id: "tickets", icon: Ticket, label: "Atendimentos", access: hasPermission(currentUser, "tickets.visualizar") },
+        {
+          id: "tickets",
+          icon: Ticket,
+          label: "Chamados",
+          access: hasPermission(currentUser, "tickets.visualizar"),
+        },
         {
           id: "knowledge",
           icon: BookOpen,
@@ -82,13 +86,13 @@ export const Sidebar = ({
         {
           id: "users",
           icon: Users,
-          label: "Equipe",
+          label: "Usuários e Permissões",
           access: hasPermission(currentUser, "usuarios.visualizar"),
         },
         {
           id: "companies",
           icon: Building2,
-          label: "Empresas",
+          label: "Clientes e Empresas",
           access: hasPermission(currentUser, "empresas.visualizar"),
         },
       ],
@@ -97,23 +101,15 @@ export const Sidebar = ({
       title: "Sistema",
       items: [
         {
-          id: "ai",
-          icon: Bot,
-          label: "Assistente de IA",
-          access: hasPermission(currentUser, "ia.visualizar"),
-          disabled: true,
-          title: "Beta: temporariamente desativado.",
-        },
-        {
           id: "settings",
           icon: Settings,
-          label: "Configurações",
+          label: "Configurações e SLA",
           access: hasPermission(currentUser, "configuracoes.visualizar"),
         },
         {
           id: "logs",
           icon: Shield,
-          label: "Logs do Sistema",
+          label: "Auditoria",
           access: hasPermission(currentUser, "auditoria.visualizar"),
         },
       ],
@@ -136,22 +132,23 @@ export const Sidebar = ({
       {/* Overlay */}
       {isOpen && (
         <div
-          className="absolute inset-0 z-40 bg-slate-950/40 backdrop-blur-[1px] transition-opacity duration-300"
+          className="absolute inset-0 z-40 bg-slate-950/40 backdrop-blur-[1px] transition-opacity duration-300 lg:hidden"
           onClick={onClose}
           aria-hidden="true"
         />
       )}
 
       <aside
-        role="dialog"
-        aria-modal="true"
+        role={isOpen ? "dialog" : "navigation"}
+        aria-modal={isOpen ? "true" : undefined}
         aria-label="Menu principal"
         className={cn(
-          "absolute inset-y-0 left-0 z-50 flex w-[82vw] max-w-[320px] sm:w-80 lg:w-72 xl:w-80 flex-col bg-white border-r border-slate-200/70 shadow-2xl shadow-slate-900/20 transition-transform duration-300 ease-out will-change-transform",
-          isOpen ? "translate-x-0" : "-translate-x-full",
+          "fixed inset-y-0 left-0 z-50 flex w-[86vw] max-w-[320px] flex-col border-r border-slate-200/80 bg-white shadow-2xl shadow-slate-900/20 transition-transform duration-300 ease-out will-change-transform",
+          "lg:relative lg:inset-auto lg:z-20 lg:h-full lg:w-[282px] lg:max-w-none lg:translate-x-0 lg:shadow-none",
+          isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
       >
-        <div className="h-12 flex items-center justify-between px-4 border-b border-slate-100 shrink-0">
+        <div className="h-14 flex items-center justify-between px-4 border-b border-slate-100 shrink-0">
           <div className="flex items-center gap-2">
             <AppLogo size={24} />
             <span className="text-[14px] font-bold text-slate-900 tracking-tight">
@@ -161,7 +158,7 @@ export const Sidebar = ({
           <button
             onClick={onClose}
             aria-label="Fechar menu"
-            className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-md"
+            className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-md lg:hidden"
           >
             <X size={16} />
           </button>
@@ -181,14 +178,11 @@ export const Sidebar = ({
                   {accessibleItems.map((item) => (
                     <button
                       key={item.id}
-                      onClick={() => !item.disabled && handleNav(item.id)}
-                      disabled={item.disabled}
-                      title={item.title}
+                      onClick={() => handleNav(item.id)}
                       className={cn(
-                        "w-full flex items-center gap-2.5 px-3 h-8 rounded-md text-[13px] font-semibold transition-all duration-200",
-                        item.disabled && "cursor-not-allowed opacity-50",
+                        "w-full flex items-center gap-2.5 px-3 h-9 rounded-md text-[13px] font-semibold transition-colors duration-150",
                         activeTab === item.id
-                          ? "bg-slate-100 text-slate-900"
+                          ? "bg-blue-50 text-blue-700 ring-1 ring-blue-100"
                           : "text-slate-600 hover:text-slate-900 hover:bg-slate-50",
                       )}
                     >
@@ -197,7 +191,7 @@ export const Sidebar = ({
                         className={cn(
                           "transition-colors shrink-0",
                           activeTab === item.id
-                            ? "text-slate-800"
+                            ? "text-blue-700"
                             : "text-slate-400 group-hover:text-slate-600",
                         )}
                         strokeWidth={activeTab === item.id ? 2.5 : 2}

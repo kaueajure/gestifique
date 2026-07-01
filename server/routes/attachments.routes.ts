@@ -24,7 +24,7 @@ router.get('/:id/download', async (req: AuthRequest, res: Response) => {
     if (!attachment) return sendError(res, 'Anexo não encontrado', 404);
 
     const ticketResult: any = await ticketsService.getByIdForUser(attachment.ticket_id, currentUser);
-    if (!ticketResult) return sendError(res, 'Ticket não encontrado', 404);
+    if (!ticketResult) return sendError(res, 'Chamado não encontrado', 404);
     if (ticketResult.error === 'forbidden') return sendError(res, 'Acesso negado ao anexo', 403);
 
     const ticket = ticketResult;

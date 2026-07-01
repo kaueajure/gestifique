@@ -55,7 +55,7 @@ export const TicketOptionsManager = ({ currentUser }: TicketOptionsManagerProps)
       setCategories(catRes);
       setServices(servRes);
     } catch (err) {
-      setError(getErrorMessage(err, 'Erro ao carregar configuracoes'));
+      setError(getErrorMessage(err, 'Erro ao carregar configurações'));
     } finally {
       setLoading(false);
     }
@@ -226,12 +226,12 @@ export const TicketOptionsManager = ({ currentUser }: TicketOptionsManagerProps)
     return (
       <div className="p-6 bg-red-50 text-red-600 rounded-xl flex items-center gap-3">
         <ShieldAlert size={20} />
-        Acesso restrito. Sua conta nao pode gerenciar configuracoes de atendimento.
+        Acesso restrito. Sua conta não pode gerenciar configurações de chamados.
       </div>
     );
   }
 
-  if (loading) return <div className="p-6 text-slate-500 text-sm">Carregando configuracoes...</div>;
+  if (loading) return <div className="p-6 text-slate-500 text-sm">Carregando configurações...</div>;
 
   return (
     <div className="space-y-6">
@@ -240,7 +240,7 @@ export const TicketOptionsManager = ({ currentUser }: TicketOptionsManagerProps)
       <div className="grid md:grid-cols-2 gap-4">
         <Card className="p-4">
           <h3 className="text-sm font-semibold text-slate-900 mb-0.5">Categorias</h3>
-          <p className="text-xs text-slate-500 mb-4">Configure a sigla e o nome completo dos tipos de atendimento.</p>
+          <p className="text-xs text-slate-500 mb-4">Configure a sigla e o nome completo das categorias de chamados.</p>
 
           <div className="grid gap-2 sm:grid-cols-[88px_1fr_auto]">
             <Input
@@ -265,8 +265,8 @@ export const TicketOptionsManager = ({ currentUser }: TicketOptionsManagerProps)
         </Card>
 
         <Card className="p-4">
-          <h3 className="text-sm font-semibold text-slate-900 mb-0.5">Servicos</h3>
-          <p className="text-xs text-slate-500 mb-4">Servicos oferecidos nos atendimentos.</p>
+          <h3 className="text-sm font-semibold text-slate-900 mb-0.5">Serviços</h3>
+          <p className="text-xs text-slate-500 mb-4">Serviços oferecidos nos chamados.</p>
 
           <div className="flex gap-2">
             <Input

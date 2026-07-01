@@ -183,13 +183,13 @@ const STATUS_SPECIAL_PRESENTATION: Record<
   normal: {
     icon: CircleDot,
     badge: "Etapa de trabalho",
-    impact: "Mantém o ticket ativo nas filas e no SLA.",
+    impact: "Mantém o chamado ativo nas filas e no SLA.",
     rule: "Use para triagem, atendimento, análise ou qualquer etapa operacional.",
   },
   inicial: {
     icon: PlayCircle,
     badge: "Entrada do fluxo",
-    impact: "Recebe tickets novos e chamados reabertos.",
+    impact: "Recebe chamados novos e reabertos.",
     rule: "A empresa precisa ter exatamente um status inicial ativo.",
   },
   aguardando_cliente: {
@@ -207,7 +207,7 @@ const STATUS_SPECIAL_PRESENTATION: Record<
   encerrado: {
     icon: LockKeyhole,
     badge: "Encerramento",
-    impact: "Exige permissão de fechamento e remove o ticket das pendências.",
+    impact: "Exige permissão de fechamento e remove o chamado das pendências.",
     rule: "Use para arquivamento, cancelamento definitivo ou fechamento administrativo.",
   },
 };
@@ -237,6 +237,10 @@ export const TicketsPage = ({
   currentUser,
 }: TicketsPageProps) => {
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
+  const [isMobileViewport, setIsMobileViewport] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 768 : false,
+  );
+  const effectiveViewMode = isMobileViewport ? "list" : viewMode;
 
   const [ticketsResponse, setTicketsResponse] =
     useState<TicketListResponse | null>(null);
@@ -350,6 +354,20 @@ export const TicketsPage = ({
   const workflowCompanyKey = currentUser.desenvolvedor
     ? devCompanyId || "dev"
     : currentUser.empresa_id;
+
+  useEffect(() => {
+    const handleResize = () => {
+      const isMobile = window.innerWidth < 768;
+      setIsMobileViewport(isMobile);
+      if (isMobile) {
+        setViewMode("list");
+      }
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const mapWorkflowRows = (rows: any[]): TicketWorkflowStatus[] =>
     rows.map((row) => normalizeWorkflowStatus({
@@ -643,6 +661,9 @@ export const TicketsPage = ({
     }
 
     if (!currentUser.empresa_id) {
+      if (companies.length === 1) {
+        setDevCompanyId(String(companies[0].id));
+      }
       return;
     }
 
@@ -808,7 +829,7 @@ export const TicketsPage = ({
         query.append("sort_order", sortOrder);
       }
 
-      if (viewMode === "list") {
+      if (effectiveViewMode === "list") {
         query.append("page", currentPage.toString());
         query.append("limit", "15");
         // Compatibility check in case the backend hasn't been reloaded yet to return the new format
@@ -841,7 +862,7 @@ export const TicketsPage = ({
       setSelectedTicketIds([]);
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "Erro ao carregar atendimentos.";
+        err instanceof Error ? err.message : "Erro ao carregar chamados.";
       setError(message);
     } finally {
       setLoading(false);
@@ -856,7 +877,7 @@ export const TicketsPage = ({
     statusFilter,
     priorityFilter,
     categoryFilter,
-    viewMode,
+    effectiveViewMode,
     devCompanyId,
     selectedQueue,
     advancedFilters,
@@ -874,7 +895,7 @@ export const TicketsPage = ({
     statusFilter,
     priorityFilter,
     categoryFilter,
-    viewMode,
+    effectiveViewMode,
     currentPage,
     devCompanyId,
     selectedQueue,
@@ -895,7 +916,7 @@ export const TicketsPage = ({
       fetchData();
 
       // Improved feedback
-      const msg = `${result.updated} tickets atualizados.`;
+      const msg = `${result.updated} chamados atualizados.`;
       if (result.errors && result.errors.length > 0) {
         console.warn("Erros na ação em massa:", result.errors);
         addToast(`${msg} Alguns erros ocorreram.`, "error");
@@ -1011,7 +1032,7 @@ export const TicketsPage = ({
 
   const exportToCSV = () => {
     const data =
-      viewMode === "list"
+      effectiveViewMode === "list"
         ? ticketsResponse?.data || []
         : (kanbanResponse?.columns || []).flatMap((c) => c.tickets);
 
@@ -1175,7 +1196,7 @@ export const TicketsPage = ({
   };
 
   const queueCounts =
-    viewMode === "list" ? ticketsResponse?.queues : kanbanResponse?.queues;
+    effectiveViewMode === "list" ? ticketsResponse?.queues : kanbanResponse?.queues;
 
   const moreActionOptions = [
     { value: "", label: "Mais" },
@@ -1189,7 +1210,7 @@ export const TicketsPage = ({
   return (
     <PageShell
       title="Central de Chamados"
-      subtitle="Gerencie tickets, acompanhe prazos e organize a operação de atendimento."
+      subtitle="Gerencie chamados, acompanhe prazos e organize a operação de suporte."
       flush
       contentClassName="!overflow-hidden flex flex-col"
     >
@@ -1205,19 +1226,19 @@ export const TicketsPage = ({
                 />
                 <input
                   type="text"
-                  placeholder="Buscar ticket..."
+                  placeholder="Buscar chamado..."
                   className="w-full h-8 bg-slate-50 border border-slate-200 rounded-md pl-8 pr-3 text-[13px] outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white focus:border-blue-500 transition-all placeholder:text-slate-400"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
 
-              <div className="flex items-center justify-between xl:justify-end gap-2 shrink-0">
-                <div className="flex items-center p-0.5 bg-slate-100 rounded-md border border-slate-200/50">
+              <div className="flex w-full flex-wrap items-center gap-2 xl:w-auto xl:justify-end shrink-0">
+                <div className="hidden h-9 items-center p-0.5 bg-slate-100 rounded-md border border-slate-200/50 sm:flex">
                   <button
                     onClick={() => setViewMode("list")}
                     className={cn(
-                      "px-2 py-1 rounded transition-all flex items-center gap-1",
+                      "h-8 px-2 rounded transition-all flex items-center gap-1",
                       viewMode === "list"
                         ? "bg-white text-blue-600 shadow-sm border border-slate-200/60"
                         : "text-slate-500 hover:text-slate-700",
@@ -1231,7 +1252,7 @@ export const TicketsPage = ({
                   <button
                     onClick={() => setViewMode("kanban")}
                     className={cn(
-                      "px-2 py-1 rounded transition-all flex items-center gap-1",
+                      "h-8 px-2 rounded transition-all flex items-center gap-1",
                       viewMode === "kanban"
                         ? "bg-white text-blue-600 shadow-sm border border-slate-200/60"
                         : "text-slate-500 hover:text-slate-700",
@@ -1245,7 +1266,7 @@ export const TicketsPage = ({
                 </div>
 
                 {!!currentUser.desenvolvedor && (
-                  <div className="relative w-28 sm:w-36">
+                  <div className="relative min-w-[150px] flex-1 sm:w-44 sm:flex-none">
                     <Building
                       className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 z-10"
                       size={14}
@@ -1255,7 +1276,7 @@ export const TicketsPage = ({
                       value={devCompanyId}
                       onChange={handleDevCompanyChange}
                       placeholder="Empresa..."
-                      buttonClassName="pl-8 bg-slate-50 border-slate-200 h-8 text-[11px]"
+                      buttonClassName="pl-8 bg-slate-50 border-slate-200 h-9 text-[11px]"
                       options={[
                         { value: "", label: "Selecione a empresa" },
                         ...companies.map((emp) => ({
@@ -1267,12 +1288,22 @@ export const TicketsPage = ({
                   </div>
                 )}
 
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-9 px-3 rounded-md text-[11px] font-bold sm:hidden"
+                  onClick={() => setShowAdvanced(true)}
+                >
+                  <Settings2 size={14} className="mr-1.5" />
+                  Filtros
+                </Button>
+
                 {canCreateTicket && (
                   <Button
                     size="sm"
-                    className="h-8 w-8 p-0 rounded-md text-[11px] font-bold"
+                    className="h-9 w-9 p-0 rounded-md text-[11px] font-bold"
                     onClick={() => setIsModalOpen(true)}
-                    title="Novo ticket"
+                    title="Novo chamado"
                   >
                     <Plus size={16} />
                   </Button>
@@ -1291,7 +1322,7 @@ export const TicketsPage = ({
                   }}
                   options={moreActionOptions}
                   className="w-20 sm:w-24 text-[11px]"
-                  buttonClassName="h-8"
+                  buttonClassName="h-9"
                 />
               </div>
             </div>
@@ -1557,18 +1588,18 @@ export const TicketsPage = ({
             {!!currentUser.desenvolvedor && !devCompanyId ? (
               <EmptyState
                 title="Seleção de Ambiente Necessária"
-                description="Você está no modo desenvolvedor. Escolha uma empresa para visualizar os atendimentos."
+                description="Você está no modo desenvolvedor. Escolha uma empresa para visualizar os chamados."
                 icon={<Building size={24} />}
               />
             ) : loading && !kanbanResponse && !ticketsResponse ? (
-              <LoadingState message="Organizando sua central de tickets..." />
+              <LoadingState message="Organizando sua central de chamados..." />
             ) : error ? (
               <ErrorState
                 title="Falha na Sincronização"
                 message={error}
                 onRetry={fetchData}
               />
-            ) : viewMode === "kanban" && configuredKanbanResponse ? (
+            ) : effectiveViewMode === "kanban" && configuredKanbanResponse ? (
               <TicketKanban
                 kanbanData={configuredKanbanResponse}
                 onSelectTicket={onSelectTicket}
@@ -1577,7 +1608,7 @@ export const TicketsPage = ({
                 devCompanyId={devCompanyId}
                 statusOptions={activeWorkflowStatusOptions}
               />
-            ) : viewMode === "list" && ticketsResponse ? (
+            ) : effectiveViewMode === "list" && ticketsResponse ? (
               <TicketList
                 tickets={ticketsResponse.data}
                 meta={ticketsResponse.meta}
@@ -1695,10 +1726,10 @@ export const TicketsPage = ({
                 <Settings2 size={16} className="mt-0.5 text-slate-500" />
                 <div>
                   <h4 className="text-sm font-semibold text-slate-900">
-                    Status reais do atendimento
+                    Status reais do chamado
                   </h4>
                   <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                    Defina as etapas usadas no ticket, filtros, Kanban, ações em massa e automações. A função especial altera o comportamento real do sistema.
+                    Defina as etapas usadas no chamado, filtros, Kanban, ações em massa e automações. A função especial altera o comportamento real do sistema.
                   </p>
                 </div>
               </div>
@@ -1727,7 +1758,7 @@ export const TicketsPage = ({
           <div className="space-y-2">
             {workflowLoading && (
               <div className="rounded-lg border border-slate-200 bg-white p-3 text-xs font-semibold text-slate-500">
-                Carregando status de atendimento...
+                Carregando status de chamado...
               </div>
             )}
             {!workflowLoading && workflowDraftStatuses.length === 0 && (

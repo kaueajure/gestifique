@@ -69,7 +69,7 @@ export const TicketFilterDrawer: React.FC<TicketFilterDrawerProps> = ({
             <div className="flex items-center justify-between p-4 border-b border-slate-100">
               <div>
                 <h2 className="text-sm font-semibold text-slate-900">Filtros Avançados</h2>
-                <p className="text-xs text-slate-500 mt-0.5">Refine sua busca por atendimentos</p>
+                <p className="text-xs text-slate-500 mt-0.5">Refine sua busca por chamados</p>
               </div>
               <button
                 onClick={onClose}
@@ -83,7 +83,7 @@ export const TicketFilterDrawer: React.FC<TicketFilterDrawerProps> = ({
               {/* Status */}
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-slate-700 flex items-center gap-1.5">
-                  <Globe size={14} className="text-slate-400" /> Status do Ticket
+                  <Globe size={14} className="text-slate-400" /> Status do chamado
                 </label>
                 <Select
                   value={statusFilter}

@@ -27,8 +27,8 @@ export function PageShell({
   return (
     <section
       className={cn(
-        "w-full overflow-hidden border border-slate-200/90 bg-white",
-        "shadow-[0_8px_30px_rgba(15,23,42,0.08)] rounded-lg",
+        "w-full overflow-hidden border border-slate-200/80 bg-white",
+        "shadow-[0_1px_3px_rgba(15,23,42,0.06)] rounded-lg",
         fixedHeight && "h-full min-h-0 flex flex-col",
         className,
       )}

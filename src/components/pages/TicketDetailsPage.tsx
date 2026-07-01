@@ -189,7 +189,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
 
         if (data.status && isCurrentFinalStatus) {
              await api.patch(`/tickets/${ticketId}/reopen`, {});
-             setActionSuccess('Atendimento reaberto com sucesso!');
+             setActionSuccess('Chamado reaberto com sucesso!');
              fetchData();
              setTimeout(() => setActionSuccess(null), 3000);
              return;
@@ -200,11 +200,11 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
         } else {
             await api.patch(`/tickets/${ticketId}`, data);
         }
-      setActionSuccess('Atendimento atualizado com sucesso!');
+      setActionSuccess('Chamado atualizado com sucesso!');
       fetchData();
       setTimeout(() => setActionSuccess(null), 3000);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao atualizar atendimento.';
+      const message = err instanceof Error ? err.message : 'Erro ao atualizar chamado.';
       setActionError(message);
     }
   };
@@ -219,11 +219,11 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
     try {
         await api.patch(`/tickets/${ticketId}/resolve`, resolutionData);
         setIsResolveModalOpen(false);
-        setActionSuccess(`Atendimento ${resolutionData.status} com sucesso!`);
+        setActionSuccess(`Chamado ${resolutionData.status} com sucesso!`);
         fetchData();
         setTimeout(() => setActionSuccess(null), 3000);
     } catch (err) {
-        const message = err instanceof Error ? err.message : 'Erro ao finalizar atendimento.';
+        const message = err instanceof Error ? err.message : 'Erro ao finalizar chamado.';
         alert(message);
     } finally {
         setLoading(false);
@@ -285,8 +285,8 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
     return (
       <Card className="p-6 border-red-100 bg-red-50/50 flex flex-col items-center justify-center text-center rounded-xl max-w-md mx-auto mt-8">
          <AlertCircle className="w-8 h-8 text-red-500 mb-2" />
-         <h2 className="text-base font-semibold text-slate-900 mb-1">Atendimento não encontrado</h2>
-         <p className="text-slate-600 text-sm mb-4">{error || 'O atendimento solicitado pode ter sido removido ou você não tem acesso.'}</p>
+         <h2 className="text-base font-semibold text-slate-900 mb-1">Chamado não encontrado</h2>
+         <p className="text-slate-600 text-sm mb-4">{error || 'O chamado solicitado pode ter sido removido ou você não tem acesso.'}</p>
          <Button onClick={onBack} size="sm" variant="outline" className="font-medium h-8">Voltar para a Lista</Button>
       </Card>
     );
@@ -443,7 +443,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                   </div>
                   <div className="min-w-0">
                     <h3 className="text-sm font-semibold text-slate-900 tracking-tight truncate">
-                       Concluir Atendimento
+                       Concluir chamado
                     </h3>
                     <p className="text-[10px] sm:text-xs text-slate-500 font-medium truncate">
                        Informe como este chamado foi resolvido
@@ -471,7 +471,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
                        { value: "problema_corrigido", label: "Problema corrigido" },
                        { value: "solicitacao_atendida", label: "Solicitação atendida" },
                        { value: "cancelamento_realizado", label: "Cancelamento realizado" },
-                       { value: "duplicado", label: "Atendimento duplicado" },
+                       { value: "duplicado", label: "Chamado duplicado" },
                        { value: "sem_retorno_cliente", label: "Sem retorno do cliente" },
                        { value: "outros", label: "Outros" }
                      ]}

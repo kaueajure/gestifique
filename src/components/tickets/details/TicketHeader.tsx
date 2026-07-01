@@ -203,14 +203,14 @@ export const TicketHeader = ({
             </div>
           </HeaderSelectMeta>
           <HeaderSelectMeta
-            label="Responsavel"
+            label="Responsável"
             icon={<UserRound size={14} />}
           >
             <Select 
               value={ticket.responsavel_id ? String(ticket.responsavel_id) : ''}
               onChange={(value) => onUpdate({ responsavel_id: value ? Number(value) : null })}
               options={[
-                { value: '', label: 'Sem responsavel' },
+                { value: '', label: 'Sem responsável' },
                 ...agents.map(a => ({ value: String(a.id), label: a.nome }))
               ]}
               buttonClassName="h-7 rounded-md border-slate-200 bg-white text-xs font-semibold text-slate-800"
@@ -220,7 +220,7 @@ export const TicketHeader = ({
           </HeaderSelectMeta>
           <HeaderMeta
             label="Solicitante"
-            value={cliente_nome || 'Nao informado'}
+            value={cliente_nome || 'Não informado'}
             icon={<UserRound size={14} />}
           />
           <HeaderMeta

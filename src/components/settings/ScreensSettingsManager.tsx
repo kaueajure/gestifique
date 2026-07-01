@@ -1,9 +1,7 @@
 
 import React, { useState } from 'react';
 import { User } from '../../types';
-import { Globe, Layout, Smartphone, CreditCard, ChevronRight } from 'lucide-react';
-import { Card } from '../ui/Card';
-import { Badge } from '../ui/Badge';
+import { Globe, CreditCard } from 'lucide-react';
 import { PricingSettingsManager } from './PricingSettingsManager';
 import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -36,18 +34,6 @@ export const ScreensSettingsManager: React.FC<ScreensSettingsManagerProps> = ({ 
           )}
         >
           <CreditCard size={14} /> Planos & Preços
-        </button>
-        <button 
-          className="h-9 px-4 rounded-lg text-xs font-bold text-slate-400 cursor-not-allowed flex items-center gap-2"
-          disabled
-        >
-          <Layout size={14} /> Home <Badge variant="slate" className="text-[8px] h-4 px-1">EM BREVE</Badge>
-        </button>
-        <button 
-          className="h-9 px-4 rounded-lg text-xs font-bold text-slate-400 cursor-not-allowed flex items-center gap-2"
-          disabled
-        >
-          <Smartphone size={14} /> Funcionalidades <Badge variant="slate" className="text-[8px] h-4 px-1">EM BREVE</Badge>
         </button>
       </div>
 

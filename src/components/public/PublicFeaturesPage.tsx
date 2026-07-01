@@ -8,14 +8,14 @@ interface PublicFeaturesPageProps {
 export const PublicFeaturesPage = ({ onNavigate }: PublicFeaturesPageProps) => {
   const modules = [
     {
-      title: "Gestão de Tickets",
-      desc: "O motor da sua operação de atendimento.",
+      title: "Gestão de Chamados",
+      desc: "O motor da sua operação de suporte.",
       icon: Ticket,
       features: [
         { title: "Criação Estruturada", desc: "Abertura de chamados com tipificação clara e campos obrigatórios para evitar idas e vindas de informações." },
-        { title: "Status e Workflow", desc: "Fluxos de status (Aberto, Em Atendimento, Pendente Cliente, Resolvido) que refletem a vida real." },
+        { title: "Status e Workflow", desc: "Fluxos de status (Aberto, Em andamento, Pendente Cliente, Resolvido) que refletem a vida real." },
         { title: "Prioridade Dinâmica", desc: "Classifique a urgência para guiar o trabalho da equipe." },
-        { title: "Definição de Responsável", desc: "Fim do 'de quem é?'. Todo ticket tem um dono claro." }
+        { title: "Definição de Responsável", desc: "Fim do 'de quem é?'. Todo chamado tem um dono claro." }
       ]
     },
     {
@@ -24,9 +24,9 @@ export const PublicFeaturesPage = ({ onNavigate }: PublicFeaturesPageProps) => {
       icon: Zap,
       features: [
         { title: "Painel do Atendente", desc: "Caixa de entrada centralizada: o que precisa ser feito hoje, sem distrações." },
-        { title: "Comentários Internos", desc: "Discuta o ticket com a equipe técnica sem que o cliente veja a conversa de bastidor." },
+        { title: "Comentários Internos", desc: "Discuta o chamado com a equipe técnica sem que o cliente veja a conversa de bastidor." },
         { title: "Respostas Prontas", desc: "Catálogo de respostas padrão (Macros) para incidentes comuns. Um clique, problema explicado." },
-        { title: "Histórico Completo", desc: "Histórico completo de alterações. Saiba quem mudou o status, quando respondeu e quem assumiu o ticket." }
+        { title: "Histórico Completo", desc: "Histórico completo de alterações. Saiba quem mudou o status, quando respondeu e quem assumiu o chamado." }
       ]
     },
     {
@@ -36,8 +36,8 @@ export const PublicFeaturesPage = ({ onNavigate }: PublicFeaturesPageProps) => {
       features: [
         { title: "Prazo de Primeira Resposta", desc: "Garante que o cliente não fique no vácuo logo após abrir a solicitação." },
         { title: "Prazo de Resolução", desc: "Controle rígido do tempo aceitável para entregar a solução definitiva." },
-        { title: "Foco no que Importa", desc: "Tickets críticos ganham destaque visual para orientar a equipe." },
-        { title: "Controle de Prazos", desc: "O acompanhamento de SLA considera o status atual do chamado e ajuda a priorizar tickets críticos." }
+        { title: "Foco no que Importa", desc: "Chamados críticos ganham destaque visual para orientar a equipe." },
+        { title: "Controle de Prazos", desc: "O acompanhamento de SLA considera o status atual do chamado e ajuda a priorizar chamados críticos." }
       ]
     },
     {
@@ -47,7 +47,7 @@ export const PublicFeaturesPage = ({ onNavigate }: PublicFeaturesPageProps) => {
       features: [
         { title: "Portal do Cliente (B2B)", desc: "Seus clientes fazem login e veem exatamente o status das demandas, sem precisar mandar e-mail/WhatsApp." },
         { title: "Base de Conhecimento", desc: "Artigos práticos integrados ao portal para autoatendimento ('Como resetar senha', etc)." },
-        { title: "Pesquisa de Satisfação", desc: "Pesquisa de satisfação vinculada ao encerramento do atendimento." },
+        { title: "Pesquisa de Satisfação", desc: "Pesquisa de satisfação vinculada ao encerramento do chamado." },
         { title: "Acesso pelo Portal", desc: "O cliente acessa o portal para abrir e acompanhar chamados de forma estruturada." }
       ]
     },
@@ -56,7 +56,7 @@ export const PublicFeaturesPage = ({ onNavigate }: PublicFeaturesPageProps) => {
       desc: "Visibilidade operacional para os líderes.",
       icon: PieChart,
       features: [
-        { title: "Dashboard Operacional", desc: "Visão imediata do dia: tickets abertos, atrasados e taxa de resolução atual." },
+        { title: "Dashboard Operacional", desc: "Visão imediata do dia: chamados abertos, atrasados e taxa de resolução atual." },
         { title: "Indicadores de Desempenho", desc: "Saiba quais categorias geram mais demanda e onde a equipe gasta mais tempo." },
         { title: "Métricas Individuais", desc: "Analise a produtividade e a saúde do SLA filtrado por cada atendente." },
         { title: "Permissões de Acesso", desc: "Visão segmentada. O cliente só vê o que é dele, atendente o que opera e o gestor vê tudo." }
@@ -73,7 +73,7 @@ export const PublicFeaturesPage = ({ onNavigate }: PublicFeaturesPageProps) => {
             Tudo que sua equipe precisa para atender melhor.
           </h1>
           <p className="text-lg font-medium text-slate-500 leading-relaxed max-w-2xl mx-auto">
-            Do primeiro contato até a resolução, o Gestifique organiza cada etapa do atendimento sem a poluição visual de sistemas antigos.
+            Do primeiro contato até a resolução, o Gestifique organiza cada etapa do suporte sem a poluição visual de sistemas antigos.
           </p>
         </div>
       </section>

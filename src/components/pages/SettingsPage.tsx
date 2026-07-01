@@ -221,7 +221,7 @@ export const SettingsPage = ({
     <>
       <PageShell
         title="Configurações"
-        subtitle="Ajuste preferências, atendimento, empresa, telas e regras do sistema."
+        subtitle="Ajuste preferências, chamados, empresa, telas e regras do sistema."
         flush
         tabs={
           <div className="flex flex-wrap gap-1 py-3 bg-white w-fit">
@@ -261,7 +261,7 @@ export const SettingsPage = ({
                     : "text-slate-500 hover:text-slate-900 hover:bg-slate-50",
                 )}
               >
-                <Layout size={14} /> Atendimento
+                <Layout size={14} /> Chamados
               </button>
             )}
 
@@ -332,29 +332,6 @@ export const SettingsPage = ({
                         <Zap size={14} className="text-amber-500" />
                       </Button>
 
-                      <div className="pt-3 border-t border-slate-100">
-                        <div className="p-2.5 rounded-md bg-white border border-slate-100 flex items-center justify-between shadow-sm">
-                          <div className="flex items-center gap-3">
-                            <div className="w-7 h-7 rounded-md bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100">
-                              <Palette size={14} />
-                            </div>
-                            <div>
-                              <div className="text-xs font-semibold text-slate-800">
-                                Modo Escuro
-                              </div>
-                              <p className="text-[10px] text-slate-500 leading-tight">
-                                Personalize cores da interface
-                              </p>
-                            </div>
-                          </div>
-                          <Badge
-                            variant="slate"
-                            className="text-[9px] font-semibold"
-                          >
-                            EM BREVE
-                          </Badge>
-                        </div>
-                      </div>
                     </div>
                   </Card>
 
@@ -388,7 +365,7 @@ export const SettingsPage = ({
                             ),
                           },
                           tickets: {
-                            desc: "Central de Atendimentos",
+                            desc: "Central de Chamados",
                             icon: <Layout size={16} />,
                             access: hasPermission(
                               currentUser,
@@ -598,7 +575,7 @@ export const SettingsPage = ({
                               onClick={() => onNavigate("tickets")}
                               className="bg-white border-slate-200 text-slate-700 justify-between h-10 text-xs"
                             >
-                              Atendimentos{" "}
+                              Chamados{" "}
                               <Layout size={14} className="text-emerald-500" />
                             </Button>
                           )}

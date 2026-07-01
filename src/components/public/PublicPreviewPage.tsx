@@ -30,7 +30,7 @@ export const PublicPreviewPage = ({ onNavigate }: PublicPreviewPageProps) => {
       title: "Operação",
       items: [
         { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
-        { id: "tickets", icon: Ticket, label: "Atendimentos" },
+        { id: "tickets", icon: Ticket, label: "Chamados" },
         { id: "knowledge", icon: BookOpen, label: "Base de Conhecimento" },
       ]
     },
@@ -58,10 +58,10 @@ export const PublicPreviewPage = ({ onNavigate }: PublicPreviewPageProps) => {
   ];
 
   const moduleMeta = {
-    dashboard: { title: 'Dashboard de Controle', subtitle: 'Indicadores simulados da operação de atendimento', action: 'Atualizar Tela' },
+    dashboard: { title: 'Dashboard de Controle', subtitle: 'Indicadores simulados da operação de suporte', action: 'Atualizar Tela' },
     tickets: { title: 'Central de Chamados', subtitle: 'Visão geral de demandas da operação', action: 'Novo Chamado' },
     knowledge: { title: 'Base de Conhecimento', subtitle: 'Artigos internos e simulados', action: 'Novo Artigo' },
-    reports: { title: 'Relatórios Gerenciais', subtitle: 'Métricas de atendimento e produtividade', action: 'Exportar' },
+    reports: { title: 'Relatórios Gerenciais', subtitle: 'Métricas de suporte e produtividade', action: 'Exportar' },
     users: { title: 'Equipe', subtitle: 'Gestão de perfis de acesso', action: 'Novo Usuário' },
     companies: { title: 'Empresas Ativas', subtitle: 'Nossos contratos e clientes', action: 'Nova Empresa' },
     settings: { title: 'Configurações', subtitle: 'Preferências e comportamento do sistema', action: 'Salvar Tudo' },
@@ -263,7 +263,7 @@ export const PublicPreviewPage = ({ onNavigate }: PublicPreviewPageProps) => {
                      <LayoutDashboard size={20} />
                   </div>
                   <h3 className="text-base font-bold text-slate-900">Dashboard Direto ao Ponto</h3>
-                  <p className="text-sm text-slate-600 leading-relaxed">Cards de indicadores que mostram volume de atendimento, repasses e gargalos de tempo de forma clara.</p>
+                  <p className="text-sm text-slate-600 leading-relaxed">Cards de indicadores que mostram volume de chamados, repasses e gargalos de tempo de forma clara.</p>
                </div>
                <div className="space-y-3 p-5 bg-slate-50 border border-slate-100 rounded-xl">
                   <div className="w-10 h-10 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center mb-4">
@@ -324,7 +324,7 @@ const TicketsPreview = () => (
           <table className="w-full text-left text-[13px] whitespace-nowrap">
             <thead>
               <tr className="bg-white text-slate-500 font-semibold border-b border-slate-200">
-                <th className="px-4 py-3 font-medium">Ticket</th>
+                <th className="px-4 py-3 font-medium">Chamado</th>
                 <th className="px-4 py-3 font-medium">Assunto</th>
                 <th className="px-4 py-3 font-medium">Empresa</th>
                 <th className="px-4 py-3 font-medium text-center">Prioridade</th>
@@ -343,7 +343,7 @@ const TicketsPreview = () => (
                 </td>
                 <td className="px-4 py-3">
                   <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-100">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Em atendimento
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Em andamento
                   </span>
                 </td>
                 <td className="px-4 py-3 text-slate-600">Lucas</td>
@@ -506,7 +506,7 @@ const KnowledgePreview = () => (
                <FileText size={16} className="text-blue-500" /> Equipe de Suporte
             </h4>
             <ul className="space-y-2 text-[13px]">
-               <li className="text-slate-600 flex items-center gap-2"><LockIcon /> Script de atendimento padrão</li>
+               <li className="text-slate-600 flex items-center gap-2"><LockIcon /> Script de suporte padrão</li>
                <li className="text-slate-600 flex items-center gap-2"><LockIcon /> Política de descontos</li>
             </ul>
          </div>
@@ -632,7 +632,7 @@ const SettingsPreview = () => (
             <div className="flex items-center justify-between">
                <div>
                   <span className="block text-[13px] font-semibold text-slate-900">Avisos por Email Automáticos</span>
-                  <span className="block text-xs text-slate-500 mt-0.5">Notificar quando o ticket atualiza</span>
+                  <span className="block text-xs text-slate-500 mt-0.5">Notificar quando o chamado atualiza</span>
                </div>
                <div className="w-9 h-5 bg-blue-600 rounded-full relative cursor-default"><div className="absolute right-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow"></div></div>
             </div>
@@ -640,7 +640,7 @@ const SettingsPreview = () => (
       </div>
       
       <div className="bg-white border border-slate-200 rounded-xl pt-5 pb-2 px-5 shadow-sm">
-         <h3 className="text-[14px] font-bold text-slate-900 border-b border-slate-100 pb-3 mb-4 flex items-center gap-2"><Ticket size={16} className="text-slate-400" /> Categorias de Atendimento</h3>
+         <h3 className="text-[14px] font-bold text-slate-900 border-b border-slate-100 pb-3 mb-4 flex items-center gap-2"><Ticket size={16} className="text-slate-400" /> Categorias de chamados</h3>
          <div className="space-y-3">
             <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded border border-slate-100">
                <span className="block text-[13px] font-semibold text-slate-900">Suporte Técnico</span>
@@ -675,13 +675,13 @@ const LogsPreview = () => (
                  <td className="px-5 py-3 text-slate-500 font-mono text-[12px]">Hoje, 14:12</td>
                  <td className="px-5 py-3 font-medium text-slate-900"><span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold text-[11px]">CRIAR</span></td>
                  <td className="px-5 py-3 text-slate-600">Marina Lopes</td>
-                 <td className="px-5 py-3 text-slate-500">Ticket #4093 aberto referente a "Acesso bloqueado"</td>
+                 <td className="px-5 py-3 text-slate-500">Chamado #4093 aberto referente a "Acesso bloqueado"</td>
               </tr>
               <tr>
                  <td className="px-5 py-3 text-slate-500 font-mono text-[12px]">Hoje, 10:45</td>
                  <td className="px-5 py-3 font-medium text-slate-900"><span className="px-2 py-0.5 rounded bg-amber-50 text-amber-700 font-bold text-[11px]">ATUALIZAR</span></td>
                  <td className="px-5 py-3 text-slate-600">João Silva</td>
-                 <td className="px-5 py-3 text-slate-500">Adicionou comentário no Ticket #4092</td>
+                 <td className="px-5 py-3 text-slate-500">Adicionou comentário no chamado #4092</td>
               </tr>
            </tbody>
         </table>

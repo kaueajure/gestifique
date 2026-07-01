@@ -121,12 +121,12 @@ export const PortalAccessPage: React.FC<PortalAccessPageProps> = ({ onAuthentica
             </div>
             <h1 className="text-3xl font-bold mb-4 tracking-tight">Portal do Cliente</h1>
             <p className="text-blue-100 mb-8 leading-relaxed">
-              Acompanhe seus chamados, responda atendimentos, envie anexos e consulte a base de conhecimento da organização.
+              Acompanhe seus chamados, envie respostas, anexe arquivos e consulte a base de conhecimento da organização.
             </p>
             <ul className="space-y-4">
               <li className="flex items-start gap-3">
                 <ShieldCheck className="w-5 h-5 text-blue-300 shrink-0 mt-0.5" />
-                <span className="text-sm text-blue-50">Visualize o andamento dos seus tickets</span>
+                <span className="text-sm text-blue-50">Visualize o andamento dos seus chamados</span>
               </li>
               <li className="flex items-start gap-3">
                 <ShieldCheck className="w-5 h-5 text-blue-300 shrink-0 mt-0.5" />

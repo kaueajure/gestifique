@@ -86,7 +86,7 @@ export const CreateTicketModal = ({ isOpen, onClose, currentUser, onSuccess }: C
     const data = Object.fromEntries(formData.entries());
 
     if (!!currentUser.desenvolvedor && !currentUser.empresa_id && !data.empresa_id) {
-       setCreateError('Selecione uma empresa para abrir o atendimento.');
+       setCreateError('Selecione uma empresa para abrir o chamado.');
        setLoadingCreate(false);
        return;
     }
@@ -98,7 +98,7 @@ export const CreateTicketModal = ({ isOpen, onClose, currentUser, onSuccess }: C
       await api.post('/tickets', data);
       onSuccess();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao criar atendimento.';
+      const message = err instanceof Error ? err.message : 'Erro ao criar chamado.';
       setCreateError(message);
     } finally {
       setLoadingCreate(false);
@@ -109,7 +109,7 @@ export const CreateTicketModal = ({ isOpen, onClose, currentUser, onSuccess }: C
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Novo Atendimento"
+      title="Novo Chamado"
       size="lg"
     >
       <form onSubmit={handleCreateTicket} className="space-y-4">
@@ -121,7 +121,7 @@ export const CreateTicketModal = ({ isOpen, onClose, currentUser, onSuccess }: C
         
         <div className="space-y-1">
           <Input 
-            label="Assunto do Atendimento"
+            label="Assunto do Chamado"
             name="titulo" 
             required 
             placeholder="Descreva o assunto brevemente" 
@@ -210,7 +210,7 @@ export const CreateTicketModal = ({ isOpen, onClose, currentUser, onSuccess }: C
               Cancelar
             </Button>
             <Button size="sm" type="submit" loading={loadingCreate}>
-              Criar Atendimento
+              Criar Chamado
             </Button>
         </div>
       </form>

@@ -22,7 +22,7 @@ const parseJsonArray = (value: any) => {
 
 const DEFAULT_STATUS_OPTIONS = [
   { value: 'aberto', label: 'Aberto' },
-  { value: 'em_andamento', label: 'Em Atendimento' },
+  { value: 'em_andamento', label: 'Em andamento' },
   { value: 'resolvido', label: 'Finalizado' },
 ];
 
@@ -34,11 +34,11 @@ const PRIORITY_OPTIONS = [
 ];
 
 const GATILHOS = [
-  { value: 'ticket_criado', label: 'Ticket Criado' },
+  { value: 'ticket_criado', label: 'Chamado criado' },
   { value: 'status_alterado', label: 'Status Alterado' },
   { value: 'prioridade_alterada', label: 'Prioridade Alterada' },
   { value: 'responsavel_alterado', label: 'Responsável Alterado' },
-  { value: 'ticket_atualizado', label: 'Ticket Atualizado' },
+  { value: 'ticket_atualizado', label: 'Chamado atualizado' },
   { value: 'sla_primeira_resposta_vencido', label: 'SLA 1ª Resposta Vencido' },
   { value: 'sla_resolucao_vencido', label: 'SLA Resolução Vencido' },
   { value: 'tempo_sem_interacao', label: 'Tempo sem Interação' },

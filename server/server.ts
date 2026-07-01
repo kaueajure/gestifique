@@ -52,6 +52,8 @@ async function startServer() {
   const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:3000',
+    `http://localhost:${env.PORT}`,
+    `http://127.0.0.1:${env.PORT}`,
     'https://gestifique.com.br',
     'https://www.gestifique.com.br',
     'https://cornflowerblue-kingfisher-528919.hostingersite.com',

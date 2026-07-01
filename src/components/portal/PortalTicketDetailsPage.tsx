@@ -107,7 +107,7 @@ export const PortalTicketDetailsPage = ({ ticketId, onBack, currentUser }: Porta
               return (
                 <div key={i} className={cn("flex flex-col", isMine ? "items-end" : "items-start")}>
                   <div className="flex items-center gap-2 mb-1 px-1">
-                    <span className="text-sm font-semibold text-slate-900">{msg.usuario_nome || 'Atendimento'}</span>
+                    <span className="text-sm font-semibold text-slate-900">{msg.usuario_nome || 'Equipe de suporte'}</span>
                     <span className="text-xs text-slate-500">{format(new Date(msg.created_at), "dd MMM, HH:mm", { locale: ptBR })}</span>
                   </div>
                   <div className={cn(

@@ -172,7 +172,7 @@ export const PublicHomePage = ({ onNavigate }: PublicHomePageProps) => {
             
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                {[
-                 { icon: Ticket, title: "Central de Tickets", desc: "Organize por status, categoria, prioridade e mantenha histórico completo para auditoria." },
+                 { icon: Ticket, title: "Central de Chamados", desc: "Organize por status, categoria, prioridade e mantenha histórico completo para auditoria." },
                  { icon: Clock, title: "Controle de SLA", desc: "Tempos de resposta e resolução claramente definidos para garantir a entrega prometida ao cliente." },
                  { icon: LayoutDashboard, title: "Portal do Cliente B2B", desc: "Seus clientes empresariais ganham acesso a um portal dedicado para acompanhar suas demandas." },
                  { icon: Database, title: "Base de Conhecimento", desc: "Crie artigos para resolução rápida de incidentes e reduza a abertura de tickets por dúvidas comuns." },
@@ -230,7 +230,7 @@ export const PublicHomePage = ({ onNavigate }: PublicHomePageProps) => {
                   <div className="flex-1 space-y-3">
                      <div className="text-xs font-bold text-blue-600 uppercase tracking-tight text-center pb-2 border-b border-blue-50">Com Gestifique</div>
                      <ul className="space-y-3">
-                       {['Central de tickets estruturada', 'Portal cliente transparente', 'Dashboard operacional', 'SLA visual por urgência'].map((t, i) => (
+                       {['Central de chamados estruturada', 'Portal cliente transparente', 'Dashboard operacional', 'SLA visual por urgência'].map((t, i) => (
                          <li key={i} className="text-[13px] font-bold text-slate-800 flex items-start gap-2">
                             <Check size={14} className="text-emerald-500 mt-0.5 block" /> <span>{t}</span>
                          </li>

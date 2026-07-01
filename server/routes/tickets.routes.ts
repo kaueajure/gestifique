@@ -54,21 +54,21 @@ async function ensureStatusTransitionPermission(res: any, currentUser: any, empr
   if (oldIsFinal && !newIsFinal) {
     const hasReopenPerm = await permissionsService.hasPermission(currentUser, 'tickets.reabrir');
     if (!hasReopenPerm) {
-      return sendError(res, 'Acesso proibido: Sem permissao para reabrir chamados (tickets.reabrir).', 403);
+      return sendError(res, 'Acesso proibido: sem permissão para reabrir chamados (tickets.reabrir).', 403);
     }
   }
 
   if (newStatusConfig?.especial === 'finalizado') {
     const hasFinalizePerm = await permissionsService.hasPermission(currentUser, 'tickets.finalizar');
     if (!hasFinalizePerm) {
-      return sendError(res, 'Acesso proibido: Sem permissao para finalizar chamados (tickets.finalizar).', 403);
+      return sendError(res, 'Acesso proibido: sem permissão para finalizar chamados (tickets.finalizar).', 403);
     }
   }
 
   if (newStatusConfig?.especial === 'encerrado') {
     const hasClosePerm = await permissionsService.hasPermission(currentUser, 'tickets.fechar');
     if (!hasClosePerm) {
-      return sendError(res, 'Acesso proibido: Sem permissao para fechar chamados (tickets.fechar).', 403);
+      return sendError(res, 'Acesso proibido: sem permissão para fechar chamados (tickets.fechar).', 403);
     }
   }
 
@@ -86,31 +86,31 @@ async function getBulkActionPermissionError(currentUser: any, action: string, va
   switch (action) {
     case 'status': {
       const hasStatusPerm = await permissionsService.hasPermission(currentUser, 'tickets.editar_status');
-      if (!hasStatusPerm) return 'Acesso proibido: Sem permissao para alterar status em massa (tickets.editar_status).';
+      if (!hasStatusPerm) return 'Acesso proibido: sem permissão para alterar status em massa (tickets.editar_status).';
 
       if (value === 'resolvido' && !await permissionsService.hasPermission(currentUser, 'tickets.finalizar')) {
-        return 'Acesso proibido: Sem permissao para finalizar chamados em massa (tickets.finalizar).';
+        return 'Acesso proibido: sem permissão para finalizar chamados em massa (tickets.finalizar).';
       }
 
       if (value === 'fechado' && !await permissionsService.hasPermission(currentUser, 'tickets.fechar')) {
-        return 'Acesso proibido: Sem permissao para fechar chamados em massa (tickets.fechar).';
+        return 'Acesso proibido: sem permissão para fechar chamados em massa (tickets.fechar).';
       }
       return null;
     }
     case 'fechar':
       return await permissionsService.hasPermission(currentUser, 'tickets.fechar')
         ? null
-        : 'Acesso proibido: Sem permissao para fechar chamados em massa (tickets.fechar).';
+        : 'Acesso proibido: sem permissão para fechar chamados em massa (tickets.fechar).';
     case 'prioridade':
       return await permissionsService.hasPermission(currentUser, 'tickets.editar_prioridade')
         ? null
-        : 'Acesso proibido: Sem permissao para alterar prioridade em massa (tickets.editar_prioridade).';
+        : 'Acesso proibido: sem permissão para alterar prioridade em massa (tickets.editar_prioridade).';
     case 'responsavel': {
       const wantsRemove = value === null || value === undefined || value === '';
       if (wantsRemove) {
         return await permissionsService.hasPermission(currentUser, 'tickets.remover_responsavel')
           ? null
-          : 'Acesso proibido: Sem permissao para remover responsavel em massa (tickets.remover_responsavel).';
+          : 'Acesso proibido: sem permissão para remover responsável em massa (tickets.remover_responsavel).';
       }
 
       const canAssignResponsavel = await hasAnyTicketPermission(currentUser, [
@@ -120,12 +120,12 @@ async function getBulkActionPermissionError(currentUser: any, action: string, va
       ]);
       return canAssignResponsavel
         ? null
-        : 'Acesso proibido: Sem permissao para atribuir responsavel em massa.';
+        : 'Acesso proibido: sem permissão para atribuir responsável em massa.';
     }
     case 'add_tag':
       return await permissionsService.hasPermission(currentUser, 'tickets.gerenciar_tags')
         ? null
-        : 'Acesso proibido: Sem permissao para gerenciar tags em massa (tickets.gerenciar_tags).';
+        : 'Acesso proibido: sem permissão para gerenciar tags em massa (tickets.gerenciar_tags).';
     default:
       return 'Acao invalida';
   }
@@ -156,7 +156,7 @@ async function sendPublicAttachmentEmail(params: {
         t.message_id AS thread_message_id,
         COALESCE(t.solicitante_nome, requester.nome, 'Cliente') AS cliente_nome,
         COALESCE(t.solicitante_email, requester.email, 'removido@sistema.com') AS cliente_email,
-        COALESCE(author.nome, 'Equipe de Atendimento') AS author_name
+        COALESCE(author.nome, 'Equipe de suporte') AS author_name
       FROM ticket_mensagens m
       INNER JOIN tickets t ON t.id = m.ticket_id
       LEFT JOIN usuarios requester ON requester.id = t.usuario_id
@@ -244,7 +244,7 @@ router.get('/options', requirePermission('tickets.visualizar'), async (req: Auth
       services
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Erro ao carregar opcoes de atendimento';
+    const message = error instanceof Error ? error.message : 'Erro ao carregar opções de chamados';
     sendError(res, message);
   }
 });
@@ -257,11 +257,11 @@ router.post('/:id/read', async (req: AuthRequest, res) => {
     const id = parseInt(req.params.id);
     const result: any = await ticketsService.getByIdForUser(id, currentUser);
     
-    if (!result) return sendError(res, 'Ticket não encontrado', 404);
+    if (!result) return sendError(res, 'Chamado não encontrado', 404);
     if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
     await ticketsService.markAsRead(id, currentUser.id);
-    sendSuccess(res, null, 'Ticket marcado como lido');
+    sendSuccess(res, null, 'Chamado marcado como lido');
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erro ao marcar como lido';
     sendError(res, message);
@@ -346,7 +346,7 @@ router.get('/', requirePermission('tickets.visualizar'), async (req: AuthRequest
     const tickets = await ticketsService.list(filters);
     sendSuccess(res, tickets);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Erro ao listar tickets';
+    const message = error instanceof Error ? error.message : 'Erro ao listar chamados';
     sendError(res, message);
   }
 });
@@ -575,7 +575,7 @@ router.patch('/:id/resolve', async (req: AuthRequest, res) => {
 
     const id = parseInt(req.params.id);
     const ticket: any = await ticketsService.getByIdForUser(id, currentUser);
-    if (!ticket) return sendError(res, 'Ticket não encontrado', 404);
+    if (!ticket) return sendError(res, 'Chamado não encontrado', 404);
     if (ticket.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
     const targetStatusConfig = await getTicketStatusConfig(ticket.empresa_id, status);
@@ -594,7 +594,7 @@ router.patch('/:id/resolve', async (req: AuthRequest, res) => {
     
     sendSuccess(res, null, `Chamado ${targetStatusConfig.nome} com sucesso`);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Erro ao finalizar ticket';
+    const message = error instanceof Error ? error.message : 'Erro ao finalizar chamado';
     sendError(res, message, isTicketStatusValidationError(message) ? 400 : 500);
   }
 });
@@ -611,15 +611,15 @@ router.patch('/:id/reopen', async (req: AuthRequest, res) => {
 
     const id = parseInt(req.params.id);
     const ticket: any = await ticketsService.getByIdForUser(id, currentUser);
-    if (!ticket) return sendError(res, 'Ticket não encontrado', 404);
+    if (!ticket) return sendError(res, 'Chamado não encontrado', 404);
     if (ticket.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
     await ticketsService.reopenTicket(id, currentUser);
-    await logSystemAction(req, currentUser.id, ticket.empresa_id, 'TICKET_REOPEN', `Chamado #${id} reaberto para atendimento`);
+    await logSystemAction(req, currentUser.id, ticket.empresa_id, 'TICKET_REOPEN', `Chamado #${id} reaberto para suporte`);
     
     sendSuccess(res, null, 'Chamado reaberto com sucesso');
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Erro ao reabrir ticket';
+    const message = error instanceof Error ? error.message : 'Erro ao reabrir chamado';
     sendError(res, message, isTicketStatusValidationError(message) ? 400 : 500);
   }
 });
@@ -632,12 +632,12 @@ router.get('/:id', requirePermission('tickets.ver_detalhes'), async (req: AuthRe
     const id = parseInt(req.params.id);
     const result: any = await ticketsService.getByIdForUser(id, currentUser);
     
-    if (!result) return sendError(res, 'Ticket não encontrado', 404);
+    if (!result) return sendError(res, 'Chamado não encontrado', 404);
     if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
     sendSuccess(res, result);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Erro ao buscar ticket';
+    const message = error instanceof Error ? error.message : 'Erro ao buscar chamado';
     sendError(res, message);
   }
 });
@@ -665,7 +665,7 @@ router.post('/', requirePermission('tickets.criar'), async (req: AuthRequest, re
       : currentUser.empresa_id;
 
     if (!targetEmpresaId) {
-       return sendError(res, 'Sua conta não possui empresa vinculada para abrir atendimento.', 400);
+       return sendError(res, 'Sua conta não possui empresa vinculada para abrir chamado.', 400);
     }
 
     // Check if empresa exists and is active
@@ -690,9 +690,9 @@ router.post('/', requirePermission('tickets.criar'), async (req: AuthRequest, re
       }
     } catch(e) {}
 
-    sendSuccess(res, { id: ticketId }, 'Ticket aberto com sucesso', 201);
+    sendSuccess(res, { id: ticketId }, 'Chamado aberto com sucesso', 201);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Erro ao criar ticket';
+    const message = error instanceof Error ? error.message : 'Erro ao criar chamado';
     sendError(res, message);
   }
 });
@@ -709,7 +709,7 @@ router.patch('/:id/status', async (req: AuthRequest, res) => {
     if (!isValidTicketStatus(status)) return sendError(res, 'Status inválido', 400);
 
     const result: any = await ticketsService.getByIdForUser(id, currentUser);
-    if (!result) return sendError(res, 'Ticket não encontrado', 404);
+    if (!result) return sendError(res, 'Chamado não encontrado', 404);
     if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
     const ticket = result;
@@ -749,7 +749,7 @@ router.patch('/:id', async (req: AuthRequest, res) => {
 
     const id = parseInt(req.params.id);
     const result: any = await ticketsService.getByIdForUser(id, currentUser);
-    if (!result) return sendError(res, 'Ticket não encontrado', 404);
+    if (!result) return sendError(res, 'Chamado não encontrado', 404);
     if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
     const ticket = result;
@@ -771,7 +771,7 @@ router.patch('/:id', async (req: AuthRequest, res) => {
     if (hasFieldChanged('titulo')) {
       const denied = await ensureFieldPermission(
         'tickets.editar_titulo',
-        'Acesso proibido: Sem permissao para editar titulo (tickets.editar_titulo).'
+        'Acesso proibido: sem permissão para editar título (tickets.editar_titulo).'
       );
       if (denied) return denied;
     }
@@ -779,7 +779,7 @@ router.patch('/:id', async (req: AuthRequest, res) => {
     if (hasFieldChanged('descricao')) {
       const denied = await ensureFieldPermission(
         'tickets.editar_descricao',
-        'Acesso proibido: Sem permissao para editar descricao (tickets.editar_descricao).'
+        'Acesso proibido: sem permissão para editar descrição (tickets.editar_descricao).'
       );
       if (denied) return denied;
     }
@@ -787,7 +787,7 @@ router.patch('/:id', async (req: AuthRequest, res) => {
     if (hasFieldChanged('status')) {
       const denied = await ensureFieldPermission(
         'tickets.editar_status',
-        'Acesso proibido: Sem permissao para alterar status (tickets.editar_status).'
+        'Acesso proibido: sem permissão para alterar status (tickets.editar_status).'
       );
       if (denied) return denied;
 
@@ -798,7 +798,7 @@ router.patch('/:id', async (req: AuthRequest, res) => {
     if (hasFieldChanged('origem')) {
       const denied = await ensureFieldPermission(
         'tickets.editar_origem',
-        'Acesso proibido: Sem permissao para editar origem (tickets.editar_origem).'
+        'Acesso proibido: sem permissão para editar origem (tickets.editar_origem).'
       );
       if (denied) return denied;
     }
@@ -806,7 +806,7 @@ router.patch('/:id', async (req: AuthRequest, res) => {
     if (hasFieldChanged('prazo_sla')) {
       const denied = await ensureFieldPermission(
         'tickets.alterar_sla',
-        'Acesso proibido: Sem permissao para alterar SLA (tickets.alterar_sla).'
+        'Acesso proibido: sem permissão para alterar SLA (tickets.alterar_sla).'
       );
       if (denied) return denied;
     }
@@ -932,9 +932,9 @@ router.patch('/:id', async (req: AuthRequest, res) => {
       }
     } catch(e) {}
     
-    sendSuccess(res, null, 'Ticket atualizado com sucesso');
+    sendSuccess(res, null, 'Chamado atualizado com sucesso');
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Erro ao atualizar ticket';
+    const message = error instanceof Error ? error.message : 'Erro ao atualizar chamado';
     sendError(res, message, isTicketStatusValidationError(message) ? 400 : 500);
   }
 });
@@ -946,7 +946,7 @@ router.get('/:id/messages', async (req: AuthRequest, res) => {
 
     const id = parseInt(req.params.id);
     const result: any = await ticketsService.getByIdForUser(id, currentUser);
-    if (!result) return sendError(res, 'Ticket não encontrado', 404);
+    if (!result) return sendError(res, 'Chamado não encontrado', 404);
     if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
     const canView = await permissionsService.hasPermission(currentUser, 'ticket_mensagens.visualizar');
@@ -977,7 +977,7 @@ router.get('/:id/timeline', async (req: AuthRequest, res) => {
     const id = parseInt(req.params.id);
 
     const result: any = await ticketsService.getByIdForUser(id, currentUser);
-    if (!result) return sendError(res, 'Ticket não encontrado', 404);
+    if (!result) return sendError(res, 'Chamado não encontrado', 404);
     if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
     const canView = await permissionsService.hasPermission(currentUser, 'ticket_mensagens.visualizar');
@@ -986,7 +986,7 @@ router.get('/:id/timeline', async (req: AuthRequest, res) => {
     const hasVerInternos = await permissionsService.hasPermission(currentUser, 'ticket_mensagens.ver_internos');
     
     const timeline = await ticketsService.getTimeline(id, hasVerInternos);
-    if (!timeline) return sendError(res, 'Ticket não encontrado', 404);
+    if (!timeline) return sendError(res, 'Chamado não encontrado', 404);
 
     sendSuccess(res, timeline);
   } catch (error: unknown) {
@@ -1010,7 +1010,7 @@ router.post('/:id/messages', async (req: AuthRequest, res) => {
       && (suppress_email === true || suppress_email === 'true');
 
     const ticketResult: any = await ticketsService.getByIdForUser(id, currentUser);
-    if (!ticketResult) return sendError(res, 'Ticket nÃ£o encontrado', 404);
+    if (!ticketResult) return sendError(res, 'Chamado não encontrado', 404);
     if (ticketResult.error === 'forbidden') return sendError(res, 'PermissÃ£o negada', 403);
 
     if (isInternalCom) {
@@ -1053,7 +1053,7 @@ router.get('/:id/attachments', async (req: AuthRequest, res) => {
 
     const id = parseInt(req.params.id);
     const result: any = await ticketsService.getByIdForUser(id, currentUser);
-    if (!result) return sendError(res, 'Ticket não encontrado', 404);
+    if (!result) return sendError(res, 'Chamado não encontrado', 404);
     if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
     const hasVerInternos = await permissionsService.hasPermission(currentUser, 'ticket_mensagens.ver_internos');
@@ -1110,14 +1110,14 @@ router.post('/:id/attachments', ticketUpload.array('files', 5), async (req: Auth
       const [msgRows]: any = await pool.query('SELECT ticket_id FROM ticket_mensagens WHERE id = ?', [msgIdNum]);
       if (msgRows.length === 0 || msgRows[0].ticket_id !== id) {
         await attachmentsService.deleteMultiple(files);
-        return sendError(res, 'A mensagem informada não pertence a este ticket.', 400);
+        return sendError(res, 'A mensagem informada não pertence a este chamado.', 400);
       }
     }
 
     const ticketResult: any = await ticketsService.getByIdForUser(id, currentUser);
     if (!ticketResult) {
       await attachmentsService.deleteMultiple(files);
-      return sendError(res, 'Ticket não encontrado', 404);
+      return sendError(res, 'Chamado não encontrado', 404);
     }
     if (ticketResult.error === 'forbidden') {
       await attachmentsService.deleteMultiple(files);
@@ -1132,7 +1132,7 @@ router.post('/:id/attachments', ticketUpload.array('files', 5), async (req: Auth
       const hasInternalPerm = await permissionsService.hasPermission(currentUser, 'ticket_mensagens.comentar_interno');
       if (!hasInternalPerm) {
         await attachmentsService.deleteMultiple(files);
-        return sendError(res, 'Acesso proibido: Sem permissao para enviar anexos internos.', 403);
+        return sendError(res, 'Acesso proibido: sem permissão para enviar anexos internos.', 403);
       }
     }
 
@@ -1202,7 +1202,7 @@ router.get('/:id/tags', async (req: AuthRequest, res) => {
     const id = parseInt(req.params.id);
     const result: any = await ticketsService.getByIdForUser(id, currentUser);
     
-    if (!result) return sendError(res, 'Ticket não encontrado', 404);
+    if (!result) return sendError(res, 'Chamado não encontrado', 404);
     if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
     const tags = await ticketsService.getTags(id);
@@ -1222,7 +1222,7 @@ router.post('/:id/tags', requirePermission('tickets.gerenciar_tags'), async (req
     if (!tag) return sendError(res, 'Tag é obrigatória', 400);
 
     const result: any = await ticketsService.getByIdForUser(id, currentUser);
-    if (!result) return sendError(res, 'Ticket não encontrado', 404);
+    if (!result) return sendError(res, 'Chamado não encontrado', 404);
     if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
     await ticketsService.addTag(id, tag);
@@ -1243,7 +1243,7 @@ router.put('/:id/tags', requirePermission('tickets.gerenciar_tags'), async (req:
     if (!Array.isArray(tags)) return sendError(res, 'Tags devem ser um array', 400);
 
     const result: any = await ticketsService.getByIdForUser(id, currentUser);
-    if (!result) return sendError(res, 'Ticket não encontrado', 404);
+    if (!result) return sendError(res, 'Chamado não encontrado', 404);
     if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
     await ticketsService.setTags(id, tags);
@@ -1263,7 +1263,7 @@ router.delete('/:id/tags/:tag', requirePermission('tickets.gerenciar_tags'), asy
     const { tag } = req.params;
 
     const result: any = await ticketsService.getByIdForUser(id, currentUser);
-    if (!result) return sendError(res, 'Ticket não encontrado', 404);
+    if (!result) return sendError(res, 'Chamado não encontrado', 404);
     if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
     await ticketsService.removeTag(id, tag);
@@ -1282,7 +1282,7 @@ router.get('/:id/custom-fields', async (req: AuthRequest, res) => {
 
     const id = parseInt(req.params.id);
     const result: any = await ticketsService.getByIdForUser(id, currentUser);
-    if (!result) return sendError(res, 'Ticket não encontrado', 404);
+    if (!result) return sendError(res, 'Chamado não encontrado', 404);
     if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
     const fields = await ticketsService.getCustomFields(id);
@@ -1302,7 +1302,7 @@ router.put('/:id/custom-fields', requirePermission('tickets.editar'), async (req
     if (!Array.isArray(fields)) return sendError(res, 'Campos devem ser um array', 400);
 
     const result: any = await ticketsService.getByIdForUser(id, currentUser);
-    if (!result) return sendError(res, 'Ticket não encontrado', 404);
+    if (!result) return sendError(res, 'Chamado não encontrado', 404);
     if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
     await ticketsService.setCustomFields(id, fields);

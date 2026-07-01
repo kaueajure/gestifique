@@ -220,7 +220,7 @@ export const EmailChannelsManager = ({
     e.preventDefault();
     if (!smtpModalChannel) return;
     if (!canEdit) {
-      setSmtpError('Sem permissao para alterar o envio deste canal.');
+      setSmtpError('Sem permissão para alterar o envio deste canal.');
       return;
     }
 
@@ -262,7 +262,7 @@ export const EmailChannelsManager = ({
   const handleTestSmtp = async () => {
     if (!smtpModalChannel) return;
     if (!canTest) {
-      setSmtpError('Sem permissao para testar o envio deste canal.');
+      setSmtpError('Sem permissão para testar o envio deste canal.');
       return;
     }
     try {
@@ -306,7 +306,7 @@ export const EmailChannelsManager = ({
 
   const openCreateModal = () => {
     if (!canCreate) {
-      setFeedback({ type: 'error', message: 'Sem permissao para criar canais de e-mail.' });
+      setFeedback({ type: 'error', message: 'Sem permissão para criar canais de e-mail.' });
       return;
     }
     setNewEmail('');
@@ -324,7 +324,7 @@ export const EmailChannelsManager = ({
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canCreate) {
-      setCreateError('Sem permissao para criar canais de e-mail.');
+      setCreateError('Sem permissão para criar canais de e-mail.');
       return;
     }
     if (!newEmail) return;
@@ -352,10 +352,10 @@ export const EmailChannelsManager = ({
 
   const handleDelete = async (id: number) => {
     if (!canDelete) {
-      setFeedback({ type: 'error', message: 'Sem permissao para remover canais de e-mail.' });
+      setFeedback({ type: 'error', message: 'Sem permissão para remover canais de e-mail.' });
       return;
     }
-    if (!confirm('Remover este canal de e-mail? Nenhum novo ticket sera recebido por este endereco tecnico.')) return;
+    if (!confirm('Remover este canal de e-mail? Nenhum novo chamado será recebido por este endereço técnico.')) return;
 
     try {
       await api.delete(`/companies/${empresaId}/email-channels/${id}`);
@@ -368,14 +368,14 @@ export const EmailChannelsManager = ({
 
   const handleRegenerate = async (id: number) => {
     if (!canEdit) {
-      setFeedback({ type: 'error', message: 'Sem permissao para regenerar canais de e-mail.' });
+      setFeedback({ type: 'error', message: 'Sem permissão para regenerar canais de e-mail.' });
       return;
     }
-    if (!confirm('Regerar o endereco de encaminhamento? O endereco antigo para de funcionar imediatamente.')) return;
+    if (!confirm('Regerar o endereço de encaminhamento? O endereço antigo para de funcionar imediatamente.')) return;
 
     try {
       await api.post(`/companies/${empresaId}/email-channels/${id}/regenerate`, {});
-      setFeedback({ type: 'success', message: 'Endereco de encaminhamento regenerado.' });
+      setFeedback({ type: 'success', message: 'Endereço de encaminhamento regenerado.' });
       fetchChannels();
     } catch (err: any) {
       setFeedback({ type: 'error', message: err.message || 'Erro ao regenerar canal' });
@@ -394,7 +394,7 @@ export const EmailChannelsManager = ({
         <div className="space-y-1 min-w-0">
           <h4 className="text-sm font-semibold text-slate-800">Canais de E-mail</h4>
           <p className="text-xs text-slate-500 max-w-md">
-            Receba tickets por encaminhamento e responda pelo SMTP configurado no sistema.
+            Receba chamados por encaminhamento e responda pelo SMTP configurado no sistema.
           </p>
         </div>
         {canCreate && (
@@ -514,7 +514,7 @@ export const EmailChannelsManager = ({
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-[11px] font-medium text-slate-500 flex items-center gap-1">
-                      <ShieldCheck size={12} className="text-blue-500" /> Endereco de encaminhamento
+                      <ShieldCheck size={12} className="text-blue-500" /> Endereço de encaminhamento
                     </span>
                     <span className="text-[11px] font-medium text-amber-600">Confidencial</span>
                   </div>
@@ -608,7 +608,7 @@ export const EmailChannelsManager = ({
                 ) : (
                   <div className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 border border-emerald-100 rounded-md text-xs font-medium text-emerald-700">
                     <Check size={14} className="shrink-0" />
-                    Recebimento em operacao.
+                    Recebimento em operação.
                   </div>
                 )}
               </div>
@@ -697,7 +697,7 @@ export const EmailChannelsManager = ({
           <div className="p-3 bg-blue-50 border border-blue-100 rounded-md flex gap-2 items-start">
             <Info size={16} className="text-blue-600 shrink-0 mt-0.5" />
             <p className="text-[11px] text-blue-700 leading-relaxed">
-              Essa configuração permite que o cliente receba as respostas do ticket como vindas de{' '}
+              Essa configuração permite que o cliente receba as respostas do chamado como vindas de{' '}
               <strong className="break-all">{smtpModalChannel?.email_publico}</strong>.
             </p>
           </div>
@@ -877,9 +877,9 @@ export const EmailChannelsManager = ({
           {smtpTab === 'recebimento' && smtpModalChannel && (
             <div className="space-y-3">
               <p className="text-[11px] text-slate-600 leading-relaxed">
-                Para <strong>receber</strong> tickets por e-mail, crie no seu provedor um encaminhamento automático de{' '}
+                Para <strong>receber</strong> chamados por e-mail, crie no seu provedor um encaminhamento automático de{' '}
                 <strong className="break-all">{smtpModalChannel.email_publico}</strong> para o endereço de entrada abaixo.
-                Assim, quando o cliente enviar um e-mail, o Gestifique cria ou atualiza o ticket.
+                Assim, quando o cliente enviar um e-mail, o Gestifique cria ou atualiza o chamado.
               </p>
 
               <div className="space-y-1">

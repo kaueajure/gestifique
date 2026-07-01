@@ -29,7 +29,7 @@ interface AITesterPageProps {
 
 const SUGGESTIONS = [
   {
-    text: "Como posso melhorar a automação de tickets?",
+    text: "Como posso melhorar a automação de chamados?",
     icon: Zap,
     label: "Automação",
   },
@@ -39,12 +39,12 @@ const SUGGESTIONS = [
     label: "SLA",
   },
   {
-    text: "Dicas para organizar a fila de atendimento",
+    text: "Dicas para organizar a fila de chamados",
     icon: MessageSquare,
     label: "Fila",
   },
   {
-    text: "Como a IA pode resumir tickets longos?",
+    text: "Como a IA pode resumir chamados longos?",
     icon: Sparkles,
     label: "Resumos",
   },
@@ -56,7 +56,7 @@ export const AITesterPage: React.FC<AITesterPageProps> = ({ currentUser }) => {
       role: "model",
       text: `Olá, ${currentUser.nome}! Eu sou o Tique, seu assistente de Inteligência Artificial no Gestifique.
 
-Posso ajudar você a responder clientes, resumir tickets, organizar fluxos de atendimento, revisar mensagens ou pensar em automações. Como posso te apoiar hoje?`,
+Posso ajudar você a responder clientes, resumir chamados, organizar fluxos de suporte, revisar mensagens ou pensar em automações. Como posso te apoiar hoje?`,
     },
   ]);
   const [input, setInput] = useState("");

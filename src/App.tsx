@@ -1,18 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { lazy, Suspense, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Sidebar } from "./components/layout/Sidebar";
 import { Topbar } from "./components/layout/Topbar";
 import { DashboardPage } from "./components/pages/DashboardPage";
-import { TicketsPage } from "./components/pages/TicketsPage";
-import { TicketDetailsPage } from "./components/pages/TicketDetailsPage";
-import { UsersPage } from "./components/pages/UsersPage";
-import { CompaniesPage } from "./components/pages/CompaniesPage";
-import { LogsPage } from "./components/pages/LogsPage";
-import { ProfilePage } from "./components/pages/ProfilePage";
-import { SettingsPage } from "./components/pages/SettingsPage";
-import { ReportsPage } from "./components/pages/ReportsPage";
-import { KnowledgePage } from "./components/pages/KnowledgePage";
-import { AITesterPage } from "./components/pages/AITesterPage";
 import { AccessDenied } from "./components/ui/AccessDenied";
 import { PublicSite } from "./components/public/PublicSite";
 import { SatisfactionPage } from "./components/public/SatisfactionPage";
@@ -27,6 +17,57 @@ import { cn } from "./lib/utils";
 import { Loader2 } from "lucide-react";
 
 import { PortalLayout } from "./components/portal/PortalLayout";
+
+const UsersPage = lazy(() =>
+  import("./components/pages/UsersPage").then((module) => ({
+    default: module.UsersPage,
+  })),
+);
+const CompaniesPage = lazy(() =>
+  import("./components/pages/CompaniesPage").then((module) => ({
+    default: module.CompaniesPage,
+  })),
+);
+const LogsPage = lazy(() =>
+  import("./components/pages/LogsPage").then((module) => ({
+    default: module.LogsPage,
+  })),
+);
+const ProfilePage = lazy(() =>
+  import("./components/pages/ProfilePage").then((module) => ({
+    default: module.ProfilePage,
+  })),
+);
+const SettingsPage = lazy(() =>
+  import("./components/pages/SettingsPage").then((module) => ({
+    default: module.SettingsPage,
+  })),
+);
+const TicketsPage = lazy(() =>
+  import("./components/pages/TicketsPage").then((module) => ({
+    default: module.TicketsPage,
+  })),
+);
+const ReportsPage = lazy(() =>
+  import("./components/pages/ReportsPage").then((module) => ({
+    default: module.ReportsPage,
+  })),
+);
+const KnowledgePage = lazy(() =>
+  import("./components/pages/KnowledgePage").then((module) => ({
+    default: module.KnowledgePage,
+  })),
+);
+const TicketDetailsPage = lazy(() =>
+  import("./components/pages/TicketDetailsPage").then((module) => ({
+    default: module.TicketDetailsPage,
+  })),
+);
+const AITesterPage = lazy(() =>
+  import("./components/pages/AITesterPage").then((module) => ({
+    default: module.AITesterPage,
+  })),
+);
 
 type ViewState =
   | "landing"
@@ -95,6 +136,15 @@ const loadDashboardState = (): {
     return { activeTab: "dashboard", selectedTicketId: null };
   }
 };
+
+const LazyPageFallback = () => (
+  <div className="flex h-full min-h-[240px] w-full items-center justify-center rounded-lg border border-slate-200 bg-white">
+    <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
+      <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+      Carregando módulo...
+    </div>
+  </div>
+);
 
 export default function App() {
   const getViewFromPath = (pathname: string): ViewState => {
@@ -534,6 +584,22 @@ export default function App() {
   // --- DASHBOARD LAYOUT ---
 
   if (view === "dashboard" && currentUser) {
+    const handleTopbarNavigate = (target: {
+      tab: string;
+      ticketId?: number;
+    }) => {
+      if (target.ticketId) {
+        setActiveTab("tickets");
+        setSelectedTicketId(target.ticketId);
+        return;
+      }
+
+      if (isActiveTab(target.tab)) {
+        setActiveTab(target.tab);
+        setSelectedTicketId(null);
+      }
+    };
+
     const getPageTitle = () => {
       switch (activeTab) {
         case "dashboard":
@@ -562,7 +628,7 @@ export default function App() {
     };
 
     return (
-      <div className="relative h-screen w-screen overflow-hidden bg-slate-50">
+      <div className="relative flex h-screen w-screen overflow-hidden bg-slate-50">
         <Sidebar
           currentUser={currentUser}
           activeTab={activeTab}
@@ -581,6 +647,7 @@ export default function App() {
             title={getPageTitle()}
             onMenuClick={() => setIsSidebarOpen(true)}
             showSearch={!(activeTab === "tickets" && selectedTicketId)}
+            onNavigate={handleTopbarNavigate}
           />
 
           <main className="flex-1 min-h-0 bg-slate-50 overflow-hidden">
@@ -589,7 +656,7 @@ export default function App() {
                 "h-full w-full min-h-0 transition-all duration-300",
                 activeTab === "tickets" && selectedTicketId
                   ? "p-0 sm:p-3 lg:p-4"
-                  : "flex items-center p-3 sm:p-4 lg:p-5 xl:p-6",
+                  : "flex p-3 sm:p-4 lg:p-4 xl:p-5",
               )}
             >
               <AnimatePresence mode="wait">
@@ -603,9 +670,10 @@ export default function App() {
                     "min-h-0",
                     activeTab === "tickets" && selectedTicketId
                       ? "h-full w-full"
-                      : "mx-auto h-[calc(100%-24px)] w-full max-w-[1560px]"
+                      : "mx-auto h-full w-full max-w-[1560px]",
                   )}
                 >
+                  <Suspense fallback={<LazyPageFallback />}>
                   {activeTab === "dashboard" &&
                     (hasPermission(currentUser, "dashboard.visualizar") ? (
                       <DashboardPage
@@ -698,6 +766,7 @@ export default function App() {
                     ) : (
                       <AccessDenied />
                     ))}
+                  </Suspense>
                 </motion.div>
               </AnimatePresence>
             </div>

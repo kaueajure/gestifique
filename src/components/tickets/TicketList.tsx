@@ -181,7 +181,7 @@ export const TicketList = ({
           ) : (
             <>
               <h4 className="text-sm font-semibold text-slate-800">Fila vazia</h4>
-              <p className="text-xs text-slate-500 max-w-[250px] mx-auto mt-1">Não há atendimentos registrados.</p>
+              <p className="text-xs text-slate-500 max-w-[250px] mx-auto mt-1">Não há chamados registrados.</p>
             </>
           )}
         </div>
@@ -191,7 +191,145 @@ export const TicketList = ({
 
   return (
     <div className="border border-slate-200 rounded-lg bg-white shadow-sm overflow-hidden">
-      <div className="overflow-x-auto no-scrollbar">
+      <div className="divide-y divide-slate-100 md:hidden">
+        {tickets.map((ticket) => {
+          const sla = getSlaInfo(ticket.prazo_sla, ticket.status, ticket.sla_status_operacional);
+          const statusColor = getStatusColor(ticket.status);
+          const isInitialStatus = statusSpecialMap.get(ticket.status) === 'inicial' || ticket.status === 'aberto';
+          const isAbertoESemResp = isInitialStatus && !ticket.responsavel_id;
+          const isSelected = selectedTicketIds.includes(ticket.id);
+          const priority = getPriorityInfo(ticket.prioridade);
+          const estadoInfo = getEstadoAtendimentoInfo(ticket.estado_atendimento);
+          const firstResponse = getFirstResponseSlaInfo(ticket);
+
+          return (
+            <div
+              key={ticket.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => onSelectTicket(ticket.id)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  onSelectTicket(ticket.id);
+                }
+              }}
+              className={cn(
+                "group cursor-pointer bg-white p-3 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500",
+                isSelected ? "bg-blue-50" : "active:bg-slate-50",
+                sla.status === 'vencido' && !isSelected && "bg-rose-50/30",
+                ticket.nao_lido && "font-semibold"
+              )}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1 flex items-center gap-1.5">
+                    {ticket.nao_lido && (
+                      <span className="h-2 w-2 rounded-full bg-blue-600" title="Mensagem não lida" />
+                    )}
+                    <span className="text-[11px] font-semibold text-slate-500">#{ticket.id}</span>
+                    {ticket.origem === 'email' && (
+                      <Mail size={12} className="text-slate-400" aria-label="Origem: E-mail" />
+                    )}
+                    {isAbertoESemResp && (
+                      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+                        Novo
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-slate-900">
+                    {ticket.titulo}
+                  </h3>
+                </div>
+
+                {canSelectBulk && (
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-5 w-5 shrink-0 rounded border-slate-300 text-blue-600 focus:ring-blue-500 focus:ring-opacity-20"
+                    checked={isSelected}
+                    onChange={() => toggleSelectTicket(ticket.id)}
+                    onClick={(event) => event.stopPropagation()}
+                    aria-label={`Selecionar chamado ${ticket.id}`}
+                  />
+                )}
+              </div>
+
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                <span className={cn("inline-flex rounded px-2 py-1 text-[11px] font-semibold", statusColor.bg, statusColor.color)}>
+                  {ticket.status.replace('_', ' ')}
+                </span>
+                <span className={cn("inline-flex rounded px-2 py-1 text-[11px] font-semibold", priority.bg, priority.color)}>
+                  {priority.label}
+                </span>
+                <span className={cn("inline-flex items-center gap-1 rounded bg-slate-50 px-2 py-1 text-[11px] font-semibold", sla.color)}>
+                  <Clock size={11} />
+                  {sla.compactText || sla.label}
+                </span>
+                {!ticket.primeira_resposta_em && ticket.prazo_primeira_resposta && (
+                  <span className={cn("inline-flex rounded bg-slate-50 px-2 py-1 text-[11px] font-semibold", firstResponse.color)}>
+                    1ª resposta: {firstResponse.compactText || firstResponse.label}
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-3 grid grid-cols-1 gap-2 text-[12px] text-slate-600">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <UserIcon size={13} className="shrink-0 text-slate-400" />
+                  <span className="truncate">{ticket.cliente_nome || 'Cliente não informado'}</span>
+                  {ticket.empresa_nome && (
+                    <span className="truncate text-slate-400">/ {ticket.empresa_nome}</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <ShieldAlert size={13} className="shrink-0 text-slate-400" />
+                  <span className="truncate">
+                    {ticket.responsavel_nome || 'Sem responsável'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className={cn("inline-flex items-center gap-1.5 font-medium", estadoInfo?.color || "text-slate-500")}>
+                    {estadoInfo && <span className={cn("h-1.5 w-1.5 rounded-full", estadoInfo.dot)} />}
+                    {estadoInfo?.label || 'Sem resposta'}
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-slate-500">
+                    <Clock size={12} />
+                    {formatRelativeTime(ticket.updated_at)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2">
+                <div className="flex min-w-0 gap-1">
+                  {ticket.tags && ticket.tags.filter(tag => !tag.startsWith('ia-')).slice(0, 2).map(tag => (
+                    <span key={tag} className="truncate rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-1" onClick={(event) => event.stopPropagation()}>
+                  {canAssumeTicket && isAbertoESemResp && (
+                    <button onClick={(event) => handleAssumirTicket(event, ticket.id)} title="Assumir chamado" className="flex h-9 w-9 items-center justify-center rounded-md text-blue-600 hover:bg-blue-50">
+                      <UserPlus size={16} />
+                    </button>
+                  )}
+                  {canEditStatus && inProgressStatus && isInitialStatus && ticket.responsavel_id === currentUser.id && (
+                    <button onClick={(event) => handleMudarStatus(event, ticket.id, inProgressStatus)} title="Iniciar atendimento" className="flex h-9 w-9 items-center justify-center rounded-md text-indigo-600 hover:bg-indigo-50">
+                      <Play size={16} />
+                    </button>
+                  )}
+                  <button onClick={(event) => handleCopyId(event, ticket.id)} title="Copiar ID" className="flex h-9 w-9 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100">
+                    <Copy size={16} />
+                  </button>
+                  <ChevronRight size={16} className="text-slate-300" />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="hidden overflow-x-auto no-scrollbar md:block">
         <table className="w-full text-left border-collapse table-fixed">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-100">
@@ -205,7 +343,7 @@ export const TicketList = ({
                   />
                 </th>
               )}
-              <SortHeader label="Atendimento" k="titulo" className="w-[300px]" />
+              <SortHeader label="Chamado" k="titulo" className="w-[300px]" />
               <th className="w-[140px] px-3 py-2 text-[11px] font-semibold text-slate-500">Situação</th>
               <th className="px-3 py-2 text-[11px] font-semibold text-slate-500 hidden md:table-cell">Cliente</th>
               <SortHeader label="Status" k="status" className="w-[120px]" />
@@ -370,7 +508,7 @@ export const TicketList = ({
         <div className="flex items-center justify-between px-3 py-2 border-t border-slate-100 bg-slate-50">
           <div className="flex items-center gap-3">
             <span className="text-[11px] text-slate-500 font-medium">Página {meta.page} de {meta.totalPages}</span>
-            <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">{meta.total} Tickets</span>
+            <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">{meta.total} chamados</span>
           </div>
           <div className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
             <Button 

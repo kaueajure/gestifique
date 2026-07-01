@@ -368,7 +368,7 @@ router.get('/:id/ticket-statuses', async (req: AuthRequest, res) => {
     );
     sendSuccess(res, rows);
   } catch(error: unknown) {
-    sendError(res, 'Erro ao buscar tipos de atendimento');
+    sendError(res, 'Erro ao buscar categorias de chamados');
   }
 });
 
@@ -441,7 +441,7 @@ router.put('/:id/ticket-statuses', async (req: AuthRequest, res) => {
 
     const statuses = Array.isArray(req.body?.statuses) ? req.body.statuses : null;
     if (!statuses) return sendError(res, 'Lista de tipos inválida', 400);
-    if (statuses.length > 40) return sendError(res, 'Máximo de 40 tipos de atendimento', 400);
+    if (statuses.length > 40) return sendError(res, 'Máximo de 40 status de chamados', 400);
 
     const remapStatuses = req.body?.remap_statuses && typeof req.body.remap_statuses === 'object'
       ? req.body.remap_statuses
@@ -581,7 +581,7 @@ router.put('/:id/ticket-statuses', async (req: AuthRequest, res) => {
     sendSuccess(res, rows);
   } catch(error: unknown) {
     await connection.rollback();
-    const message = error instanceof Error ? error.message : 'Erro ao salvar tipos de atendimento';
+    const message = error instanceof Error ? error.message : 'Erro ao salvar status de chamados';
     sendError(res, message, 400);
   } finally {
     connection.release();

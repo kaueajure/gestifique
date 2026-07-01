@@ -308,7 +308,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                   className="w-full text-left px-4 py-2 hover:bg-slate-50 text-sm text-slate-700"
                   onClick={() => handleExportCSV("tickets")}
                 >
-                  Tickets Detalhados
+                  Chamados detalhados
                 </button>
                 <button
                   className="w-full text-left px-4 py-2 hover:bg-slate-50 text-sm text-slate-700"
@@ -464,7 +464,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
             {/* Main Indicators */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <IndicatorCard
-                title="Tickets Criados"
+                title="Chamados criados"
                 value={data.totals.total_tickets}
                 icon={<Inbox />}
                 color="blue"
@@ -621,7 +621,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
               <Card className="p-4 lg:p-5 shadow-sm">
                 <h3 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
                   <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
-                  Fluxo de Atendimento Diário
+                  Fluxo diario de chamados
                 </h3>
                 <div className="h-[260px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
@@ -1028,7 +1028,7 @@ export function ReportsPage({ currentUser }: ReportsPageProps) {
                               <td colSpan={6} className="px-4 py-8">
                                 <EmptyState
                                   icon={<FileText size={20} />}
-                                  title="Nenhum atendimento"
+                                  title="Nenhum chamado"
                                   description="Nenhum registro encontrado para a extração."
                                 />
                               </td>

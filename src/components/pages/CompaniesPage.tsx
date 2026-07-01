@@ -629,7 +629,7 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
               <p>
                 Você está prestes a excluir permanentemente a empresa{" "}
                 <strong>{selectedCompany?.nome}</strong>. Essa ação removerá
-                todos os usuários, tickets, mensagens, anexos, configurações,
+                todos os usuários, chamados, mensagens, anexos, configurações,
                 automações, canais de e-mail e relatórios vinculados a esta
                 empresa.
               </p>

@@ -49,27 +49,30 @@ const EmptyThread = () => (
     </div>
     <h4 className="mb-1 text-sm font-semibold tracking-tight text-slate-900">Aguardando interações</h4>
     <p className="max-w-xs text-xs font-medium leading-relaxed text-slate-500">
-      Não há mensagens registradas para este atendimento ainda.
+      Não há mensagens registradas para este chamado ainda.
     </p>
   </div>
 );
 
+type InteractionRole = 'opening' | 'requester' | 'assignee' | 'agent' | 'internal' | 'system';
+
 const ThreadItem = ({
   msg,
-  isCliente,
+  role,
   isCurrentUser = false,
   isAbertura = false,
   onDeleteAttachment
 }: {
   msg: any;
-  isCliente: boolean;
+  role: InteractionRole;
   isCurrentUser?: boolean;
   isAbertura?: boolean;
   onDeleteAttachment?: (id: number) => Promise<void>;
 }) => {
   const isInternal = Number(msg.interno) === 1;
+  const isSystem = role === 'system';
   const date = new Date(msg.created_at || msg.data_mensagem);
-  const authorName = msg.usuario_nome || (isAbertura ? 'Solicitante' : 'Atendente');
+  const authorName = msg.usuario_nome || (isAbertura ? 'Solicitante' : isSystem ? 'Sistema' : 'Atendente');
   const messageText = msg.mensagem || msg.descricao;
   const attachmentsCount = msg.attachments?.length || 0;
   const interaction = isAbertura
@@ -84,11 +87,19 @@ const ThreadItem = ({
       ? {
           label: 'Nota interna',
           icon: Lock,
-          badge: 'bg-slate-100 text-slate-500 border-slate-200',
-          line: 'border-l-slate-300',
-          panel: 'bg-white opacity-70'
+          badge: 'bg-amber-50 text-amber-700 border-amber-200',
+          line: 'border-l-amber-400',
+          panel: 'bg-amber-50/40'
         }
-      : isCliente
+      : isSystem
+        ? {
+            label: 'Sistema',
+            icon: ClipboardList,
+            badge: 'bg-violet-50 text-violet-700 border-violet-200',
+            line: 'border-l-violet-400',
+            panel: 'bg-white'
+          }
+      : role === 'requester'
         ? {
             label: 'Solicitante',
             icon: UserRound,
@@ -96,8 +107,16 @@ const ThreadItem = ({
             line: 'border-l-blue-400',
             panel: 'bg-white'
           }
+      : role === 'assignee'
+        ? {
+            label: 'Responsável',
+            icon: Reply,
+            badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+            line: 'border-l-emerald-400',
+            panel: 'bg-white'
+          }
         : {
-            label: isCurrentUser ? 'Sua resposta' : 'Equipe',
+            label: isCurrentUser ? 'Sua resposta' : 'Atendente',
             icon: Reply,
             badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
             line: 'border-l-emerald-400',
@@ -108,7 +127,7 @@ const ThreadItem = ({
   return (
     <article
       className={cn(
-        'overflow-hidden rounded-lg border border-l-4 border-slate-200 shadow-sm',
+        'overflow-hidden rounded-lg border border-l-4 border-slate-200 shadow-none',
         interaction.line,
         interaction.panel
       )}
@@ -119,7 +138,7 @@ const ThreadItem = ({
             className={cn(
               'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border',
               isInternal
-                ? 'border-slate-200 bg-slate-100 text-slate-400'
+                ? 'border-amber-200 bg-amber-50 text-amber-700'
                 : 'border-slate-200 bg-slate-50 text-slate-500'
             )}
           >
@@ -145,7 +164,7 @@ const ThreadItem = ({
               )}
             </div>
             <p className="mt-1 truncate text-xs font-medium text-slate-500">
-              {isAbertura ? ticketSubject(msg) : 'Atualização do atendimento'}
+              {isAbertura ? ticketSubject(msg) : 'Atualização do chamado'}
             </p>
           </div>
         </div>
@@ -166,7 +185,7 @@ const ThreadItem = ({
         <div
           className={cn(
             'whitespace-pre-wrap break-words text-sm leading-6',
-            isInternal ? 'text-slate-500' : 'text-slate-700'
+            isInternal ? 'text-slate-700' : 'text-slate-700'
           )}
         >
           {messageText}
@@ -212,6 +231,34 @@ export const TicketConversation = ({
       .replace(/\s+/g, ' ')
       .toLowerCase();
 
+  const normalizeIdentity = (value?: string | null) =>
+    normalizeMessage(value).replace(/[<>]/g, '');
+
+  const requesterNames = [
+    ticket.cliente_nome,
+    ticket.cliente_email,
+    ticket.solicitante_nome,
+    ticket.solicitante_email
+  ]
+    .map(normalizeIdentity)
+    .filter(Boolean);
+
+  const getInteractionRole = (msg: any): InteractionRole => {
+    if (msg.isAbertura) return 'opening';
+    if (Number(msg.interno) === 1) return 'internal';
+
+    const authorIdentity = normalizeIdentity(msg.usuario_nome);
+    const authorLooksLikeRequester = authorIdentity
+      ? requesterNames.some((name) => authorIdentity === name || authorIdentity.includes(name))
+      : false;
+
+    if (authorLooksLikeRequester) return 'requester';
+    if (!msg.usuario_id) return authorIdentity ? 'system' : 'requester';
+    if (ticket.responsavel_id && Number(msg.usuario_id) === Number(ticket.responsavel_id)) return 'assignee';
+
+    return 'agent';
+  };
+
   const normalizedDesc = normalizeMessage(ticket.descricao);
   const hasInitialMessageInMessages = messages
     .filter(msg => !Number(msg.interno))
@@ -245,7 +292,7 @@ export const TicketConversation = ({
           <div className="rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-sm font-semibold text-slate-950">Histórico do atendimento</h2>
+                <h2 className="text-sm font-semibold text-slate-950">Histórico do chamado</h2>
                 <p className="mt-0.5 text-xs font-medium text-slate-500">
                   Thread iniciada em {new Date(ticket.created_at).toLocaleDateString('pt-BR')}
                 </p>
@@ -274,7 +321,7 @@ export const TicketConversation = ({
                     {showDateSeparator && <DateSeparator label={dateLabel} />}
                     <ThreadItem
                       msg={msg}
-                      isCliente={msg.isAbertura || msg.usuario_id === ticket.usuario_id || (!msg.usuario_id && !msg.interno)}
+                      role={getInteractionRole(msg)}
                       isCurrentUser={!!msg.usuario_id && msg.usuario_id === currentUser.id}
                       isAbertura={msg.isAbertura}
                       onDeleteAttachment={canDeleteAttachments ? onDeleteAttachment : undefined}
@@ -295,9 +342,9 @@ export const TicketConversation = ({
               <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-slate-200/50 text-slate-400">
                 <Lock size={14} />
               </div>
-              <p className="mb-0.5 text-xs font-semibold tracking-tight text-slate-900">Atendimento fechado</p>
+              <p className="mb-0.5 text-xs font-semibold tracking-tight text-slate-900">Chamado fechado</p>
               <p className="text-[10px] font-medium text-slate-500">
-                Reabra o atendimento para enviar novas mensagens.
+                Reabra o chamado para enviar novas mensagens.
               </p>
             </div>
           ) : !canSendPublicReply && !canAddInternalNote ? (
@@ -305,7 +352,7 @@ export const TicketConversation = ({
               <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-slate-200/50 text-slate-400">
                 <Lock size={14} />
               </div>
-              <p className="mb-0.5 text-xs font-semibold tracking-tight text-slate-900">Sem permissao para responder</p>
+              <p className="mb-0.5 text-xs font-semibold tracking-tight text-slate-900">Sem permissão para responder</p>
               <p className="text-[10px] font-medium text-slate-500">
                 Solicite acesso a respostas ou notas internas.
               </p>

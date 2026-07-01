@@ -24,7 +24,7 @@ router.get('/tickets/:id/summary', authMiddleware, requirePermission('ia.usar_re
   try {
     const ticket = await ticketsService.getByIdForUser(ticketId, user);
     if (!ticket || ticket.error === 'forbidden') {
-      return sendError(res, 'Ticket nao encontrado', 404);
+      return sendError(res, 'Chamado não encontrado', 404);
     }
 
     const mensagensResult = (await ticketsService.getMessages(ticketId, false)) as any[];
@@ -62,7 +62,7 @@ router.post('/tickets/:id/suggest-reply', authMiddleware, requirePermission('ia.
   try {
     const ticket = await ticketsService.getByIdForUser(ticketId, user);
     if (!ticket || ticket.error === 'forbidden') {
-      return sendError(res, 'Ticket nao encontrado', 404);
+      return sendError(res, 'Chamado não encontrado', 404);
     }
 
     const mensagensResult = (await ticketsService.getMessages(ticketId, false)) as any[];

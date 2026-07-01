@@ -66,7 +66,7 @@ export const TeamSidebar = ({ currentUser, devCompanyId }: TeamSidebarProps) => 
                  <div className="text-xs font-semibold text-blue-600 leading-none">
                    {member.ticket_count || 0}
                  </div>
-                 <div className="text-[9px] font-medium text-slate-400 leading-none mt-0.5">Tickets</div>
+                 <div className="text-[9px] font-medium text-slate-400 leading-none mt-0.5">Chamados</div>
                </div>
              </div>
           ))}

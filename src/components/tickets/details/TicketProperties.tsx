@@ -174,8 +174,8 @@ export const TicketProperties = ({
             setIsArchiveConfirmOpen(false);
             onArchive();
         }}
-        title="Arquivar Atendimento?"
-        description="O atendimento será fechado e continuará disponível para consulta."
+        title="Arquivar chamado?"
+        description="O chamado será fechado e continuará disponível para consulta."
         confirmLabel="Arquivar"
         cancelLabel="Cancelar"
         variant="danger"
@@ -328,7 +328,7 @@ export const TicketProperties = ({
       </Section>
 
       {/* Seção 3: Cliente & Origem */}
-      <Section title="Informações do Cliente" icon={Globe}>
+      <Section title="Solicitante e origem" icon={Globe}>
         <PropertyRow label="Solicitante">
            <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
               <div className="text-sm font-semibold text-slate-900 mb-0.5">{ticket.cliente_nome || 'Desconhecido'}</div>

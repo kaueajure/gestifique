@@ -331,7 +331,7 @@ export const TicketKanban = ({
     if (!destination) return;
 
     if (!canDragCards) {
-      setErrorMsg('Sem permissao para mover chamados.');
+      setErrorMsg('Sem permissão para mover chamados.');
       setTimeout(() => setErrorMsg(null), 3000);
       return;
     }
@@ -351,7 +351,7 @@ export const TicketKanban = ({
 
     if (statusChanged) {
       if (!canEditStatus) {
-        setErrorMsg('Sem permissao para alterar status.');
+        setErrorMsg('Sem permissão para alterar status.');
         setTimeout(() => setErrorMsg(null), 3000);
         return;
       }
@@ -363,7 +363,7 @@ export const TicketKanban = ({
       }
 
       if (isFinalStatus(currentTicket.status) && !isFinalStatus(targetStatus) && !canReopen) {
-        setErrorMsg('Sem permissao para reabrir chamados.');
+        setErrorMsg('Sem permissão para reabrir chamados.');
         setTimeout(() => setErrorMsg(null), 3000);
         return;
       }
@@ -379,7 +379,7 @@ export const TicketKanban = ({
             : 'tickets.atribuir';
 
       if (!hasPermission(currentUser, requiredPermission)) {
-        setErrorMsg('Sem permissao para alterar responsavel.');
+        setErrorMsg('Sem permissão para alterar responsável.');
         setTimeout(() => setErrorMsg(null), 3000);
         return;
       }
@@ -495,7 +495,7 @@ export const TicketKanban = ({
                       {isExpanded && (
                         <div className="grid gap-2 border-t border-slate-100 bg-slate-50/70 p-2" style={boardGridStyle}>
                           <div className="px-2 pt-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                            Tickets
+                            Chamados
                           </div>
 
                           {localData.columns.map(column => {

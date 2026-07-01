@@ -284,9 +284,26 @@ export interface DashboardData {
   totalEmpresas?: number;
   totalUsuarios: number;
   slaAtrasados?: number;
+  vencendoHoje?: number;
+  tempoMedioPrimeiraRespostaHoras?: number | null;
+  tempoMedioResolucaoHoras?: number | null;
+  slaCumprido?: number;
+  slaViolado?: number;
   recentTickets: Ticket[];
   byStatus: Array<{
     status: string;
+    qtd: number;
+  }>;
+  byPriority?: Array<{
+    prioridade: string;
+    qtd: number;
+  }>;
+  byResponsavel?: Array<{
+    responsavel: string;
+    qtd: number;
+  }>;
+  backlogPorIdade?: Array<{
+    faixa: string;
     qtd: number;
   }>;
 }
