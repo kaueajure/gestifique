@@ -660,7 +660,7 @@ export default function App() {
     };
 
     return (
-      <div className="relative flex h-screen w-screen overflow-hidden bg-slate-50">
+      <div className="relative flex h-screen w-screen overflow-hidden bg-[#F4F7FA]">
         <Sidebar
           currentUser={currentUser}
           activeTab={activeTab}
@@ -682,7 +682,7 @@ export default function App() {
             onNavigate={handleTopbarNavigate}
           />
 
-          <main className="flex-1 min-h-0 bg-slate-50 overflow-hidden">
+          <main className="min-h-0 flex-1 overflow-hidden bg-[#F4F7FA]">
             <div
               className={cn(
                 "h-full w-full min-h-0 transition-all duration-300",

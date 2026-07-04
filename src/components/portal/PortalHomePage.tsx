@@ -42,9 +42,9 @@ export const PortalHomePage = ({ onNavigate }: PortalHomePageProps) => {
   return (
     <div className="space-y-4">
       {/* Hero Section */}
-      <div className="text-center md:text-left p-4 md:p-5 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+      <div className="relative flex flex-col items-center justify-between gap-6 overflow-hidden rounded-lg border border-slate-200 bg-white p-4 text-center shadow-[0_1px_2px_rgba(15,23,42,0.04)] md:flex-row md:p-5 md:text-left">
         <div className="relative z-10 w-full">
-          <h1 className="text-lg md:text-xl font-semibold tracking-tight text-slate-900 mb-1.5">
+          <h1 className="mb-1.5 text-lg font-semibold tracking-tight text-slate-950 md:text-xl">
             Como podemos te ajudar hoje?
           </h1>
           <p className="text-slate-500 text-sm mb-4">
@@ -54,13 +54,13 @@ export const PortalHomePage = ({ onNavigate }: PortalHomePageProps) => {
           <div className="flex flex-col sm:flex-row gap-2.5">
             <button 
               onClick={() => onNavigate('new-ticket')}
-              className="h-9 px-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-md flex items-center justify-center gap-2 transition-colors shadow-sm"
+              className="flex h-9 items-center justify-center gap-2 rounded-md bg-slate-950 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800"
             >
-              <PlusCircle size={16} /> Novo Chamado
+              <PlusCircle size={16} /> Novo chamado
             </button>
             <button 
               onClick={() => onNavigate('knowledge')}
-              className="h-9 px-4 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-sm font-semibold rounded-md flex items-center justify-center gap-2 transition-colors"
+              className="flex h-9 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
             >
               <Search size={16} /> Base de Conhecimento
             </button>
@@ -90,7 +90,7 @@ export const PortalHomePage = ({ onNavigate }: PortalHomePageProps) => {
               <button
                 key={article.id}
                 onClick={() => onNavigate('knowledge')} 
-                className="text-left bg-white border border-slate-200 hover:border-blue-300 hover:shadow-sm p-3 rounded-xl transition-all group flex flex-col h-full"
+                className="group flex h-full flex-col rounded-lg border border-slate-200 bg-white p-3 text-left transition-all hover:border-slate-300 hover:shadow-[0_8px_20px_rgba(15,23,42,0.06)]"
               >
                 <div className="w-8 h-8 rounded-md bg-slate-50 text-slate-500 flex items-center justify-center mb-2 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
                   <FileText size={16} />
@@ -108,7 +108,7 @@ export const PortalHomePage = ({ onNavigate }: PortalHomePageProps) => {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Card className="p-3 flex items-center gap-3 border-slate-200">
+        <Card className="flex items-center gap-3 border-slate-200 p-3">
           <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center shrink-0">
             <Clock size={16} />
           </div>
@@ -162,7 +162,7 @@ export const PortalHomePage = ({ onNavigate }: PortalHomePageProps) => {
               <button
                 key={ticket.id}
                 onClick={() => onNavigate('tickets', ticket.id)}
-                className="text-left w-full bg-white border border-slate-200 hover:border-blue-300 hover:shadow-sm rounded-xl p-3 transition-colors flex items-center justify-between group"
+                className="group flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white p-3 text-left transition-colors hover:border-slate-300 hover:bg-slate-50/60"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-md bg-slate-50 flex items-center justify-center text-slate-500 font-semibold text-xs group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">

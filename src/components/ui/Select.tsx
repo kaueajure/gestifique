@@ -103,9 +103,9 @@ export const Select: React.FC<SelectProps> = ({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         className={cn(
-          "flex items-center justify-between w-full bg-white border border-slate-300 rounded-md text-slate-700 transition-all outline-none",
-          "focus:border-blue-500 focus:ring-1 focus:ring-blue-500",
-          "hover:border-slate-400 disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed",
+          "flex w-full items-center justify-between rounded-md border border-slate-300 bg-white text-slate-700 shadow-[0_1px_1px_rgba(15,23,42,0.02)] transition-all outline-none",
+          "focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15",
+          "hover:border-slate-400 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500",
           size === "xs" && "h-6 px-2 text-[11px]",
           size === "sm" && "h-7 px-2 py-1 text-xs",
           size === "md" && "h-8 px-2.5 py-1.5 text-[13px]",
@@ -133,6 +133,7 @@ export const Select: React.FC<SelectProps> = ({
         <div
           className={cn(
             "absolute z-[9999] mt-1 min-w-full w-max bg-white border border-slate-200 rounded-md shadow-lg p-1 max-h-60 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in duration-150 origin-top",
+            "shadow-[0_12px_32px_rgba(15,23,42,0.14)]",
             dropdownClassName,
           )}
           role="listbox"
@@ -151,17 +152,17 @@ export const Select: React.FC<SelectProps> = ({
                   aria-selected={isSelected}
                   onClick={() => handleSelect(option)}
                   className={cn(
-                    "px-2.5 py-1.5 rounded-sm text-[13px] cursor-pointer transition-colors flex items-center justify-between group",
+                    "flex cursor-pointer items-center justify-between rounded px-2.5 py-1.5 text-[13px] transition-colors group",
                     isSelected
-                      ? "bg-slate-100 text-slate-900 font-medium"
-                      : "text-slate-700 hover:bg-slate-50 hover:text-slate-900",
+                      ? "bg-slate-950 text-white font-semibold"
+                      : "text-slate-700 hover:bg-slate-50 hover:text-slate-950",
                     option.disabled &&
                       "opacity-50 cursor-not-allowed pointer-events-none",
                   )}
                 >
                   <span className="truncate pr-4">{option.label}</span>
                   {isSelected && (
-                    <Check size={14} className="flex-shrink-0 text-slate-600" />
+                    <Check size={14} className="flex-shrink-0 text-white" />
                   )}
                 </div>
               );

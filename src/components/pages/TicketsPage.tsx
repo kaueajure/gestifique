@@ -151,12 +151,12 @@ const EMPTY_QUEUES = {
 };
 
 const queueChipBaseClass =
-  "relative flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-md transition-all whitespace-nowrap";
+  "relative flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-md transition-all whitespace-nowrap border";
 
 const queueChipInactiveClass =
-  "bg-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50";
+  "border-transparent bg-transparent text-slate-600 hover:text-slate-950 hover:bg-white hover:border-slate-200";
 
-const queueChipActiveClass = "bg-slate-100 text-slate-900";
+const queueChipActiveClass = "border-slate-900 bg-slate-950 text-white shadow-sm";
 
 const MORE_QUEUES_MENU_WIDTH = 192;
 const CATEGORY_MENU_WIDTH = 240;
@@ -1373,15 +1373,15 @@ export const TicketsPage = ({
   return (
     <PageShell
       title="Central de Chamados"
-      subtitle="Gerencie chamados, acompanhe prazos e organize a operação de suporte."
+      subtitle="Priorize filas, acompanhe SLA e resolva chamados com clareza operacional."
       flush
       contentClassName="!overflow-hidden flex flex-col"
     >
-      <div className="flex flex-col lg:flex-row gap-3 items-start h-full min-h-0 pt-0 sm:pt-4 px-0 sm:px-4 pb-0 sm:pb-4">
-        <div className="flex-1 w-full space-y-3 min-w-0 flex flex-col h-full min-h-0">
+      <div className="flex h-full min-h-0 flex-col items-start gap-3 px-0 pb-0 pt-0 sm:px-4 sm:pb-4 sm:pt-4 lg:flex-row">
+        <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col space-y-3">
           {/* Main Toolbar */}
-          <div className="flex flex-col gap-3 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
-            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+          <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+            <div className="flex flex-col justify-between gap-3 xl:flex-row xl:items-center">
               <div className="relative flex-1 w-full group">
                 <Search
                   className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"
@@ -1390,21 +1390,21 @@ export const TicketsPage = ({
                 <input
                   type="text"
                   placeholder="Buscar chamado..."
-                  className="w-full h-8 bg-slate-50 border border-slate-200 rounded-md pl-8 pr-3 text-[13px] outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white focus:border-blue-500 transition-all placeholder:text-slate-400"
+                  className="h-9 w-full rounded-md border border-slate-200 bg-slate-50/80 pl-8 pr-3 text-[13px] text-slate-700 shadow-[0_1px_1px_rgba(15,23,42,0.02)] outline-none transition-all placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/15"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
 
               <div className="flex w-full flex-wrap items-center gap-2 xl:w-auto xl:justify-end shrink-0">
-                <div className="hidden h-9 items-center p-0.5 bg-slate-100 rounded-md border border-slate-200/50 sm:flex">
+                <div className="hidden h-9 items-center rounded-md border border-slate-200 bg-slate-100/80 p-0.5 sm:flex">
                   <button
                     onClick={() => setViewMode("list")}
                     className={cn(
                       "h-8 px-2 rounded transition-all flex items-center gap-1",
                       viewMode === "list"
-                        ? "bg-white text-blue-600 shadow-sm border border-slate-200/60"
-                        : "text-slate-500 hover:text-slate-700",
+                        ? "bg-white text-slate-950 shadow-sm border border-slate-200/80"
+                        : "text-slate-500 hover:text-slate-800",
                     )}
                   >
                     <ListIcon size={14} />
@@ -1417,8 +1417,8 @@ export const TicketsPage = ({
                     className={cn(
                       "h-8 px-2 rounded transition-all flex items-center gap-1",
                       viewMode === "kanban"
-                        ? "bg-white text-blue-600 shadow-sm border border-slate-200/60"
-                        : "text-slate-500 hover:text-slate-700",
+                        ? "bg-white text-slate-950 shadow-sm border border-slate-200/80"
+                        : "text-slate-500 hover:text-slate-800",
                     )}
                   >
                     <Kanban size={14} />
@@ -1464,7 +1464,7 @@ export const TicketsPage = ({
                     className="min-w-0 flex-1 sm:w-44"
                     buttonClassName={cn(
                       "h-9 bg-slate-50 border-slate-200 text-[11px]",
-                      activeSavedView && "border-blue-200 bg-blue-50 text-blue-700",
+                      activeSavedView && "border-slate-300 bg-white text-slate-950",
                     )}
                   />
                   <Button
@@ -1507,11 +1507,12 @@ export const TicketsPage = ({
                 {canCreateTicket && (
                   <Button
                     size="sm"
-                    className="h-9 w-9 p-0 rounded-md text-[11px] font-bold"
+                    className="h-9 px-3 text-[12px] font-semibold"
                     onClick={() => setIsModalOpen(true)}
                     title="Novo chamado"
                   >
                     <Plus size={16} />
+                    <span className="hidden sm:inline">Novo chamado</span>
                   </Button>
                 )}
 
@@ -1533,14 +1534,14 @@ export const TicketsPage = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-3 overflow-x-auto no-scrollbar border-t border-slate-100 pt-2">
+            <div className="no-scrollbar flex items-center gap-3 overflow-x-auto border-t border-slate-100 pt-2">
               <div className="flex items-center gap-1.5 pr-2 border-r border-slate-200 my-1">
                 <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                   Filas
                 </span>
               </div>
 
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50/70 p-1">
                 {QUEUES.map((q) => {
                   const isActive = selectedQueue === q.id;
                   const count = queueCounts?.[q.id] || 0;
@@ -1557,7 +1558,7 @@ export const TicketsPage = ({
                       <q.icon
                         size={14}
                         className={cn(
-                          isActive ? "text-slate-800" : "text-slate-400",
+                          isActive ? "text-white" : "text-slate-400",
                         )}
                       />
                       <span>{q.label}</span>
@@ -1606,7 +1607,10 @@ export const TicketsPage = ({
                   <ChevronDown
                     size={14}
                     className={cn(
-                      "transition-transform text-slate-400",
+                      "transition-transform",
+                      MORE_QUEUES.some((q) => q.id === selectedQueue)
+                        ? "text-white"
+                        : "text-slate-400",
                       showMoreQueues && "rotate-180",
                     )}
                   />
@@ -1619,7 +1623,7 @@ export const TicketsPage = ({
                       onClick={() => setShowMoreQueues(false)}
                     />
                     <div
-                      className="fixed w-48 bg-white rounded-lg shadow-lg border border-slate-200 p-1.5 z-50"
+                      className="fixed z-50 w-48 rounded-lg border border-slate-200 bg-white p-1.5 shadow-[0_18px_50px_rgba(15,23,42,0.16)]"
                       style={moreQueuesMenuPosition || undefined}
                     >
                       {MORE_QUEUES.map((q) => {
@@ -1633,10 +1637,10 @@ export const TicketsPage = ({
                               setShowMoreQueues(false);
                             }}
                             className={cn(
-                              "w-full flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-md transition-colors",
+                              "flex w-full items-center justify-between rounded-md px-3 py-2 text-xs font-semibold transition-colors",
                               isActive
-                                ? "bg-blue-50 text-blue-700"
-                                : "text-slate-600 hover:bg-slate-50",
+                                ? "bg-slate-950 text-white"
+                                : "text-slate-600 hover:bg-slate-50 hover:text-slate-950",
                             )}
                           >
                             <span>{q.label}</span>
@@ -1645,7 +1649,7 @@ export const TicketsPage = ({
                                 className={cn(
                                   "flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold tracking-tight",
                                   isActive
-                                    ? "bg-blue-100 text-blue-700"
+                                    ? "bg-white text-slate-700"
                                     : "bg-slate-100 text-slate-500",
                                 )}
                               >
@@ -1675,7 +1679,7 @@ export const TicketsPage = ({
                     size={14}
                     className={cn(
                       categoryFilter !== "todas"
-                        ? "text-slate-800"
+                        ? "text-white"
                         : "text-slate-400",
                     )}
                   />

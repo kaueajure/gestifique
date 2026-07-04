@@ -96,7 +96,7 @@ export const PortalKnowledgePage = ({ onNavigate, initialArticleId }: PortalKnow
               onClick={() => onNavigate('new-ticket')}
               className="px-5 h-9 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-md shadow-sm transition-colors"
             >
-              Abrir um Novo Chamado
+              Abrir um novo chamado
             </button>
           </div>
         </div>

@@ -17,13 +17,14 @@ export const LoadingState = ({
     <div
       className={cn(
         "flex flex-col items-center justify-center text-center",
-        compact ? "p-4" : "p-12",
+        "rounded-lg border border-slate-200/70 bg-white",
+        compact ? "p-4" : "p-10",
         className,
       )}
     >
       <Loader2
         className={cn(
-          "animate-spin text-blue-500",
+          "animate-spin text-slate-900",
           compact ? "w-5 h-5 mb-2" : "w-6 h-6 mb-3",
         )}
       />

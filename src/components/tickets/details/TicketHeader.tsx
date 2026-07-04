@@ -112,41 +112,41 @@ export const TicketHeader = ({
   });
 
   return (
-    <div className="bg-white border-b border-slate-200 px-4 sm:px-5 py-4 sticky top-0 z-40">
-      <div className="flex flex-col gap-4">
+    <div className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 px-4 py-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)] backdrop-blur sm:px-5">
+      <div className="flex flex-col gap-3">
         
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3 min-w-0 flex-1">
+          <div className="flex min-w-0 flex-1 items-start gap-3">
             <Button 
               variant="ghost" 
               size="icon" 
               onClick={onBack}
-              className="h-9 w-9 p-0 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors shrink-0"
+              className="h-8 w-8 shrink-0 rounded-md p-0 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
             >
-              <ArrowLeft size={18} />
+              <ArrowLeft size={17} />
             </Button>
             
             <div className="min-w-0 flex-1">
               {origem === 'email' && (
-                <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                  <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 bg-white border border-slate-200 rounded-md px-2 py-1">
+                <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-600">
                     <Mail size={11} />
                     E-mail
                   </span>
                 </div>
               )}
-              <h2 className="text-lg sm:text-xl font-semibold text-slate-950 leading-snug">
-                {titulo || 'Sem título'} <span className="font-medium text-slate-400">- #{id}</span>
+              <h2 className="text-base font-semibold leading-snug tracking-tight text-slate-950 sm:text-lg">
+                {titulo || 'Sem título'} <span className="font-medium text-slate-400">#{id}</span>
               </h2>
             </div>
           </div>
 
-          <div className="flex items-center shrink-0">
+          <div className="flex shrink-0 items-center">
             {showResolveButton && (
               <Button 
                 onClick={onResolve}
                 size="sm"
-                className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-sm h-9 px-3 rounded-lg"
+                className="h-8 rounded-md bg-emerald-600 px-3 text-xs font-semibold text-white shadow-sm hover:bg-emerald-500"
               >
                 <CheckCircle2 size={14} className="mr-1.5" />
                 Finalizar
@@ -158,7 +158,7 @@ export const TicketHeader = ({
                 variant="outline"
                 size="sm"
                 onClick={() => onUpdate({ status: reopenTargetStatus as TicketStatus })}
-                className="text-xs font-semibold border-blue-200 text-blue-600 hover:bg-blue-50 shadow-sm h-9 px-3 rounded-lg"
+                className="h-8 rounded-md border-blue-200 px-3 text-xs font-semibold text-blue-600 shadow-sm hover:bg-blue-50"
               >
                 <RefreshCw size={14} className="mr-1.5" />
                 Reabrir
@@ -167,7 +167,7 @@ export const TicketHeader = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2">
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4 xl:grid-cols-7">
           <HeaderSelectMeta
             label="Status"
             icon={<span className={cn("w-2 h-2 rounded-full", ticketStatusColors[status] || "bg-slate-400")} />}
@@ -224,15 +224,20 @@ export const TicketHeader = ({
             icon={<UserRound size={14} />}
           />
           <HeaderMeta
+            label="SLA"
+            value={slaInfo.compactText || slaInfo.label}
+            icon={<Clock size={14} />}
+            className={slaInfo.color}
+          />
+          <HeaderMeta
             label="Abertura"
             value={openedAt}
             icon={<CalendarDays size={14} />}
           />
           <HeaderMeta
-            label={empresa_nome ? 'Empresa' : 'SLA'}
-            value={empresa_nome || (slaInfo.compactText || slaInfo.label)}
-            icon={empresa_nome ? <Building2 size={14} /> : <Clock size={14} />}
-            className={!empresa_nome ? slaInfo.color : undefined}
+            label="Empresa"
+            value={empresa_nome || 'Não informada'}
+            icon={<Building2 size={14} />}
           />
         </div>
       </div>
@@ -252,14 +257,14 @@ const HeaderMeta = ({
   className?: string;
 }) => (
   <div className={cn(
-    "min-w-0 rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2",
+    "min-w-0 rounded-md border border-slate-200 bg-slate-50/80 px-3 py-2 transition-colors",
     className
   )}>
-    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+    <div className="mb-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
       {icon}
       {label}
     </div>
-    <div className="text-xs font-semibold text-slate-800 truncate capitalize" title={value}>
+    <div className="truncate text-xs font-semibold text-slate-950" title={value}>
       {value}
     </div>
   </div>
@@ -274,8 +279,8 @@ const HeaderSelectMeta = ({
   icon: React.ReactNode;
   children: React.ReactNode;
 }) => (
-  <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2">
-    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+  <div className="min-w-0 rounded-md border border-slate-200 bg-slate-50/80 px-3 py-2">
+    <div className="mb-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
       {icon}
       {label}
     </div>

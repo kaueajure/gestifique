@@ -48,12 +48,24 @@ const getEventColor = (type: string) => {
   }
 };
 
+const normalizeTimelineText = (value?: string | null) =>
+  String(value || '')
+    .replace(/\bTickets\b/g, 'Chamados')
+    .replace(/\btickets\b/g, 'chamados')
+    .replace(/\bTicket\b/g, 'Chamado')
+    .replace(/\bticket\b/g, 'chamado');
+
+const formatTimelineAction = (value?: string | null) =>
+  normalizeTimelineText(value)
+    .replace(/_/g, ' ')
+    .toLowerCase();
+
 export const TicketTimeline = ({ timeline, loading }: TicketTimelineProps) => {
   if (loading) {
     return (
-      <div className="py-8 flex flex-col items-center justify-center space-y-3">
-        <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
-           <RefreshCw size={20} className="text-blue-500 animate-spin" />
+      <div className="flex flex-col items-center justify-center space-y-3 py-10">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white">
+           <RefreshCw size={18} className="animate-spin text-blue-500" />
         </div>
         <p className="text-xs font-semibold text-slate-500">Carregando histórico...</p>
       </div>
@@ -62,9 +74,9 @@ export const TicketTimeline = ({ timeline, loading }: TicketTimelineProps) => {
 
   if (!timeline || timeline.length === 0) {
     return (
-      <div className="py-8 text-center flex flex-col items-center">
-        <div className="w-12 h-12 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mb-3 border border-slate-100 shadow-sm">
-          <History size={24} />
+      <div className="flex flex-col items-center py-10 text-center">
+        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-300 shadow-sm">
+          <History size={22} />
         </div>
         <h4 className="text-sm font-semibold text-slate-900 mb-1">Timeline Vazia</h4>
         <p className="text-xs text-slate-500">Nenhuma atividade registrada.</p>
@@ -75,28 +87,30 @@ export const TicketTimeline = ({ timeline, loading }: TicketTimelineProps) => {
   return (
     <div className="relative pl-5">
       {/* Vertical Track */}
-      <div className="absolute left-[9px] top-4 bottom-4 w-px bg-slate-100" />
+      <div className="absolute bottom-4 left-[9px] top-4 w-px bg-slate-200" />
       
-      <div className="space-y-4 relative">
+      <div className="relative space-y-4">
         {timeline.map((item, index) => {
           const Icon = getIcon(item.type);
           const colorClasses = getEventColor(item.type);
           const date = new Date(item.date);
+          const description = normalizeTimelineText(item.description);
+          const action = item.action ? formatTimelineAction(item.action) : '';
           
           return (
-            <div key={index} className="relative group animate-in fade-in slide-in-from-left-4 duration-500">
+            <div key={index} className="group relative animate-in fade-in slide-in-from-left-4 duration-500">
               {/* Event Marker */}
               <div className={cn(
-                "absolute -left-[24px] top-1 w-5 h-5 rounded-md border-2 border-white shadow-sm flex items-center justify-center z-10 transition-transform group-hover:scale-110",
+                "absolute -left-[24px] top-1 z-10 flex h-5 w-5 items-center justify-center rounded-md border-2 border-white shadow-sm transition-transform group-hover:scale-110",
                 colorClasses
               )}>
                 <Icon size={10} />
               </div>
               
               <div className="flex flex-col gap-0.5">
-                <div className="flex items-center justify-between gap-4">
+                <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-semibold text-slate-800 tracking-tight">
+                    <span className="text-[11px] font-semibold tracking-tight text-slate-900">
                        {item.type === 'internal_note' ? 'Nota Interna' : 
                         item.type === 'system' ? 'Sistema' : 
                         item.type === 'response' ? 'Resposta' : 
@@ -110,22 +124,22 @@ export const TicketTimeline = ({ timeline, loading }: TicketTimelineProps) => {
                        {item.author}
                     </span>
                   </div>
-                  <time className="text-[10px] font-medium text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded-sm border border-slate-100 shrink-0">
+                  <time className="shrink-0 rounded-sm border border-slate-100 bg-white px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
                     {date.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                   </time>
                 </div>
                 
                 <div className={cn(
-                  "text-xs font-medium leading-relaxed pr-4",
+                  "pr-4 text-xs font-medium leading-relaxed",
                   item.type === 'internal_note' ? "text-amber-700 italic" : "text-slate-600"
                 )}>
-                  {item.description}
+                  {description}
                 </div>
                 
-                {item.action && (
-                   <div className="mt-1 flex items-center gap-1 text-[10px] font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 w-fit">
+                {action && (
+                   <div className="mt-1 flex w-fit items-center gap-1 rounded border border-blue-100 bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-600">
                      <Zap size={10} />
-                     {item.action}
+                     {action}
                    </div>
                 )}
               </div>

@@ -225,7 +225,7 @@ export const Topbar = ({
   };
 
   return (
-    <header className="h-14 bg-white border-b border-slate-100 flex items-center justify-between px-3 sm:px-5 sticky top-0 z-30 shrink-0">
+    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/95 px-3 backdrop-blur sm:px-5">
       <div className="flex items-center gap-2 sm:gap-4 overflow-hidden">
         <button
           onClick={onMenuClick}
@@ -234,7 +234,7 @@ export const Topbar = ({
         >
           <Menu size={16} />
         </button>
-        <h1 className="text-sm font-semibold text-slate-900 tracking-tight truncate">
+        <h1 className="truncate text-sm font-semibold tracking-tight text-slate-950">
           {title}
         </h1>
       </div>
@@ -255,14 +255,14 @@ export const Topbar = ({
               }}
               onFocus={() => trimmedQuery.length >= 2 && setIsOpen(true)}
               placeholder="Buscar chamados, clientes ou empresas..."
-              className="w-full h-8 bg-slate-50/70 border border-slate-200 rounded-md pl-8 pr-8 text-xs text-slate-700 placeholder:text-slate-400 focus:bg-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
+              className="h-8 w-full rounded-md border border-slate-200 bg-slate-50/80 pl-8 pr-8 text-xs text-slate-700 shadow-[0_1px_1px_rgba(15,23,42,0.02)] outline-none transition-all placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/15"
             />
             {loading && (
               <Loader2 className="absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-blue-600" />
             )}
 
             {isOpen && trimmedQuery.length > 0 && (
-              <div className="absolute right-0 top-full z-50 mt-2 w-full min-w-[360px] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl shadow-slate-900/10">
+              <div className="absolute right-0 top-full z-50 mt-2 w-full min-w-[360px] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.16)]">
                 {trimmedQuery.length < 2 ? (
                   <div className="px-3 py-3 text-xs font-medium text-slate-500">
                     Digite pelo menos 2 caracteres.

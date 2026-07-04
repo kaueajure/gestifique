@@ -8,7 +8,7 @@ export const Card = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "bg-white rounded-xl border border-slate-200/80 shadow-[0_1px_2px_rgba(0,0,0,0.02)]",
+      "rounded-lg border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]",
       className,
     )}
     {...props}
@@ -24,7 +24,7 @@ export const CardHeader = ({
   className?: string;
   children: React.ReactNode;
 }) => (
-  <div className={cn("flex flex-col space-y-1 p-4 lg:p-5 pb-3", className)}>
+  <div className={cn("flex flex-col space-y-1 p-4 pb-3 lg:p-5 lg:pb-3", className)}>
     {children}
   </div>
 );
@@ -38,7 +38,7 @@ export const CardTitle = ({
 }) => (
   <h3
     className={cn(
-      "text-base font-semibold text-slate-900 tracking-tight",
+      "text-base font-semibold text-slate-950 tracking-tight",
       className,
     )}
   >
@@ -53,7 +53,7 @@ export const CardDescription = ({
   className?: string;
   children: React.ReactNode;
 }) => (
-  <p className={cn("text-[13px] text-slate-500 font-medium", className)}>
+  <p className={cn("text-[13px] text-slate-500 font-medium leading-relaxed", className)}>
     {children}
   </p>
 );

@@ -28,21 +28,21 @@ export function PageShell({
     <section
       className={cn(
         "w-full overflow-hidden border border-slate-200/80 bg-white",
-        "shadow-[0_1px_3px_rgba(15,23,42,0.06)] rounded-lg",
+        "rounded-lg shadow-[0_1px_2px_rgba(15,23,42,0.04)]",
         fixedHeight && "h-full min-h-0 flex flex-col",
         className,
       )}
     >
       {(title || subtitle || actions) && (
-        <header className="shrink-0 flex flex-col gap-4 border-b border-slate-200/70 px-4 py-3 sm:px-5 sm:py-3.5 sm:flex-row sm:items-start sm:justify-between bg-white">
+        <header className="shrink-0 flex flex-col gap-4 border-b border-slate-200/80 bg-white px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:px-5 sm:py-4">
           <div>
             {title && (
-              <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-950">
+              <h1 className="text-lg font-semibold tracking-tight text-slate-950 sm:text-xl">
                 {title}
               </h1>
             )}
             {subtitle && (
-              <p className="mt-1 text-sm leading-snug font-medium text-slate-500">
+              <p className="mt-1 max-w-3xl text-sm font-medium leading-relaxed text-slate-500">
                 {subtitle}
               </p>
             )}
@@ -55,7 +55,7 @@ export function PageShell({
       )}
 
       {tabs && (
-        <div className="shrink-0 border-b border-slate-200/70 px-5 bg-white">
+        <div className="shrink-0 border-b border-slate-200/70 bg-white px-5">
           {tabs}
         </div>
       )}

@@ -59,7 +59,7 @@ export const PublicPreviewPage = ({ onNavigate }: PublicPreviewPageProps) => {
 
   const moduleMeta = {
     dashboard: { title: 'Dashboard de Controle', subtitle: 'Indicadores simulados da operação de suporte', action: 'Atualizar Tela' },
-    tickets: { title: 'Central de Chamados', subtitle: 'Visão geral de demandas da operação', action: 'Novo Chamado' },
+    tickets: { title: 'Central de Chamados', subtitle: 'Visão geral de demandas da operação', action: 'Novo chamado' },
     knowledge: { title: 'Base de Conhecimento', subtitle: 'Artigos internos e simulados', action: 'Novo Artigo' },
     reports: { title: 'Relatórios Gerenciais', subtitle: 'Métricas de suporte e produtividade', action: 'Exportar' },
     users: { title: 'Equipe', subtitle: 'Gestão de perfis de acesso', action: 'Novo Usuário' },

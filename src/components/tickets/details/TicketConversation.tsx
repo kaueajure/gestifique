@@ -33,9 +33,9 @@ const ticketSubject = (msg: any) =>
   msg.titulo ? `Assunto: ${msg.titulo}` : 'Mensagem inicial do solicitante';
 
 const DateSeparator = ({ label }: { label: string }) => (
-  <div className="flex items-center gap-3">
+  <div className="flex items-center gap-3 py-1">
     <div className="h-px flex-1 bg-slate-200" />
-    <span className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+    <span className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 shadow-sm">
       {label}
     </span>
     <div className="h-px flex-1 bg-slate-200" />
@@ -89,14 +89,14 @@ const ThreadItem = ({
           icon: Lock,
           badge: 'bg-amber-50 text-amber-700 border-amber-200',
           line: 'border-l-amber-400',
-          panel: 'bg-amber-50/40'
+          panel: 'bg-amber-50/30'
         }
       : isSystem
         ? {
             label: 'Sistema',
             icon: ClipboardList,
             badge: 'bg-violet-50 text-violet-700 border-violet-200',
-            line: 'border-l-violet-400',
+            line: 'border-l-violet-300',
             panel: 'bg-white'
           }
       : role === 'requester'
@@ -127,16 +127,16 @@ const ThreadItem = ({
   return (
     <article
       className={cn(
-        'overflow-hidden rounded-lg border border-l-4 border-slate-200 shadow-none',
+        'overflow-hidden rounded-xl border border-l-[3px] border-slate-200 shadow-[0_1px_2px_rgba(15,23,42,0.04)]',
         interaction.line,
         interaction.panel
       )}
     >
-      <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-3 border-b border-slate-100/80 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">
           <div
             className={cn(
-              'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border',
+              'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border',
               isInternal
                 ? 'border-amber-200 bg-amber-50 text-amber-700'
                 : 'border-slate-200 bg-slate-50 text-slate-500'
@@ -147,7 +147,7 @@ const ThreadItem = ({
 
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="truncate text-sm font-semibold text-slate-950">{authorName}</h3>
+              <h3 className="truncate text-sm font-semibold tracking-tight text-slate-950">{authorName}</h3>
               <span
                 className={cn(
                   'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider',
@@ -184,7 +184,7 @@ const ThreadItem = ({
       <div className="px-4 py-4">
         <div
           className={cn(
-            'whitespace-pre-wrap break-words text-sm leading-6',
+            'whitespace-pre-wrap break-words text-sm leading-6 text-slate-700',
             isInternal ? 'text-slate-700' : 'text-slate-700'
           )}
         >
@@ -220,9 +220,15 @@ export const TicketConversation = ({
   canDeleteAttachments
 }: TicketConversationProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
-    messagesEndRef.current?.scrollIntoView({ behavior });
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return;
+    scrollContainer.scrollTo({
+      top: scrollContainer.scrollHeight,
+      behavior
+    });
   };
 
   const normalizeMessage = (value?: string | null) =>
@@ -286,10 +292,10 @@ export const TicketConversation = ({
   let lastDateLabel = '';
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-slate-50">
-      <div className="min-h-0 flex-1 overflow-y-auto custom-scrollbar">
-        <div className="flex w-full flex-col gap-4 px-3 py-4 sm:px-5 sm:py-5">
-          <div className="rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm">
+    <div className="flex h-full flex-col overflow-hidden bg-[#F5F7FA]">
+      <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto custom-scrollbar">
+        <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-3 py-4 sm:px-5 sm:py-5">
+          <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-sm font-semibold text-slate-950">Histórico do chamado</h2>
@@ -335,8 +341,8 @@ export const TicketConversation = ({
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-slate-200 bg-white">
-        <div className="w-full p-3 sm:px-5">
+      <div className="shrink-0 border-t border-slate-200 bg-white shadow-[0_-8px_24px_rgba(15,23,42,0.04)]">
+        <div className="mx-auto w-full max-w-5xl p-3 sm:px-5">
           {isTicketFinalized ? (
             <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 py-4">
               <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-slate-200/50 text-slate-400">

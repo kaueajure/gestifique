@@ -110,42 +110,42 @@ export const PortalAccessPage: React.FC<PortalAccessPageProps> = ({ onAuthentica
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="max-w-4xl w-full bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row">
+    <div className="flex min-h-screen items-center justify-center bg-[#F4F7FA] p-4">
+      <div className="flex w-full max-w-4xl flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.16)] md:flex-row">
         
         {/* Left Column */}
-        <div className="bg-blue-600 text-white p-8 md:p-12 md:w-5/12 flex flex-col justify-between">
+        <div className="flex flex-col justify-between bg-slate-950 p-8 text-white md:w-5/12 md:p-12">
           <div>
             <div className="flex items-center gap-3 mb-8">
               <Logo className="text-white fill-white" />
             </div>
-            <h1 className="text-3xl font-bold mb-4 tracking-tight">Portal do Cliente</h1>
-            <p className="text-blue-100 mb-8 leading-relaxed">
+            <h1 className="mb-4 text-3xl font-bold tracking-tight text-white">Portal do Cliente</h1>
+            <p className="mb-8 leading-relaxed text-slate-300">
               Acompanhe seus chamados, envie respostas, anexe arquivos e consulte a base de conhecimento da organização.
             </p>
             <ul className="space-y-4">
               <li className="flex items-start gap-3">
-                <ShieldCheck className="w-5 h-5 text-blue-300 shrink-0 mt-0.5" />
-                <span className="text-sm text-blue-50">Visualize o andamento dos seus chamados</span>
+                <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-blue-300" />
+                <span className="text-sm text-slate-100">Visualize o andamento dos seus chamados</span>
               </li>
               <li className="flex items-start gap-3">
-                <ShieldCheck className="w-5 h-5 text-blue-300 shrink-0 mt-0.5" />
-                <span className="text-sm text-blue-50">Abra novos chamados rapidamente</span>
+                <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-blue-300" />
+                <span className="text-sm text-slate-100">Abra novos chamados rapidamente</span>
               </li>
               <li className="flex items-start gap-3">
-                <ShieldCheck className="w-5 h-5 text-blue-300 shrink-0 mt-0.5" />
-                <span className="text-sm text-blue-50">Responda sem precisar criar senha</span>
+                <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-blue-300" />
+                <span className="text-sm text-slate-100">Responda sem precisar criar senha</span>
               </li>
               <li className="flex items-start gap-3">
-                <ShieldCheck className="w-5 h-5 text-blue-300 shrink-0 mt-0.5" />
-                <span className="text-sm text-blue-50">Consulte artigos da base de conhecimento</span>
+                <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-blue-300" />
+                <span className="text-sm text-slate-100">Consulte artigos da base de conhecimento</span>
               </li>
             </ul>
           </div>
           
-          <div className="mt-12 bg-blue-700/50 p-4 rounded-xl border border-blue-500/50 flex gap-3 text-sm">
+          <div className="mt-12 flex gap-3 rounded-lg border border-white/10 bg-white/5 p-4 text-sm">
              <KeyRound size={20} className="shrink-0 text-blue-300" />
-             <p className="text-blue-100 leading-snug">Seu acesso é protegido por código temporário enviado ao seu e-mail.</p>
+             <p className="leading-snug text-slate-200">Seu acesso é protegido por código temporário enviado ao seu e-mail.</p>
           </div>
         </div>
 
@@ -208,7 +208,7 @@ export const PortalAccessPage: React.FC<PortalAccessPageProps> = ({ onAuthentica
                   </form>
 
                   {onBackToLogin && (
-                    <div className="mt-8 text-center bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <div className="mt-8 rounded-lg border border-slate-200 bg-slate-50 p-4 text-center">
                       <p className="text-sm text-slate-600 mb-2">Faz parte da equipe?</p>
                       <Button
                         type="button"

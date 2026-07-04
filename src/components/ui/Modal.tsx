@@ -36,33 +36,33 @@ export const Modal = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm"
+            className="absolute inset-0 bg-slate-950/30 backdrop-blur-[2px]"
           />
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             className={cn(
-              "relative w-full bg-white rounded-xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]",
+              "relative flex max-h-[90vh] w-full flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.22)]",
               sizes[size],
             )}
           >
-            <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-100 flex justify-between items-center bg-white gap-4">
-              <h3 className="text-base font-semibold text-slate-900 truncate min-w-0">
+            <div className="flex items-center justify-between gap-4 border-b border-slate-200 bg-white px-4 py-3 sm:px-5">
+              <h3 className="min-w-0 truncate text-[15px] font-semibold text-slate-950">
                 {title}
               </h3>
               <button
                 onClick={onClose}
-                className="p-1.5 hover:bg-slate-50 text-slate-400 hover:text-slate-600 rounded-lg transition-colors shrink-0"
+                className="shrink-0 rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
               >
                 <X size={16} />
               </button>
             </div>
 
-            <div className="p-4 sm:p-5 overflow-y-auto min-h-0">{children}</div>
+            <div className="min-h-0 overflow-y-auto p-4 sm:p-5">{children}</div>
 
             {footer && (
-              <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/50 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
+              <div className="flex flex-col-reverse justify-end gap-2 border-t border-slate-200 bg-slate-50/80 px-5 py-3 sm:flex-row sm:gap-3">
                 {footer}
               </div>
             )}

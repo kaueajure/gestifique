@@ -29,8 +29,8 @@ import { hasPermission } from '../../../lib/permissions';
 import { getCategoryShortLabel } from '../../../lib/ticketOptions';
 
 const PropertyRow = ({ label, icon: Icon, children, className }: { label: string, icon?: any, children: React.ReactNode, className?: string }) => (
-  <div className={cn("flex flex-col gap-1 py-1.5 first:pt-0", className)}>
-    <div className="flex items-center gap-1 text-[9px] font-semibold text-slate-500 uppercase tracking-wider leading-none">
+  <div className={cn("flex flex-col gap-1.5 py-2 first:pt-0", className)}>
+    <div className="flex items-center gap-1 text-[9px] font-bold uppercase leading-none tracking-wider text-slate-500">
        {Icon && <Icon size={10} />}
        {label}
     </div>
@@ -41,15 +41,15 @@ const PropertyRow = ({ label, icon: Icon, children, className }: { label: string
 );
 
 const Section = ({ title, icon: Icon, children, badge }: { title: string, icon?: any, children: React.ReactNode, badge?: React.ReactNode }) => (
-  <div className="bg-white border text-sm border-slate-200 rounded-lg shadow-sm">
-    <div className="px-2.5 py-1.5 bg-slate-50 border-b border-slate-200 rounded-t-[7px] flex items-center justify-between">
-      <h3 className="text-[11px] font-semibold text-slate-700 flex items-center gap-1.5">
+  <div className="rounded-xl border border-slate-200 bg-white text-sm shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+    <div className="flex items-center justify-between rounded-t-[11px] border-b border-slate-100 bg-white px-3 py-2.5">
+      <h3 className="flex items-center gap-1.5 text-[11px] font-bold text-slate-900">
         {Icon && <Icon size={12} className="text-slate-500" />}
         {title}
       </h3>
       {badge}
     </div>
-    <div className="p-2 space-y-0 divide-y divide-slate-100">
+    <div className="space-y-0 divide-y divide-slate-100 p-3">
       {children}
     </div>
   </div>
@@ -166,7 +166,7 @@ export const TicketProperties = ({
   const firstResponseSla = getFirstResponseSlaInfo(ticket);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       <ConfirmDialog 
         isOpen={isArchiveConfirmOpen}
         onClose={() => setIsArchiveConfirmOpen(false)}
@@ -204,11 +204,11 @@ export const TicketProperties = ({
                 <span>Analisando conversas...</span>
               </div>
             ) : summary ? (
-              <p className="font-semibold bg-indigo-50/40 border border-indigo-100/30 p-2.5 rounded-lg italic text-slate-600">
+              <p className="rounded-lg border border-indigo-100/70 bg-indigo-50/60 p-2.5 text-xs font-medium leading-relaxed text-slate-700">
                 {summary}
               </p>
             ) : (
-              <p className="text-slate-400 font-medium italic">Histórico insuficiente para gerar resumo.</p>
+              <p className="font-medium text-slate-400">Histórico insuficiente para gerar resumo.</p>
             )}
           </div>
         </Section>
@@ -237,7 +237,7 @@ export const TicketProperties = ({
 
           {categoriaSugerida && (
             <PropertyRow label="Categoria Sugerida" icon={Layers}>
-              <div className="flex items-center justify-between gap-2 bg-slate-50 border border-slate-200 px-2 py-1 bg-indigo-50/20 border-indigo-100/40 rounded-md mt-0.5">
+              <div className="mt-0.5 flex items-center justify-between gap-2 rounded-md border border-indigo-100/70 bg-indigo-50/50 px-2 py-1">
                 <span className="text-xs font-semibold text-slate-700">{categoriaSugerida}</span>
                 {ticket.categoria !== categoriaSugerida.toLowerCase() && !['financeiro', 'suporte_tecnico', 'comercial', 'outros'].filter(catValue => {
                    const matchingLabelMap: Record<string, string> = {
@@ -287,7 +287,7 @@ export const TicketProperties = ({
       >
         <div className="space-y-1.5 py-1">
           {/* Primeira Resposta */}
-          <div className="flex items-center justify-between gap-2 p-2 rounded-md bg-slate-50 border border-slate-100">
+          <div className="flex items-center justify-between gap-2 rounded-md border border-slate-200 bg-slate-50/80 p-2">
              <div className="flex flex-col">
                 <span className="text-[10px] font-medium text-slate-500 mb-0.5">Resposta Inicial</span>
                 <span className="text-xs font-semibold text-slate-700">
@@ -303,7 +303,7 @@ export const TicketProperties = ({
           </div>
 
           {/* Resolução Final */}
-          <div className="flex items-center justify-between gap-2 p-2 rounded-md bg-slate-50 border border-slate-100">
+          <div className="flex items-center justify-between gap-2 rounded-md border border-slate-200 bg-slate-50/80 p-2">
              <div className="flex flex-col">
                 <span className="text-[10px] font-medium text-slate-500 mb-0.5">Resolução SLA</span>
                 <span className="text-xs font-semibold text-slate-700">
@@ -330,11 +330,11 @@ export const TicketProperties = ({
       {/* Seção 3: Cliente & Origem */}
       <Section title="Solicitante e origem" icon={Globe}>
         <PropertyRow label="Solicitante">
-           <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+           <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-2.5">
               <div className="text-sm font-semibold text-slate-900 mb-0.5">{ticket.cliente_nome || 'Desconhecido'}</div>
               <div className="text-[11px] text-slate-500 truncate">{ticket.cliente_email || 'n/a'}</div>
               {ticket.empresa_nome && (
-                <div className="flex items-center gap-1 mt-2 text-[10px] font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 w-fit">
+                <div className="mt-2 flex w-fit items-center gap-1 rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-700">
                   <Building2 size={10} /> {ticket.empresa_nome}
                 </div>
               )}
@@ -435,7 +435,7 @@ export const TicketProperties = ({
              variant="outline"
              size="sm"
              onClick={() => setIsArchiveConfirmOpen(true)}
-             className="w-full h-8 text-xs font-semibold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 rounded-md transition-all shadow-sm"
+             className="h-8 w-full rounded-md border border-rose-200 text-xs font-semibold text-rose-600 transition-all hover:bg-rose-600 hover:text-white"
            >
              <Trash2 size={14} className="mr-1.5" /> 
              Encerrar Definitivamente

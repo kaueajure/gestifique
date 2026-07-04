@@ -109,7 +109,7 @@ export const CreateTicketModal = ({ isOpen, onClose, currentUser, onSuccess }: C
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Novo Chamado"
+      title="Novo chamado"
       size="lg"
     >
       <form onSubmit={handleCreateTicket} className="space-y-4">
@@ -210,7 +210,7 @@ export const CreateTicketModal = ({ isOpen, onClose, currentUser, onSuccess }: C
               Cancelar
             </Button>
             <Button size="sm" type="submit" loading={loadingCreate}>
-              Criar Chamado
+              Criar chamado
             </Button>
         </div>
       </form>

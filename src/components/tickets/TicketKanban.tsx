@@ -248,10 +248,18 @@ export const TicketKanban = ({
     const currentUserRow = rows.find(
       row => !row.isUnassigned && Number(row.id) === Number(currentUser.id),
     );
-    if (!currentUserRow) return;
 
     setExpandedRows(prev => {
-      if (prev[currentUserRow.rowKey] !== undefined) return prev;
+      if (Object.keys(prev).length > 0) return prev;
+
+      if (rows.length > 0 && rows.length <= 4) {
+        return rows.reduce<Record<string, boolean>>((acc, row) => {
+          acc[row.rowKey] = true;
+          return acc;
+        }, {});
+      }
+
+      if (!currentUserRow) return prev;
       return { ...prev, [currentUserRow.rowKey]: true };
     });
   }, [currentUser?.id, loadingTeam, rows]);
@@ -400,7 +408,7 @@ export const TicketKanban = ({
   };
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div className="flex h-full flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
       {errorMsg && (
         <div className="mx-2 mt-2 flex items-center gap-2 rounded-md border border-red-100 bg-red-50 p-2 text-[10px] font-semibold text-red-600">
           <AlertCircle size={12} /> {errorMsg}
@@ -408,20 +416,20 @@ export const TicketKanban = ({
       )}
 
       <DragDropContextComp onDragEnd={onDragEnd}>
-        <div className="h-full overflow-auto bg-gradient-to-b from-slate-50 to-white p-3 custom-scrollbar">
+        <div className="h-full overflow-auto bg-slate-50/80 p-3 custom-scrollbar">
           <div className="space-y-2" style={{ width: `${boardMinWidth}px`, minWidth: `${boardMinWidth}px` }}>
-            <div className="sticky top-0 z-20 grid gap-2 rounded-lg border border-slate-200 bg-white/95 p-2 shadow-sm backdrop-blur" style={boardGridStyle}>
+            <div className="sticky top-0 z-20 grid gap-2 rounded-lg border border-slate-200 bg-white/95 p-2 shadow-[0_2px_10px_rgba(15,23,42,0.06)] backdrop-blur" style={boardGridStyle}>
               <div className="flex h-11 items-center px-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                 Atendente
               </div>
               {localData.columns.map(column => (
-                <div key={column.id} className="flex h-11 items-center justify-between rounded-lg border border-slate-200 bg-slate-50/70 px-3 shadow-sm">
+                <div key={column.id} className="flex h-11 items-center justify-between rounded-md border border-slate-200 bg-slate-50/80 px-3">
                   <div className="flex min-w-0 items-center gap-1.5">
                     <div className={getStatusDot(column.id)} />
                     <span className="truncate text-xs font-semibold text-slate-700">{column.title}</span>
                   </div>
                   <span
-                    className="ml-2 flex h-5 min-w-5 shrink-0 items-center justify-center rounded bg-white px-1.5 text-[10px] font-semibold text-slate-500 shadow-sm ring-1 ring-slate-200/70"
+                    className="ml-2 flex h-5 min-w-5 shrink-0 items-center justify-center rounded bg-white px-1.5 text-[10px] font-semibold text-slate-600 ring-1 ring-slate-200/80"
                     title={column.hasMore ? `Mostrando ${column.loadedCount ?? column.tickets.length} de ${getColumnTicketCount(localData.columns, column.id)}` : undefined}
                   >
                     {column.hasMore && (
@@ -453,7 +461,7 @@ export const TicketKanban = ({
                   const rowCount = getRowTicketCount(row);
 
                   return (
-                    <section key={row.rowKey} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                    <section key={row.rowKey} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
                       <button
                         type="button"
                         onClick={() => toggleRow(row.rowKey)}
@@ -509,7 +517,7 @@ export const TicketKanban = ({
                                     ref={provided.innerRef}
                                     {...provided.droppableProps}
                                     className={cn(
-                                      'min-h-[112px] rounded-lg border border-dashed border-slate-200 bg-white/90 p-2 transition-colors',
+                                      'min-h-[112px] rounded-md border border-dashed border-slate-200 bg-white/90 p-2 transition-colors',
                                       tickets.length > 0 && 'space-y-2',
                                       snapshot.isDraggingOver && 'border-blue-300 bg-blue-50/70 shadow-inner'
                                     )}
@@ -532,7 +540,7 @@ export const TicketKanban = ({
                                               {...dragProvided.dragHandleProps}
                                               onClick={() => onSelectTicket(ticket.id)}
                                               className={cn(
-                                                'group relative flex h-[112px] cursor-pointer flex-col overflow-hidden rounded-lg border border-slate-200 bg-white p-2.5 text-left shadow-sm transition-all hover:border-slate-300 hover:shadow-md',
+                                                'group relative flex h-[112px] cursor-pointer flex-col overflow-hidden rounded-md border border-slate-200 bg-white p-2.5 text-left shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all hover:border-slate-300 hover:shadow-[0_8px_20px_rgba(15,23,42,0.08)]',
                                                 dragSnapshot.isDragging && 'z-50 border-blue-300 shadow-lg',
                                                 updatingId === ticket.id && 'pointer-events-none opacity-50'
                                               )}
@@ -546,12 +554,12 @@ export const TicketKanban = ({
                                                     {ticket.origem === 'email' && <Mail size={11} className="text-slate-400" />}
                                                     {ticket.nao_lido && <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />}
                                                   </div>
-                                                  <h4 className="line-clamp-2 text-[12px] font-medium leading-snug text-slate-800 group-hover:text-blue-700">
+                                                  <h4 className="line-clamp-2 text-[12px] font-semibold leading-snug text-slate-900 group-hover:text-slate-950">
                                                     {ticket.titulo || 'Sem título'}
                                                   </h4>
                                                 </div>
 
-                                                <div className={cn('flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[9px]', sla.color)}>
+                                                <div className={cn('flex shrink-0 items-center gap-1 rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[9px] font-semibold', sla.color)}>
                                                   <Clock size={10} />
                                                   {sla.compactText || sla.label}
                                                 </div>

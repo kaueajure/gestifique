@@ -46,7 +46,7 @@ export const PortalTicketsPage = ({ onSelectTicket }: PortalTicketsPageProps) =>
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <h1 className="text-lg font-semibold tracking-tight text-slate-900">Meus Chamados</h1>
+        <h1 className="text-lg font-semibold tracking-tight text-slate-950">Meus chamados</h1>
         
         <div className="w-full sm:w-72 relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
@@ -55,7 +55,7 @@ export const PortalTicketsPage = ({ onSelectTicket }: PortalTicketsPageProps) =>
             placeholder="Buscar chamado..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-9 pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-md text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
+            className="h-9 w-full rounded-md border border-slate-200 bg-white py-1.5 pl-8 pr-3 text-sm outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
           />
         </div>
       </div>
@@ -65,15 +65,15 @@ export const PortalTicketsPage = ({ onSelectTicket }: PortalTicketsPageProps) =>
           <Loader2 className="animate-spin text-slate-300" size={24} />
         </div>
       ) : filteredTickets.length > 0 ? (
-        <div className="bg-white border text-center md:text-left border-slate-200 rounded-lg overflow-hidden shadow-sm">
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white text-center shadow-[0_1px_2px_rgba(15,23,42,0.04)] md:text-left">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="px-3 py-2 text-xs font-semibold text-slate-500">ID</th>
-                  <th className="px-3 py-2 text-xs font-semibold text-slate-500">Assunto</th>
-                  <th className="px-3 py-2 text-xs font-semibold text-slate-500">Status</th>
-                  <th className="px-3 py-2 text-xs font-semibold text-slate-500">Atualização</th>
+                  <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">ID</th>
+                  <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">Assunto</th>
+                  <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">Status</th>
+                  <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">Atualização</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

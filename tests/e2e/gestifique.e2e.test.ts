@@ -261,7 +261,10 @@ test('gestifique e2e smoke', { skip: !RUN_E2E || !E2E_EMAIL || !E2E_PASSWORD }, 
       await clickBySelector(session, 'button[type="submit"]');
       await waitFor(session, `document.body.innerText.includes('Dashboard') || document.body.innerText.includes('Visao gerencial') || document.body.innerText.includes('Visão gerencial')`, 20000);
       await waitFor(session, `document.body.innerText.includes('Chamados abertos')`, 20000);
-      const hasFilterUi = await evaluate<boolean>(session, `document.body.innerText.includes('Filtros gerenciais')`);
+      const hasFilterUi = await evaluate<boolean>(session, `
+        document.body.innerText.includes('Recorte da operação')
+        || document.body.innerText.includes('Filtros gerenciais')
+      `);
       assert.equal(hasFilterUi, true);
     });
 

@@ -128,7 +128,7 @@ export const TicketList = ({
 
   const SortHeader = ({ label, k, className }: { label: string, k: TicketSortKey, className?: string }) => (
     <th 
-      className={cn("px-3 py-2 text-[11px] font-semibold text-slate-500 cursor-pointer hover:text-slate-700 transition-colors group/th", className)}
+      className={cn("cursor-pointer px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 transition-colors hover:text-slate-800 group/th", className)}
       onClick={() => handleSort(k)}
     >
       <div className="flex items-center gap-1">
@@ -168,7 +168,7 @@ export const TicketList = ({
 
   if (tickets.length === 0) {
     return (
-      <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm">
+      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
         <div className="px-4 py-8 text-center flex flex-col items-center">
           <div className="w-10 h-10 bg-slate-50 text-slate-300 rounded-lg flex items-center justify-center mb-3 border border-slate-100/50">
             <Search size={20} />
@@ -190,7 +190,7 @@ export const TicketList = ({
   }
 
   return (
-    <div className="border border-slate-200 rounded-lg bg-white shadow-sm overflow-hidden">
+    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
       <div className="divide-y divide-slate-100 md:hidden">
         {tickets.map((ticket) => {
           const sla = getSlaInfo(ticket.prazo_sla, ticket.status, ticket.sla_status_operacional);
@@ -217,7 +217,6 @@ export const TicketList = ({
               className={cn(
                 "group cursor-pointer bg-white p-3 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500",
                 isSelected ? "bg-blue-50" : "active:bg-slate-50",
-                sla.status === 'vencido' && !isSelected && "bg-rose-50/30",
                 ticket.nao_lido && "font-semibold"
               )}
             >
@@ -332,7 +331,7 @@ export const TicketList = ({
       <div className="hidden overflow-x-auto no-scrollbar md:block">
         <table className="w-full text-left border-collapse table-fixed">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-100">
+            <tr className="border-b border-slate-200 bg-slate-50/90">
               {canSelectBulk && (
                 <th className="w-10 px-3 py-2 text-center">
                   <input 
@@ -344,12 +343,12 @@ export const TicketList = ({
                 </th>
               )}
               <SortHeader label="Chamado" k="titulo" className="w-[300px]" />
-              <th className="w-[140px] px-3 py-2 text-[11px] font-semibold text-slate-500">Situação</th>
-              <th className="px-3 py-2 text-[11px] font-semibold text-slate-500 hidden md:table-cell">Cliente</th>
+              <th className="w-[140px] px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">Situação</th>
+              <th className="hidden px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 md:table-cell">Cliente</th>
               <SortHeader label="Status" k="status" className="w-[120px]" />
               <SortHeader label="Prioridade" k="prioridade" className="w-[100px]" />
-              <th className="w-[100px] px-3 py-2 text-[11px] font-semibold text-slate-500 hidden xl:table-cell">SLA</th>
-              <th className="w-[140px] px-3 py-2 text-[11px] font-semibold text-slate-500">Responsável</th>
+              <th className="hidden w-[100px] px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 xl:table-cell">SLA</th>
+              <th className="w-[140px] px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">Responsável</th>
               <th className="w-[40px] px-2 py-2"></th>
             </tr>
           </thead>
@@ -368,9 +367,8 @@ export const TicketList = ({
                   key={ticket.id}
                   onClick={() => onSelectTicket(ticket.id)}
                   className={cn(
-                    "group transition-all cursor-pointer relative",
-                    isSelected ? "bg-blue-50" : "hover:bg-slate-50/50",
-                    sla.status === 'vencido' && !isSelected && "bg-rose-50/20",
+                    "group relative cursor-pointer transition-colors",
+                    isSelected ? "bg-blue-50" : "hover:bg-slate-50/80",
                     ticket.nao_lido && "font-semibold"
                   )}
                 >
@@ -384,7 +382,7 @@ export const TicketList = ({
                     />
                   </td>
                 )}
-                <td className="px-3 py-2">
+                <td className="px-3 py-2.5">
                   <div className="flex flex-col gap-0.5 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                       {ticket.nao_lido && (
@@ -398,7 +396,7 @@ export const TicketList = ({
                         </div>
                       )}
                       
-                      <span className="text-xs font-medium text-slate-800 truncate group-hover:text-blue-700 transition-colors">{ticket.titulo}</span>
+                      <span className="truncate text-xs font-semibold text-slate-900 transition-colors group-hover:text-slate-950">{ticket.titulo}</span>
                     </div>
                     
                     <div className="flex items-center gap-2 flex-wrap min-w-0 mt-0.5">
@@ -420,7 +418,7 @@ export const TicketList = ({
                     </div>
                   </div>
                 </td>
-                <td className="px-3 py-2">
+                <td className="px-3 py-2.5">
                   {estadoInfo ? (
                     <div className={cn(
                       "inline-flex items-center gap-1.5 text-[11px] font-medium",
@@ -433,31 +431,31 @@ export const TicketList = ({
                     <span className="text-[11px] text-slate-400 font-medium">Nenhuma</span>
                   )}
                 </td>
-                <td className="px-3 py-2 hidden md:table-cell">
+                <td className="hidden px-3 py-2.5 md:table-cell">
                   <div className="flex flex-col min-w-0 leading-tight">
                     <span className="text-xs font-medium text-slate-700 truncate">{ticket.cliente_nome || 'N/A'}</span>
                     <span className="text-[10px] text-slate-500 truncate">{ticket.empresa_nome}</span>
                   </div>
                 </td>
-                <td className="px-3 py-2">
+                <td className="px-3 py-2.5">
                    <div className={cn(
-                     "inline-flex px-1.5 py-0.5 rounded text-[11px] font-medium",
+                     "inline-flex rounded border border-transparent px-1.5 py-0.5 text-[11px] font-semibold",
                      statusColor.bg,
                      statusColor.color
                    )}>
                      {ticket.status.replace('_', ' ')}
                    </div>
                 </td>
-                <td className="px-3 py-2">
+                <td className="px-3 py-2.5">
                    <div className={cn(
-                     "inline-flex px-1.5 py-0.5 rounded text-[11px] font-medium",
+                     "inline-flex rounded border border-transparent px-1.5 py-0.5 text-[11px] font-semibold",
                      priority.bg,
                      priority.color
                    )}>
                      {priority.label}
                    </div>
                 </td>
-                <td className="px-3 py-2 hidden xl:table-cell">
+                <td className="hidden px-3 py-2.5 xl:table-cell">
                    <div className="flex flex-col items-start gap-0.5">
                      <div className={cn(
                        "inline-flex items-center gap-1 text-[11px] font-medium",
@@ -476,7 +474,7 @@ export const TicketList = ({
                      )}
                    </div>
                  </td>
-                 <td className="px-3 py-2 text-right">
+                 <td className="px-3 py-2.5 text-right">
                   <div className="flex items-center justify-end">
                     <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-all">
                       {canAssumeTicket && isAbertoESemResp && (
@@ -505,7 +503,7 @@ export const TicketList = ({
         </table>
       </div>
       {meta && meta.totalPages > 1 && (
-        <div className="flex items-center justify-between px-3 py-2 border-t border-slate-100 bg-slate-50">
+        <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-3 py-2">
           <div className="flex items-center gap-3">
             <span className="text-[11px] text-slate-500 font-medium">Página {meta.page} de {meta.totalPages}</span>
             <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">{meta.total} chamados</span>

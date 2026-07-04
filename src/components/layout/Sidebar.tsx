@@ -148,10 +148,10 @@ export const Sidebar = ({
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
       >
-        <div className="h-14 flex items-center justify-between px-4 border-b border-slate-100 shrink-0">
+        <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200/80 px-4">
           <div className="flex items-center gap-2">
             <AppLogo size={24} />
-            <span className="text-[14px] font-bold text-slate-900 tracking-tight">
+            <span className="text-[14px] font-semibold text-slate-950 tracking-tight">
               Gestifique
             </span>
           </div>
@@ -164,14 +164,14 @@ export const Sidebar = ({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5 custom-scrollbar">
+        <div className="flex-1 space-y-5 overflow-y-auto px-3 py-4 custom-scrollbar">
           {sections.map((section) => {
             const accessibleItems = section.items.filter((i) => i.access);
             if (accessibleItems.length === 0) return null;
 
             return (
               <div key={section.title} className="space-y-1">
-                <h3 className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <h3 className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   {section.title}
                 </h3>
                 <div className="space-y-0.5">
@@ -180,10 +180,10 @@ export const Sidebar = ({
                       key={item.id}
                       onClick={() => handleNav(item.id)}
                       className={cn(
-                        "w-full flex items-center gap-2.5 px-3 h-9 rounded-md text-[13px] font-semibold transition-colors duration-150",
+                        "flex h-9 w-full items-center gap-2.5 rounded-md px-3 text-[13px] font-semibold transition-colors duration-150",
                         activeTab === item.id
-                          ? "bg-blue-50 text-blue-700 ring-1 ring-blue-100"
-                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50",
+                          ? "bg-slate-950 text-white shadow-sm"
+                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-950",
                       )}
                     >
                       <item.icon
@@ -191,7 +191,7 @@ export const Sidebar = ({
                         className={cn(
                           "transition-colors shrink-0",
                           activeTab === item.id
-                            ? "text-blue-700"
+                            ? "text-white"
                             : "text-slate-400 group-hover:text-slate-600",
                         )}
                         strokeWidth={activeTab === item.id ? 2.5 : 2}
@@ -205,9 +205,9 @@ export const Sidebar = ({
           })}
         </div>
 
-        <div className="p-3 border-t border-slate-100 bg-white shrink-0 space-y-2">
-          <div className="flex items-center gap-2 px-2.5 py-2 rounded-md bg-slate-50/50 hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-colors">
-            <div className="w-7 h-7 rounded bg-white border border-slate-200 flex items-center justify-center text-slate-600 font-bold text-xs shrink-0 shadow-sm">
+        <div className="shrink-0 space-y-2 border-t border-slate-200/80 bg-white p-3">
+          <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50/70 px-2.5 py-2 transition-colors hover:bg-white">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs font-bold text-slate-700 shadow-sm">
               {currentUser.nome.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">

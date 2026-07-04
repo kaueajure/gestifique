@@ -47,10 +47,10 @@ export const PortalLayout = ({ currentUser, onLogout }: PortalLayoutProps) => {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900">
+    <div className="flex min-h-screen flex-col bg-[#F4F7FA] font-sans text-slate-900">
       {/* HEADER */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
           <div className="flex items-center gap-6">
             <div className="cursor-pointer" onClick={() => navigateTo('home')}>
               <AppLogo size={24} />
@@ -65,10 +65,10 @@ export const PortalLayout = ({ currentUser, onLogout }: PortalLayoutProps) => {
                     key={item.id}
                     onClick={() => navigateTo(item.id as PortalTab)}
                     className={cn(
-                      "px-3 h-8 rounded-md flex items-center gap-1.5 text-xs font-semibold transition-colors",
+                      "flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-semibold transition-colors",
                       isActive 
-                        ? "bg-blue-50 text-blue-700" 
-                        : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+                        ? "bg-slate-950 text-white" 
+                        : "text-slate-500 hover:bg-slate-100 hover:text-slate-950"
                     )}
                   >
                     <Icon size={14} />
@@ -146,7 +146,7 @@ export const PortalLayout = ({ currentUser, onLogout }: PortalLayoutProps) => {
       </AnimatePresence>
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 max-w-6xl w-full mx-auto p-4 md:p-5">
+      <main className="mx-auto w-full max-w-6xl flex-1 p-4 md:p-5">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab + (selectedTicketId || '')}

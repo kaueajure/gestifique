@@ -24,7 +24,10 @@ export const PortalNewTicketPage = ({ onNavigate, currentUser }: PortalNewTicket
   
   const [suggestions, setSuggestions] = useState<any[]>([]);
   
-  const { activeCategories, activeServices } = useTicketOptions(currentUser.empresa_id || undefined);
+  const shouldLoadInternalOptions = currentUser.perfil !== 'cliente';
+  const { activeCategories, activeServices } = useTicketOptions(
+    shouldLoadInternalOptions ? currentUser.empresa_id || undefined : undefined
+  );
 
   useEffect(() => {
     const fetchSuggestions = async () => {
@@ -66,14 +69,14 @@ export const PortalNewTicketPage = ({ onNavigate, currentUser }: PortalNewTicket
   };
 
   return (
-    <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 lg:grid-cols-3">
       <div className="lg:col-span-2 space-y-4">
         <div>
-          <h1 className="text-lg font-semibold tracking-tight text-slate-900 mb-1">Abrir Novo Chamado</h1>
+          <h1 className="mb-1 text-lg font-semibold tracking-tight text-slate-950">Abrir novo chamado</h1>
           <p className="text-slate-500 text-sm">Preencha os detalhes abaixo para que possamos te ajudar da melhor forma.</p>
         </div>
 
-        <div className="bg-white p-4 md:p-5 rounded-xl border border-slate-200 shadow-sm">
+        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] md:p-5">
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <div className="p-3 bg-red-50 text-red-600 text-sm font-medium rounded-md border border-red-100">
@@ -122,7 +125,7 @@ export const PortalNewTicketPage = ({ onNavigate, currentUser }: PortalNewTicket
                 required
                 rows={4}
                 placeholder="Descreva o máximo de detalhes possível para agilizarmos seu atendimento..."
-                className="w-full resize-y p-3 bg-slate-50 border border-slate-200 rounded-md text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all outline-none"
+                className="w-full resize-y rounded-md border border-slate-200 bg-slate-50/80 p-3 text-sm outline-none transition-all focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/15"
               />
             </div>
 
@@ -137,12 +140,12 @@ export const PortalNewTicketPage = ({ onNavigate, currentUser }: PortalNewTicket
 
       <div className="lg:col-span-1">
         {suggestions.length > 0 && (
-          <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 sticky top-24">
-            <div className="flex items-center gap-2 text-blue-800 font-semibold mb-2">
-              <Sparkles size={16} className="text-blue-500" />
+          <div className="sticky top-24 rounded-lg border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+            <div className="mb-2 flex items-center gap-2 font-semibold text-slate-950">
+              <Sparkles size={16} className="text-slate-500" />
               Talvez isso ajude?
             </div>
-            <p className="text-xs text-blue-700 mb-3 font-medium">
+            <p className="mb-3 text-xs font-medium text-slate-500">
               Encontramos alguns artigos que podem resolver sua dúvida antes mesmo de abrir o chamado:
             </p>
             <div className="space-y-2">
@@ -150,7 +153,7 @@ export const PortalNewTicketPage = ({ onNavigate, currentUser }: PortalNewTicket
                 <button
                   key={article.id}
                   onClick={() => onNavigate('knowledge', article.id)}
-                  className="w-full text-left bg-white border border-blue-100 hover:border-blue-300 hover:shadow-sm p-3 rounded-lg transition-all group flex items-start gap-2.5"
+                  className="group flex w-full items-start gap-2.5 rounded-lg border border-slate-200 bg-white p-3 text-left transition-all hover:border-slate-300 hover:bg-slate-50"
                 >
                   <BookOpen size={14} className="text-blue-400 mt-0.5 shrink-0" />
                   <div>

@@ -288,8 +288,8 @@ export const DashboardPage = ({ currentUser, onNavigate }: DashboardPageProps) =
 
   return (
     <PageShell
-      title="Visão gerencial"
-      subtitle="Acompanhe filas, SLA, backlog e produtividade dos chamados."
+      title="Visão operacional"
+      subtitle="Acompanhe a saúde da operação, gargalos de SLA e produtividade do atendimento."
       flush
     >
       <div className="w-full space-y-4 p-3 sm:p-5">
@@ -300,7 +300,7 @@ export const DashboardPage = ({ currentUser, onNavigate }: DashboardPageProps) =
                 <CalendarDays size={16} />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-slate-950">Filtros gerenciais</h3>
+                <h3 className="text-sm font-semibold text-slate-950">Recorte da operação</h3>
                 <p className="mt-0.5 text-xs font-medium text-slate-500">
                   Recorte atual: <span className="font-semibold text-slate-700">{displayedPeriod}</span>
                 </p>
@@ -450,14 +450,14 @@ export const DashboardPage = ({ currentUser, onNavigate }: DashboardPageProps) =
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.15fr_0.85fr]">
           <Card className="overflow-hidden">
-            <CardHeader className="border-b border-slate-100 px-4 py-3">
+            <CardHeader className="border-b border-slate-200 px-4 py-3">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2">
                   <div className="flex h-8 w-8 items-center justify-center rounded-md border border-blue-100 bg-blue-50 text-blue-700">
                     <ShieldCheck size={16} />
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-slate-950">SLA cumprido vs violado</h3>
+                    <h3 className="text-sm font-semibold text-slate-950">Controle de SLA</h3>
                     <p className="text-xs font-medium text-slate-500">Baseado nos chamados com status de SLA registrado.</p>
                   </div>
                 </div>
@@ -467,7 +467,7 @@ export const DashboardPage = ({ currentUser, onNavigate }: DashboardPageProps) =
               </div>
             </CardHeader>
             <div className="space-y-4 p-4">
-              <div className="h-3 overflow-hidden rounded-full bg-red-100">
+              <div className="h-3 overflow-hidden rounded-full bg-rose-100">
                 <div
                   className="h-full rounded-full bg-emerald-600"
                   style={{ width: `${slaTotal > 0 ? slaCumpridoPercent : 0}%` }}
@@ -487,10 +487,10 @@ export const DashboardPage = ({ currentUser, onNavigate }: DashboardPageProps) =
           </Card>
 
           <Card className="overflow-hidden">
-            <CardHeader className="border-b border-slate-100 px-4 py-3">
+            <CardHeader className="border-b border-slate-200 px-4 py-3">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-950">Contexto da operação</h3>
+                  <h3 className="text-sm font-semibold text-slate-950">Escopo monitorado</h3>
                   <p className="text-xs font-medium text-slate-500">Escopo atual da conta.</p>
                 </div>
                 <Building size={18} className="text-slate-400" />

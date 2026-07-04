@@ -22,13 +22,14 @@ export const ErrorState = ({
     <div
       className={cn(
         "flex flex-col items-center justify-center text-center",
+        "rounded-lg border border-rose-200/80 bg-rose-50/60",
         compact ? "p-4" : "p-8",
         className,
       )}
     >
       <div
         className={cn(
-          "bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-3",
+          "mb-3 flex items-center justify-center rounded-lg border border-rose-200 bg-white text-rose-600",
           compact ? "w-8 h-8" : "w-10 h-10",
         )}
       >
@@ -36,7 +37,7 @@ export const ErrorState = ({
       </div>
       <h3
         className={cn(
-          "font-medium text-slate-800",
+          "font-semibold text-slate-950",
           compact ? "text-[13px] mb-0.5" : "text-sm mb-1",
         )}
       >
@@ -58,7 +59,7 @@ export const ErrorState = ({
           className="mt-4 gap-1.5"
         >
           <RefreshCw size={12} />
-          Tentar Novamente
+          Tentar novamente
         </Button>
       )}
     </div>

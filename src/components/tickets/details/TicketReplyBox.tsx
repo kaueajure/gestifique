@@ -113,12 +113,12 @@ export const TicketReplyBox = ({
 
   return (
     <form onSubmit={handleSubmit} className={cn(
-      "relative overflow-visible rounded-lg border bg-white shadow-sm transition-all focus-within:border-blue-300 focus-within:ring-1 focus-within:ring-blue-100",
+      "relative overflow-visible rounded-xl border bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)] transition-all focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-500/10",
       isInternal ? "border-slate-300 opacity-85" : "border-slate-200"
     )}>
         <div className={cn(
-          "flex flex-col gap-2 border-b px-3 py-2 sm:flex-row sm:items-center sm:justify-between",
-          isInternal ? "border-slate-200 bg-slate-100/70" : "border-slate-200 bg-slate-50"
+          "flex flex-col gap-2 border-b px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between",
+          isInternal ? "border-slate-200 bg-amber-50/60" : "border-slate-200 bg-slate-50/80"
         )}>
           <div className="inline-flex w-full rounded-md border border-slate-200 bg-white p-0.5 sm:w-auto">
               <button
@@ -128,7 +128,7 @@ export const TicketReplyBox = ({
                 className={cn(
                   "flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5 text-xs font-semibold transition-all sm:flex-none",
                   !isInternal 
-                    ? "bg-white text-blue-700 shadow-sm ring-1 ring-slate-200" 
+                    ? "bg-slate-950 text-white shadow-sm ring-1 ring-slate-950" 
                     : "text-slate-500 hover:text-slate-700 hover:bg-slate-50",
                   !canSendPublicReply && "cursor-not-allowed opacity-50 hover:bg-transparent"
                 )}
@@ -143,7 +143,7 @@ export const TicketReplyBox = ({
                   className={cn(
                     "flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5 text-xs font-semibold transition-all sm:flex-none",
                     isInternal 
-                      ? "bg-white text-slate-700 shadow-sm ring-1 ring-slate-200" 
+                      ? "bg-slate-950 text-white shadow-sm ring-1 ring-slate-950" 
                       : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
                   )}
                >
@@ -158,29 +158,29 @@ export const TicketReplyBox = ({
               type="button"
               disabled={loadingSuggestion}
               onClick={handleSuggestReply}
-              title="Gerar sugestão de resposta com IA"
-              aria-label="Gerar sugestão de resposta com IA"
-              className="flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 transition-all hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 disabled:opacity-50"
+              title="Sugerir resposta"
+              aria-label="Sugerir resposta"
+              className="flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 transition-all hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950 disabled:opacity-50"
             >
               {loadingSuggestion ? (
                 <Loader2 size={12} className="animate-spin text-indigo-600" />
               ) : (
                 <Bot size={12} className="text-indigo-600" />
               )}
-              {loadingSuggestion ? "Gerando..." : "Sugestão IA"}
+              {loadingSuggestion ? "Gerando..." : "Sugerir resposta"}
             </button>
 
             <div className="relative">
               <button
               type="button"
               onClick={() => setShowMacros(!showMacros)}
-              title="Abrir respostas prontas e macros"
-              aria-label="Abrir respostas prontas e macros"
+              title="Abrir respostas prontas"
+              aria-label="Abrir respostas prontas"
               className={cn(
                   "flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-all",
                   showMacros 
-                    ? "bg-blue-600 border-blue-600 text-white" 
-                    : "bg-white border-slate-200 text-slate-600 hover:border-blue-400 hover:text-blue-600"
+                    ? "bg-slate-950 border-slate-950 text-white" 
+                    : "bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-950"
                 )}
               >
                 <Zap size={12} />
@@ -223,7 +223,7 @@ export const TicketReplyBox = ({
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder={isInternal ? "Escreva uma nota interna..." : "Escreva a resposta do chamado..."}
             className={cn(
-              "min-h-[104px] w-full resize-none border-0 bg-transparent py-4 pl-11 pr-4 text-sm font-medium leading-6 transition-all focus:outline-none focus:ring-0 sm:pr-48",
+              "min-h-[124px] w-full resize-none border-0 bg-transparent py-4 pl-11 pr-4 text-sm font-medium leading-6 transition-all focus:outline-none focus:ring-0 sm:pr-48",
               isInternal 
                 ? "text-slate-600 placeholder:text-slate-400" 
                 : "text-slate-700 placeholder:text-slate-400"
@@ -266,7 +266,7 @@ export const TicketReplyBox = ({
           <div className="relative mx-3 my-2.5 rounded-xl border border-indigo-100 bg-indigo-50 p-3 px-3.5">
             <div className="mb-1.5 flex items-center justify-between">
                <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-indigo-700">
-                 <Sparkles size={11} className="text-indigo-600 animate-pulse" /> Sugestão de resposta por IA
+                 <Sparkles size={11} className="text-indigo-600 animate-pulse" /> Sugestão de resposta
                </span>
                <button 
                  type="button"
@@ -321,10 +321,10 @@ export const TicketReplyBox = ({
                 disabled={isSubmitDisabled}
                 size="sm"
                 className={cn(
-                  "h-9 rounded-md px-4 text-xs font-semibold shadow-sm",
+                  "h-10 rounded-md px-4 text-xs font-semibold shadow-sm",
                   isInternal 
                     ? "bg-slate-700 hover:bg-slate-600 text-white" 
-                    : "bg-blue-600 hover:bg-blue-500 text-white",
+                    : "bg-slate-950 hover:bg-slate-800 text-white",
                   isSubmitDisabled && "opacity-50 grayscale"
                 )}
               >

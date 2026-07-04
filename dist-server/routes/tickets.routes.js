@@ -905,7 +905,7 @@ router.post('/:id/messages', async (req, res) => {
         if (!ticketResult)
             return sendError(res, 'Chamado não encontrado', 404);
         if (ticketResult.error === 'forbidden')
-            return sendError(res, 'PermissÃ£o negada', 403);
+            return sendError(res, 'Permissão negada', 403);
         if (isInternalCom) {
             const hasComPerm = await permissionsService.hasPermission(currentUser, 'ticket_mensagens.comentar_interno');
             if (!hasComPerm) {

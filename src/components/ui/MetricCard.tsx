@@ -49,7 +49,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   if (loading) {
     return (
       <Card className={cn("animate-pulse", className)}>
-        <CardContent className={cn(compact ? "p-4" : "p-5")}>
+        <CardContent className={cn(compact ? "p-3.5" : "p-5")}>
           <div className="flex justify-between items-start mb-3">
             <div
               className={cn(
@@ -67,19 +67,19 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   }
 
   return (
-    <Card className={cn("hover:shadow-sm transition-all", className)}>
+    <Card className={cn("transition-all hover:border-slate-300 hover:shadow-[0_8px_20px_rgba(15,23,42,0.06)]", className)}>
       <CardContent
         className={cn(
           "flex flex-col justify-between h-full",
-          compact ? "p-4" : "p-5 pt-4",
+          compact ? "p-3.5" : "p-5 pt-4",
         )}
       >
-        <div className="flex justify-between items-start mb-2">
+        <div className="mb-3 flex items-start justify-between">
           <div
             className={cn(
-              "rounded-lg flex items-center justify-center border",
+              "flex items-center justify-center rounded-md border",
               colors[color],
-              compact ? "w-8 h-8 *:w-4 *:h-4" : "w-10 h-10 *:w-5 *:h-5",
+              compact ? "w-7 h-7 *:w-3.5 *:h-3.5" : "w-10 h-10 *:w-5 *:h-5",
             )}
           >
             {icon}
@@ -105,13 +105,13 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         <div className="mt-1">
           <div
             className={cn(
-              "font-bold text-slate-900 tracking-tight leading-none mb-1",
+              "font-semibold tracking-tight leading-none text-slate-950",
               compact ? "text-lg" : "text-2xl",
             )}
           >
             {value}
           </div>
-          <div className="text-[12px] text-slate-500 font-medium">{label}</div>
+          <div className="mt-1 text-[12px] font-medium text-slate-500">{label}</div>
         </div>
       </CardContent>
     </Card>

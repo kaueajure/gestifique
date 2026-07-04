@@ -23,17 +23,17 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ) => {
     const variants = {
       primary:
-        "bg-blue-600 text-white hover:bg-blue-700 focus-visible:ring-blue-500 shadow-sm border border-transparent",
+        "bg-slate-950 text-white hover:bg-slate-800 focus-visible:ring-slate-500 shadow-sm border border-transparent",
       secondary:
-        "bg-slate-100 text-slate-900 hover:bg-slate-200 focus-visible:ring-slate-500 border border-transparent",
+        "bg-slate-100 text-slate-900 hover:bg-slate-200 focus-visible:ring-slate-500 border border-slate-200/70",
       ghost:
-        "bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-slate-500 border border-transparent",
+        "bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-950 focus-visible:ring-slate-500 border border-transparent",
       danger:
         "bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500 shadow-sm border border-transparent",
       outline:
-        "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 focus-visible:ring-slate-500 shadow-sm",
+        "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-950 focus-visible:ring-slate-500 shadow-sm",
       subtle:
-        "bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-slate-500 border border-transparent",
+        "bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-950 focus-visible:ring-slate-500 border border-slate-200/70",
     };
 
     const sizes = {
@@ -49,7 +49,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || loading}
         className={cn(
-          "inline-flex items-center justify-center font-medium transition-all outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed",
+          "inline-flex items-center justify-center font-semibold transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed active:translate-y-px",
           variants[variant],
           sizes[size],
           className,
