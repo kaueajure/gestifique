@@ -11,8 +11,6 @@ import {
   LogOut,
   X,
   BookOpen,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import { User } from "../../types";
 import { cn } from "../../lib/utils";
@@ -27,7 +25,6 @@ interface SidebarProps {
   isOpen: boolean;
   isCollapsed?: boolean;
   onClose: () => void;
-  onToggleCollapse?: () => void;
   onLogout: () => void;
   onNavigate: (link: string) => void;
 }
@@ -39,7 +36,6 @@ export const Sidebar = ({
   isOpen,
   isCollapsed = false,
   onClose,
-  onToggleCollapse,
   onLogout,
   onNavigate,
 }: SidebarProps) => {
@@ -173,17 +169,6 @@ export const Sidebar = ({
             </span>
           </div>
           <div className={cn("flex items-center gap-1", isCollapsed && "lg:hidden")}>
-            {onToggleCollapse && (
-              <button
-                type="button"
-                onClick={onToggleCollapse}
-                aria-label={isCollapsed ? "Expandir menu" : "Recolher menu"}
-                title={isCollapsed ? "Expandir menu" : "Recolher menu"}
-                className="hidden rounded-md p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 lg:inline-flex"
-              >
-                {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-              </button>
-            )}
             <button
               onClick={onClose}
               aria-label="Fechar menu"

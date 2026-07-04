@@ -671,13 +671,6 @@ export default function App() {
           isOpen={isSidebarOpen}
           isCollapsed={isSidebarCollapsed}
           onClose={() => setIsSidebarOpen(false)}
-          onToggleCollapse={() => {
-            setIsSidebarCollapsed((current) => {
-              const next = !current;
-              window.localStorage.setItem("gestifique-sidebar-collapsed", String(next));
-              return next;
-            });
-          }}
           onLogout={handleLogout}
           onNavigate={handleNotificationNavigate}
         />
