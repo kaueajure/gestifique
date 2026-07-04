@@ -948,7 +948,14 @@ router.get('/:id/messages', async (req: AuthRequest, res) => {
 
     const hasVerInternos = await permissionsService.hasPermission(currentUser, 'ticket_mensagens.ver_internos');
     const pagination = normalizeMessagePagination(req.query);
-    const messages = await ticketsService.getMessages(id, hasVerInternos, pagination);
+    const includeMeta = req.query.include_meta === 'true';
+    const messagesPage = await ticketsService.getMessages(
+      id,
+      hasVerInternos,
+      includeMeta ? { ...pagination, limit: pagination.limit + 1 } : pagination
+    );
+    const hasMore = includeMeta && (messagesPage as any[]).length > pagination.limit;
+    const messages = hasMore ? (messagesPage as any[]).slice(1) : messagesPage;
     
     const messageIds = (messages as any[]).map((msg: any) => msg.id);
     const attachmentsByMessage = await attachmentsService.getByMessages(messageIds, hasVerInternos, id);
@@ -957,14 +964,14 @@ router.get('/:id/messages', async (req: AuthRequest, res) => {
       attachments: attachmentsByMessage[msg.id] || []
     }));
 
-    if (req.query.include_meta === 'true') {
+    if (includeMeta) {
       return sendSuccess(res, {
         data: messagesWithAttachments,
         meta: {
           limit: pagination.limit,
           page: pagination.page,
           before_id: pagination.beforeId || null,
-          has_more: messagesWithAttachments.length === pagination.limit,
+          has_more: hasMore,
           next_before_id: messagesWithAttachments[0]?.id || null
         }
       });
@@ -1004,8 +1011,9 @@ router.get('/:id/timeline', async (req: AuthRequest, res) => {
           limit: pagination.limit,
           page: pagination.page,
           before_id: pagination.beforeId || null,
-          has_more: timeline.length >= pagination.limit,
-          next_before_id: timeline.find((item: any) => item.id)?.id || null
+          pagination_scope: 'messages',
+          has_more: null,
+          next_before_id: null
         }
       });
     }

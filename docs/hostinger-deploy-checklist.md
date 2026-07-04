@@ -33,6 +33,16 @@ UPLOAD_DIR=uploads/tickets
 
 Se usar SMTP por canal, configure tambem `ENCRYPTION_KEY` e os canais no painel.
 
+Gere os segredos em uma maquina confiavel:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))" # JWT_SECRET
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))" # INTERNAL_JOB_TOKEN
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))" # ENCRYPTION_KEY
+```
+
+Nao reutilize esses valores entre ambientes.
+
 ## Comandos de deploy
 
 ```bash

@@ -42,7 +42,7 @@ function labelFromStatus(status: string): string {
 
 const MAX_TICKET_LIST_LIMIT = 100;
 const DEFAULT_MESSAGE_LIMIT = 50;
-const MAX_MESSAGE_LIMIT = 100;
+const MAX_MESSAGE_LIMIT = 101;
 
 const TICKET_LIST_SORT_COLUMNS: Record<string, string> = {
   id: 't.id',

@@ -28,7 +28,7 @@ function labelFromStatus(status) {
 }
 const MAX_TICKET_LIST_LIMIT = 100;
 const DEFAULT_MESSAGE_LIMIT = 50;
-const MAX_MESSAGE_LIMIT = 100;
+const MAX_MESSAGE_LIMIT = 101;
 const TICKET_LIST_SORT_COLUMNS = {
     id: 't.id',
     updated_at: 't.updated_at',

@@ -170,6 +170,7 @@ router.get('/tickets/:id/messages', async (req: any, res: any) => {
     if (!ticketRows.length) return sendError(res, 'Chamado não encontrado', 404);
 
     const pagination = normalizeMessagePagination(req.query);
+    const includeMeta = req.query.include_meta === 'true';
     let messagesQuery = `
       SELECT m.*, u.nome as usuario_nome 
       FROM ticket_mensagens m
@@ -182,19 +183,20 @@ router.get('/tickets/:id/messages', async (req: any, res: any) => {
       messageParams.push(pagination.beforeId);
     }
     messagesQuery += ' ORDER BY m.created_at DESC, m.id DESC LIMIT ? OFFSET ?';
-    messageParams.push(pagination.limit, pagination.offset);
+    messageParams.push(includeMeta ? pagination.limit + 1 : pagination.limit, pagination.offset);
 
     const [rowsDesc]: any = await pool.query(messagesQuery, messageParams);
-    const rows = rowsDesc.reverse();
+    const hasMore = includeMeta && rowsDesc.length > pagination.limit;
+    const rows = (hasMore ? rowsDesc.slice(0, pagination.limit) : rowsDesc).reverse();
     
-    if (req.query.include_meta === 'true') {
+    if (includeMeta) {
       return sendSuccess(res, {
         data: rows,
         meta: {
           limit: pagination.limit,
           page: pagination.page,
           before_id: pagination.beforeId || null,
-          has_more: rows.length === pagination.limit,
+          has_more: hasMore,
           next_before_id: rows[0]?.id || null
         }
       });
