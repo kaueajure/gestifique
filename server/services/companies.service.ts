@@ -7,7 +7,7 @@ class CompaniesService {
     let query = `
       SELECT e.*, 
              (SELECT COUNT(*) FROM usuarios u WHERE u.empresa_id = e.id) as total_usuarios,
-             (SELECT COUNT(*) FROM tickets t WHERE t.empresa_id = e.id) as total_tickets
+             (SELECT COUNT(*) FROM tickets t WHERE t.empresa_id = e.id AND t.deleted_at IS NULL) as total_tickets
       FROM empresas e
       WHERE 1=1
     `;

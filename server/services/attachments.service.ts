@@ -43,7 +43,7 @@ class AttachmentsService {
 
   async getById(id: number): Promise<AttachmentData | null> {
     const [rows]: any = await pool.query(
-      'SELECT a.*, t.empresa_id as ticket_empresa_id FROM ticket_anexos a JOIN tickets t ON a.ticket_id = t.id WHERE a.id = ?',
+      'SELECT a.*, t.empresa_id as ticket_empresa_id FROM ticket_anexos a JOIN tickets t ON a.ticket_id = t.id WHERE a.id = ? AND t.deleted_at IS NULL',
       [id]
     );
     const data = rows[0];
@@ -78,7 +78,7 @@ class AttachmentsService {
 
     // Notificações
     try {
-      const [ticketRows]: any = await pool.query('SELECT * FROM tickets WHERE id = ?', [ticket_id]);
+      const [ticketRows]: any = await pool.query('SELECT * FROM tickets WHERE id = ? AND deleted_at IS NULL', [ticket_id]);
       const ticket = ticketRows[0];
 
       if (ticket) {

@@ -6,6 +6,7 @@ import { io } from '../server.js';
 import slaService from './sla.service.js';
 import { recomputeTicketMessageState } from '../utils/ticket-state.js';
 import { maskIdentifier } from '../utils/sanitize.js';
+import { formatDateTimeForMySQL } from '../utils/date-time.js';
 import {
   getInitialTicketStatusValue,
   getInProgressTicketStatusValue,
@@ -45,7 +46,7 @@ class TicketMessagesService {
               COALESCE(t.solicitante_email, u.email, 'removido@sistema.com') as cliente_email
        FROM tickets t
        LEFT JOIN usuarios u ON t.usuario_id = u.id
-       WHERE t.id = ?`,
+       WHERE t.id = ? AND t.deleted_at IS NULL`,
       [ticket_id]
     );
 
@@ -98,7 +99,7 @@ class TicketMessagesService {
         `SELECT m.id
          FROM ticket_mensagens m
          INNER JOIN tickets t ON t.id = m.ticket_id
-         WHERE m.message_id = ? AND t.empresa_id = ?
+         WHERE m.message_id = ? AND t.empresa_id = ? AND t.deleted_at IS NULL
          LIMIT 1`,
         [message_id, ticket.empresa_id]
       );
@@ -167,7 +168,7 @@ class TicketMessagesService {
     }
 
     // 4. Update ticket: updated_at
-    await pool.query('UPDATE tickets SET updated_at = NOW() WHERE id = ?', [ticket_id]);
+    await pool.query('UPDATE tickets SET updated_at = NOW() WHERE id = ? AND deleted_at IS NULL', [ticket_id]);
 
     // 5. Business Logic: Status, SLA and Notifications
     try {
@@ -214,7 +215,7 @@ class TicketMessagesService {
         // A) SLA Primera Resposta (only if from agent and public)
         if (isAgentResponse && !ticket.primeira_resposta_em) {
           const agora = new Date();
-          const agoraFormatado = agora.toISOString().slice(0, 19).replace('T', ' ');
+          const agoraFormatado = formatDateTimeForMySQL(agora);
           let prStatus = 'cumprido';
           
           if (ticket.prazo_primeira_resposta) {
@@ -310,6 +311,14 @@ class TicketMessagesService {
             });
           } catch (err) {
             console.error('[Notification Error] Falha ao enfileirar e-mail:', err);
+            await recordTicketEvent({
+              ticket_id,
+              empresa_id: ticket.empresa_id,
+              usuario_id,
+              tipo: 'email_outbox_erro',
+              descricao: 'A resposta foi registrada, mas o e-mail nao pode ser enfileirado.',
+              metadata: { messageId, error: String((err as any)?.message || err).slice(0, 500) }
+            }).catch(() => {});
           }
         }
       }
@@ -372,7 +381,7 @@ class TicketMessagesService {
            LEFT JOIN usuarios u ON t.usuario_id = u.id
            LEFT JOIN empresas e ON t.empresa_id = e.id
            LEFT JOIN usuarios r ON t.responsavel_id = r.id
-           WHERE t.id = ?`,
+           WHERE t.id = ? AND t.deleted_at IS NULL`,
           [ticket_id]
         );
         

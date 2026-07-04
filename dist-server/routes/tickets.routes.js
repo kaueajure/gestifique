@@ -89,13 +89,13 @@ async function getBulkActionPermissionError(currentUser, action, value) {
         case 'prioridade':
             return await permissionsService.hasPermission(currentUser, 'tickets.editar_prioridade')
                 ? null
-                : 'Acesso proibido: sem permissão para alterar prioridade em massa (tickets.editar_prioridade).';
+                : 'Você não tem permissão para alterar prioridade em massa.';
         case 'responsavel': {
             const wantsRemove = value === null || value === undefined || value === '';
             if (wantsRemove) {
                 return await permissionsService.hasPermission(currentUser, 'tickets.remover_responsavel')
                     ? null
-                    : 'Acesso proibido: sem permissão para remover responsável em massa (tickets.remover_responsavel).';
+                    : 'Você não tem permissão para remover responsável em massa.';
             }
             const canAssignResponsavel = await hasAnyTicketPermission(currentUser, [
                 'tickets.assumir',
@@ -109,7 +109,7 @@ async function getBulkActionPermissionError(currentUser, action, value) {
         case 'add_tag':
             return await permissionsService.hasPermission(currentUser, 'tickets.gerenciar_tags')
                 ? null
-                : 'Acesso proibido: sem permissão para gerenciar tags em massa (tickets.gerenciar_tags).';
+                : 'Você não tem permissão para gerenciar tags em massa.';
         default:
             return 'Acao invalida';
     }
@@ -373,7 +373,7 @@ router.patch('/bulk', async (req, res) => {
             return sendError(res, 'Não autenticado', 401);
         const hasBulkPerm = await permissionsService.hasPermission(currentUser, 'tickets.acoes_em_massa');
         if (!hasBulkPerm) {
-            return sendError(res, 'Acesso proibido: Sem permissão para realizar ações em massa (tickets.acoes_em_massa).', 403);
+            return sendError(res, 'Você não tem permissão para realizar ações em massa.', 403);
         }
         const { ticket_ids, action, value } = req.body;
         if (!Array.isArray(ticket_ids) || ticket_ids.length === 0) {
@@ -680,12 +680,12 @@ router.patch('/:id', async (req, res) => {
             return allowed ? null : sendError(res, message, 403);
         };
         if (hasFieldChanged('titulo')) {
-            const denied = await ensureFieldPermission('tickets.editar_titulo', 'Acesso proibido: sem permissão para editar título (tickets.editar_titulo).');
+            const denied = await ensureFieldPermission('tickets.editar_titulo', 'Você não tem permissão para alterar o título deste chamado.');
             if (denied)
                 return denied;
         }
         if (hasFieldChanged('descricao')) {
-            const denied = await ensureFieldPermission('tickets.editar_descricao', 'Acesso proibido: sem permissão para editar descrição (tickets.editar_descricao).');
+            const denied = await ensureFieldPermission('tickets.editar_descricao', 'Você não tem permissão para alterar a descrição deste chamado.');
             if (denied)
                 return denied;
         }
@@ -698,12 +698,12 @@ router.patch('/:id', async (req, res) => {
                 return transitionDenied;
         }
         if (hasFieldChanged('origem')) {
-            const denied = await ensureFieldPermission('tickets.editar_origem', 'Acesso proibido: sem permissão para editar origem (tickets.editar_origem).');
+            const denied = await ensureFieldPermission('tickets.editar_origem', 'Você não tem permissão para alterar a origem deste chamado.');
             if (denied)
                 return denied;
         }
         if (hasFieldChanged('prazo_sla')) {
-            const denied = await ensureFieldPermission('tickets.alterar_sla', 'Acesso proibido: sem permissão para alterar SLA (tickets.alterar_sla).');
+            const denied = await ensureFieldPermission('tickets.alterar_sla', 'Você não tem permissão para alterar o SLA deste chamado.');
             if (denied)
                 return denied;
         }
@@ -711,19 +711,19 @@ router.patch('/:id', async (req, res) => {
         if (req.body.prioridade && req.body.prioridade !== ticket.prioridade) {
             const hasPrioPerm = await permissionsService.hasPermission(currentUser, 'tickets.editar_prioridade');
             if (!hasPrioPerm) {
-                return sendError(res, 'Acesso proibido: Sem permissão para editar prioridade (tickets.editar_prioridade).', 403);
+                return sendError(res, 'Você não tem permissão para alterar a prioridade deste chamado.', 403);
             }
         }
         if (req.body.categoria && req.body.categoria !== ticket.categoria) {
             const hasCatPerm = await permissionsService.hasPermission(currentUser, 'tickets.editar_categoria');
             if (!hasCatPerm) {
-                return sendError(res, 'Acesso proibido: Sem permissão para editar categoria (tickets.editar_categoria).', 403);
+                return sendError(res, 'Você não tem permissão para alterar a categoria deste chamado.', 403);
             }
         }
         if (req.body.servico && req.body.servico !== ticket.servico) {
             const hasServPerm = await permissionsService.hasPermission(currentUser, 'tickets.editar_servico');
             if (!hasServPerm) {
-                return sendError(res, 'Acesso proibido: Sem permissão para editar serviço (tickets.editar_servico).', 403);
+                return sendError(res, 'Você não tem permissão para alterar o serviço deste chamado.', 403);
             }
         }
         if (req.body.responsavel_id !== undefined && req.body.responsavel_id !== ticket.responsavel_id) {
@@ -732,7 +732,7 @@ router.patch('/:id', async (req, res) => {
             if (wantsRemoveResponsavel) {
                 const hasRemovePerm = await permissionsService.hasPermission(currentUser, 'tickets.remover_responsavel');
                 if (!hasRemovePerm) {
-                    return sendError(res, 'Acesso proibido: Sem permissão para remover responsável (tickets.remover_responsavel).', 403);
+                    return sendError(res, 'Você não tem permissão para remover o responsável deste chamado.', 403);
                 }
                 req.body.responsavel_id = null;
             }
@@ -742,7 +742,7 @@ router.patch('/:id', async (req, res) => {
             else if (newRespId === currentUser.id) {
                 const hasTakePerm = await permissionsService.hasPermission(currentUser, 'tickets.assumir');
                 if (!hasTakePerm) {
-                    return sendError(res, 'Acesso proibido: Sem permissão para assumir chamados (tickets.assumir).', 403);
+                    return sendError(res, 'Você não tem permissão para assumir chamados.', 403);
                 }
             }
             else {
@@ -904,7 +904,7 @@ router.post('/:id/messages', async (req, res) => {
         if (isInternalCom) {
             const hasComPerm = await permissionsService.hasPermission(currentUser, 'ticket_mensagens.comentar_interno');
             if (!hasComPerm) {
-                return sendError(res, 'Acesso proibido: Sem permissão para enviar comentários internos (ticket_mensagens.comentar_interno).', 403);
+                return sendError(res, 'Você não tem permissão para enviar comentários internos.', 403);
             }
         }
         else {

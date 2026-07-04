@@ -36,11 +36,11 @@ class SlaService {
      * Pauses SLA for a ticket
      */
     async pauseSla(ticketId, usuarioId = null) {
-        const [rows] = await pool.query('SELECT * FROM tickets WHERE id = ?', [ticketId]);
+        const [rows] = await pool.query('SELECT * FROM tickets WHERE id = ? AND deleted_at IS NULL', [ticketId]);
         const ticket = rows[0];
         if (!ticket || ticket.sla_pausado_em)
             return;
-        await pool.query('UPDATE tickets SET sla_pausado_em = NOW(), sla_status_operacional = "pausado", updated_at = NOW() WHERE id = ?', [ticketId]);
+        await pool.query('UPDATE tickets SET sla_pausado_em = NOW(), sla_status_operacional = "pausado", updated_at = NOW() WHERE id = ? AND deleted_at IS NULL', [ticketId]);
         await recordTicketEvent({
             ticket_id: ticketId,
             empresa_id: ticket.empresa_id,
@@ -58,7 +58,7 @@ class SlaService {
        LEFT JOIN empresa_ticket_status status_cfg
          ON status_cfg.empresa_id = t.empresa_id
         AND status_cfg.valor = t.status
-       WHERE t.id = ?`, [ticketId]);
+       WHERE t.id = ? AND t.deleted_at IS NULL`, [ticketId]);
         const ticket = rows[0];
         if (!ticket || !ticket.sla_pausado_em)
             return;
@@ -80,7 +80,7 @@ class SlaService {
            prazo_sla = ?, 
            sla_status_operacional = ?, 
            updated_at = NOW() 
-       WHERE id = ?`, [totalPausado, novoPrazoSla, novoStatusOperacional, ticketId]);
+       WHERE id = ? AND deleted_at IS NULL`, [totalPausado, novoPrazoSla, novoStatusOperacional, ticketId]);
         await recordTicketEvent({
             ticket_id: ticketId,
             empresa_id: ticket.empresa_id,
@@ -98,12 +98,12 @@ class SlaService {
        LEFT JOIN empresa_ticket_status status_cfg
          ON status_cfg.empresa_id = t.empresa_id
         AND status_cfg.valor = t.status
-       WHERE t.id = ?`, [ticketId]);
+       WHERE t.id = ? AND t.deleted_at IS NULL`, [ticketId]);
         const ticket = rows[0];
         if (!ticket)
             return;
         const status = this.calculateOperationalStatus(ticket);
-        await pool.query('UPDATE tickets SET sla_status_operacional = ? WHERE id = ?', [status, ticketId]);
+        await pool.query('UPDATE tickets SET sla_status_operacional = ? WHERE id = ? AND deleted_at IS NULL', [status, ticketId]);
     }
 }
 export default new SlaService();

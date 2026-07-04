@@ -11,6 +11,8 @@ export interface EmailOutboxEnqueueParams extends TicketOutboundParams {
   dedupeKey?: string;
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function serializePayload(params: TicketOutboundParams) {
   return JSON.stringify(params);
 }
@@ -20,10 +22,36 @@ function getNextAttemptSql(attempts: number): string {
   return `DATE_ADD(NOW(), INTERVAL ${minutes} MINUTE)`;
 }
 
+export function validateTicketEmailOutboxParams(params: EmailOutboxEnqueueParams): { ok: true; dedupeKey: string } | { ok: false; error: string } {
+  if (!params || typeof params !== 'object') return { ok: false, error: 'Payload de e-mail ausente.' };
+  if (!Number.isInteger(Number(params.empresaId)) || Number(params.empresaId) <= 0) return { ok: false, error: 'Empresa invalida para e-mail.' };
+  if (!Number.isInteger(Number(params.ticketId)) || Number(params.ticketId) <= 0) return { ok: false, error: 'Chamado invalido para e-mail.' };
+  if (!params.type) return { ok: false, error: 'Tipo de e-mail ausente.' };
+  if (!params.title) return { ok: false, error: 'Assunto/base do e-mail ausente.' };
+  if (!EMAIL_RE.test(String(params.to || '').trim())) return { ok: false, error: 'Destinatario de e-mail invalido.' };
+
+  const dedupeKey = String(params.dedupeKey || params.messageId || '').trim();
+  if (!dedupeKey) return { ok: false, error: 'Chave de deduplicacao ausente para e-mail de chamado.' };
+
+  return { ok: true, dedupeKey };
+}
+
+export function normalizeOutboxProcessLimit(value: unknown, fallback = 20): number {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) return fallback;
+  return Math.min(parsed, 50);
+}
+
 class EmailOutboxService {
   async enqueueTicketEmail(params: EmailOutboxEnqueueParams): Promise<number | null> {
+    const validation = validateTicketEmailOutboxParams(params);
+    if (validation.ok !== true) {
+      console.error(`[EmailOutbox] Payload recusado: ${validation.error}`);
+      throw new Error(validation.error);
+    }
+
     const template = buildTicketEmailTemplate(params as TicketEmailParams);
-    const dedupeKey = params.dedupeKey || params.messageId || null;
+    const dedupeKey = validation.dedupeKey;
 
     const [result]: any = await pool.query(
       `
@@ -55,7 +83,7 @@ class EmailOutboxService {
   }
 
   async processPending(limit = 20): Promise<{ processed: number; sent: number; failed: number }> {
-    const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 50);
+    const safeLimit = normalizeOutboxProcessLimit(limit);
     const connection = await pool.getConnection();
     let hasLock = false;
 

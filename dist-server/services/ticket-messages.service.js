@@ -6,6 +6,7 @@ import { io } from '../server.js';
 import slaService from './sla.service.js';
 import { recomputeTicketMessageState } from '../utils/ticket-state.js';
 import { maskIdentifier } from '../utils/sanitize.js';
+import { formatDateTimeForMySQL } from '../utils/date-time.js';
 import { getInitialTicketStatusValue, getInProgressTicketStatusValue, getTicketStatusConfig, isCustomerWaitingTicketStatusSpecial, isFinalTicketStatusSpecial } from '../utils/ticket-status-config.js';
 class TicketMessagesService {
     /**
@@ -24,7 +25,7 @@ class TicketMessagesService {
               COALESCE(t.solicitante_email, u.email, 'removido@sistema.com') as cliente_email
        FROM tickets t
        LEFT JOIN usuarios u ON t.usuario_id = u.id
-       WHERE t.id = ?`, [ticket_id]);
+       WHERE t.id = ? AND t.deleted_at IS NULL`, [ticket_id]);
         const ticket = ticketRows[0];
         if (!ticket) {
             throw new Error('Chamado não encontrado');
@@ -66,7 +67,7 @@ class TicketMessagesService {
             const [existingMessage] = await pool.query(`SELECT m.id
          FROM ticket_mensagens m
          INNER JOIN tickets t ON t.id = m.ticket_id
-         WHERE m.message_id = ? AND t.empresa_id = ?
+         WHERE m.message_id = ? AND t.empresa_id = ? AND t.deleted_at IS NULL
          LIMIT 1`, [message_id, ticket.empresa_id]);
             if (existingMessage.length > 0) {
                 console.warn(`[TicketMessagesService] Duplicate message_id ignored: ${maskIdentifier(message_id)}`);
@@ -113,7 +114,7 @@ class TicketMessagesService {
             await pool.query('INSERT IGNORE INTO processed_emails (message_id, empresa_id, ticket_id) VALUES (?, ?, ?)', [message_id, ticket.empresa_id, ticket_id]);
         }
         // 4. Update ticket: updated_at
-        await pool.query('UPDATE tickets SET updated_at = NOW() WHERE id = ?', [ticket_id]);
+        await pool.query('UPDATE tickets SET updated_at = NOW() WHERE id = ? AND deleted_at IS NULL', [ticket_id]);
         // 5. Business Logic: Status, SLA and Notifications
         try {
             const isExternalEmail = !!message_id;
@@ -149,7 +150,7 @@ class TicketMessagesService {
                 // A) SLA Primera Resposta (only if from agent and public)
                 if (isAgentResponse && !ticket.primeira_resposta_em) {
                     const agora = new Date();
-                    const agoraFormatado = agora.toISOString().slice(0, 19).replace('T', ' ');
+                    const agoraFormatado = formatDateTimeForMySQL(agora);
                     let prStatus = 'cumprido';
                     if (ticket.prazo_primeira_resposta) {
                         const prazoPR = new Date(ticket.prazo_primeira_resposta);
@@ -236,6 +237,14 @@ class TicketMessagesService {
                     }
                     catch (err) {
                         console.error('[Notification Error] Falha ao enfileirar e-mail:', err);
+                        await recordTicketEvent({
+                            ticket_id,
+                            empresa_id: ticket.empresa_id,
+                            usuario_id,
+                            tipo: 'email_outbox_erro',
+                            descricao: 'A resposta foi registrada, mas o e-mail nao pode ser enfileirado.',
+                            metadata: { messageId, error: String(err?.message || err).slice(0, 500) }
+                        }).catch(() => { });
                     }
                 }
             }
@@ -291,7 +300,7 @@ class TicketMessagesService {
            LEFT JOIN usuarios u ON t.usuario_id = u.id
            LEFT JOIN empresas e ON t.empresa_id = e.id
            LEFT JOIN usuarios r ON t.responsavel_id = r.id
-           WHERE t.id = ?`, [ticket_id]);
+           WHERE t.id = ? AND t.deleted_at IS NULL`, [ticket_id]);
                 if (updatedRows[0]) {
                     io.to(`empresa_${ticket.empresa_id}`).emit('ticketUpdated', updatedRows[0]);
                     io.to(`empresa_${ticket.empresa_id}`).emit('ticketMessagesChanged', {

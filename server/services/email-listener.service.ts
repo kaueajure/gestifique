@@ -437,7 +437,7 @@ export class EmailListenerService {
     if (!messageId) return null;
 
     const [ticketRows]: any = await pool.query(
-      'SELECT id FROM tickets WHERE message_id = ? AND empresa_id = ? ORDER BY id ASC LIMIT 1',
+      'SELECT id FROM tickets WHERE message_id = ? AND empresa_id = ? AND deleted_at IS NULL ORDER BY id ASC LIMIT 1',
       [messageId, empresaId]
     );
     if (ticketRows.length > 0) return Number(ticketRows[0].id);
@@ -446,7 +446,7 @@ export class EmailListenerService {
       `SELECT m.ticket_id
        FROM ticket_mensagens m
        INNER JOIN tickets t ON t.id = m.ticket_id
-       WHERE m.message_id = ? AND t.empresa_id = ?
+       WHERE m.message_id = ? AND t.empresa_id = ? AND t.deleted_at IS NULL
        ORDER BY m.id ASC
        LIMIT 1`,
       [messageId, empresaId]
@@ -716,7 +716,7 @@ export class EmailListenerService {
              const headerTicketIdStr = parsed.headers.get('x-gestifique-ticket-id');
              if (headerTicketIdStr && typeof headerTicketIdStr === 'string' && !isNaN(parseInt(headerTicketIdStr))) {
                 const id = parseInt(headerTicketIdStr);
-                const [rows]: any = await pool.query('SELECT id, empresa_id FROM tickets WHERE id = ? AND empresa_id = ? LIMIT 1', [id, companyId]);
+                const [rows]: any = await pool.query('SELECT id, empresa_id FROM tickets WHERE id = ? AND empresa_id = ? AND deleted_at IS NULL LIMIT 1', [id, companyId]);
                 if (rows.length > 0) {
                    console.log(`[Email Listener] Identified existing ticket #${id} via X-Gestifique-Ticket-ID header for company ${companyId}.`);
                    return { ticketId: id, hadExplicitTicketReference: true };
@@ -730,7 +730,7 @@ export class EmailListenerService {
              const subjectMatch = subject.match(/(?:\[Ticket\s*#(\d+)\]|Chamado\s*#(\d+)|Ticket\s*#(\d+))/i);
              if (subjectMatch) {
                 const id = parseInt(subjectMatch[1] || subjectMatch[2] || subjectMatch[3]);
-                const [rows]: any = await pool.query('SELECT id, empresa_id FROM tickets WHERE id = ? AND empresa_id = ? LIMIT 1', [id, companyId]);
+                const [rows]: any = await pool.query('SELECT id, empresa_id FROM tickets WHERE id = ? AND empresa_id = ? AND deleted_at IS NULL LIMIT 1', [id, companyId]);
                 if (rows.length > 0) {
                    console.log(`[Email Listener] Identified existing ticket #${id} via Subject for company ${companyId}.`);
                    return { ticketId: id, hadExplicitTicketReference: true };
@@ -752,7 +752,7 @@ export class EmailListenerService {
              for (const candidate of candidates) {
                const extractedTicketId = extractTicketIdFromGestifiqueMessageId(candidate);
                if (extractedTicketId) {
-                 const [rows]: any = await pool.query('SELECT id, empresa_id FROM tickets WHERE id = ? AND empresa_id = ? LIMIT 1', [extractedTicketId, companyId]);
+                 const [rows]: any = await pool.query('SELECT id, empresa_id FROM tickets WHERE id = ? AND empresa_id = ? AND deleted_at IS NULL LIMIT 1', [extractedTicketId, companyId]);
                  if (rows.length > 0) {
                    console.log(`[Email Listener] Identified existing ticket #${extractedTicketId} via Gestifique Message-ID pattern for company ${companyId}.`);
                    return { ticketId: extractedTicketId, hadExplicitTicketReference: true };
@@ -769,7 +769,7 @@ export class EmailListenerService {
                 const [refMatch]: any = await pool.query(
                   `SELECT pe.ticket_id
                    FROM processed_emails pe
-                   INNER JOIN tickets t ON t.id = pe.ticket_id AND t.empresa_id = pe.empresa_id
+                   INNER JOIN tickets t ON t.id = pe.ticket_id AND t.empresa_id = pe.empresa_id AND t.deleted_at IS NULL
                    WHERE pe.empresa_id = ? AND pe.message_id IN (?) AND pe.ticket_id IS NOT NULL
                    ORDER BY pe.created_at DESC
                    LIMIT 1`,
@@ -902,7 +902,7 @@ export class EmailListenerService {
           if (!targetTicketId) {
              // Smart deduplication fallback (Subject + Sender in 48h) because identifyTicket didn't find matched tickets via header
              const [dupRows]: any = await pool.query(
-               'SELECT id FROM tickets WHERE titulo = ? AND (solicitante_email = ? OR usuario_id = ?) AND empresa_id = ? AND created_at > (NOW() - INTERVAL 2 DAY) AND status != "fechado" ORDER BY created_at DESC LIMIT 1',
+               'SELECT id FROM tickets WHERE titulo = ? AND (solicitante_email = ? OR usuario_id = ?) AND empresa_id = ? AND deleted_at IS NULL AND created_at > (NOW() - INTERVAL 2 DAY) AND status != "fechado" ORDER BY created_at DESC LIMIT 1',
                [subject, senderEmail, userId, targetEmpresaId]
              );
              if (dupRows.length > 0) {

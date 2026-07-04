@@ -1,5 +1,6 @@
 import { RowDataPacket } from 'mysql2';
 import pool from '../db/connection.js';
+import { formatDateForMySQL } from '../utils/date-time.js';
 
 export interface ReportFilters {
   start_date?: string;
@@ -52,9 +53,11 @@ class ReportsService {
     const params: (string | number)[] = [];
     const prefix = alias ? `${alias}.` : '';
 
+    clauses.push(`${prefix}deleted_at IS NULL`);
+
     // Default 30 days if no date filter
-    const startDate = filters.start_date || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const endDate = filters.end_date || new Date().toISOString().split('T')[0];
+    const startDate = filters.start_date || formatDateForMySQL(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+    const endDate = filters.end_date || formatDateForMySQL();
 
     clauses.push(`${prefix}created_at >= ? AND ${prefix}created_at <= ?`);
     params.push(`${startDate} 00:00:00`, `${endDate} 23:59:59`);
@@ -220,10 +223,10 @@ class ReportsService {
     `, params);
 
     // Resolutions by day
-    const startDate = filters.start_date || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const endDate = filters.end_date || new Date().toISOString().split('T')[0];
+    const startDate = filters.start_date || formatDateForMySQL(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+    const endDate = filters.end_date || formatDateForMySQL();
     
-    let resClausesList = ['finalizado_em >= ?', 'finalizado_em <= ?'];
+    let resClausesList = ['deleted_at IS NULL', 'finalizado_em >= ?', 'finalizado_em <= ?'];
     let resParamsList: (string | number)[] = [`${startDate} 00:00:00`, `${endDate} 23:59:59`];
     
     if (filters.empresa_id) { resClausesList.push('empresa_id = ?'); resParamsList.push(filters.empresa_id); }
@@ -430,12 +433,14 @@ class ReportsService {
 
     if (!isDev) {
       if (user.administrador && empresaId) {
-        whereClause = 'WHERE empresa_id = ?';
+        whereClause = 'WHERE deleted_at IS NULL AND empresa_id = ?';
         params.push(empresaId);
       } else {
-        whereClause = 'WHERE usuario_id = ?';
+        whereClause = 'WHERE deleted_at IS NULL AND usuario_id = ?';
         params.push(userId);
       }
+    } else {
+      whereClause = 'WHERE deleted_at IS NULL';
     }
 
     const [countsRows]: any = await pool.query(`

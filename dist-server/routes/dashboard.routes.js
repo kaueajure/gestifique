@@ -109,6 +109,7 @@ router.get('/summary', requirePermission('dashboard.visualizar'), async (req, re
         }
         const ticketScope = [];
         const ticketScopeParams = [];
+        ticketScope.push('t.deleted_at IS NULL');
         if (targetEmpresaId) {
             ticketScope.push('t.empresa_id = ?');
             ticketScopeParams.push(targetEmpresaId);

@@ -46,7 +46,7 @@ router.get('/team', async (req: AuthRequest, res) => {
         const empresaId = currentUser.empresa_id; // Devs also will have empresa_id filtering if we want, or just get from own current context
         let query = `
           SELECT u.id, u.nome, u.email, u.cargo,
-                 (SELECT COUNT(id) FROM tickets t WHERE t.responsavel_id = u.id AND t.status NOT IN ('resolvido', 'fechado')) as ticket_count
+                 (SELECT COUNT(id) FROM tickets t WHERE t.responsavel_id = u.id AND t.deleted_at IS NULL AND t.status NOT IN ('resolvido', 'fechado')) as ticket_count
           FROM usuarios u
           WHERE u.ativo = 1 AND u.empresa_id = ?
           ORDER BY u.nome ASC
@@ -239,7 +239,7 @@ router.patch('/:id/status', async (req: AuthRequest, res) => {
                await pool.query(`
                    UPDATE tickets 
                    SET responsavel_id = NULL, precisa_revisao_responsavel = 1 
-                   WHERE responsavel_id = ? AND status NOT IN ('resolvido', 'fechado')
+                   WHERE responsavel_id = ? AND deleted_at IS NULL AND status NOT IN ('resolvido', 'fechado')
                `, [id]);
             } catch(e) {
                console.error("Erro ao liberar tickets do usuário desativado:", e);

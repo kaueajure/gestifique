@@ -9,6 +9,7 @@ import { getTicketScope } from '../utils/ticket-permissions.js';
 import { isDeveloperUser } from '../utils/user-scope.js';
 import { recomputeTicketMessageState } from '../utils/ticket-state.js';
 import { maskEmail, maskIdentifier } from '../utils/sanitize.js';
+import { addMinutesForMySQL, formatDateTimeForMySQL } from '../utils/date-time.js';
 import { getClosedTicketStatusValue, getTicketStatusConfigs, getInitialTicketStatusValue, getReopenTicketStatusValue, getTicketStatusConfig, isCustomerWaitingTicketStatusSpecial, isFinalTicketStatusSpecial, isValidTicketStatusValue } from '../utils/ticket-status-config.js';
 export function toPositiveInt(value) {
     if (value === undefined || value === null || value === '')
@@ -729,12 +730,8 @@ class TicketsService {
             console.warn('Erro ao buscar SLA', err);
         }
         const agora = new Date();
-        const prazoSla = new Date(agora);
-        prazoSla.setMinutes(prazoSla.getMinutes() + minutosSla);
-        const prazoSlaFormatado = prazoSla.toISOString().slice(0, 19).replace('T', ' ');
-        const prazoPR = new Date(agora);
-        prazoPR.setMinutes(prazoPR.getMinutes() + minutosPrimeiraResposta);
-        const prazoPRFormatado = prazoPR.toISOString().slice(0, 19).replace('T', ' ');
+        const prazoSlaFormatado = addMinutesForMySQL(minutosSla, agora);
+        const prazoPRFormatado = addMinutesForMySQL(minutosPrimeiraResposta, agora);
         let responsavel_id = data.responsavel_id || null;
         const [result] = await pool.query(`INSERT INTO tickets (
         empresa_id, usuario_id, solicitante_nome, solicitante_email, 
@@ -838,6 +835,14 @@ class TicketsService {
         }
         catch (e) {
             console.error('Erro ao notificar criação de ticket:', e);
+            await recordTicketEvent({
+                ticket_id: ticketId,
+                empresa_id,
+                usuario_id,
+                tipo: 'email_outbox_erro',
+                descricao: 'O chamado foi criado, mas o e-mail nao pode ser enfileirado.',
+                metadata: { error: String(e?.message || e).slice(0, 500) }
+            }).catch(() => { });
         }
         return ticketId;
     }
@@ -975,7 +980,7 @@ class TicketsService {
         let finalizado_em = null;
         let sla_resolucao_status = oldTicket.sla_resolucao_status;
         if (willBeFinalStatus) {
-            finalizado_em = new Date().toISOString().slice(0, 19).replace('T', ' ');
+            finalizado_em = formatDateTimeForMySQL();
             if (oldTicket.prazo_sla) {
                 const finalData = new Date();
                 const prazoData = new Date(oldTicket.prazo_sla);
@@ -1120,7 +1125,8 @@ class TicketsService {
         // Finalizado_em logic
         if (data.status) {
             if (isFinalTicketStatusSpecial(newStatusConfig?.especial)) {
-                fields.push('finalizado_em = NOW()');
+                fields.push('finalizado_em = ?');
+                paramsList.push(formatDateTimeForMySQL());
             }
             else {
                 fields.push('finalizado_em = NULL');
@@ -1333,7 +1339,7 @@ class TicketsService {
       FROM ticket_mensagens m
       LEFT JOIN usuarios u ON m.usuario_id = u.id
       LEFT JOIN tickets t ON m.ticket_id = t.id
-      WHERE m.ticket_id = ?
+      WHERE m.ticket_id = ? AND t.deleted_at IS NULL
     `;
         if (!includeInternal)
             query += ' AND m.interno = 0';
@@ -1351,22 +1357,36 @@ class TicketsService {
             return;
         const emailType = statusSpecial === 'encerrado' ? 'ticket_closed' : 'ticket_resolved';
         const outboundMessageId = `<ticket-${ticketId}-${emailType}@gestifique.com.br>`;
-        await emailOutboxService.enqueueTicketEmail({
-            to,
-            ticketId,
-            empresaId: ticket.empresa_id,
-            emailChannelId: ticket.email_channel_id,
-            type: emailType,
-            title: ticket.titulo,
-            customerName: ticket.cliente_nome,
-            status: statusName || labelFromStatus(status),
-            resolutionReason: resolutionReason || ticket.resolucao_motivo,
-            resolutionObservation: resolutionObservation || ticket.resolucao_observacao,
-            messageId: outboundMessageId,
-            inReplyTo: ticket.message_id,
-            references: ticket.message_id ? [ticket.message_id] : undefined,
-            dedupeKey: `ticket:${ticketId}:${emailType}`
-        });
+        try {
+            await emailOutboxService.enqueueTicketEmail({
+                to,
+                ticketId,
+                empresaId: ticket.empresa_id,
+                emailChannelId: ticket.email_channel_id,
+                type: emailType,
+                title: ticket.titulo,
+                customerName: ticket.cliente_nome,
+                status: statusName || labelFromStatus(status),
+                resolutionReason: resolutionReason || ticket.resolucao_motivo,
+                resolutionObservation: resolutionObservation || ticket.resolucao_observacao,
+                messageId: outboundMessageId,
+                inReplyTo: ticket.message_id,
+                references: ticket.message_id ? [ticket.message_id] : undefined,
+                dedupeKey: `ticket:${ticketId}:${emailType}`
+            });
+        }
+        catch (error) {
+            console.error(`[TicketsService] Falha ao enfileirar e-mail final do chamado #${ticketId}:`, error?.message || error);
+            await recordTicketEvent({
+                ticket_id: ticketId,
+                empresa_id: ticket.empresa_id,
+                usuario_id: null,
+                tipo: 'email_outbox_erro',
+                descricao: 'A acao foi registrada, mas o e-mail nao pode ser enfileirado.',
+                metadata: { emailType, error: String(error?.message || error).slice(0, 500) }
+            }).catch(() => { });
+            throw error;
+        }
     }
     async ensureSatisfactionSurvey(ticketId, empresaId, usuarioId) {
         try {
@@ -1418,7 +1438,7 @@ class TicketsService {
             const prazoData = new Date(oldTicket.prazo_sla);
             sla_resolucao_status = finalData <= prazoData ? 'cumprido' : 'violado';
         }
-        await pool.query('UPDATE tickets SET status = ?, resolucao_motivo = ?, resolucao_observacao = ?, finalizado_em = NOW(), sla_resolucao_status = ?, updated_at = NOW() WHERE id = ?', [status, resolucao_motivo, observacao, sla_resolucao_status, id]);
+        await pool.query('UPDATE tickets SET status = ?, resolucao_motivo = ?, resolucao_observacao = ?, finalizado_em = ?, sla_resolucao_status = ?, updated_at = NOW() WHERE id = ?', [status, resolucao_motivo, observacao, formatDateTimeForMySQL(), sla_resolucao_status, id]);
         // Sprint 2: Sync SLA Status
         if (isCustomerWaitingTicketStatusSpecial(oldStatusConfig?.especial)) {
             await slaService.resumeSla(id, currentUser?.id || null);

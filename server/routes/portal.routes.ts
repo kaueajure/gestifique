@@ -79,6 +79,7 @@ router.get('/tickets', async (req: any, res: any) => {
       SELECT id, titulo, status, categoria, servico, prioridade, created_at, updated_at
       FROM tickets
       WHERE empresa_id = ?
+        AND deleted_at IS NULL
         AND (
           LOWER(solicitante_email) = ?
           OR usuario_id IN (
@@ -113,6 +114,7 @@ router.get('/tickets/:id', async (req: any, res: any) => {
       SELECT id, titulo, descricao, status, categoria, servico, prioridade, created_at, updated_at
       FROM tickets
       WHERE id = ? AND empresa_id = ?
+        AND deleted_at IS NULL
         AND (
           LOWER(solicitante_email) = ?
           OR usuario_id IN (
@@ -146,6 +148,7 @@ router.get('/tickets/:id/messages', async (req: any, res: any) => {
     const [ticketRows]: any = await pool.query(`
       SELECT id FROM tickets 
       WHERE id = ? AND empresa_id = ?
+        AND deleted_at IS NULL
         AND (
           LOWER(solicitante_email) = ?
           OR usuario_id IN (
@@ -226,6 +229,7 @@ router.post('/tickets/:id/messages', async (req: any, res: any) => {
     const [ticketRows]: any = await pool.query(`
       SELECT id, empresa_id FROM tickets 
       WHERE id = ? AND empresa_id = ?
+        AND deleted_at IS NULL
         AND (
           LOWER(solicitante_email) = ?
           OR usuario_id IN (

@@ -164,6 +164,7 @@ export const env = {
   // identidade global do SaaS; vira erro controlado. Ative só conscientemente.
   ALLOW_GLOBAL_TICKET_EMAIL_FALLBACK: process.env.ALLOW_GLOBAL_TICKET_EMAIL_FALLBACK === 'true',
   INTERNAL_JOB_TOKEN: process.env.INTERNAL_JOB_TOKEN,
+  ALLOW_INTERNAL_JOB_TOKEN_IN_QUERY: process.env.ALLOW_INTERNAL_JOB_TOKEN_IN_QUERY === 'true',
   APP_TIMEZONE: process.env.APP_TIMEZONE || 'America/Sao_Paulo',
 
   // Scaling & features
