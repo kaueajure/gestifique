@@ -161,7 +161,6 @@ const normalizeTicketSignature = (signature?: string, companyName?: string) => {
 export const buildTicketEmailTemplate = (params: Pick<TicketEmailParams, 'type' | 'ticketId' | 'title' | 'companyName' | 'emailSignature' | 'customerName' | 'agentName' | 'message' | 'status' | 'priority' | 'category' | 'resolutionReason' | 'resolutionObservation'>) => {
   const {
     type,
-    ticketId,
     title,
     companyName,
     emailSignature,
@@ -188,27 +187,27 @@ export const buildTicketEmailTemplate = (params: Pick<TicketEmailParams, 'type' 
 
   switch (type) {
     case 'ticket_created':
-      subject = `[Ticket #${ticketId}] Recebemos sua solicitação: ${safeSubjectTitle}`;
+      subject = `Recebemos sua solicitação: ${safeSubjectTitle}`;
       headline = 'Recebemos sua solicitação';
-      leadText = `Olá, ${safeCustomerName}. Abrimos o chamado <strong>#${ticketId}</strong> e nossa equipe vai acompanhar por este mesmo e-mail.`;
+      leadText = `Olá, ${safeCustomerName}. Abrimos sua solicitação e nossa equipe vai acompanhar por este mesmo e-mail.`;
       messageLabel = 'Mensagem recebida';
       messageHtml = safeMessage;
       actionHtml = 'Para adicionar novas informações, basta responder este e-mail. Sua resposta será registrada automaticamente no chamado.';
       break;
 
     case 'agent_reply':
-      subject = `[Ticket #${ticketId}] Nova resposta: ${safeSubjectTitle}`;
-      headline = 'Nova resposta no seu chamado';
-      leadText = `Olá, ${safeCustomerName}.<br><br>A equipe de atendimento respondeu ao seu chamado. Confira a mensagem abaixo.`;
-      messageLabel = 'Mensagem do atendimento';
+      subject = `Nova mensagem no seu chamado: ${safeSubjectTitle}`;
+      headline = 'Nova mensagem no seu chamado';
+      leadText = `Olá, ${safeCustomerName}.<br><br>A equipe de atendimento enviou uma nova resposta para o seu chamado.`;
+      messageLabel = 'Resposta da equipe';
       messageHtml = safeMessage;
-      actionHtml = 'Para continuar o atendimento, responda diretamente este e-mail.<br>Sua resposta será registrada automaticamente no chamado.';
+      actionHtml = 'Precisa enviar mais alguma informação?<br>Responda diretamente este e-mail. Sua mensagem será registrada automaticamente no chamado.';
       break;
 
     case 'ticket_resolved':
-      subject = `[Ticket #${ticketId}] Chamado resolvido: ${safeSubjectTitle}`;
+      subject = `Chamado resolvido: ${safeSubjectTitle}`;
       headline = 'Chamado resolvido';
-      leadText = `Olá, ${safeCustomerName}. Seu chamado <strong>#${ticketId}</strong> foi marcado como resolvido.`;
+      leadText = `Olá, ${safeCustomerName}. Seu chamado foi marcado como resolvido.`;
       messageLabel = 'Resumo do fechamento';
       messageHtml = `
         ${safeResolutionReason ? `<p style="margin:0 0 8px 0;"><strong>Motivo:</strong> ${safeResolutionReason}</p>` : ''}
@@ -218,9 +217,9 @@ export const buildTicketEmailTemplate = (params: Pick<TicketEmailParams, 'type' 
       break;
 
     case 'ticket_closed':
-      subject = `[Ticket #${ticketId}] Chamado encerrado: ${safeSubjectTitle}`;
+      subject = `Chamado encerrado: ${safeSubjectTitle}`;
       headline = 'Chamado encerrado';
-      leadText = `Olá, ${safeCustomerName}. Seu chamado <strong>#${ticketId}</strong> foi encerrado.`;
+      leadText = `Olá, ${safeCustomerName}. Seu chamado foi encerrado.`;
       messageLabel = 'Encerramento';
       messageHtml = `
         <p style="margin:0 0 8px 0;"><strong>Data:</strong> ${new Date().toLocaleDateString('pt-BR')}</p>
@@ -232,7 +231,7 @@ export const buildTicketEmailTemplate = (params: Pick<TicketEmailParams, 'type' 
 
   const html = `
     <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
-      Atualização do chamado #${ticketId}: ${safeSubjectTitle}
+      ${headline}: ${safeSubjectTitle}
     </div>
     <style>
       @media only screen and (max-width: 620px) {
@@ -242,9 +241,7 @@ export const buildTicketEmailTemplate = (params: Pick<TicketEmailParams, 'type' 
         .email-block { padding-left:22px !important; padding-right:22px !important; }
         .email-title { font-size:24px !important; }
         .email-header-row,
-        .email-header-cell,
-        .email-badge-cell { display:block !important; width:100% !important; text-align:left !important; }
-        .email-badge { margin-top:18px !important; }
+        .email-header-cell { display:block !important; width:100% !important; text-align:left !important; }
       }
     </style>
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%; background:#f3f6fa; margin:0; padding:0; border-collapse:collapse;">
@@ -259,12 +256,11 @@ export const buildTicketEmailTemplate = (params: Pick<TicketEmailParams, 'type' 
                       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" class="email-header-row" style="border-collapse:collapse;">
                         <tr>
                           <td class="email-header-cell" style="font-family:Arial, Helvetica, sans-serif; color:#ffffff; vertical-align:top;">
-                            <div style="font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:#9cc5ff; font-weight:700; margin-bottom:14px;">Gestifique</div>
-                            <div class="email-title" style="font-size:28px; line-height:1.18; color:#ffffff; font-weight:700; margin:0 0 12px 0;">${headline}</div>
+                            <div style="font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:#9cc5ff; font-weight:700;">Gestifique</div>
+                            <div style="font-size:13px; line-height:1.5; color:#c7d7ee; font-weight:600; margin-top:4px;">Central de Atendimento</div>
+                            <div class="email-title" style="font-size:28px; line-height:1.18; color:#ffffff; font-weight:700; margin:18px 0 10px 0;">${headline}</div>
+                            <div style="font-size:14px; line-height:1.55; color:#cbdaf0; font-weight:500; margin:0 0 18px 0;">${safeTitle}</div>
                             <div style="width:42px; height:3px; line-height:3px; background:#60a5fa; border-radius:99px; font-size:0;">&nbsp;</div>
-                          </td>
-                          <td align="right" class="email-badge-cell" style="font-family:Arial, Helvetica, sans-serif; vertical-align:top; white-space:nowrap; padding-left:18px;">
-                            <span class="email-badge" style="display:inline-block; background:#16365f; border:1px solid #31577f; color:#eaf3ff; border-radius:999px; padding:9px 14px; font-size:13px; line-height:1; font-weight:700;">Ticket #${ticketId}</span>
                           </td>
                         </tr>
                       </table>
@@ -276,24 +272,12 @@ export const buildTicketEmailTemplate = (params: Pick<TicketEmailParams, 'type' 
                     </td>
                   </tr>
                   <tr>
-                    <td class="email-block" style="padding:0 32px 18px 32px;">
-                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate; border-spacing:0; background:#f8fafc; border:1px solid #e5eaf1; border-radius:14px;">
+                    <td class="email-block" style="padding:0 32px 22px 32px;">
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate; border-spacing:0; border:1px solid #d8e0ea; border-left:4px solid #2563eb; border-radius:14px; background:#ffffff;">
                         <tr>
-                          <td style="padding:20px 22px; font-family:Arial, Helvetica, sans-serif;">
-                            <div style="font-size:11px; letter-spacing:.10em; text-transform:uppercase; color:#64748b; font-weight:700; margin-bottom:10px;">Referência do chamado</div>
-                            <div style="font-size:16px; line-height:1.45; color:#0f172a; font-weight:700;">${safeTitle}</div>
-                          </td>
-                        </tr>
-                      </table>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td class="email-block" style="padding:0 32px 18px 32px;">
-                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate; border-spacing:0; border:1px solid #d8e0ea; border-radius:14px; background:#ffffff;">
-                        <tr>
-                          <td style="padding:22px 24px; font-family:Arial, Helvetica, sans-serif;">
-                            <div style="font-size:11px; letter-spacing:.10em; text-transform:uppercase; color:#1d4ed8; font-weight:700; margin-bottom:12px;">${messageLabel}</div>
-                            <div style="font-size:15px; line-height:1.72; color:#1f2937;">${messageHtml}</div>
+                          <td style="padding:24px 26px; font-family:Arial, Helvetica, sans-serif;">
+                            <div style="font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:#1d4ed8; font-weight:700; margin-bottom:14px;">${messageLabel}</div>
+                            <div style="font-size:16px; line-height:1.78; color:#1f2937;">${messageHtml}</div>
                           </td>
                         </tr>
                       </table>
@@ -313,7 +297,7 @@ export const buildTicketEmailTemplate = (params: Pick<TicketEmailParams, 'type' 
                   <tr>
                     <td style="padding:20px 32px 24px 32px; background:#f8fafc; border-top:1px solid #e5eaf1; font-family:Arial, Helvetica, sans-serif;">
                       <div style="font-size:12px; line-height:1.65; color:#64748b;">${safeSignature}</div>
-                      <div style="font-size:11px; line-height:1.55; color:#94a3b8; margin-top:12px;">Mensagem automática enviada pelo Gestifique.</div>
+                      <div style="font-size:11px; line-height:1.55; color:#94a3b8; margin-top:12px;">Esta é uma mensagem automática. Não é necessário abrir um novo chamado.</div>
                     </td>
                   </tr>
                 </table>
