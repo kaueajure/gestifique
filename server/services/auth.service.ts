@@ -10,8 +10,10 @@ const SECRET = env.JWT_SECRET;
 
 class AuthService {
   async login(email: string, password: string) {
-    const [rows]: any = await pool.query(
-      `SELECT u.*, 
+    let rows: any[] = [];
+    try {
+      const [result]: any = await pool.query(
+        `SELECT u.*, 
               e.nome as empresa_nome,
               e.email as empresa_email,
               e.telefone as empresa_telefone,
@@ -24,8 +26,29 @@ class AuthService {
        FROM usuarios u 
        LEFT JOIN empresas e ON u.empresa_id = e.id 
        WHERE u.email = ?`,
-      [email]
-    );
+        [email]
+      );
+      rows = result;
+    } catch (err: any) {
+      if (err?.code !== 'ER_BAD_FIELD_ERROR') throw err;
+
+      const [result]: any = await pool.query(
+        `SELECT u.*, 
+              e.nome as empresa_nome,
+              e.email as empresa_email,
+              e.telefone as empresa_telefone,
+              e.cnpj as empresa_cnpj,
+              e.logo as empresa_logo,
+              e.cor_principal as empresa_cor_principal,
+              e.endereco as empresa_endereco,
+              e.ativo as empresa_ativa 
+       FROM usuarios u 
+       LEFT JOIN empresas e ON u.empresa_id = e.id 
+       WHERE u.email = ?`,
+        [email]
+      );
+      rows = result;
+    }
 
     if (rows.length === 0) {
       throw new Error('E-mail ou senha incorretos');

@@ -30,7 +30,9 @@ class UsersService {
         return sanitizeUsers(rows);
     }
     async getById(id) {
-        const [rows] = await pool.query(`SELECT u.*, 
+        let rows = [];
+        try {
+            const [result] = await pool.query(`SELECT u.*, 
               e.nome as empresa_nome,
               e.email as empresa_email,
               e.telefone as empresa_telefone,
@@ -42,6 +44,24 @@ class UsersService {
        FROM usuarios u 
        LEFT JOIN empresas e ON u.empresa_id = e.id 
        WHERE u.id = ?`, [id]);
+            rows = result;
+        }
+        catch (err) {
+            if (err?.code !== 'ER_BAD_FIELD_ERROR')
+                throw err;
+            const [result] = await pool.query(`SELECT u.*, 
+              e.nome as empresa_nome,
+              e.email as empresa_email,
+              e.telefone as empresa_telefone,
+              e.cnpj as empresa_cnpj,
+              e.logo as empresa_logo,
+              e.cor_principal as empresa_cor_principal,
+              e.endereco as empresa_endereco
+       FROM usuarios u 
+       LEFT JOIN empresas e ON u.empresa_id = e.id 
+       WHERE u.id = ?`, [id]);
+            rows = result;
+        }
         if (rows.length === 0)
             return null;
         return sanitizeUser(rows[0]);
