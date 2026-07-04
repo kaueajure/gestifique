@@ -10,24 +10,9 @@ import { isDeveloperUser } from '../utils/user-scope.js';
 import { recomputeTicketMessageState } from '../utils/ticket-state.js';
 import { maskEmail, maskIdentifier } from '../utils/sanitize.js';
 import { addMinutesForMySQL, formatDateTimeForMySQL } from '../utils/date-time.js';
+import { toPositiveInt } from '../utils/pagination.js';
 import { getClosedTicketStatusValue, getTicketStatusConfigs, getInitialTicketStatusValue, getReopenTicketStatusValue, getTicketStatusConfig, isCustomerWaitingTicketStatusSpecial, isFinalTicketStatusSpecial, isValidTicketStatusValue } from '../utils/ticket-status-config.js';
-export function toPositiveInt(value) {
-    if (value === undefined || value === null || value === '')
-        return undefined;
-    if (Array.isArray(value))
-        value = value[0];
-    const str = String(value).trim();
-    if (str === '' ||
-        str === 'undefined' ||
-        str === 'null' ||
-        str === 'NaN' ||
-        str === 'todos' ||
-        str === 'todas') {
-        return undefined;
-    }
-    const n = Number(str);
-    return Number.isInteger(n) && n > 0 ? n : undefined;
-}
+export { toPositiveInt, normalizeMessagePagination } from '../utils/pagination.js';
 export function isValidTicketStatus(value) {
     return isValidTicketStatusValue(value);
 }
@@ -42,6 +27,8 @@ function labelFromStatus(status) {
     return labels[status] || status.replace(/_/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
 }
 const MAX_TICKET_LIST_LIMIT = 100;
+const DEFAULT_MESSAGE_LIMIT = 50;
+const MAX_MESSAGE_LIMIT = 100;
 const TICKET_LIST_SORT_COLUMNS = {
     id: 't.id',
     updated_at: 't.updated_at',
@@ -1332,7 +1319,9 @@ class TicketsService {
             }
         }
     }
-    async getMessages(ticketId, includeInternal) {
+    async getMessages(ticketId, includeInternal, pagination = {}) {
+        const limit = Math.min(Math.max(Number(pagination.limit) || DEFAULT_MESSAGE_LIMIT, 1), MAX_MESSAGE_LIMIT);
+        const offset = Math.max(Number(pagination.offset) || 0, 0);
         let query = `
       SELECT m.id, m.ticket_id, m.usuario_id, m.mensagem, m.interno, m.anexo, m.message_id, m.created_at,
              COALESCE(u.nome, t.solicitante_nome, 'Cliente') as usuario_nome 
@@ -1341,11 +1330,17 @@ class TicketsService {
       LEFT JOIN tickets t ON m.ticket_id = t.id
       WHERE m.ticket_id = ? AND t.deleted_at IS NULL
     `;
+        const params = [ticketId];
         if (!includeInternal)
             query += ' AND m.interno = 0';
-        query += ' ORDER BY m.created_at ASC';
-        const [rows] = await pool.query(query, [ticketId]);
-        return rows;
+        if (pagination.beforeId) {
+            query += ' AND m.id < ?';
+            params.push(pagination.beforeId);
+        }
+        query += ' ORDER BY m.created_at DESC, m.id DESC LIMIT ? OFFSET ?';
+        params.push(limit, offset);
+        const [rows] = await pool.query(query, params);
+        return rows.reverse();
     }
     async addMessage(data, currentUser) {
         return ticketMessagesService.addMessage(data, currentUser);
@@ -1530,10 +1525,12 @@ class TicketsService {
     async deleteView(id, usuarioId) {
         await pool.query('DELETE FROM ticket_views WHERE id = ? AND usuario_id = ?', [id, usuarioId]);
     }
-    async getTimeline(ticketId, includeInternal) {
+    async getTimeline(ticketId, includeInternal, pagination = {}) {
         const ticket = await this.getById(ticketId);
         if (!ticket)
             return null;
+        const limit = Math.min(Math.max(Number(pagination.limit) || DEFAULT_MESSAGE_LIMIT, 1), MAX_MESSAGE_LIMIT);
+        const offset = Math.max(Number(pagination.offset) || 0, 0);
         const timeline = [];
         // 1. Initial Creation
         timeline.push({
@@ -1550,9 +1547,17 @@ class TicketsService {
       LEFT JOIN usuarios u ON m.usuario_id = u.id
       WHERE m.ticket_id = ?
     `;
+        const msgParams = [ticketId];
         if (!includeInternal)
             msgQuery += ' AND m.interno = 0';
-        const [messages] = await pool.query(msgQuery, [ticketId]);
+        if (pagination.beforeId) {
+            msgQuery += ' AND m.id < ?';
+            msgParams.push(pagination.beforeId);
+        }
+        msgQuery += ' ORDER BY m.created_at DESC, m.id DESC LIMIT ? OFFSET ?';
+        msgParams.push(limit, offset);
+        const [messagesDesc] = await pool.query(msgQuery, msgParams);
+        const messages = messagesDesc.reverse();
         messages.forEach((m) => {
             timeline.push({
                 type: m.interno ? 'internal_note' : 'response',
@@ -1570,8 +1575,9 @@ class TicketsService {
       FROM logs_sistema l
       LEFT JOIN usuarios u ON l.usuario_id = u.id
       WHERE (l.descricao LIKE ? OR l.descricao LIKE ?)
-      ORDER BY l.created_at ASC
-    `, [`%#${ticketId} %`, `%#${ticketId}`]);
+      ORDER BY l.created_at DESC, l.id DESC
+      LIMIT ?
+    `, [`%#${ticketId} %`, `%#${ticketId}`, limit]);
         logs.forEach((l) => {
             // Basic filtering: common users don't see internal logs (if we had a way to tag them)
             if (!includeInternal && (l.acao === 'INTERNAL_NOTE' || l.descricao.toLowerCase().includes('interno') || l.acao === 'TICKET_BULK_ACTION')) {
@@ -1628,7 +1634,9 @@ class TicketsService {
       FROM ticket_eventos te
       LEFT JOIN usuarios u ON te.usuario_id = u.id
       WHERE te.ticket_id = ?
-    `, [ticketId]);
+      ORDER BY te.created_at DESC, te.id DESC
+      LIMIT ?
+    `, [ticketId, limit]);
         const mapEventIcon = (tipo) => {
             switch (tipo) {
                 case 'automacao_executada': return 'zap';

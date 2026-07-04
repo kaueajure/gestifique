@@ -1,6 +1,7 @@
 import pool from '../db/connection.js';
 import { recordTicketEvent } from './ticket-events.service.js';
 import { isCustomerWaitingTicketStatusSpecial, isFinalTicketStatusSpecial, normalizeTicketStatusSpecial } from '../utils/ticket-status-config.js';
+import { formatDateTimeForMySQL } from '../utils/date-time.js';
 class SlaService {
     /**
      * Calculates the operational status based on ticket data
@@ -69,7 +70,7 @@ class SlaService {
         let novoPrazoSla = null;
         if (ticket.prazo_sla) {
             const prazoOriginal = new Date(ticket.prazo_sla);
-            novoPrazoSla = new Date(prazoOriginal.getTime() + diffMs);
+            novoPrazoSla = formatDateTimeForMySQL(new Date(prazoOriginal.getTime() + diffMs));
         }
         const totalPausado = (ticket.sla_pausado_total_minutos || 0) + diffMins;
         const updatedTicket = { ...ticket, sla_pausado_em: null, sla_pausado_total_minutos: totalPausado, prazo_sla: novoPrazoSla };

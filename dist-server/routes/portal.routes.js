@@ -4,6 +4,7 @@ import { authMiddleware } from '../middlewares/auth.js';
 import { portalAuthMiddleware } from '../middlewares/portal-auth.js';
 import { sendError, sendSuccess } from '../utils/response.js';
 import ticketsService from '../services/tickets.service.js';
+import { normalizeMessagePagination } from '../services/tickets.service.js';
 const router = Router();
 // Middleware híbrido para aceitar autenticação normal ou por token do portal
 const portalIdentityMiddleware = (req, res, next) => {
@@ -158,13 +159,34 @@ router.get('/tickets/:id/messages', async (req, res) => {
         ]);
         if (!ticketRows.length)
             return sendError(res, 'Chamado não encontrado', 404);
-        const [rows] = await pool.query(`
+        const pagination = normalizeMessagePagination(req.query);
+        let messagesQuery = `
       SELECT m.*, u.nome as usuario_nome 
       FROM ticket_mensagens m
       LEFT JOIN usuarios u ON m.usuario_id = u.id
       WHERE m.ticket_id = ? AND m.interno = 0
-      ORDER BY m.created_at ASC
-    `, [req.params.id]);
+    `;
+        const messageParams = [req.params.id];
+        if (pagination.beforeId) {
+            messagesQuery += ' AND m.id < ?';
+            messageParams.push(pagination.beforeId);
+        }
+        messagesQuery += ' ORDER BY m.created_at DESC, m.id DESC LIMIT ? OFFSET ?';
+        messageParams.push(pagination.limit, pagination.offset);
+        const [rowsDesc] = await pool.query(messagesQuery, messageParams);
+        const rows = rowsDesc.reverse();
+        if (req.query.include_meta === 'true') {
+            return sendSuccess(res, {
+                data: rows,
+                meta: {
+                    limit: pagination.limit,
+                    page: pagination.page,
+                    before_id: pagination.beforeId || null,
+                    has_more: rows.length === pagination.limit,
+                    next_before_id: rows[0]?.id || null
+                }
+            });
+        }
         sendSuccess(res, rows);
     }
     catch (error) {

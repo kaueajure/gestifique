@@ -11,6 +11,7 @@ import { isDeveloperUser } from '../utils/user-scope.js';
 import { recomputeTicketMessageState } from '../utils/ticket-state.js';
 import { maskEmail, maskIdentifier } from '../utils/sanitize.js';
 import { addMinutesForMySQL, formatDateTimeForMySQL } from '../utils/date-time.js';
+import { toPositiveInt } from '../utils/pagination.js';
 import {
   getClosedTicketStatusValue,
   getTicketStatusConfigs,
@@ -21,27 +22,7 @@ import {
   isFinalTicketStatusSpecial,
   isValidTicketStatusValue
 } from '../utils/ticket-status-config.js';
-
-export function toPositiveInt(value: unknown): number | undefined {
-  if (value === undefined || value === null || value === '') return undefined;
-  if (Array.isArray(value)) value = value[0];
-
-  const str = String(value).trim();
-
-  if (
-    str === '' ||
-    str === 'undefined' ||
-    str === 'null' ||
-    str === 'NaN' ||
-    str === 'todos' ||
-    str === 'todas'
-  ) {
-    return undefined;
-  }
-
-  const n = Number(str);
-  return Number.isInteger(n) && n > 0 ? n : undefined;
-}
+export { toPositiveInt, normalizeMessagePagination } from '../utils/pagination.js';
 
 export function isValidTicketStatus(value: unknown): value is string {
   return isValidTicketStatusValue(value);
@@ -60,6 +41,8 @@ function labelFromStatus(status: string): string {
 }
 
 const MAX_TICKET_LIST_LIMIT = 100;
+const DEFAULT_MESSAGE_LIMIT = 50;
+const MAX_MESSAGE_LIMIT = 100;
 
 const TICKET_LIST_SORT_COLUMNS: Record<string, string> = {
   id: 't.id',
@@ -1514,7 +1497,9 @@ class TicketsService {
     }
   }
 
-  async getMessages(ticketId: number, includeInternal: boolean) {
+  async getMessages(ticketId: number, includeInternal: boolean, pagination: { limit?: number; beforeId?: number; offset?: number } = {}) {
+    const limit = Math.min(Math.max(Number(pagination.limit) || DEFAULT_MESSAGE_LIMIT, 1), MAX_MESSAGE_LIMIT);
+    const offset = Math.max(Number(pagination.offset) || 0, 0);
     let query = `
       SELECT m.id, m.ticket_id, m.usuario_id, m.mensagem, m.interno, m.anexo, m.message_id, m.created_at,
              COALESCE(u.nome, t.solicitante_nome, 'Cliente') as usuario_nome 
@@ -1523,11 +1508,17 @@ class TicketsService {
       LEFT JOIN tickets t ON m.ticket_id = t.id
       WHERE m.ticket_id = ? AND t.deleted_at IS NULL
     `;
+    const params: any[] = [ticketId];
     if (!includeInternal) query += ' AND m.interno = 0';
-    query += ' ORDER BY m.created_at ASC';
+    if (pagination.beforeId) {
+      query += ' AND m.id < ?';
+      params.push(pagination.beforeId);
+    }
+    query += ' ORDER BY m.created_at DESC, m.id DESC LIMIT ? OFFSET ?';
+    params.push(limit, offset);
     
-    const [rows] = await pool.query(query, [ticketId]);
-    return rows;
+    const [rows]: any = await pool.query(query, params);
+    return rows.reverse();
   }
 
   async addMessage(data: any, currentUser?: any) {
@@ -1761,9 +1752,11 @@ class TicketsService {
     await pool.query('DELETE FROM ticket_views WHERE id = ? AND usuario_id = ?', [id, usuarioId]);
   }
 
-  async getTimeline(ticketId: number, includeInternal: boolean) {
+  async getTimeline(ticketId: number, includeInternal: boolean, pagination: { limit?: number; beforeId?: number; offset?: number } = {}) {
     const ticket = await this.getById(ticketId);
     if (!ticket) return null;
+    const limit = Math.min(Math.max(Number(pagination.limit) || DEFAULT_MESSAGE_LIMIT, 1), MAX_MESSAGE_LIMIT);
+    const offset = Math.max(Number(pagination.offset) || 0, 0);
 
     const timeline: any[] = [];
     
@@ -1783,9 +1776,17 @@ class TicketsService {
       LEFT JOIN usuarios u ON m.usuario_id = u.id
       WHERE m.ticket_id = ?
     `;
+    const msgParams: any[] = [ticketId];
     if (!includeInternal) msgQuery += ' AND m.interno = 0';
+    if (pagination.beforeId) {
+      msgQuery += ' AND m.id < ?';
+      msgParams.push(pagination.beforeId);
+    }
+    msgQuery += ' ORDER BY m.created_at DESC, m.id DESC LIMIT ? OFFSET ?';
+    msgParams.push(limit, offset);
     
-    const [messages]: any = await pool.query(msgQuery, [ticketId]);
+    const [messagesDesc]: any = await pool.query(msgQuery, msgParams);
+    const messages = messagesDesc.reverse();
 
     messages.forEach((m: any) => {
       timeline.push({
@@ -1805,8 +1806,9 @@ class TicketsService {
       FROM logs_sistema l
       LEFT JOIN usuarios u ON l.usuario_id = u.id
       WHERE (l.descricao LIKE ? OR l.descricao LIKE ?)
-      ORDER BY l.created_at ASC
-    `, [`%#${ticketId} %`, `%#${ticketId}`]);
+      ORDER BY l.created_at DESC, l.id DESC
+      LIMIT ?
+    `, [`%#${ticketId} %`, `%#${ticketId}`, limit]);
 
     logs.forEach((l: any) => {
       // Basic filtering: common users don't see internal logs (if we had a way to tag them)
@@ -1868,7 +1870,9 @@ class TicketsService {
       FROM ticket_eventos te
       LEFT JOIN usuarios u ON te.usuario_id = u.id
       WHERE te.ticket_id = ?
-    `, [ticketId]);
+      ORDER BY te.created_at DESC, te.id DESC
+      LIMIT ?
+    `, [ticketId, limit]);
 
     const mapEventIcon = (tipo: string) => {
       switch (tipo) {

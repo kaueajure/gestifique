@@ -25,8 +25,9 @@ class AttachmentsService {
     let query = `
       SELECT a.*, COALESCE(u.nome, 'Cliente Externo') as usuario_nome
       FROM ticket_anexos a
+      INNER JOIN tickets t ON t.id = a.ticket_id
       LEFT JOIN usuarios u ON a.usuario_id = u.id
-      WHERE a.ticket_id = ?
+      WHERE a.ticket_id = ? AND t.deleted_at IS NULL
     `;
     if (!includeInternal) {
       query += ' AND a.interno = 0';
@@ -67,6 +68,18 @@ class AttachmentsService {
     interno: boolean;
   }): Promise<number> {
     const { ticket_id, mensagem_id, usuario_id, empresa_id, nome_original, nome_arquivo, caminho, mime_type, tamanho_bytes, interno } = data;
+
+    const [ticketRows]: any = await pool.query(
+      'SELECT * FROM tickets WHERE id = ? AND deleted_at IS NULL LIMIT 1',
+      [ticket_id]
+    );
+    const ticket = ticketRows[0];
+    if (!ticket) {
+      throw new Error('Chamado não encontrado');
+    }
+    if (empresa_id !== null && empresa_id !== undefined && Number(ticket.empresa_id) !== Number(empresa_id)) {
+      throw new Error('Chamado não encontrado');
+    }
     
     const [result]: any = await pool.query(
       `INSERT INTO ticket_anexos 
@@ -78,9 +91,6 @@ class AttachmentsService {
 
     // Notificações
     try {
-      const [ticketRows]: any = await pool.query('SELECT * FROM tickets WHERE id = ? AND deleted_at IS NULL', [ticket_id]);
-      const ticket = ticketRows[0];
-
       if (ticket) {
         let authorName = 'Cliente Externo';
         if (usuario_id) {

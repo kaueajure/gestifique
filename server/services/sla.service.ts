@@ -5,6 +5,7 @@ import {
   isFinalTicketStatusSpecial,
   normalizeTicketStatusSpecial
 } from '../utils/ticket-status-config.js';
+import { formatDateTimeForMySQL } from '../utils/date-time.js';
 
 export type SlaStatusOperacional = 'dentro_sla' | 'vencendo' | 'vencido' | 'pausado' | 'cumprido' | 'violado' | 'sem_sla';
 
@@ -95,10 +96,10 @@ class SlaService {
     const diffMs = agora.getTime() - pausadoEm.getTime();
     const diffMins = Math.floor(diffMs / (1000 * 60));
 
-    let novoPrazoSla = null;
+    let novoPrazoSla: string | null = null;
     if (ticket.prazo_sla) {
       const prazoOriginal = new Date(ticket.prazo_sla);
-      novoPrazoSla = new Date(prazoOriginal.getTime() + diffMs);
+      novoPrazoSla = formatDateTimeForMySQL(new Date(prazoOriginal.getTime() + diffMs));
     }
 
     const totalPausado = (ticket.sla_pausado_total_minutos || 0) + diffMins;

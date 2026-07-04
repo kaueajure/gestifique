@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import  ticketsService, { isValidTicketStatus, toPositiveInt } from  '../services/tickets.service.js';
+import  ticketsService, { isValidTicketStatus, normalizeMessagePagination, toPositiveInt } from  '../services/tickets.service.js';
 import  attachmentsService from  '../services/attachments.service.js';
 import { authMiddleware, AuthRequest } from '../middlewares/auth.js';
 import { requirePermission } from '../middlewares/permissions.middleware.js';
@@ -10,6 +10,7 @@ import { ticketUpload } from '../middlewares/upload.js';
 import { validateUploadedFile } from '../utils/file-security.js';
 import pool from '../db/connection.js';
 import { emailOutboxService } from '../services/email-outbox.service.js';
+import { recordTicketEvent } from '../services/ticket-events.service.js';
 import {
   getTicketStatusConfig,
   isFinalTicketStatusSpecial
@@ -946,7 +947,8 @@ router.get('/:id/messages', async (req: AuthRequest, res) => {
     if (!canView) return sendError(res, 'Voce nao tem permissao para visualizar mensagens deste chamado.', 403);
 
     const hasVerInternos = await permissionsService.hasPermission(currentUser, 'ticket_mensagens.ver_internos');
-    const messages = await ticketsService.getMessages(id, hasVerInternos);
+    const pagination = normalizeMessagePagination(req.query);
+    const messages = await ticketsService.getMessages(id, hasVerInternos, pagination);
     
     const messageIds = (messages as any[]).map((msg: any) => msg.id);
     const attachmentsByMessage = await attachmentsService.getByMessages(messageIds, hasVerInternos, id);
@@ -954,6 +956,19 @@ router.get('/:id/messages', async (req: AuthRequest, res) => {
       ...msg,
       attachments: attachmentsByMessage[msg.id] || []
     }));
+
+    if (req.query.include_meta === 'true') {
+      return sendSuccess(res, {
+        data: messagesWithAttachments,
+        meta: {
+          limit: pagination.limit,
+          page: pagination.page,
+          before_id: pagination.beforeId || null,
+          has_more: messagesWithAttachments.length === pagination.limit,
+          next_before_id: messagesWithAttachments[0]?.id || null
+        }
+      });
+    }
 
     sendSuccess(res, messagesWithAttachments);
   } catch (error: unknown) {
@@ -978,8 +993,22 @@ router.get('/:id/timeline', async (req: AuthRequest, res) => {
 
     const hasVerInternos = await permissionsService.hasPermission(currentUser, 'ticket_mensagens.ver_internos');
     
-    const timeline = await ticketsService.getTimeline(id, hasVerInternos);
+    const pagination = normalizeMessagePagination(req.query);
+    const timeline = await ticketsService.getTimeline(id, hasVerInternos, pagination);
     if (!timeline) return sendError(res, 'Chamado não encontrado', 404);
+
+    if (req.query.include_meta === 'true') {
+      return sendSuccess(res, {
+        data: timeline,
+        meta: {
+          limit: pagination.limit,
+          page: pagination.page,
+          before_id: pagination.beforeId || null,
+          has_more: timeline.length >= pagination.limit,
+          next_before_id: timeline.find((item: any) => item.id)?.id || null
+        }
+      });
+    }
 
     sendSuccess(res, timeline);
   } catch (error: unknown) {
@@ -1165,6 +1194,14 @@ router.post('/:id/attachments', ticketUpload.array('files', 5), async (req: Auth
         });
       } catch (mailErr) {
         console.error('[TicketsRoutes] Falha ao enviar anexos por e-mail:', mailErr);
+        await recordTicketEvent({
+          ticket_id: id,
+          empresa_id: ticket.empresa_id,
+          usuario_id: currentUser.id,
+          tipo: 'email_outbox_erro',
+          descricao: 'O anexo foi registrado, mas o e-mail nao pode ser enfileirado.',
+          metadata: { error: String((mailErr as any)?.message || mailErr).slice(0, 500) }
+        }).catch(() => {});
       }
     }
 

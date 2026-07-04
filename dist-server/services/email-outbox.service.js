@@ -167,6 +167,73 @@ class EmailOutboxService {
             connection.release();
         }
     }
+    async getSummary() {
+        const [countsRows] = await pool.query(`
+      SELECT status, COUNT(*) as total
+      FROM email_outbox
+      GROUP BY status
+    `);
+        const counts = {
+            pendente: 0,
+            processando: 0,
+            enviado: 0,
+            erro: 0,
+        };
+        for (const row of countsRows) {
+            if (row.status in counts) {
+                counts[row.status] = Number(row.total || 0);
+            }
+        }
+        return {
+            ...counts,
+            lastErrors: await this.getErrors(20),
+        };
+    }
+    async getErrors(limit = 20) {
+        const safeLimit = normalizeOutboxProcessLimit(limit);
+        const [rows] = await pool.query(`
+        SELECT id, empresa_id, ticket_id, tipo, destinatario, status, tentativas,
+               ultimo_erro, next_attempt_at, created_at, updated_at
+        FROM email_outbox
+        WHERE status = 'erro'
+        ORDER BY updated_at DESC, id DESC
+        LIMIT ${safeLimit}
+      `);
+        return rows.map((row) => ({
+            ...row,
+            destinatario: maskEmail(row.destinatario),
+        }));
+    }
+    async retryById(id) {
+        const [result] = await pool.query(`
+        UPDATE email_outbox
+        SET status = 'pendente',
+            next_attempt_at = NOW(),
+            locked_at = NULL,
+            updated_at = NOW()
+        WHERE id = ?
+          AND status = 'erro'
+          AND sent_at IS NULL
+      `, [id]);
+        return result.affectedRows > 0;
+    }
+    async retryRecentErrors(limit = 20) {
+        const safeLimit = normalizeOutboxProcessLimit(limit);
+        const [rows] = await pool.query(`
+        SELECT id
+        FROM email_outbox
+        WHERE status = 'erro'
+          AND sent_at IS NULL
+        ORDER BY updated_at DESC, id DESC
+        LIMIT ${safeLimit}
+      `);
+        let retried = 0;
+        for (const row of rows) {
+            if (await this.retryById(Number(row.id)))
+                retried++;
+        }
+        return retried;
+    }
     async markFailed(id, attempts, error) {
         const finalError = attempts >= MAX_ATTEMPTS;
         const nextAttemptSql = finalError ? 'NULL' : getNextAttemptSql(attempts);
