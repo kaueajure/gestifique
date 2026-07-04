@@ -11,6 +11,8 @@ import {
   LogOut,
   X,
   BookOpen,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { User } from "../../types";
 import { cn } from "../../lib/utils";
@@ -23,7 +25,9 @@ interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   isOpen: boolean;
+  isCollapsed?: boolean;
   onClose: () => void;
+  onToggleCollapse?: () => void;
   onLogout: () => void;
   onNavigate: (link: string) => void;
 }
@@ -33,7 +37,9 @@ export const Sidebar = ({
   activeTab,
   setActiveTab,
   isOpen,
+  isCollapsed = false,
   onClose,
+  onToggleCollapse,
   onLogout,
   onNavigate,
 }: SidebarProps) => {
@@ -143,35 +149,69 @@ export const Sidebar = ({
         aria-modal={isOpen ? "true" : undefined}
         aria-label="Menu principal"
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-[86vw] max-w-[320px] flex-col border-r border-slate-200/80 bg-white shadow-2xl shadow-slate-900/20 transition-transform duration-300 ease-out will-change-transform",
-          "lg:relative lg:inset-auto lg:z-20 lg:h-full lg:w-[282px] lg:max-w-none lg:translate-x-0 lg:shadow-none",
+          "fixed inset-y-0 left-0 z-50 flex w-[86vw] max-w-[320px] flex-col border-r border-slate-200/80 bg-white shadow-2xl shadow-slate-900/20 transition-[width,transform] duration-300 ease-out will-change-transform",
+          "lg:relative lg:inset-auto lg:z-20 lg:h-full lg:max-w-none lg:translate-x-0 lg:shadow-none",
+          isCollapsed ? "lg:w-[76px]" : "lg:w-[282px]",
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
       >
-        <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200/80 px-4">
-          <div className="flex items-center gap-2">
+        <div
+          className={cn(
+            "flex h-14 shrink-0 items-center border-b border-slate-200/80 px-4",
+            isCollapsed ? "lg:justify-center lg:px-3" : "justify-between",
+          )}
+        >
+          <div className="flex min-w-0 items-center gap-2">
             <AppLogo size={24} />
-            <span className="text-[14px] font-semibold text-slate-950 tracking-tight">
+            <span
+              className={cn(
+                "text-[14px] font-semibold text-slate-950 tracking-tight transition-opacity duration-200",
+                isCollapsed && "lg:pointer-events-none lg:w-0 lg:overflow-hidden lg:opacity-0",
+              )}
+            >
               Gestifique
             </span>
           </div>
-          <button
-            onClick={onClose}
-            aria-label="Fechar menu"
-            className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-md lg:hidden"
-          >
-            <X size={16} />
-          </button>
+          <div className={cn("flex items-center gap-1", isCollapsed && "lg:hidden")}>
+            {onToggleCollapse && (
+              <button
+                type="button"
+                onClick={onToggleCollapse}
+                aria-label={isCollapsed ? "Expandir menu" : "Recolher menu"}
+                title={isCollapsed ? "Expandir menu" : "Recolher menu"}
+                className="hidden rounded-md p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 lg:inline-flex"
+              >
+                {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              aria-label="Fechar menu"
+              className="rounded-md p-1.5 text-slate-500 transition-colors hover:bg-slate-100 lg:hidden"
+            >
+              <X size={16} />
+            </button>
+          </div>
         </div>
 
-        <div className="flex-1 space-y-5 overflow-y-auto px-3 py-4 custom-scrollbar">
+        <div
+          className={cn(
+            "flex-1 space-y-5 overflow-y-auto px-3 py-4 custom-scrollbar",
+            isCollapsed && "lg:px-2",
+          )}
+        >
           {sections.map((section) => {
             const accessibleItems = section.items.filter((i) => i.access);
             if (accessibleItems.length === 0) return null;
 
             return (
               <div key={section.title} className="space-y-1">
-                <h3 className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <h3
+                  className={cn(
+                    "mb-1.5 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 transition-opacity duration-200",
+                    isCollapsed && "lg:pointer-events-none lg:h-2 lg:overflow-hidden lg:px-0 lg:text-[0px] lg:opacity-0",
+                  )}
+                >
                   {section.title}
                 </h3>
                 <div className="space-y-0.5">
@@ -179,8 +219,11 @@ export const Sidebar = ({
                     <button
                       key={item.id}
                       onClick={() => handleNav(item.id)}
+                      title={isCollapsed ? item.label : undefined}
+                      aria-label={item.label}
                       className={cn(
-                        "flex h-9 w-full items-center gap-2.5 rounded-md px-3 text-[13px] font-semibold transition-colors duration-150",
+                        "group flex h-9 w-full items-center gap-2.5 rounded-md px-3 text-[13px] font-semibold transition-colors duration-150",
+                        isCollapsed && "lg:justify-center lg:px-0",
                         activeTab === item.id
                           ? "border border-blue-200 bg-blue-50 text-blue-800 shadow-sm shadow-blue-600/5"
                           : "text-slate-600 hover:bg-slate-100 hover:text-slate-950",
@@ -196,7 +239,14 @@ export const Sidebar = ({
                         )}
                         strokeWidth={activeTab === item.id ? 2.5 : 2}
                       />
-                      <span className="truncate">{item.label}</span>
+                      <span
+                        className={cn(
+                          "truncate transition-opacity duration-200",
+                          isCollapsed && "lg:pointer-events-none lg:w-0 lg:overflow-hidden lg:opacity-0",
+                        )}
+                      >
+                        {item.label}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -205,12 +255,27 @@ export const Sidebar = ({
           })}
         </div>
 
-        <div className="shrink-0 space-y-2 border-t border-slate-200/80 bg-white p-3">
-          <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50/70 px-2.5 py-2 transition-colors hover:bg-white">
+        <div
+          className={cn(
+            "shrink-0 space-y-2 border-t border-slate-200/80 bg-white p-3",
+            isCollapsed && "lg:px-2",
+          )}
+        >
+          <div
+            className={cn(
+              "flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50/70 px-2.5 py-2 transition-colors hover:bg-white",
+              isCollapsed && "lg:flex-col lg:justify-center lg:px-1.5",
+            )}
+          >
             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs font-bold text-slate-700 shadow-sm">
               {currentUser.nome.charAt(0).toUpperCase()}
             </div>
-            <div className="flex-1 min-w-0">
+            <div
+              className={cn(
+                "min-w-0 flex-1 transition-opacity duration-200",
+                isCollapsed && "lg:pointer-events-none lg:hidden lg:opacity-0",
+              )}
+            >
               <div className="text-[13px] font-semibold text-slate-900 truncate tracking-tight">
                 {currentUser.nome}
               </div>
@@ -227,13 +292,23 @@ export const Sidebar = ({
 
           <button
             onClick={onLogout}
-            className="w-full h-8 flex items-center gap-2.5 px-2.5 rounded-md text-[13px] font-medium text-slate-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+            title={isCollapsed ? "Sair" : undefined}
+            aria-label="Sair"
+            className={cn(
+              "flex h-8 w-full items-center gap-2.5 rounded-md px-2.5 text-[13px] font-medium text-slate-500 transition-colors hover:bg-red-50 hover:text-red-700",
+              isCollapsed && "lg:justify-center lg:px-0",
+            )}
           >
             <LogOut size={16} />
-            Sair
+            <span className={cn(isCollapsed && "lg:hidden")}>Sair</span>
           </button>
 
-          <div className="flex items-center justify-center gap-3 pt-1 text-[10px] font-semibold text-slate-400">
+          <div
+            className={cn(
+              "flex items-center justify-center gap-3 pt-1 text-[10px] font-semibold text-slate-400",
+              isCollapsed && "lg:hidden",
+            )}
+          >
             <a
               href="/politica-de-privacidade"
               target="_blank"
