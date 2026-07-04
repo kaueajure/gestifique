@@ -129,6 +129,27 @@ class TicketMessagesService {
       }
     }
 
+    if (currentUser) {
+      const [recentSameUserMessage]: any = await pool.query(
+        `SELECT id
+         FROM ticket_mensagens
+         WHERE ticket_id = ?
+           AND usuario_id <=> ?
+           AND interno = ?
+           AND tipo = ?
+           AND mensagem = ?
+           AND created_at >= (NOW() - INTERVAL 10 SECOND)
+         ORDER BY id DESC
+         LIMIT 1`,
+        [ticket_id, usuario_id || null, finalInterno ? 1 : 0, tipo, mensagem]
+      );
+
+      if (recentSameUserMessage.length > 0) {
+        console.warn(`[TicketMessagesService] Recent duplicate user message ignored for ticket #${ticket_id}.`);
+        return recentSameUserMessage[0].id;
+      }
+    }
+
     // 2. Create the message
     console.log(`[TicketMessagesService] Adding message: ticket_id=${ticket_id}, usuario_id=${usuario_id}, interno=${finalInterno}, message_id=${maskIdentifier(message_id)}, tipo=${tipo}`);
     const [result]: any = await pool.query(

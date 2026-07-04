@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { 
   Send, 
   AlertCircle, 
@@ -50,6 +50,7 @@ export const TicketReplyBox = ({
   const [showMacros, setShowMacros] = useState(false);
   const [suggestedReply, setSuggestedReply] = useState<string | null>(null);
   const [loadingSuggestion, setLoadingSuggestion] = useState(false);
+  const submittingRef = useRef(false);
 
   React.useEffect(() => {
     if (!canSendPublicReply && canAddInternalNote) {
@@ -77,15 +78,20 @@ export const TicketReplyBox = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!newMessage.trim() && selectedFiles.length === 0) || loadingSend) return;
+    if ((!newMessage.trim() && selectedFiles.length === 0) || loadingSend || submittingRef.current) return;
     if (!isInternal && !canSendPublicReply) return;
     if (isInternal && !canAddInternalNote) return;
 
-    const ok = await onSendMessage(newMessage, isInternal, selectedFiles);
-    
-    if (ok) {
-      setNewMessage('');
-      setSelectedFiles([]);
+    submittingRef.current = true;
+    try {
+      const ok = await onSendMessage(newMessage, isInternal, selectedFiles);
+
+      if (ok) {
+        setNewMessage('');
+        setSelectedFiles([]);
+      }
+    } finally {
+      submittingRef.current = false;
     }
   };
 
