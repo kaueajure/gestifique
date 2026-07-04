@@ -180,54 +180,68 @@ export const buildTicketEmailTemplate = (params) => {
     <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
       Atualização do chamado #${ticketId}: ${safeSubjectTitle}
     </div>
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%; background:#f4f7fb; margin:0; padding:0; border-collapse:collapse;">
+    <style>
+      @media only screen and (max-width: 620px) {
+        .email-outer { padding:20px 10px !important; }
+        .email-header { padding:28px 22px !important; }
+        .email-body { padding:24px 22px 18px 22px !important; }
+        .email-block { padding-left:22px !important; padding-right:22px !important; }
+        .email-title { font-size:24px !important; }
+        .email-header-row,
+        .email-header-cell,
+        .email-badge-cell { display:block !important; width:100% !important; text-align:left !important; }
+        .email-badge { margin-top:18px !important; }
+      }
+    </style>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%; background:#f3f6fa; margin:0; padding:0; border-collapse:collapse;">
       <tr>
-        <td align="center" style="padding:24px 12px;">
-          <table role="presentation" width="720" cellspacing="0" cellpadding="0" style="width:100%; max-width:720px; border-collapse:collapse;">
+        <td align="center" class="email-outer" style="padding:32px 12px;">
+          <table role="presentation" width="660" cellspacing="0" cellpadding="0" style="width:100%; max-width:660px; border-collapse:separate; border-spacing:0;">
             <tr>
-              <td style="background:#0f172a; border-radius:16px 16px 0 0; padding:22px 26px;">
+              <td style="border-radius:18px; background:#ffffff; border:1px solid #dbe3ee; box-shadow:0 14px 38px rgba(15,23,42,0.10); overflow:hidden;">
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
                   <tr>
-                    <td style="font-family:Arial, Helvetica, sans-serif; color:#ffffff;">
-                      <div style="font-size:13px; letter-spacing:.04em; text-transform:uppercase; color:#93c5fd; font-weight:700;">Gestifique</div>
-                      <div style="font-size:22px; line-height:1.25; font-weight:700; margin-top:6px;">${headline}</div>
-                    </td>
-                    <td align="right" style="font-family:Arial, Helvetica, sans-serif; color:#cbd5e1; font-size:13px; white-space:nowrap;">
-                      <span style="display:inline-block; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.16); color:#ffffff; border-radius:999px; padding:8px 12px; font-weight:700;">Ticket #${ticketId}</span>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-            <tr>
-              <td style="background:#ffffff; border:1px solid #dbe3ef; border-top:0; border-radius:0 0 16px 16px; overflow:hidden;">
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
-                  <tr>
-                    <td style="padding:28px 30px 18px 30px; font-family:Arial, Helvetica, sans-serif; color:#1f2937;">
-                      <p style="margin:0; font-size:15px; line-height:1.65;">${leadText}</p>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style="padding:0 30px 20px 30px;">
-                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate; border-spacing:0; background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px;">
+                    <td class="email-header" style="background:#0b1f3a; padding:34px 32px 32px 32px; border-radius:18px 18px 0 0;">
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" class="email-header-row" style="border-collapse:collapse;">
                         <tr>
-                          <td style="padding:16px 18px; font-family:Arial, Helvetica, sans-serif;">
-                            <div style="font-size:12px; letter-spacing:.04em; text-transform:uppercase; color:#64748b; font-weight:700; margin-bottom:8px;">Resumo do chamado</div>
-                            <div style="font-size:17px; line-height:1.35; color:#0f172a; font-weight:700; margin-bottom:14px;">${safeTitle}</div>
+                          <td class="email-header-cell" style="font-family:Arial, Helvetica, sans-serif; color:#ffffff; vertical-align:top;">
+                            <div style="font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:#9cc5ff; font-weight:700; margin-bottom:14px;">Gestifique</div>
+                            <div class="email-title" style="font-size:28px; line-height:1.18; color:#ffffff; font-weight:700; margin:0 0 12px 0;">${headline}</div>
+                            <div style="width:42px; height:3px; line-height:3px; background:#60a5fa; border-radius:99px; font-size:0;">&nbsp;</div>
+                          </td>
+                          <td align="right" class="email-badge-cell" style="font-family:Arial, Helvetica, sans-serif; vertical-align:top; white-space:nowrap; padding-left:18px;">
+                            <span class="email-badge" style="display:inline-block; background:#16365f; border:1px solid #31577f; color:#eaf3ff; border-radius:999px; padding:9px 14px; font-size:13px; line-height:1; font-weight:700;">Ticket #${ticketId}</span>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="email-body" style="padding:32px 32px 18px 32px; font-family:Arial, Helvetica, sans-serif; color:#1f2937;">
+                      <p style="margin:0; font-size:15px; line-height:1.7; color:#334155;">${leadText}</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="email-block" style="padding:0 32px 18px 32px;">
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate; border-spacing:0; background:#f8fafc; border:1px solid #e5eaf1; border-radius:14px;">
+                        <tr>
+                          <td style="padding:20px 22px; font-family:Arial, Helvetica, sans-serif;">
+                            <div style="font-size:11px; letter-spacing:.10em; text-transform:uppercase; color:#64748b; font-weight:700; margin-bottom:10px;">Resumo do chamado</div>
+                            <div style="font-size:18px; line-height:1.35; color:#0f172a; font-weight:700; margin-bottom:16px;">${safeTitle}</div>
                             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
                               <tr>
-                                <td style="padding:6px 0; font-size:13px; color:#64748b;">Status</td>
+                                <td style="padding:7px 0; font-size:13px; color:#64748b;">Status</td>
                                 <td align="right" style="padding:6px 0;">
-                                  <span style="display:inline-block; background:${statusBg}; color:${statusColor}; border-radius:999px; padding:5px 10px; font-size:12px; font-weight:700;">${safeStatus}</span>
+                                  <span style="display:inline-block; background:${statusBg}; color:${statusColor}; border-radius:999px; padding:6px 11px; font-size:12px; font-weight:700;">${safeStatus}</span>
                                 </td>
                               </tr>
                               <tr>
-                                <td style="padding:6px 0; font-size:13px; color:#64748b;">Prioridade</td>
-                                <td align="right" style="padding:6px 0; font-size:13px; color:#111827; font-weight:700;">${safePriority}</td>
+                                <td style="padding:7px 0; font-size:13px; color:#64748b; border-top:1px solid #edf2f7;">Prioridade</td>
+                                <td align="right" style="padding:7px 0; font-size:13px; color:#111827; font-weight:700; border-top:1px solid #edf2f7;">${safePriority}</td>
                               </tr>
                               <tr>
-                                <td style="padding:6px 0; font-size:13px; color:#64748b;">Categoria</td>
-                                <td align="right" style="padding:6px 0; font-size:13px; color:#111827; font-weight:700;">${safeCategory}</td>
+                                <td style="padding:7px 0 0 0; font-size:13px; color:#64748b; border-top:1px solid #edf2f7;">Categoria</td>
+                                <td align="right" style="padding:7px 0 0 0; font-size:13px; color:#111827; font-weight:700; border-top:1px solid #edf2f7;">${safeCategory}</td>
                               </tr>
                             </table>
                           </td>
@@ -236,22 +250,22 @@ export const buildTicketEmailTemplate = (params) => {
                     </td>
                   </tr>
                   <tr>
-                    <td style="padding:0 30px 20px 30px;">
-                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate; border-spacing:0; border:1px solid #dbeafe; border-radius:12px; background:#ffffff;">
+                    <td class="email-block" style="padding:0 32px 18px 32px;">
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate; border-spacing:0; border:1px solid #d8e0ea; border-radius:14px; background:#ffffff;">
                         <tr>
-                          <td style="padding:18px 20px; font-family:Arial, Helvetica, sans-serif;">
-                            <div style="font-size:12px; letter-spacing:.04em; text-transform:uppercase; color:#2563eb; font-weight:700; margin-bottom:10px;">${messageLabel}</div>
-                            <div style="font-size:15px; line-height:1.65; color:#1f2937;">${messageHtml}</div>
+                          <td style="padding:22px 24px; font-family:Arial, Helvetica, sans-serif;">
+                            <div style="font-size:11px; letter-spacing:.10em; text-transform:uppercase; color:#1d4ed8; font-weight:700; margin-bottom:12px;">${messageLabel}</div>
+                            <div style="font-size:15px; line-height:1.72; color:#1f2937;">${messageHtml}</div>
                           </td>
                         </tr>
                       </table>
                     </td>
                   </tr>
                   <tr>
-                    <td style="padding:0 30px 24px 30px;">
-                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate; border-spacing:0; background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px;">
+                    <td class="email-block" style="padding:0 32px 28px 32px;">
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate; border-spacing:0; background:#f0f7ff; border:1px solid #d8eafe; border-radius:14px;">
                         <tr>
-                          <td style="padding:14px 18px; font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:1.6; color:#1e3a8a;">
+                          <td style="padding:16px 20px; font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:1.65; color:#1e3a8a;">
                             ${actionHtml}
                           </td>
                         </tr>
@@ -259,8 +273,8 @@ export const buildTicketEmailTemplate = (params) => {
                     </td>
                   </tr>
                   <tr>
-                    <td style="padding:20px 30px 28px 30px; background:#fbfdff; border-top:1px solid #e5edf7; font-family:Arial, Helvetica, sans-serif;">
-                      <div style="font-size:13px; line-height:1.65; color:#64748b;">${safeSignature}</div>
+                    <td style="padding:20px 32px 24px 32px; background:#f8fafc; border-top:1px solid #e5eaf1; font-family:Arial, Helvetica, sans-serif;">
+                      <div style="font-size:12px; line-height:1.65; color:#64748b;">${safeSignature}</div>
                     </td>
                   </tr>
                 </table>
