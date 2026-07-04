@@ -1,30 +1,57 @@
 import React, { useState } from "react";
-import { User } from "../../types";
-import { api } from "../../lib/api";
 import {
-  UserCircle as UserIcon,
+  AlertCircle,
   Building2,
-  Key,
+  CheckCircle2,
+  ChevronRight,
   Eye,
   EyeOff,
-  Save,
+  Key,
+  Keyboard,
+  Layout,
   Lock,
-  CheckCircle2,
-  AlertCircle,
+  Palette,
+  Save,
+  TrendingUp,
+  UserCircle as UserIcon,
+  Zap,
 } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { User } from "../../types";
+import { api } from "../../lib/api";
+import { cn } from "../../lib/utils";
+import { hasPermission } from "../../lib/permissions";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { PageShell } from "../layout/PageShell";
 import { Card } from "../ui/Card";
-import { motion, AnimatePresence } from "motion/react";
+
+type AppTab =
+  | "dashboard"
+  | "tickets"
+  | "users"
+  | "companies"
+  | "logs"
+  | "profile"
+  | "settings"
+  | "reports";
+
+type ProfileSection = "profile" | "security" | "preferences";
 
 interface ProfilePageProps {
   currentUser: User;
   onUpdate: (user: User) => void;
+  onNavigate: (tab: AppTab) => void;
 }
 
-export const ProfilePage = ({ currentUser, onUpdate }: ProfilePageProps) => {
+export const ProfilePage = ({
+  currentUser,
+  onUpdate,
+  onNavigate,
+}: ProfilePageProps) => {
+  const [activeSection, setActiveSection] =
+    useState<ProfileSection>("profile");
   const [loading, setLoading] = useState(false);
   const [pwdLoading, setPwdLoading] = useState(false);
   const [showPwd, setShowPwd] = useState({
@@ -100,25 +127,52 @@ export const ProfilePage = ({ currentUser, onUpdate }: ProfilePageProps) => {
     }
   };
 
+  const tabs = [
+    { id: "profile" as const, label: "Editar perfil", icon: UserIcon },
+    { id: "security" as const, label: "Segurança", icon: Key },
+    { id: "preferences" as const, label: "Preferências", icon: Palette },
+  ];
+
   return (
     <PageShell
       title="Meu Perfil"
-      subtitle="Gerencie seus dados pessoais, empresa vinculada e segurança da conta."
+      subtitle="Gerencie seus dados pessoais, segurança da conta e preferências de trabalho."
       contentClassName="p-4 sm:p-5 bg-slate-50"
+      tabs={
+        <div className="flex w-fit flex-wrap gap-1 bg-white py-3">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveSection(tab.id)}
+                className={cn(
+                  "flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium transition-all",
+                  activeSection === tab.id
+                    ? "border border-slate-200/50 bg-slate-100 text-slate-900 shadow-sm"
+                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
+                )}
+              >
+                <Icon size={14} />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      }
     >
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        {/* Lado Esquerdo: Info Fixa */}
-        <div className="lg:col-span-3 space-y-4">
-          <Card className="text-center overflow-hidden">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        <div className="space-y-4 lg:col-span-3">
+          <Card className="overflow-hidden text-center">
             <div className="h-12 bg-slate-50" />
-            <div className="px-4 pb-4 -mt-8 relative">
-              <div className="inline-block relative">
-                <div className="w-16 h-16 rounded-xl bg-white border border-slate-100 shadow-sm flex items-center justify-center text-slate-800 font-bold text-xl uppercase overflow-hidden">
+            <div className="relative -mt-8 px-4 pb-4">
+              <div className="inline-block">
+                <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-white text-xl font-bold uppercase text-slate-800 shadow-sm">
                   {currentUser.foto ? (
                     <img
                       src={currentUser.foto}
                       alt=""
-                      className="w-full h-full object-cover"
+                      className="h-full w-full object-cover"
                     />
                   ) : (
                     (currentUser.nome || "U").charAt(0)
@@ -126,23 +180,23 @@ export const ProfilePage = ({ currentUser, onUpdate }: ProfilePageProps) => {
                 </div>
               </div>
               <div className="mt-2">
-                <h3 className="font-semibold text-slate-900 text-sm leading-tight mb-0.5">
+                <h3 className="mb-0.5 text-sm font-semibold leading-tight text-slate-900">
                   {currentUser.nome || "Usuário"}
                 </h3>
-                <p className="text-[10px] text-slate-500 font-medium mb-2 truncate">
-                  {currentUser.email || "Email não informado"}
+                <p className="mb-2 truncate text-[10px] font-medium text-slate-500">
+                  {currentUser.email || "E-mail não informado"}
                 </p>
                 <div className="flex flex-wrap justify-center gap-1.5">
                   <Badge
                     variant="indigo"
-                    className="text-[9px] font-semibold px-1.5 py-0"
+                    className="px-1.5 py-0 text-[9px] font-semibold"
                   >
                     {currentUser.cargo || "Membro"}
                   </Badge>
                   {!!currentUser.administrador && (
                     <Badge
                       variant="blue"
-                      className="text-[9px] font-semibold px-1.5 py-0"
+                      className="px-1.5 py-0 text-[9px] font-semibold"
                     >
                       Admin
                     </Badge>
@@ -152,30 +206,30 @@ export const ProfilePage = ({ currentUser, onUpdate }: ProfilePageProps) => {
             </div>
           </Card>
 
-          <Card className="p-4 bg-white border-slate-200 shadow-sm text-slate-800">
-            <h4 className="text-xs font-semibold text-slate-700 flex items-center gap-2 mb-3">
+          <Card className="border-slate-200 bg-white p-4 text-slate-800 shadow-sm">
+            <h4 className="mb-3 flex items-center gap-2 text-xs font-semibold text-slate-700">
               <Building2 size={14} className="text-blue-500" /> Empresa
             </h4>
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-blue-100 bg-blue-50 text-blue-600">
                 <Building2 size={16} />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-sm font-semibold truncate leading-tight">
+                <div className="truncate text-sm font-semibold leading-tight">
                   {currentUser.empresa_nome || "Gestifique Central"}
                 </div>
-                <div className="text-[10px] font-medium text-emerald-600 mt-0.5 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 block" />
+                <div className="mt-0.5 flex items-center gap-1 text-[10px] font-medium text-emerald-600">
+                  <span className="block h-1.5 w-1.5 rounded-full bg-emerald-500" />
                   Conectado
                 </div>
               </div>
             </div>
-            <div className="mt-4 pt-3 border-t border-slate-100 grid grid-cols-2 gap-3">
+            <div className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-100 pt-3">
               <div className="space-y-0.5">
-                <span className="text-[10px] font-medium text-slate-500 uppercase">
-                  ID Membro
+                <span className="text-[10px] font-medium uppercase text-slate-500">
+                  ID membro
                 </span>
-                <div className="text-xs font-mono font-medium text-slate-700">
+                <div className="font-mono text-xs font-medium text-slate-700">
                   #{currentUser.id?.toString().padStart(4, "0")}
                 </div>
               </div>
@@ -183,15 +237,14 @@ export const ProfilePage = ({ currentUser, onUpdate }: ProfilePageProps) => {
           </Card>
         </div>
 
-        {/* Lado Direito: Formulários */}
-        <div className="lg:col-span-9 space-y-4">
+        <div className="space-y-4 lg:col-span-9">
           <AnimatePresence mode="wait">
             {error && (
               <motion.div
                 initial={{ opacity: 0, y: -5 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -5 }}
-                className="p-3 bg-red-50 border border-red-100 rounded-lg flex items-center gap-2 text-red-600 text-xs font-medium"
+                className="flex items-center gap-2 rounded-lg border border-red-100 bg-red-50 p-3 text-xs font-medium text-red-600"
               >
                 <AlertCircle size={14} /> {error}
               </motion.div>
@@ -201,181 +254,294 @@ export const ProfilePage = ({ currentUser, onUpdate }: ProfilePageProps) => {
                 initial={{ opacity: 0, y: -5 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -5 }}
-                className="p-3 bg-emerald-50 border border-emerald-100 rounded-lg flex items-center gap-2 text-emerald-600 text-xs font-medium"
+                className="flex items-center gap-2 rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-xs font-medium text-emerald-600"
               >
                 <CheckCircle2 size={14} /> {success}
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Meus Dados */}
-          <Card>
-            <form
-              onSubmit={handleUpdateProfile}
-              className="p-4 sm:p-5 space-y-4"
-            >
-              <div className="flex items-center gap-2.5 mb-2">
-                <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-md flex items-center justify-center border border-blue-100">
-                  <UserIcon size={16} />
-                </div>
-                <div>
-                  <h4 className="text-sm font-semibold text-slate-900">
-                    Informações Pessoais
-                  </h4>
-                  <p className="text-[11px] text-slate-500">
-                    Atualize seus dados de contato e identificação.
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <Input
-                  label="Nome Completo"
-                  name="nome"
-                  defaultValue={currentUser.nome || ""}
-                  required
-                  placeholder="Ex: João Silva"
-                />
-                <div className="space-y-1.5 flex flex-col">
-                  <label className="text-xs font-medium text-slate-700">
-                    E-mail Corporativo
-                  </label>
-                  <input
-                    value={currentUser.email || ""}
-                    readOnly
-                    className="h-9 bg-slate-50 border border-slate-200 rounded-md px-3 text-xs font-medium text-slate-400 cursor-not-allowed outline-none"
-                  />
-                  <p className="text-[10px] text-slate-400 font-medium px-1">
-                    Gerido pelo administrador.
-                  </p>
-                </div>
-                <Input
-                  label="Telefone / WhatsApp"
-                  name="telefone"
-                  defaultValue={currentUser.telefone || ""}
-                  placeholder="(00) 00000-0000"
-                />
-                <div className="space-y-1.5 flex flex-col">
-                  <label className="text-xs font-medium text-slate-700">
-                    Cargo / Função
-                  </label>
-                  <input
-                    value={currentUser.cargo || "Membro do Time"}
-                    readOnly
-                    className="h-9 bg-slate-50 border border-slate-200 rounded-md px-3 text-xs font-medium text-slate-400 cursor-not-allowed outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-2 flex justify-end">
-                <Button
-                  type="submit"
-                  loading={loading}
-                  size="sm"
-                  className="w-full sm:w-auto"
-                >
-                  <Save size={14} className="mr-1.5" /> Salvar Alterações
-                </Button>
-              </div>
-            </form>
-          </Card>
-
-          {/* Segurança */}
-          <Card>
-            <form
-              onSubmit={handleChangePassword}
-              className="p-4 sm:p-5 space-y-4"
-            >
-              <div className="flex items-center gap-2.5 mb-2">
-                <div className="w-8 h-8 bg-amber-50 text-amber-600 rounded-md flex items-center justify-center border border-amber-100">
-                  <Key size={16} />
-                </div>
-                <div>
-                  <h4 className="text-sm font-semibold text-slate-900">
-                    Segurança & Senha
-                  </h4>
-                  <p className="text-[11px] text-slate-500">
-                    Mantenha sua conta protegida alterando a senha regularmente.
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="relative">
-                  <Input
-                    label="Senha Atual"
-                    name="currentPassword"
-                    type={showPwd.current ? "text" : "password"}
-                    required
-                    placeholder="••••••••"
-                  />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setShowPwd((s) => ({ ...s, current: !s.current }))
-                    }
-                    className="absolute right-3 top-[26px] text-slate-400 hover:text-slate-600"
-                  >
-                    {showPwd.current ? <EyeOff size={14} /> : <Eye size={14} />}
-                  </button>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="relative">
-                    <Input
-                      label="Nova Senha"
-                      name="newPassword"
-                      type={showPwd.new ? "text" : "password"}
-                      required
-                      placeholder="••••••••"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPwd((s) => ({ ...s, new: !s.new }))}
-                      className="absolute right-3 top-[26px] text-slate-400 hover:text-slate-600"
-                    >
-                      {showPwd.new ? <EyeOff size={14} /> : <Eye size={14} />}
-                    </button>
+          {activeSection === "profile" && (
+            <Card>
+              <form
+                onSubmit={handleUpdateProfile}
+                className="space-y-4 p-4 sm:p-5"
+              >
+                <div className="mb-2 flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-md border border-blue-100 bg-blue-50 text-blue-600">
+                    <UserIcon size={16} />
                   </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-900">
+                      Informações pessoais
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      Atualize seus dados de contato e identificação.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Input
+                    label="Nome completo"
+                    name="nome"
+                    defaultValue={currentUser.nome || ""}
+                    required
+                    placeholder="Ex: João Silva"
+                  />
+                  <div className="flex flex-col space-y-1.5">
+                    <label className="text-xs font-medium text-slate-700">
+                      E-mail corporativo
+                    </label>
+                    <input
+                      value={currentUser.email || ""}
+                      readOnly
+                      className="h-9 cursor-not-allowed rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-400 outline-none"
+                    />
+                    <p className="px-1 text-[10px] font-medium text-slate-400">
+                      Gerido pelo administrador.
+                    </p>
+                  </div>
+                  <Input
+                    label="Telefone / WhatsApp"
+                    name="telefone"
+                    defaultValue={currentUser.telefone || ""}
+                    placeholder="(00) 00000-0000"
+                  />
+                  <div className="flex flex-col space-y-1.5">
+                    <label className="text-xs font-medium text-slate-700">
+                      Cargo / função
+                    </label>
+                    <input
+                      value={currentUser.cargo || "Membro do time"}
+                      readOnly
+                      className="h-9 cursor-not-allowed rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-400 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <Button
+                    type="submit"
+                    loading={loading}
+                    size="sm"
+                    className="w-full sm:w-auto"
+                  >
+                    <Save size={14} className="mr-1.5" /> Salvar alterações
+                  </Button>
+                </div>
+              </form>
+            </Card>
+          )}
+
+          {activeSection === "security" && (
+            <Card>
+              <form
+                onSubmit={handleChangePassword}
+                className="space-y-4 p-4 sm:p-5"
+              >
+                <div className="mb-2 flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-md border border-amber-100 bg-amber-50 text-amber-600">
+                    <Key size={16} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-900">
+                      Segurança e senha
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      Mantenha sua conta protegida alterando a senha regularmente.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
                   <div className="relative">
                     <Input
-                      label="Confirmar Nova Senha"
-                      name="confirmPassword"
-                      type={showPwd.confirm ? "text" : "password"}
+                      label="Senha atual"
+                      name="currentPassword"
+                      type={showPwd.current ? "text" : "password"}
                       required
                       placeholder="••••••••"
                     />
                     <button
                       type="button"
                       onClick={() =>
-                        setShowPwd((s) => ({ ...s, confirm: !s.confirm }))
+                        setShowPwd((s) => ({ ...s, current: !s.current }))
                       }
                       className="absolute right-3 top-[26px] text-slate-400 hover:text-slate-600"
                     >
-                      {showPwd.confirm ? (
-                        <EyeOff size={14} />
-                      ) : (
-                        <Eye size={14} />
-                      )}
+                      {showPwd.current ? <EyeOff size={14} /> : <Eye size={14} />}
                     </button>
                   </div>
-                </div>
-              </div>
 
-              <div className="pt-2 flex justify-end">
-                <Button
-                  type="submit"
-                  loading={pwdLoading}
-                  variant="outline"
-                  size="sm"
-                  className="w-full sm:w-auto"
-                >
-                  <Lock size={14} className="mr-1.5 text-slate-400" /> Atualizar
-                  Senha
-                </Button>
-              </div>
-            </form>
-          </Card>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="relative">
+                      <Input
+                        label="Nova senha"
+                        name="newPassword"
+                        type={showPwd.new ? "text" : "password"}
+                        required
+                        placeholder="••••••••"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShowPwd((s) => ({ ...s, new: !s.new }))
+                        }
+                        className="absolute right-3 top-[26px] text-slate-400 hover:text-slate-600"
+                      >
+                        {showPwd.new ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <Input
+                        label="Confirmar nova senha"
+                        name="confirmPassword"
+                        type={showPwd.confirm ? "text" : "password"}
+                        required
+                        placeholder="••••••••"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShowPwd((s) => ({ ...s, confirm: !s.confirm }))
+                        }
+                        className="absolute right-3 top-[26px] text-slate-400 hover:text-slate-600"
+                      >
+                        {showPwd.confirm ? (
+                          <EyeOff size={14} />
+                        ) : (
+                          <Eye size={14} />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <Button
+                    type="submit"
+                    loading={pwdLoading}
+                    variant="outline"
+                    size="sm"
+                    className="w-full sm:w-auto"
+                  >
+                    <Lock size={14} className="mr-1.5 text-slate-400" />
+                    Atualizar senha
+                  </Button>
+                </div>
+              </form>
+            </Card>
+          )}
+
+          {activeSection === "preferences" && (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Card className="space-y-4 p-4 sm:p-5">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                    <Palette size={18} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-900">
+                      Preferências pessoais
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      Ajustes ligados à sua experiência individual.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-4 rounded-lg border border-slate-100 bg-slate-50 p-4">
+                  <p className="text-[13px] font-medium leading-relaxed text-slate-600">
+                    Esta área reúne atalhos e configurações rápidas que antes ficavam em Configurações.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setActiveSection("profile")}
+                    className="w-full justify-between bg-white"
+                  >
+                    Editar dados do perfil
+                    <UserIcon size={14} className="text-blue-500" />
+                  </Button>
+                </div>
+              </Card>
+
+              <Card className="space-y-4 p-4 sm:p-5">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+                    <Keyboard size={18} />
+                  </div>
+                  <h4 className="text-sm font-semibold text-slate-900">
+                    Atalhos de trabalho
+                  </h4>
+                </div>
+                <div className="grid gap-2">
+                  {(["reports", "tickets", "profile", "dashboard"] as const).map(
+                    (id) => {
+                      const navMap = {
+                        reports: {
+                          desc: "Análise de relatórios",
+                          icon: <TrendingUp size={16} />,
+                          access: hasPermission(
+                            currentUser,
+                            "relatorios.visualizar",
+                          ),
+                          action: () => onNavigate("reports"),
+                        },
+                        tickets: {
+                          desc: "Central de chamados",
+                          icon: <Layout size={16} />,
+                          access: hasPermission(
+                            currentUser,
+                            "tickets.visualizar",
+                          ),
+                          action: () => onNavigate("tickets"),
+                        },
+                        profile: {
+                          desc: "Editar perfil",
+                          icon: <UserIcon size={16} />,
+                          access: true,
+                          action: () => setActiveSection("profile"),
+                        },
+                        dashboard: {
+                          desc: "Indicadores em tempo real",
+                          icon: <Zap size={16} />,
+                          access: hasPermission(
+                            currentUser,
+                            "dashboard.visualizar",
+                          ),
+                          action: () => onNavigate("dashboard"),
+                        },
+                      };
+                      const nav = navMap[id];
+                      if (nav.access === false) return null;
+                      return (
+                        <button
+                          key={id}
+                          onClick={nav.action}
+                          className="group flex items-center justify-between rounded-md border border-slate-200 bg-white p-2.5 text-left shadow-sm transition-all hover:border-blue-300"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="text-slate-400 transition-colors group-hover:text-blue-600">
+                              {nav.icon}
+                            </div>
+                            <span className="text-[13px] font-medium text-slate-700">
+                              {nav.desc}
+                            </span>
+                          </div>
+                          <ChevronRight
+                            size={14}
+                            className="text-slate-300 group-hover:text-slate-600"
+                          />
+                        </button>
+                      );
+                    },
+                  )}
+                </div>
+              </Card>
+            </div>
+          )}
         </div>
       </div>
     </PageShell>

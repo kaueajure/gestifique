@@ -794,6 +794,7 @@ export default function App() {
                     <ProfilePage
                       currentUser={currentUser}
                       onUpdate={setCurrentUser}
+                      onNavigate={(tab) => setActiveTab(tab)}
                     />
                   )}
 
