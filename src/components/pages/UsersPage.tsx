@@ -263,7 +263,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
           </div>
         )}
 
-        {loading ? (
+        {loading && users.length === 0 ? (
           <div className="p-12 flex flex-col items-center justify-center space-y-3">
             <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
             <p className="text-[11px] text-slate-500 font-medium">

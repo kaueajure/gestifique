@@ -45,9 +45,10 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
     resolucao_observacao: ''
   });
 
-  const fetchData = async () => {
-    setLoading(true);
-    setLoadingTimeline(true);
+  const fetchData = async (options: { silent?: boolean } = {}) => {
+    const silent = Boolean(options.silent);
+    if (!silent) setLoading(true);
+    if (!silent || activeTab === 'timeline') setLoadingTimeline(true);
     setError(null);
     try {
       const [ticketData, messagesData, attachmentsData, timelineData] = await Promise.all([
@@ -91,7 +92,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
       const message = err instanceof Error ? err.message : 'Erro ao carregar detalhes do atendimento.';
       setError(message);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
       setLoadingTimeline(false);
     }
   };
@@ -190,7 +191,8 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
         if (data.status && isCurrentFinalStatus) {
              await api.patch(`/tickets/${ticketId}/reopen`, {});
              setActionSuccess('Chamado reaberto com sucesso!');
-             fetchData();
+             setTicket(prev => prev ? { ...prev, status: data.status as TicketStatus } : prev);
+             void fetchData({ silent: true });
              setTimeout(() => setActionSuccess(null), 3000);
              return;
         }
@@ -201,7 +203,8 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
             await api.patch(`/tickets/${ticketId}`, data);
         }
       setActionSuccess('Chamado atualizado com sucesso!');
-      fetchData();
+      setTicket(prev => prev ? { ...prev, ...data } : prev);
+      void fetchData({ silent: true });
       setTimeout(() => setActionSuccess(null), 3000);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao atualizar chamado.';
@@ -215,18 +218,16 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
         return;
     }
 
-    setLoading(true);
     try {
         await api.patch(`/tickets/${ticketId}/resolve`, resolutionData);
         setIsResolveModalOpen(false);
         setActionSuccess(`Chamado ${resolutionData.status} com sucesso!`);
-        fetchData();
+        setTicket(prev => prev ? { ...prev, status: resolutionData.status } : prev);
+        void fetchData({ silent: true });
         setTimeout(() => setActionSuccess(null), 3000);
     } catch (err) {
         const message = err instanceof Error ? err.message : 'Erro ao finalizar chamado.';
         alert(message);
-    } finally {
-        setLoading(false);
     }
   };
 
@@ -272,7 +273,7 @@ export const TicketDetailsPage = ({ ticketId, onBack, currentUser }: TicketDetai
     }
   };
 
-  if (loading) {
+  if (loading && !ticket) {
     return (
       <div className="flex h-[70vh] flex-col items-center justify-center space-y-3">
         <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 bg-white shadow-sm">

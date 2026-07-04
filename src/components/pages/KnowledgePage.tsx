@@ -225,7 +225,7 @@ export const KnowledgePage = ({ currentUser }: KnowledgeManagerProps) => {
 
       {/* Listagem */}
       <div>
-        {loading ? (
+        {loading && articles.length === 0 ? (
           <div className="bg-white p-12 rounded-lg border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center">
              <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mb-3" />
              <p className="text-xs font-medium text-slate-500">Carregando Acervo...</p>
