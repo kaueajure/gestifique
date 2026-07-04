@@ -168,10 +168,10 @@ export const buildTicketEmailTemplate = (params) => {
     <style>
       @media only screen and (max-width: 620px) {
         .email-outer { padding:20px 10px !important; }
-        .email-header { padding:28px 22px !important; }
+        .email-header { padding:24px 22px 22px 22px !important; }
         .email-body { padding:24px 22px 18px 22px !important; }
         .email-block { padding-left:22px !important; padding-right:22px !important; }
-        .email-title { font-size:24px !important; }
+        .email-title { font-size:21px !important; }
         .email-header-row,
         .email-header-cell { display:block !important; width:100% !important; text-align:left !important; }
       }
@@ -184,15 +184,14 @@ export const buildTicketEmailTemplate = (params) => {
               <td style="border-radius:18px; background:#ffffff; border:1px solid #dbe3ee; box-shadow:0 14px 38px rgba(15,23,42,0.10); overflow:hidden;">
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
                   <tr>
-                    <td class="email-header" style="background:#0b1f3a; padding:34px 32px 32px 32px; border-radius:18px 18px 0 0;">
+                    <td class="email-header" style="background:#ffffff; padding:26px 32px 24px 32px; border-radius:18px 18px 0 0; border-bottom:1px solid #e2e8f0;">
                       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" class="email-header-row" style="border-collapse:collapse;">
                         <tr>
-                          <td class="email-header-cell" style="font-family:Arial, Helvetica, sans-serif; color:#ffffff; vertical-align:top;">
-                            <div style="font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:#9cc5ff; font-weight:700;">Gestifique</div>
-                            <div style="font-size:13px; line-height:1.5; color:#c7d7ee; font-weight:600; margin-top:4px;">Central de Atendimento</div>
-                            <div class="email-title" style="font-size:28px; line-height:1.18; color:#ffffff; font-weight:700; margin:18px 0 10px 0;">${headline}</div>
-                            <div style="font-size:14px; line-height:1.55; color:#cbdaf0; font-weight:500; margin:0 0 18px 0;">${safeTitle}</div>
-                            <div style="width:42px; height:3px; line-height:3px; background:#60a5fa; border-radius:99px; font-size:0;">&nbsp;</div>
+                          <td class="email-header-cell" style="font-family:Arial, Helvetica, sans-serif; color:#0f172a; vertical-align:top;">
+                            <div style="font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:#0f172a; font-weight:700;">Gestifique</div>
+                            <div style="font-size:13px; line-height:1.5; color:#64748b; font-weight:600; margin-top:4px;">Central de Atendimento</div>
+                            <div class="email-title" style="font-size:22px; line-height:1.25; color:#0f172a; font-weight:700; margin:18px 0 8px 0;">${headline}</div>
+                            <div style="font-size:14px; line-height:1.55; color:#64748b; font-weight:500; margin:0;">${safeTitle}</div>
                           </td>
                         </tr>
                       </table>
@@ -205,11 +204,11 @@ export const buildTicketEmailTemplate = (params) => {
                   </tr>
                   <tr>
                     <td class="email-block" style="padding:0 32px 22px 32px;">
-                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate; border-spacing:0; border:1px solid #d8e0ea; border-left:4px solid #2563eb; border-radius:14px; background:#ffffff;">
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate; border-spacing:0; border:1px solid #e2e8f0; border-radius:14px; background:#ffffff;">
                         <tr>
                           <td style="padding:24px 26px; font-family:Arial, Helvetica, sans-serif;">
-                            <div style="font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:#1d4ed8; font-weight:700; margin-bottom:14px;">${messageLabel}</div>
-                            <div style="font-size:16px; line-height:1.78; color:#1f2937;">${messageHtml}</div>
+                            <div style="font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:#334155; font-weight:700; margin-bottom:14px;">${messageLabel}</div>
+                            <div style="font-size:16px; line-height:1.78; color:#0f172a;">${messageHtml}</div>
                           </td>
                         </tr>
                       </table>
@@ -217,9 +216,9 @@ export const buildTicketEmailTemplate = (params) => {
                   </tr>
                   <tr>
                     <td class="email-block" style="padding:0 32px 28px 32px;">
-                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate; border-spacing:0; background:#f0f7ff; border:1px solid #d8eafe; border-radius:14px;">
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate; border-spacing:0; background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px;">
                         <tr>
-                          <td style="padding:16px 20px; font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:1.65; color:#1e3a8a;">
+                          <td style="padding:16px 20px; font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:1.65; color:#334155;">
                             ${actionHtml}
                           </td>
                         </tr>
