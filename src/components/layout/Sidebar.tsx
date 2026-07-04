@@ -182,7 +182,7 @@ export const Sidebar = ({
                       className={cn(
                         "flex h-9 w-full items-center gap-2.5 rounded-md px-3 text-[13px] font-semibold transition-colors duration-150",
                         activeTab === item.id
-                          ? "bg-slate-950 text-white shadow-sm"
+                          ? "border border-blue-200 bg-blue-50 text-blue-800 shadow-sm shadow-blue-600/5"
                           : "text-slate-600 hover:bg-slate-100 hover:text-slate-950",
                       )}
                     >
@@ -191,7 +191,7 @@ export const Sidebar = ({
                         className={cn(
                           "transition-colors shrink-0",
                           activeTab === item.id
-                            ? "text-white"
+                            ? "text-blue-600"
                             : "text-slate-400 group-hover:text-slate-600",
                         )}
                         strokeWidth={activeTab === item.id ? 2.5 : 2}

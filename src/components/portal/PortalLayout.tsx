@@ -67,7 +67,7 @@ export const PortalLayout = ({ currentUser, onLogout }: PortalLayoutProps) => {
                     className={cn(
                       "flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-semibold transition-colors",
                       isActive 
-                        ? "bg-slate-950 text-white" 
+                        ? "border border-blue-200 bg-blue-50 text-blue-800 shadow-sm shadow-blue-600/5" 
                         : "text-slate-500 hover:bg-slate-100 hover:text-slate-950"
                     )}
                   >

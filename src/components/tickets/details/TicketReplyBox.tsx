@@ -134,7 +134,7 @@ export const TicketReplyBox = ({
                 className={cn(
                   "flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5 text-xs font-semibold transition-all sm:flex-none",
                   !isInternal 
-                    ? "bg-slate-950 text-white shadow-sm ring-1 ring-slate-950" 
+                    ? "bg-blue-50 text-blue-800 shadow-sm ring-1 ring-blue-200" 
                     : "text-slate-500 hover:text-slate-700 hover:bg-slate-50",
                   !canSendPublicReply && "cursor-not-allowed opacity-50 hover:bg-transparent"
                 )}
@@ -149,7 +149,7 @@ export const TicketReplyBox = ({
                   className={cn(
                     "flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5 text-xs font-semibold transition-all sm:flex-none",
                     isInternal 
-                      ? "bg-slate-950 text-white shadow-sm ring-1 ring-slate-950" 
+                      ? "bg-blue-50 text-blue-800 shadow-sm ring-1 ring-blue-200" 
                       : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
                   )}
                >
@@ -185,7 +185,7 @@ export const TicketReplyBox = ({
               className={cn(
                   "flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-all",
                   showMacros 
-                    ? "bg-slate-950 border-slate-950 text-white" 
+                    ? "border-blue-200 bg-blue-50 text-blue-800 shadow-sm shadow-blue-600/5" 
                     : "bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-950"
                 )}
               >
@@ -330,7 +330,7 @@ export const TicketReplyBox = ({
                   "h-10 rounded-md px-4 text-xs font-semibold shadow-sm",
                   isInternal 
                     ? "bg-slate-700 hover:bg-slate-600 text-white" 
-                    : "bg-slate-950 hover:bg-slate-800 text-white",
+                    : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/15",
                   isSubmitDisabled && "opacity-50 grayscale"
                 )}
               >

@@ -157,7 +157,10 @@ const queueChipBaseClass =
 const queueChipInactiveClass =
   "border-transparent bg-transparent text-slate-600 hover:text-slate-950 hover:bg-white hover:border-slate-200";
 
-const queueChipActiveClass = "border-slate-900 bg-slate-950 text-white shadow-sm";
+const queueChipActiveClass = "border-blue-200 bg-blue-50 text-blue-800 shadow-sm shadow-blue-600/5";
+const queueChipActiveIconClass = "text-blue-600";
+const queueChipActiveCountClass = "bg-white text-blue-700 ring-1 ring-blue-100 shadow-sm";
+const menuItemActiveClass = "bg-blue-50 text-blue-800 ring-1 ring-inset ring-blue-200";
 
 const MORE_QUEUES_MENU_WIDTH = 192;
 const CATEGORY_MENU_WIDTH = 240;
@@ -1626,7 +1629,7 @@ export const TicketsPage = ({
                       <q.icon
                         size={14}
                         className={cn(
-                          isActive ? "text-white" : "text-slate-400",
+                          isActive ? queueChipActiveIconClass : "text-slate-400",
                         )}
                       />
                       <span>{q.label}</span>
@@ -1635,7 +1638,7 @@ export const TicketsPage = ({
                           className={cn(
                             "flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-sm text-[10px] font-semibold",
                             isActive
-                              ? "bg-white text-slate-700 shadow-sm"
+                              ? queueChipActiveCountClass
                               : "bg-slate-100 text-slate-500",
                           )}
                         >
@@ -1666,7 +1669,7 @@ export const TicketsPage = ({
                   </span>
                   {MORE_QUEUES.some((q) => q.id === selectedQueue) &&
                     (queueCounts?.[selectedQueue] || 0) > 0 && (
-                      <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-sm text-[10px] font-semibold bg-white text-slate-700 shadow-sm">
+                      <span className={cn("flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-sm text-[10px] font-semibold", queueChipActiveCountClass)}>
                         {(queueCounts?.[selectedQueue] || 0) > 99
                           ? "99+"
                           : queueCounts?.[selectedQueue] || 0}
@@ -1677,7 +1680,7 @@ export const TicketsPage = ({
                     className={cn(
                       "transition-transform",
                       MORE_QUEUES.some((q) => q.id === selectedQueue)
-                        ? "text-white"
+                        ? queueChipActiveIconClass
                         : "text-slate-400",
                       showMoreQueues && "rotate-180",
                     )}
@@ -1707,7 +1710,7 @@ export const TicketsPage = ({
                             className={cn(
                               "flex w-full items-center justify-between rounded-md px-3 py-2 text-xs font-semibold transition-colors",
                               isActive
-                                ? "bg-slate-950 text-white"
+                                ? menuItemActiveClass
                                 : "text-slate-600 hover:bg-slate-50 hover:text-slate-950",
                             )}
                           >
@@ -1717,7 +1720,7 @@ export const TicketsPage = ({
                                 className={cn(
                                   "flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold tracking-tight",
                                   isActive
-                                    ? "bg-white text-slate-700"
+                                    ? queueChipActiveCountClass
                                     : "bg-slate-100 text-slate-500",
                                 )}
                               >
@@ -1747,7 +1750,7 @@ export const TicketsPage = ({
                     size={14}
                     className={cn(
                       categoryFilter !== "todas"
-                        ? "text-white"
+                        ? queueChipActiveIconClass
                         : "text-slate-400",
                     )}
                   />
@@ -2323,7 +2326,7 @@ export const TicketsPage = ({
                   className={cn(
                     "group rounded-lg border p-3 text-left transition-colors",
                     selected
-                      ? "border-slate-900 bg-slate-950 text-white shadow-sm"
+                      ? "border-blue-200 bg-blue-50 text-blue-900 shadow-sm shadow-blue-600/5"
                       : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50",
                   )}
                 >
@@ -2332,7 +2335,7 @@ export const TicketsPage = ({
                       className={cn(
                         "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md border",
                         selected
-                          ? "border-white/15 bg-white/10 text-white"
+                          ? "border-blue-200 bg-white text-blue-600"
                           : "border-slate-200 bg-slate-50 text-slate-500 group-hover:bg-white",
                       )}
                     >
@@ -2345,21 +2348,21 @@ export const TicketsPage = ({
                           className={cn(
                             "rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide",
                             selected
-                              ? "border-white/15 bg-white/10 text-slate-200"
+                              ? "border-blue-200 bg-white text-blue-700"
                               : "border-slate-200 bg-slate-50 text-slate-500",
                           )}
                         >
                           {presentation.badge}
                         </span>
                       </div>
-                      <p className={cn("mt-1 text-xs leading-relaxed", selected ? "text-slate-300" : "text-slate-500")}>
+                      <p className={cn("mt-1 text-xs leading-relaxed", selected ? "text-blue-700" : "text-slate-500")}>
                         {option.description}
                       </p>
                       <div className="mt-2 grid gap-1.5 text-[11px] sm:grid-cols-2">
-                        <div className={cn("rounded-md px-2 py-1.5", selected ? "bg-white/10 text-slate-200" : "bg-slate-50 text-slate-600")}>
+                        <div className={cn("rounded-md px-2 py-1.5", selected ? "bg-white text-blue-700 ring-1 ring-blue-100" : "bg-slate-50 text-slate-600")}>
                           <span className="font-bold">Impacto:</span> {presentation.impact}
                         </div>
-                        <div className={cn("rounded-md px-2 py-1.5", selected ? "bg-white/10 text-slate-200" : "bg-slate-50 text-slate-600")}>
+                        <div className={cn("rounded-md px-2 py-1.5", selected ? "bg-white text-blue-700 ring-1 ring-blue-100" : "bg-slate-50 text-slate-600")}>
                           <span className="font-bold">Quando usar:</span> {presentation.rule}
                         </div>
                       </div>
@@ -2368,7 +2371,7 @@ export const TicketsPage = ({
                       className={cn(
                         "mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border",
                         selected
-                          ? "border-white bg-white text-slate-950"
+                          ? "border-blue-200 bg-white text-blue-600"
                           : "border-slate-300 text-transparent",
                       )}
                     >

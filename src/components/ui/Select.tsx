@@ -154,7 +154,7 @@ export const Select: React.FC<SelectProps> = ({
                   className={cn(
                     "flex cursor-pointer items-center justify-between rounded px-2.5 py-1.5 text-[13px] transition-colors group",
                     isSelected
-                      ? "bg-slate-950 text-white font-semibold"
+                      ? "bg-blue-50 text-blue-800 font-semibold ring-1 ring-inset ring-blue-200"
                       : "text-slate-700 hover:bg-slate-50 hover:text-slate-950",
                     option.disabled &&
                       "opacity-50 cursor-not-allowed pointer-events-none",
@@ -162,7 +162,7 @@ export const Select: React.FC<SelectProps> = ({
                 >
                   <span className="truncate pr-4">{option.label}</span>
                   {isSelected && (
-                    <Check size={14} className="flex-shrink-0 text-white" />
+                    <Check size={14} className="flex-shrink-0 text-blue-600" />
                   )}
                 </div>
               );

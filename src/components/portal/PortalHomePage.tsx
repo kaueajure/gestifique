@@ -54,7 +54,7 @@ export const PortalHomePage = ({ onNavigate }: PortalHomePageProps) => {
           <div className="flex flex-col sm:flex-row gap-2.5">
             <button 
               onClick={() => onNavigate('new-ticket')}
-              className="flex h-9 items-center justify-center gap-2 rounded-md bg-slate-950 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800"
+              className="flex h-9 items-center justify-center gap-2 rounded-md border border-blue-600 bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm shadow-blue-600/15 transition-colors hover:bg-blue-700"
             >
               <PlusCircle size={16} /> Novo chamado
             </button>
