@@ -101,8 +101,13 @@ const escapeHtml = (unsafe) => {
         .replace(/'/g, "&#039;")
         .replace(/\n/g, "<br>");
 };
+const buildDefaultTicketSignature = (companyName) => `Atenciosamente,\nEquipe de Atendimento\n${String(companyName || 'Atendimento').trim()}`;
+const normalizeTicketSignature = (signature, companyName) => {
+    const value = String(signature || '').trim();
+    return value || buildDefaultTicketSignature(companyName);
+};
 export const buildTicketEmailTemplate = (params) => {
-    const { type, ticketId, title, customerName = 'Cliente', agentName = 'Nossa equipe', message = '', status = 'Aberto', priority = 'Normal', category = 'Geral', resolutionReason = '', resolutionObservation = '' } = params;
+    const { type, ticketId, title, companyName, emailSignature, customerName = 'Cliente', agentName = 'Nossa equipe', message = '', status = 'Aberto', priority = 'Normal', category = 'Geral', resolutionReason = '', resolutionObservation = '' } = params;
     let subject = '';
     let headline = '';
     let leadText = '';
@@ -118,6 +123,7 @@ export const buildTicketEmailTemplate = (params) => {
     const safeStatus = escapeHtml(status);
     const safeResolutionReason = escapeHtml(resolutionReason);
     const safeResolutionObservation = escapeHtml(resolutionObservation);
+    const safeSignature = escapeHtml(normalizeTicketSignature(emailSignature, companyName));
     const safeSubjectTitle = String(title || '').replace(/[\r\n]+/g, ' ').trim();
     const normalizedStatus = String(status || '').toLowerCase();
     const statusColor = normalizedStatus.includes('resol') || normalizedStatus.includes('fech')
@@ -254,9 +260,7 @@ export const buildTicketEmailTemplate = (params) => {
                   </tr>
                   <tr>
                     <td style="padding:20px 30px 28px 30px; background:#fbfdff; border-top:1px solid #e5edf7; font-family:Arial, Helvetica, sans-serif;">
-                      <p style="margin:0 0 6px 0; font-size:13px; color:#64748b;">Atenciosamente,</p>
-                      <p style="margin:0; font-size:15px; color:#0f172a; font-weight:700;">Equipe de Atendimento</p>
-                      <p style="margin:4px 0 0 0; font-size:13px; color:#64748b;">Gestifique</p>
+                      <div style="font-size:13px; line-height:1.65; color:#64748b;">${safeSignature}</div>
                     </td>
                   </tr>
                 </table>

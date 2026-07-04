@@ -22,6 +22,31 @@ function sanitizeFromName(name: string): string {
   return String(name || '').replace(/[\r\n"<>]/g, ' ').trim().slice(0, 120) || 'Atendimento';
 }
 
+async function getCompanyTicketEmailIdentity(empresaId: number): Promise<{
+  companyName?: string;
+  emailSignature?: string;
+}> {
+  try {
+    const [rows]: any = await pool.query(
+      'SELECT nome, email_assinatura FROM empresas WHERE id = ?',
+      [empresaId]
+    );
+    const company = rows[0];
+    return {
+      companyName: company?.nome,
+      emailSignature: company?.email_assinatura,
+    };
+  } catch (err: any) {
+    if (err?.code !== 'ER_BAD_FIELD_ERROR') throw err;
+
+    const [rows]: any = await pool.query(
+      'SELECT nome FROM empresas WHERE id = ?',
+      [empresaId]
+    );
+    return { companyName: rows[0]?.nome };
+  }
+}
+
 export async function trackTicketEmailMessageIds(
   empresaId: number,
   ticketId: number,
@@ -51,6 +76,12 @@ export async function trackTicketEmailMessageIds(
 class EmailOutboundService {
   async sendTicketEmail(params: TicketOutboundParams): Promise<TicketEmailSendResult> {
     const msgId = params.messageId || `<ticket-${params.ticketId}-${Date.now()}@gestifique.com.br>`;
+    const emailIdentity = await getCompanyTicketEmailIdentity(params.empresaId);
+    const ticketEmailParams: TicketOutboundParams = {
+      ...params,
+      companyName: params.companyName || emailIdentity.companyName,
+      emailSignature: params.emailSignature || emailIdentity.emailSignature,
+    };
 
     let channel: any = null;
     if (params.emailChannelId) {
@@ -68,7 +99,7 @@ class EmailOutboundService {
         const from = `"${fromName}" <${channel.email_publico}>`;
 
         const result = await sendTicketEmail(
-          { ...params, messageId: msgId, replyTo: channel.email_publico },
+          { ...ticketEmailParams, messageId: msgId, replyTo: channel.email_publico },
           {
             transportConfig: {
               host: channel.smtp_host,
@@ -111,7 +142,7 @@ class EmailOutboundService {
 
     // FALLBACK GLOBAL EXPLÍCITO (somente com ALLOW_GLOBAL_TICKET_EMAIL_FALLBACK=true).
     const replyTo = channel?.email_publico || params.replyTo;
-    const smtpResult = await sendTicketEmail({ ...params, messageId: msgId, replyTo });
+    const smtpResult = await sendTicketEmail({ ...ticketEmailParams, messageId: msgId, replyTo });
 
     return {
       success: smtpResult.success,

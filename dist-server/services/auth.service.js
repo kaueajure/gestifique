@@ -16,6 +16,7 @@ class AuthService {
               e.logo as empresa_logo,
               e.cor_principal as empresa_cor_principal,
               e.endereco as empresa_endereco,
+              e.email_assinatura as empresa_email_assinatura,
               e.ativo as empresa_ativa 
        FROM usuarios u 
        LEFT JOIN empresas e ON u.empresa_id = e.id 

@@ -123,6 +123,8 @@ export interface TicketEmailParams {
   ticketId: number;
   type: TicketEmailType;
   title: string;
+  companyName?: string;
+  emailSignature?: string;
   customerName?: string;
   agentName?: string;
   message?: string;
@@ -148,11 +150,21 @@ const escapeHtml = (unsafe: string) => {
     .replace(/\n/g, "<br>");
 };
 
-export const buildTicketEmailTemplate = (params: Pick<TicketEmailParams, 'type' | 'ticketId' | 'title' | 'customerName' | 'agentName' | 'message' | 'status' | 'priority' | 'category' | 'resolutionReason' | 'resolutionObservation'>) => {
+const buildDefaultTicketSignature = (companyName?: string) =>
+  `Atenciosamente,\nEquipe de Atendimento\n${String(companyName || 'Atendimento').trim()}`;
+
+const normalizeTicketSignature = (signature?: string, companyName?: string) => {
+  const value = String(signature || '').trim();
+  return value || buildDefaultTicketSignature(companyName);
+};
+
+export const buildTicketEmailTemplate = (params: Pick<TicketEmailParams, 'type' | 'ticketId' | 'title' | 'companyName' | 'emailSignature' | 'customerName' | 'agentName' | 'message' | 'status' | 'priority' | 'category' | 'resolutionReason' | 'resolutionObservation'>) => {
   const {
     type,
     ticketId,
     title,
+    companyName,
+    emailSignature,
     customerName = 'Cliente',
     agentName = 'Nossa equipe',
     message = '',
@@ -179,6 +191,7 @@ export const buildTicketEmailTemplate = (params: Pick<TicketEmailParams, 'type' 
   const safeStatus = escapeHtml(status);
   const safeResolutionReason = escapeHtml(resolutionReason);
   const safeResolutionObservation = escapeHtml(resolutionObservation);
+  const safeSignature = escapeHtml(normalizeTicketSignature(emailSignature, companyName));
   const safeSubjectTitle = String(title || '').replace(/[\r\n]+/g, ' ').trim();
 
   const normalizedStatus = String(status || '').toLowerCase();
@@ -321,9 +334,7 @@ export const buildTicketEmailTemplate = (params: Pick<TicketEmailParams, 'type' 
                   </tr>
                   <tr>
                     <td style="padding:20px 30px 28px 30px; background:#fbfdff; border-top:1px solid #e5edf7; font-family:Arial, Helvetica, sans-serif;">
-                      <p style="margin:0 0 6px 0; font-size:13px; color:#64748b;">Atenciosamente,</p>
-                      <p style="margin:0; font-size:15px; color:#0f172a; font-weight:700;">Equipe de Atendimento</p>
-                      <p style="margin:4px 0 0 0; font-size:13px; color:#64748b;">Gestifique</p>
+                      <div style="font-size:13px; line-height:1.65; color:#64748b;">${safeSignature}</div>
                     </td>
                   </tr>
                 </table>

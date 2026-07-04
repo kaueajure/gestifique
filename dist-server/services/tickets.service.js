@@ -5,6 +5,7 @@ import { emailOutboundService, trackTicketEmailMessageIds } from './email-outbou
 import { recordTicketEvent } from './ticket-events.service.js';
 import ticketMessagesService from './ticket-messages.service.js';
 import slaService from './sla.service.js';
+import storageService from './storage.service.js';
 import { getTicketScope } from '../utils/ticket-permissions.js';
 import { isDeveloperUser } from '../utils/user-scope.js';
 import { recomputeTicketMessageState } from '../utils/ticket-state.js';
@@ -871,6 +872,42 @@ class TicketsService {
             }
         }
         return ticket;
+    }
+    async delete(id) {
+        const connection = await pool.getConnection();
+        let attachmentPaths = [];
+        try {
+            await connection.beginTransaction();
+            const [attachmentRows] = await connection.query('SELECT caminho FROM ticket_anexos WHERE ticket_id = ?', [id]);
+            attachmentPaths = attachmentRows
+                .map((row) => row.caminho)
+                .filter((path) => typeof path === 'string' && path.length > 0);
+            try {
+                await connection.query('UPDATE processed_emails SET ticket_id = NULL WHERE ticket_id = ?', [id]);
+            }
+            catch (err) {
+                if (err?.code !== 'ER_NO_SUCH_TABLE')
+                    throw err;
+            }
+            const [result] = await connection.query('DELETE FROM tickets WHERE id = ?', [id]);
+            await connection.commit();
+            for (const caminho of attachmentPaths) {
+                try {
+                    await storageService.delete(caminho);
+                }
+                catch (err) {
+                    console.error(`[TicketsService] Falha ao deletar anexo do chamado #${id}: ${caminho}`, err);
+                }
+            }
+            return result.affectedRows > 0;
+        }
+        catch (error) {
+            await connection.rollback();
+            throw error;
+        }
+        finally {
+            connection.release();
+        }
     }
     async getById(id, currentUserId) {
         const [rows] = await pool.query(`SELECT 

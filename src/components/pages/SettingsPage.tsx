@@ -183,6 +183,7 @@ export const SettingsPage = ({
       endereco: String(formData.get("endereco") || ""),
       cor_principal: String(formData.get("cor_principal") || "#2563eb"),
       logo: String(formData.get("logo") || ""),
+      email_assinatura: String(formData.get("email_assinatura") || ""),
     };
 
     if (!payload.nome) {
@@ -510,6 +511,41 @@ export const SettingsPage = ({
                           defaultValue={currentUser.empresa_endereco || ""}
                           className="w-full bg-white border border-slate-200 rounded-md p-2.5 text-xs focus:ring-2 focus:ring-blue-100 transition-all outline-none resize-none"
                         />
+                      </div>
+
+                      <div className="pt-4 border-t border-slate-100 space-y-3">
+                        <div className="flex items-start gap-2">
+                          <div className="w-6 h-6 bg-slate-50 text-slate-500 rounded flex items-center justify-center border border-slate-100 mt-0.5">
+                            <Globe size={12} />
+                          </div>
+                          <div>
+                            <h4 className="text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
+                              Comunicação com clientes
+                            </h4>
+                            <p className="text-[11px] text-slate-500">
+                              Esta assinatura aparece no rodapé dos e-mails de criação e resposta de chamados.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="space-y-1.5 flex flex-col">
+                          <label className="text-xs font-medium text-slate-700">
+                            Assinatura de e-mail dos chamados
+                          </label>
+                          <textarea
+                            name="email_assinatura"
+                            rows={4}
+                            maxLength={2000}
+                            defaultValue={
+                              currentUser.empresa_email_assinatura ||
+                              `Atenciosamente,\nEquipe de Atendimento\n${currentUser.empresa_nome || ""}`
+                            }
+                            placeholder={`Atenciosamente,\nEquipe de Atendimento\n${currentUser.empresa_nome || "Sua empresa"}`}
+                            className="w-full min-h-[96px] bg-white border border-slate-200 rounded-md p-2.5 text-xs leading-relaxed focus:ring-2 focus:ring-blue-100 transition-all outline-none resize-y"
+                          />
+                          <p className="text-[11px] text-slate-500">
+                            Use o nome da sua empresa ou da sua equipe. Evite incluir informações sensíveis.
+                          </p>
+                        </div>
                       </div>
 
                       <div className="pt-4 border-t border-slate-100 space-y-3">

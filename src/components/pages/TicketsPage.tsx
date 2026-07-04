@@ -45,6 +45,7 @@ import {
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { Modal } from "../ui/Modal";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { TicketList, TicketSortKey, TicketSortOrder } from "../tickets/TicketList";
 import { TicketKanban } from "../tickets/TicketKanban";
 import { CreateTicketModal } from "../tickets/CreateTicketModal";
@@ -396,6 +397,13 @@ export const TicketsPage = ({
 
   // Bulk Selection
   const [selectedTicketIds, setSelectedTicketIds] = useState<number[]>([]);
+  const [ticketContextMenu, setTicketContextMenu] = useState<{
+    ticket: Ticket;
+    x: number;
+    y: number;
+  } | null>(null);
+  const [ticketToDelete, setTicketToDelete] = useState<Ticket | null>(null);
+  const [deletingTicketId, setDeletingTicketId] = useState<number | null>(null);
 
   const handleSortChange = (key: TicketSortKey, order: TicketSortOrder) => {
     setSortBy(key);
@@ -652,6 +660,7 @@ export const TicketsPage = ({
   const canBulkActions = hasPermission(currentUser, "tickets.acoes_em_massa");
   const canViewTeam = hasPermission(currentUser, "usuarios.visualizar");
   const canConfigureTicketStatuses = hasPermission(currentUser, "empresas.gerenciar_configuracoes");
+  const canDeleteTickets = hasPermission(currentUser, "tickets.excluir");
 
   const categoryOptionsForFilter = [
     { value: "todas", label: "Todas" },
@@ -1033,6 +1042,65 @@ export const TicketsPage = ({
     sortBy,
     sortOrder,
   ]);
+
+  useEffect(() => {
+    if (!ticketContextMenu) return;
+
+    const closeMenu = () => setTicketContextMenu(null);
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeMenu();
+    };
+
+    window.addEventListener("click", closeMenu);
+    window.addEventListener("scroll", closeMenu, true);
+    window.addEventListener("resize", closeMenu);
+    window.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      window.removeEventListener("click", closeMenu);
+      window.removeEventListener("scroll", closeMenu, true);
+      window.removeEventListener("resize", closeMenu);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [ticketContextMenu]);
+
+  const handleTicketContextMenu = (event: React.MouseEvent, ticket: Ticket) => {
+    if (!canDeleteTickets) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const menuWidth = 224;
+    const menuHeight = 110;
+    const margin = 8;
+    const maxX = Math.max(margin, window.innerWidth - menuWidth - margin);
+    const maxY = Math.max(margin, window.innerHeight - menuHeight - margin);
+
+    setTicketContextMenu({
+      ticket,
+      x: Math.min(Math.max(event.clientX, margin), maxX),
+      y: Math.min(Math.max(event.clientY, margin), maxY),
+    });
+  };
+
+  const confirmDeleteTicket = async () => {
+    if (!ticketToDelete) return;
+
+    const ticketId = ticketToDelete.id;
+    try {
+      setDeletingTicketId(ticketId);
+      await api.delete(`/tickets/${ticketId}`);
+      setSelectedTicketIds((ids) => ids.filter((id) => id !== ticketId));
+      setTicketToDelete(null);
+      addToast(`Chamado #${ticketId} excluído.`, "success");
+      await fetchData();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Não foi possível excluir o chamado.";
+      addToast(message, "error");
+    } finally {
+      setDeletingTicketId(null);
+    }
+  };
 
   const handleBulkAction = async (action: string, value?: any) => {
     try {
@@ -1817,6 +1885,7 @@ export const TicketsPage = ({
                 onStatusChange={() => fetchData()}
                 devCompanyId={devCompanyId}
                 statusOptions={activeWorkflowStatusOptions}
+                onTicketContextMenu={handleTicketContextMenu}
               />
             ) : effectiveViewMode === "list" && ticketsResponse ? (
               <TicketList
@@ -1835,6 +1904,7 @@ export const TicketsPage = ({
                 sortOrder={sortOrder}
                 onSortChange={handleSortChange}
                 statusOptions={activeWorkflowStatusOptions}
+                onTicketContextMenu={handleTicketContextMenu}
               />
             ) : null}
           </div>
@@ -2320,6 +2390,64 @@ export const TicketsPage = ({
           </div>
         </div>
       </Modal>
+
+      <AnimatePresence>
+        {ticketContextMenu && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98, y: -2 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.98, y: -2 }}
+            transition={{ duration: 0.12 }}
+            className="fixed z-[10000] w-56 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg"
+            style={{ left: ticketContextMenu.x, top: ticketContextMenu.y }}
+            role="menu"
+            aria-label={`Ações do chamado ${ticketContextMenu.ticket.id}`}
+            onClick={(event) => event.stopPropagation()}
+            onContextMenu={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            }}
+          >
+            <div className="border-b border-slate-100 px-3 py-2">
+              <p className="truncate text-xs font-semibold text-slate-900">
+                Chamado #{ticketContextMenu.ticket.id}
+              </p>
+              <p className="truncate text-[11px] text-slate-500">
+                {ticketContextMenu.ticket.titulo || "Sem título"}
+              </p>
+            </div>
+            <button
+              type="button"
+              role="menuitem"
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 focus:bg-red-50 focus:outline-none"
+              onClick={() => {
+                setTicketToDelete(ticketContextMenu.ticket);
+                setTicketContextMenu(null);
+              }}
+            >
+              <Trash2 size={14} />
+              Excluir chamado
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <ConfirmDialog
+        isOpen={!!ticketToDelete}
+        onClose={() => {
+          if (!deletingTicketId) setTicketToDelete(null);
+        }}
+        onConfirm={confirmDeleteTicket}
+        title="Excluir chamado?"
+        description={
+          ticketToDelete
+            ? `O chamado #${ticketToDelete.id} será removido com suas mensagens, histórico e anexos. Essa ação não pode ser desfeita.`
+            : "Essa ação não pode ser desfeita."
+        }
+        confirmLabel={deletingTicketId ? "Excluindo..." : "Excluir chamado"}
+        cancelLabel="Cancelar"
+        variant="danger"
+      />
 
       {/* Toast System */}
       <div className="fixed bottom-6 right-6 z-[10000] flex flex-col gap-2 pointer-events-none">

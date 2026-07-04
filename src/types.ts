@@ -18,6 +18,7 @@ export interface User {
   empresa_logo?: string | null;
   empresa_cor_principal?: string;
   empresa_endereco?: string;
+  empresa_email_assinatura?: string | null;
   created_at: string;
   permissions?: string[];
   isSuperUser?: boolean;
@@ -31,6 +32,7 @@ export interface Empresa {
   email_suporte: string;
   telefone: string;
   logo: string | null;
+  email_assinatura?: string | null;
   cor_principal: string;
   ativo: boolean;
   created_at: string;
@@ -58,6 +60,7 @@ export interface CompanyFormData {
   telefone: string;
   cor_principal: string;
   logo?: string | null;
+  email_assinatura?: string | null;
 }
 
 export type TicketStatus = string;

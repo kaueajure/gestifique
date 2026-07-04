@@ -26,6 +26,7 @@ interface TicketKanbanProps {
   onStatusChange: () => void;
   devCompanyId?: string;
   statusOptions?: { value: TicketStatus; label: string; special?: TicketStatusSpecial | string | null }[];
+  onTicketContextMenu?: (event: React.MouseEvent, ticket: Ticket) => void;
 }
 
 interface TeamMember {
@@ -90,7 +91,8 @@ export const TicketKanban = ({
   currentUser,
   onStatusChange,
   devCompanyId,
-  statusOptions = []
+  statusOptions = [],
+  onTicketContextMenu
 }: TicketKanbanProps) => {
   const canEditStatus = hasPermission(currentUser, 'tickets.editar_status');
   const canReopen = hasPermission(currentUser, 'tickets.reabrir');
@@ -539,6 +541,7 @@ export const TicketKanban = ({
                                               {...dragProvided.draggableProps}
                                               {...dragProvided.dragHandleProps}
                                               onClick={() => onSelectTicket(ticket.id)}
+                                              onContextMenu={(event: React.MouseEvent) => onTicketContextMenu?.(event, ticket)}
                                               className={cn(
                                                 'group relative flex h-[112px] cursor-pointer flex-col overflow-hidden rounded-md border border-slate-200 bg-white p-2.5 text-left shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all hover:border-slate-300 hover:shadow-[0_8px_20px_rgba(15,23,42,0.08)]',
                                                 dragSnapshot.isDragging && 'z-50 border-blue-300 shadow-lg',

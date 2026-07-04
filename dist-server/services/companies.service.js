@@ -1,4 +1,5 @@
 import pool from '../db/connection.js';
+const EMAIL_SIGNATURE_MAX_LENGTH = 2000;
 class CompaniesService {
     async list(filters = {}) {
         let query = `
@@ -39,6 +40,12 @@ class CompaniesService {
     }
     async create(data) {
         const { nome, cnpj, email, email_suporte, telefone, cor_principal = '#2563eb', logo } = data;
+        const email_assinatura = typeof data.email_assinatura === 'string' && data.email_assinatura.trim()
+            ? data.email_assinatura.trim()
+            : `Atenciosamente,\nEquipe de Atendimento\n${nome}`;
+        if (email_assinatura.length > EMAIL_SIGNATURE_MAX_LENGTH) {
+            throw new Error('Assinatura de e-mail muito longa.');
+        }
         // Duplication Check
         if (cnpj) {
             const [existing] = await pool.query('SELECT id FROM empresas WHERE cnpj = ?', [cnpj]);
@@ -55,7 +62,7 @@ class CompaniesService {
             if (existing.length > 0)
                 throw new Error('Este E-mail de suporte já está em uso por outra empresa.');
         }
-        const [result] = await pool.query('INSERT INTO empresas (nome, cnpj, email, email_suporte, telefone, cor_principal, logo) VALUES (?, ?, ?, ?, ?, ?, ?)', [nome, cnpj, email, email_suporte || null, telefone, cor_principal, logo]);
+        const [result] = await pool.query('INSERT INTO empresas (nome, cnpj, email, email_suporte, telefone, cor_principal, logo, email_assinatura) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [nome, cnpj, email, email_suporte || null, telefone, cor_principal, logo, email_assinatura]);
         const companyId = result.insertId;
         await pool.query(`INSERT IGNORE INTO empresa_ticket_status
        (empresa_id, nome, valor, ativo, kanban_visivel, cor, especial, ordem)
@@ -66,6 +73,9 @@ class CompaniesService {
     }
     async update(id, data) {
         const { cnpj, email, email_suporte } = data;
+        if (data.email_assinatura !== undefined && String(data.email_assinatura).length > EMAIL_SIGNATURE_MAX_LENGTH) {
+            throw new Error('Assinatura de e-mail muito longa.');
+        }
         // Duplication Check (Excluding self)
         if (cnpj) {
             const [existing] = await pool.query('SELECT id FROM empresas WHERE cnpj = ? AND id != ?', [cnpj, id]);
@@ -85,9 +95,9 @@ class CompaniesService {
         const fields = [];
         const params = [];
         Object.keys(data).forEach(key => {
-            if (['nome', 'cnpj', 'email', 'email_suporte', 'telefone', 'ativo', 'cor_principal', 'logo', 'endereco'].includes(key)) {
+            if (['nome', 'cnpj', 'email', 'email_suporte', 'telefone', 'ativo', 'cor_principal', 'logo', 'endereco', 'email_assinatura'].includes(key)) {
                 fields.push(`${key} = ?`);
-                if (key === 'email_suporte' && data[key] === '') {
+                if ((key === 'email_suporte' || key === 'email_assinatura') && data[key] === '') {
                     params.push(null);
                 }
                 else {

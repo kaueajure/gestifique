@@ -37,7 +37,8 @@ class UsersService {
               e.cnpj as empresa_cnpj,
               e.logo as empresa_logo,
               e.cor_principal as empresa_cor_principal,
-              e.endereco as empresa_endereco
+              e.endereco as empresa_endereco,
+              e.email_assinatura as empresa_email_assinatura
        FROM usuarios u 
        LEFT JOIN empresas e ON u.empresa_id = e.id 
        WHERE u.id = ?`, [id]);

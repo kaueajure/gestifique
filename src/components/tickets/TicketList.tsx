@@ -45,6 +45,7 @@ interface TicketListProps {
   sortOrder?: TicketSortOrder;
   onSortChange?: (key: TicketSortKey, order: TicketSortOrder) => void;
   statusOptions?: { value: TicketStatus; label: string; special?: TicketStatusSpecial | string | null }[];
+  onTicketContextMenu?: (event: React.MouseEvent, ticket: Ticket) => void;
 }
 
 export type TicketSortKey = 'operacional' | 'id' | 'updated_at' | 'prioridade' | 'status' | 'titulo';
@@ -53,7 +54,7 @@ export type TicketSortOrder = 'asc' | 'desc';
 export const TicketList = ({ 
   tickets, onSelectTicket, currentUser, onStatusChange, searchTerm, hasFilters, meta, 
   onPageChange, selectedTicketIds = [], onSelectionChange, canSelectBulk,
-  sortKey = 'operacional', sortOrder = 'desc', onSortChange, statusOptions = []
+  sortKey = 'operacional', sortOrder = 'desc', onSortChange, statusOptions = [], onTicketContextMenu
 }: TicketListProps) => {
 
   const canAssumeTicket = hasPermission(currentUser, 'tickets.assumir');
@@ -208,6 +209,7 @@ export const TicketList = ({
               role="button"
               tabIndex={0}
               onClick={() => onSelectTicket(ticket.id)}
+              onContextMenu={(event) => onTicketContextMenu?.(event, ticket)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
                   event.preventDefault();
@@ -366,6 +368,7 @@ export const TicketList = ({
                 <tr 
                   key={ticket.id}
                   onClick={() => onSelectTicket(ticket.id)}
+                  onContextMenu={(event) => onTicketContextMenu?.(event, ticket)}
                   className={cn(
                     "group relative cursor-pointer transition-colors",
                     isSelected ? "bg-blue-50" : "hover:bg-slate-50/80",

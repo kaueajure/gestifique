@@ -1,5 +1,7 @@
 import  pool from  '../db/connection.js';
 
+const EMAIL_SIGNATURE_MAX_LENGTH = 2000;
+
 class CompaniesService {
   async list(filters: { search?: string; status?: string; empresaId?: number } = {}) {
     let query = `
@@ -45,6 +47,13 @@ class CompaniesService {
 
   async create(data: any) {
     const { nome, cnpj, email, email_suporte, telefone, cor_principal = '#2563eb', logo } = data;
+    const email_assinatura = typeof data.email_assinatura === 'string' && data.email_assinatura.trim()
+      ? data.email_assinatura.trim()
+      : `Atenciosamente,\nEquipe de Atendimento\n${nome}`;
+
+    if (email_assinatura.length > EMAIL_SIGNATURE_MAX_LENGTH) {
+      throw new Error('Assinatura de e-mail muito longa.');
+    }
 
     // Duplication Check
     if (cnpj) {
@@ -61,8 +70,8 @@ class CompaniesService {
     }
 
     const [result]: any = await pool.query(
-      'INSERT INTO empresas (nome, cnpj, email, email_suporte, telefone, cor_principal, logo) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [nome, cnpj, email, email_suporte || null, telefone, cor_principal, logo]
+      'INSERT INTO empresas (nome, cnpj, email, email_suporte, telefone, cor_principal, logo, email_assinatura) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [nome, cnpj, email, email_suporte || null, telefone, cor_principal, logo, email_assinatura]
     );
     const companyId = result.insertId;
 
@@ -81,6 +90,10 @@ class CompaniesService {
   async update(id: number, data: any) {
     const { cnpj, email, email_suporte } = data;
 
+    if (data.email_assinatura !== undefined && String(data.email_assinatura).length > EMAIL_SIGNATURE_MAX_LENGTH) {
+      throw new Error('Assinatura de e-mail muito longa.');
+    }
+
     // Duplication Check (Excluding self)
     if (cnpj) {
       const [existing]: any = await pool.query('SELECT id FROM empresas WHERE cnpj = ? AND id != ?', [cnpj, id]);
@@ -98,9 +111,9 @@ class CompaniesService {
     const fields: string[] = [];
     const params: any[] = [];
     Object.keys(data).forEach(key => {
-      if (['nome', 'cnpj', 'email', 'email_suporte', 'telefone', 'ativo', 'cor_principal', 'logo', 'endereco'].includes(key)) {
+      if (['nome', 'cnpj', 'email', 'email_suporte', 'telefone', 'ativo', 'cor_principal', 'logo', 'endereco', 'email_assinatura'].includes(key)) {
         fields.push(`${key} = ?`);
-        if (key === 'email_suporte' && data[key] === '') {
+        if ((key === 'email_suporte' || key === 'email_assinatura') && data[key] === '') {
           params.push(null);
         } else {
           params.push(data[key]);

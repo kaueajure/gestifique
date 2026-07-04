@@ -6,6 +6,7 @@ import { recordTicketEvent } from './ticket-events.service.js';
 import ticketMessagesService from './ticket-messages.service.js';
 import slaService from './sla.service.js';
 import { AIService } from './ai.service.js';
+import storageService from './storage.service.js';
 import { getTicketScope } from '../utils/ticket-permissions.js';
 import { isDeveloperUser } from '../utils/user-scope.js';
 import { recomputeTicketMessageState } from '../utils/ticket-state.js';
@@ -1008,6 +1009,54 @@ class TicketsService {
       }
     }
     return ticket;
+  }
+
+  async delete(id: number): Promise<boolean> {
+    const connection = await pool.getConnection();
+    let attachmentPaths: string[] = [];
+
+    try {
+      await connection.beginTransaction();
+
+      const [attachmentRows]: any = await connection.query(
+        'SELECT caminho FROM ticket_anexos WHERE ticket_id = ?',
+        [id]
+      );
+      attachmentPaths = attachmentRows
+        .map((row: any) => row.caminho)
+        .filter((path: unknown): path is string => typeof path === 'string' && path.length > 0);
+
+      try {
+        await connection.query(
+          'UPDATE processed_emails SET ticket_id = NULL WHERE ticket_id = ?',
+          [id]
+        );
+      } catch (err: any) {
+        if (err?.code !== 'ER_NO_SUCH_TABLE') throw err;
+      }
+
+      const [result]: any = await connection.query(
+        'DELETE FROM tickets WHERE id = ?',
+        [id]
+      );
+
+      await connection.commit();
+
+      for (const caminho of attachmentPaths) {
+        try {
+          await storageService.delete(caminho);
+        } catch (err) {
+          console.error(`[TicketsService] Falha ao deletar anexo do chamado #${id}: ${caminho}`, err);
+        }
+      }
+
+      return result.affectedRows > 0;
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
   }
 
   async getById(id: number, currentUserId?: number) {

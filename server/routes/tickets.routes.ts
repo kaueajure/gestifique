@@ -1193,6 +1193,44 @@ router.post('/:id/attachments', ticketUpload.array('files', 5), async (req: Auth
   }
 });
 
+router.delete('/:id', requirePermission('tickets.excluir'), async (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.user;
+    if (!currentUser) return sendError(res, 'Não autenticado', 401);
+
+    const id = toPositiveInt(req.params.id);
+    if (!id) return sendError(res, 'ID do chamado inválido.', 400);
+
+    const ticketResult: any = await ticketsService.getByIdForUser(id, currentUser);
+    if (!ticketResult) return sendError(res, 'Chamado não encontrado', 404);
+    if (ticketResult.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
+
+    const deleted = await ticketsService.delete(id);
+    if (!deleted) return sendError(res, 'Chamado não encontrado', 404);
+
+    await logSystemAction(
+      req,
+      currentUser.id,
+      ticketResult.empresa_id,
+      'TICKET_DELETE',
+      `Chamado #${id} excluído: ${ticketResult.titulo || 'Sem título'}`
+    );
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`empresa_${ticketResult.empresa_id}`).emit('ticketDeleted', {
+        ticketId: id,
+        empresaId: ticketResult.empresa_id
+      });
+    }
+
+    sendSuccess(res, null, 'Chamado excluído com sucesso');
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro ao excluir chamado';
+    sendError(res, message);
+  }
+});
+
 // TAGS ROUTES
 router.get('/:id/tags', async (req: AuthRequest, res) => {
   try {
