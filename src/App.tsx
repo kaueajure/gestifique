@@ -204,9 +204,6 @@ export default function App() {
   }
 
   const restorePortalSession = async () => {
-    const portalToken = localStorage.getItem("portal_token");
-    if (!portalToken) return false;
-
     try {
       const profile = await api.get<{
         email: string;
@@ -466,7 +463,7 @@ export default function App() {
   };
 
   const handlePortalAuthenticated = (data: {
-    token: string;
+    token?: string;
     customer: {
       email: string;
       empresa_id: number;
@@ -474,7 +471,7 @@ export default function App() {
       empresa_nome?: string;
     };
   }) => {
-    localStorage.setItem("portal_token", data.token);
+    localStorage.removeItem("portal_token");
 
     const portalUser: User = {
       id: 0,

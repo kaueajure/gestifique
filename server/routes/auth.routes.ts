@@ -65,6 +65,12 @@ router.post('/logout', (req, res) => {
     sameSite: env.IS_PROD ? 'strict' : 'lax',
     path: '/'
   });
+  res.clearCookie('portal_token', {
+    httpOnly: true,
+    secure: env.IS_PROD,
+    sameSite: 'lax',
+    path: '/'
+  });
   sendSuccess(res, null, 'Logout realizado com sucesso');
 });
 

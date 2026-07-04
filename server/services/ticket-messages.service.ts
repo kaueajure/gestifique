@@ -1,11 +1,11 @@
 import pool from '../db/connection.js';
 import { recordTicketEvent } from './ticket-events.service.js';
 import notificationsService from './notifications.service.js';
-import { emailOutboundService, trackTicketEmailMessageIds } from './email-outbound.service.js';
+import { emailOutboxService } from './email-outbox.service.js';
 import { io } from '../server.js';
 import slaService from './sla.service.js';
 import { recomputeTicketMessageState } from '../utils/ticket-state.js';
-import { maskEmail, maskIdentifier } from '../utils/sanitize.js';
+import { maskIdentifier } from '../utils/sanitize.js';
 import {
   getInitialTicketStatusValue,
   getInProgressTicketStatusValue,
@@ -288,11 +288,11 @@ class TicketMessagesService {
           // Get the original messageId from the ticket or the latest message for threading
           const replyToId = ticket.message_id;
           
-          const outboundMessageId = `<ticket-${ticket_id}-msg-${messageId}-${Date.now()}@gestifique.com.br>`;
+          const outboundMessageId = `<ticket-${ticket_id}-msg-${messageId}@gestifique.com.br>`;
           console.log(`[TicketMessagesService] Generated outboundMessageId: ${maskIdentifier(outboundMessageId)}`);
           
           try {
-            const sendResult = await emailOutboundService.sendTicketEmail({
+            await emailOutboxService.enqueueTicketEmail({
               to: ticket.cliente_email,
               ticketId: ticket_id,
               empresaId: ticket.empresa_id,
@@ -306,23 +306,10 @@ class TicketMessagesService {
               messageId: outboundMessageId,
               inReplyTo: replyToId,
               references: replyToId ? [replyToId] : undefined,
+              dedupeKey: `ticket:${ticket_id}:message:${messageId}`
             });
-
-            if (sendResult.success) {
-              console.log(
-                `[TicketMessagesService] External notification email sent to ${maskEmail(ticket.cliente_email)} for ticket #${ticket_id} via ${sendResult.provider} (Message-ID: ${maskIdentifier(sendResult.messageId)})`
-              );
-              await trackTicketEmailMessageIds(
-                ticket.empresa_id,
-                ticket_id,
-                outboundMessageId,
-                sendResult
-              );
-            } else {
-              console.error('[TicketMessagesService] Mail failed:', sendResult.error);
-            }
           } catch (err) {
-            console.error('[Notification Error] Mail failed:', err);
+            console.error('[Notification Error] Falha ao enfileirar e-mail:', err);
           }
         }
       }

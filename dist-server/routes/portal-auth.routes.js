@@ -138,9 +138,15 @@ router.post('/verify-code', authRateLimit, async (req, res) => {
             customer_email: custEmail,
             usuario_id: user?.id || null,
             nome: user?.nome || null
-        }, env.JWT_SECRET, { expiresIn: '8h' });
+        }, env.JWT_SECRET, { expiresIn: '2h' });
+        res.cookie('portal_token', token, {
+            httpOnly: true,
+            secure: env.IS_PROD,
+            sameSite: 'lax',
+            maxAge: 2 * 60 * 60 * 1000,
+            path: '/'
+        });
         return sendSuccess(res, {
-            token,
             customer: {
                 email: custEmail,
                 empresa_id: company.id,

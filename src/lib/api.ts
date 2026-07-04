@@ -16,11 +16,6 @@ class ApiService {
        headers['Content-Type'] = 'application/json';
     }
 
-    const portalToken = localStorage.getItem("portal_token");
-    if (portalToken && endpoint.startsWith("/portal") && !endpoint.startsWith("/portal-auth")) {
-      headers["Authorization"] = `Bearer ${portalToken}`;
-    }
-
     const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
       credentials: 'include',

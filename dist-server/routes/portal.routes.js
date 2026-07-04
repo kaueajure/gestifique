@@ -8,7 +8,7 @@ const router = Router();
 // Middleware híbrido para aceitar autenticação normal ou por token do portal
 const portalIdentityMiddleware = (req, res, next) => {
     const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
+    if ((authHeader && authHeader.startsWith('Bearer ')) || req.cookies?.portal_token) {
         // Tenta autenticar pelo token do portal
         return portalAuthMiddleware(req, res, next);
     }

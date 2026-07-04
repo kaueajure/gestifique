@@ -11,7 +11,7 @@ const router = Router();
 const portalIdentityMiddleware = (req: any, res: any, next: any) => {
   const authHeader = req.headers.authorization;
 
-  if (authHeader && authHeader.startsWith('Bearer ')) {
+  if ((authHeader && authHeader.startsWith('Bearer ')) || req.cookies?.portal_token) {
     // Tenta autenticar pelo token do portal
     return portalAuthMiddleware(req, res, next);
   } else {

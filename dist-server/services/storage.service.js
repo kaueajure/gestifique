@@ -6,13 +6,21 @@ class StorageService {
     constructor() {
         this.localPath = path.resolve(process.cwd(), env.STORAGE_CONFIG.LOCAL_PATH);
     }
+    resolveLocalPath(caminho) {
+        const fullPath = path.resolve(caminho);
+        const relativePath = path.relative(this.localPath, fullPath);
+        if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+            throw new Error('Caminho de arquivo fora do diretorio de uploads.');
+        }
+        return fullPath;
+    }
     /**
      * Absatração para salvar arquivo.
      * Por enquanto suporta apenas local, mas a interface permite expansão.
      */
     async save(buffer, options) {
         if (env.STORAGE_TYPE === 'local') {
-            const fullPath = path.join(this.localPath, options.filename);
+            const fullPath = this.resolveLocalPath(path.join(this.localPath, options.filename));
             // Garante que o diretório existe
             const dir = path.dirname(fullPath);
             await fs.mkdir(dir, { recursive: true });
@@ -27,8 +35,9 @@ class StorageService {
      */
     async delete(caminho) {
         if (env.STORAGE_TYPE === 'local') {
+            const fullPath = this.resolveLocalPath(caminho);
             try {
-                await fs.unlink(caminho);
+                await fs.unlink(fullPath);
             }
             catch (err) {
                 if (err.code !== 'ENOENT') {
@@ -46,7 +55,7 @@ class StorageService {
      */
     async get(caminho) {
         if (env.STORAGE_TYPE === 'local') {
-            return await fs.readFile(caminho);
+            return await fs.readFile(this.resolveLocalPath(caminho));
         }
         // Futuro: S3 / GCS
         throw new Error(`Storage type ${env.STORAGE_TYPE} not implemented yet`);

@@ -2,6 +2,8 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+process.env.TZ = process.env.APP_TIMEZONE || 'America/Sao_Paulo';
+
 const DEFAULT_FORWARDING_CONFIRMATION_ALLOWED_HOSTS = [
   // Gmail / Google Workspace forwarding confirmations.
   'mail.google.com',
@@ -161,6 +163,8 @@ export const env = {
   // Padrão SEGURO = false: se o canal não tiver SMTP, a resposta NÃO sai com a
   // identidade global do SaaS; vira erro controlado. Ative só conscientemente.
   ALLOW_GLOBAL_TICKET_EMAIL_FALLBACK: process.env.ALLOW_GLOBAL_TICKET_EMAIL_FALLBACK === 'true',
+  INTERNAL_JOB_TOKEN: process.env.INTERNAL_JOB_TOKEN,
+  APP_TIMEZONE: process.env.APP_TIMEZONE || 'America/Sao_Paulo',
 
   // Scaling & features
   ENABLE_WEB_SERVER: process.env.ENABLE_WEB_SERVER !== 'false',

@@ -9,8 +9,7 @@ import  { logSystemAction } from  '../utils/logger.js';
 import { ticketUpload } from '../middlewares/upload.js';
 import { validateUploadedFile } from '../utils/file-security.js';
 import pool from '../db/connection.js';
-import { emailOutboundService, trackTicketEmailMessageIds } from '../services/email-outbound.service.js';
-import { maskEmail, maskIdentifier } from '../utils/sanitize.js';
+import { emailOutboxService } from '../services/email-outbox.service.js';
 import {
   getTicketStatusConfig,
   isFinalTicketStatusSpecial
@@ -54,21 +53,21 @@ async function ensureStatusTransitionPermission(res: any, currentUser: any, empr
   if (oldIsFinal && !newIsFinal) {
     const hasReopenPerm = await permissionsService.hasPermission(currentUser, 'tickets.reabrir');
     if (!hasReopenPerm) {
-      return sendError(res, 'Acesso proibido: sem permissão para reabrir chamados (tickets.reabrir).', 403);
+      return sendError(res, 'Voce nao tem permissao para reabrir chamados.', 403);
     }
   }
 
   if (newStatusConfig?.especial === 'finalizado') {
     const hasFinalizePerm = await permissionsService.hasPermission(currentUser, 'tickets.finalizar');
     if (!hasFinalizePerm) {
-      return sendError(res, 'Acesso proibido: sem permissão para finalizar chamados (tickets.finalizar).', 403);
+      return sendError(res, 'Voce nao tem permissao para finalizar chamados.', 403);
     }
   }
 
   if (newStatusConfig?.especial === 'encerrado') {
     const hasClosePerm = await permissionsService.hasPermission(currentUser, 'tickets.fechar');
     if (!hasClosePerm) {
-      return sendError(res, 'Acesso proibido: sem permissão para fechar chamados (tickets.fechar).', 403);
+      return sendError(res, 'Voce nao tem permissao para fechar chamados.', 403);
     }
   }
 
@@ -86,21 +85,21 @@ async function getBulkActionPermissionError(currentUser: any, action: string, va
   switch (action) {
     case 'status': {
       const hasStatusPerm = await permissionsService.hasPermission(currentUser, 'tickets.editar_status');
-      if (!hasStatusPerm) return 'Acesso proibido: sem permissão para alterar status em massa (tickets.editar_status).';
+      if (!hasStatusPerm) return 'Voce nao tem permissao para alterar status em massa.';
 
       if (value === 'resolvido' && !await permissionsService.hasPermission(currentUser, 'tickets.finalizar')) {
-        return 'Acesso proibido: sem permissão para finalizar chamados em massa (tickets.finalizar).';
+        return 'Voce nao tem permissao para finalizar chamados em massa.';
       }
 
       if (value === 'fechado' && !await permissionsService.hasPermission(currentUser, 'tickets.fechar')) {
-        return 'Acesso proibido: sem permissão para fechar chamados em massa (tickets.fechar).';
+        return 'Voce nao tem permissao para fechar chamados em massa.';
       }
       return null;
     }
     case 'fechar':
       return await permissionsService.hasPermission(currentUser, 'tickets.fechar')
         ? null
-        : 'Acesso proibido: sem permissão para fechar chamados em massa (tickets.fechar).';
+        : 'Voce nao tem permissao para fechar chamados em massa.';
     case 'prioridade':
       return await permissionsService.hasPermission(currentUser, 'tickets.editar_prioridade')
         ? null
@@ -182,8 +181,8 @@ async function sendPublicAttachmentEmail(params: {
     return;
   }
 
-  const outboundMessageId = `<ticket-${ticketId}-msg-${messageId}-attachments-${Date.now()}@gestifique.com.br>`;
-  const sendResult = await emailOutboundService.sendTicketEmail({
+  const outboundMessageId = `<ticket-${ticketId}-msg-${messageId}-attachments@gestifique.com.br>`;
+  await emailOutboxService.enqueueTicketEmail({
     to: row.cliente_email,
     ticketId,
     empresaId: row.empresa_id,
@@ -201,17 +200,9 @@ async function sendPublicAttachmentEmail(params: {
       filename: file.originalname,
       path: file.path,
       contentType: file.mimetype
-    }))
+    })),
+    dedupeKey: `ticket:${ticketId}:message:${messageId}:attachments`
   });
-
-  if (sendResult.success) {
-    console.log(
-      `[TicketsRoutes] Attachment email sent to ${maskEmail(row.cliente_email)} for ticket #${ticketId} via ${sendResult.provider} (Message-ID: ${maskIdentifier(sendResult.messageId)})`
-    );
-    await trackTicketEmailMessageIds(row.empresa_id, ticketId, outboundMessageId, sendResult);
-  } else {
-    console.error('[TicketsRoutes] Attachment email failed:', sendResult.error);
-  }
 }
 
 router.use(authMiddleware);
@@ -341,7 +332,8 @@ router.get('/', requirePermission('tickets.visualizar'), async (req: AuthRequest
       sla_status: typeof req.query.sla_status === 'string' ? req.query.sla_status as any : undefined,
       custom_field_search: typeof req.query.custom_field_search === 'string' ? req.query.custom_field_search : undefined,
       sort_by: typeof req.query.sort_by === 'string' ? req.query.sort_by : undefined,
-      sort_order: req.query.sort_order === 'asc' || req.query.sort_order === 'desc' ? req.query.sort_order : undefined
+      sort_order: req.query.sort_order === 'asc' || req.query.sort_order === 'desc' ? req.query.sort_order : undefined,
+      include_deleted: currentUser.desenvolvedor && req.query.include_deleted === 'true'
     };
     const tickets = await ticketsService.list(filters);
     sendSuccess(res, tickets);
@@ -419,7 +411,8 @@ router.get('/kanban', requirePermission('tickets.visualizar'), async (req: AuthR
       updated_to: typeof req.query.updated_to === 'string' ? req.query.updated_to : undefined,
       sla_status: typeof req.query.sla_status === 'string' ? req.query.sla_status as any : undefined,
       custom_field_search: typeof req.query.custom_field_search === 'string' ? req.query.custom_field_search : undefined,
-      kanban_limit: toPositiveInt(req.query.kanban_limit)
+      kanban_limit: toPositiveInt(req.query.kanban_limit),
+      include_deleted: currentUser.desenvolvedor && req.query.include_deleted === 'true'
     };
     
     const kanbanData = await ticketsService.getKanban(filters);
@@ -606,7 +599,7 @@ router.patch('/:id/reopen', async (req: AuthRequest, res) => {
 
     const hasReopenPerm = await permissionsService.hasPermission(currentUser, 'tickets.reabrir');
     if (!hasReopenPerm) {
-      return sendError(res, 'Acesso proibido: Sem permissão para reabrir chamados (tickets.reabrir).', 403);
+      return sendError(res, 'Voce nao tem permissao para reabrir chamados.', 403);
     }
 
     const id = parseInt(req.params.id);
@@ -716,7 +709,7 @@ router.patch('/:id/status', async (req: AuthRequest, res) => {
 
     const hasStatusPerm = await permissionsService.hasPermission(currentUser, 'tickets.editar_status');
     if (!hasStatusPerm) {
-        return sendError(res, 'Acesso proibido: Sem permissão para alterar status (tickets.editar_status).', 403);
+        return sendError(res, 'Voce nao tem permissao para alterar status.', 403);
     }
 
     const transitionDenied = await ensureStatusTransitionPermission(res, currentUser, ticket.empresa_id, ticket.status, status);
@@ -787,7 +780,7 @@ router.patch('/:id', async (req: AuthRequest, res) => {
     if (hasFieldChanged('status')) {
       const denied = await ensureFieldPermission(
         'tickets.editar_status',
-        'Acesso proibido: sem permissão para alterar status (tickets.editar_status).'
+        'Voce nao tem permissao para alterar status.'
       );
       if (denied) return denied;
 
@@ -950,7 +943,7 @@ router.get('/:id/messages', async (req: AuthRequest, res) => {
     if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
     const canView = await permissionsService.hasPermission(currentUser, 'ticket_mensagens.visualizar');
-    if (!canView) return sendError(res, 'Acesso proibido: Sem permissão para visualizar mensagens (ticket_mensagens.visualizar).', 403);
+    if (!canView) return sendError(res, 'Voce nao tem permissao para visualizar mensagens deste chamado.', 403);
 
     const hasVerInternos = await permissionsService.hasPermission(currentUser, 'ticket_mensagens.ver_internos');
     const messages = await ticketsService.getMessages(id, hasVerInternos);
@@ -981,7 +974,7 @@ router.get('/:id/timeline', async (req: AuthRequest, res) => {
     if (result.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
     const canView = await permissionsService.hasPermission(currentUser, 'ticket_mensagens.visualizar');
-    if (!canView) return sendError(res, 'Acesso proibido: Sem permissão para visualizar timeline (ticket_mensagens.visualizar).', 403);
+    if (!canView) return sendError(res, 'Voce nao tem permissao para visualizar a linha do tempo deste chamado.', 403);
 
     const hasVerInternos = await permissionsService.hasPermission(currentUser, 'ticket_mensagens.ver_internos');
     
@@ -1021,7 +1014,7 @@ router.post('/:id/messages', async (req: AuthRequest, res) => {
     } else {
        const hasRespPerm = await permissionsService.hasPermission(currentUser, 'ticket_mensagens.responder');
        if (!hasRespPerm) {
-         return sendError(res, 'Acesso proibido: Sem permissão para responder chamados (ticket_mensagens.responder).', 403);
+         return sendError(res, 'Voce nao tem permissao para responder chamados.', 403);
        }
     }
     
@@ -1081,7 +1074,7 @@ router.post('/:id/attachments', ticketUpload.array('files', 5), async (req: Auth
       if (files && files.length > 0) {
         await attachmentsService.deleteMultiple(files);
       }
-      return sendError(res, 'Acesso proibido: Você não possui a permissão ticket_mensagens.anexar.', 403);
+      return sendError(res, 'Voce nao tem permissao para anexar arquivos neste chamado.', 403);
     }
 
     const id = parseInt(req.params.id);
@@ -1094,6 +1087,7 @@ router.post('/:id/attachments', ticketUpload.array('files', 5), async (req: Auth
     for (const file of files) {
       const validation = await validateUploadedFile(file);
       if (!validation.ok) {
+        console.warn(`[Attachments] Upload bloqueado no chamado #${id}: ${validation.error} (${file.originalname}, ${file.mimetype}, ${file.size} bytes)`);
         await attachmentsService.deleteMultiple(files);
         return sendError(res, validation.error, 400);
       }
@@ -1205,7 +1199,8 @@ router.delete('/:id', requirePermission('tickets.excluir'), async (req: AuthRequ
     if (!ticketResult) return sendError(res, 'Chamado não encontrado', 404);
     if (ticketResult.error === 'forbidden') return sendError(res, 'Permissão negada', 403);
 
-    const deleted = await ticketsService.delete(id);
+    const reason = typeof req.body?.reason === 'string' ? req.body.reason : 'Exclusao manual pelo usuario';
+    const deleted = await ticketsService.delete(id, currentUser.id, reason);
     if (!deleted) return sendError(res, 'Chamado não encontrado', 404);
 
     await logSystemAction(
@@ -1286,7 +1281,7 @@ router.put('/:id/tags', requirePermission('tickets.gerenciar_tags'), async (req:
 
     await ticketsService.setTags(id, tags);
     await logSystemAction(req, currentUser.id, result.empresa_id, 'TICKET_TAGS_UPDATE', `Tags do chamado #${id} atualizadas: ${tags.join(', ')}`);
-    sendSuccess(res, null, 'Tags updated');
+    sendSuccess(res, null, 'Tags atualizadas');
   } catch (error: unknown) {
     sendError(res, 'Erro ao atualizar tags');
   }

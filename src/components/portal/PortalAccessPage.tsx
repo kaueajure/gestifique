@@ -9,7 +9,7 @@ import { Logo } from '../ui/Logo';
 
 interface PortalAccessPageProps {
   onAuthenticated: (data: {
-    token: string;
+    token?: string;
     customer: {
       email: string;
       empresa_id: number;
@@ -71,7 +71,7 @@ export const PortalAccessPage: React.FC<PortalAccessPageProps> = ({ onAuthentica
 
     try {
       const response = await api.post<{
-        token: string;
+        token?: string;
         customer: {
           email: string;
           empresa_id: number;

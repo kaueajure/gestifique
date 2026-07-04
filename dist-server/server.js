@@ -15,6 +15,7 @@ import { errorHandler } from './middlewares/error-handler.js';
 import { env } from './config/env.js';
 import { EmailListenerService } from './services/email-listener.service.js';
 import { runTicketAutomations } from './jobs/ticketAutomationJob.js';
+import { emailOutboxService } from './services/email-outbox.service.js';
 export let io;
 function getCookieValue(cookieHeader, name) {
     if (!cookieHeader)
@@ -286,8 +287,12 @@ async function startServer() {
             setInterval(() => {
                 runTicketAutomations().catch(err => console.error('[JOB ERROR] runTicketAutomations:', err));
             }, 5 * 60 * 1000);
+            setInterval(() => {
+                emailOutboxService.processPending().catch(err => console.error('[JOB ERROR] processEmailOutbox:', err));
+            }, 60 * 1000);
             setTimeout(() => {
                 runTicketAutomations().catch(err => console.error('[JOB ERROR INITIAL] runTicketAutomations:', err));
+                emailOutboxService.processPending().catch(err => console.error('[JOB ERROR INITIAL] processEmailOutbox:', err));
             }, 5000);
         }
     });

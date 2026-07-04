@@ -1,12 +1,11 @@
 import pool from '../db/connection.js';
 import { permissionsService } from './permissions.service.js';
 import notificationsService from './notifications.service.js';
-import { emailOutboundService, trackTicketEmailMessageIds } from './email-outbound.service.js';
+import { emailOutboxService } from './email-outbox.service.js';
 import { recordTicketEvent } from './ticket-events.service.js';
 import ticketMessagesService from './ticket-messages.service.js';
 import slaService from './sla.service.js';
 import { AIService } from './ai.service.js';
-import storageService from './storage.service.js';
 import { getTicketScope } from '../utils/ticket-permissions.js';
 import { isDeveloperUser } from '../utils/user-scope.js';
 import { recomputeTicketMessageState } from '../utils/ticket-state.js';
@@ -213,29 +212,34 @@ class TicketsService {
   }
 
   async cleanupSpam(empresaId: number) {
-    // Delete tickets created in the last 12 hours that might be spam (too many from same user/subject)
+    // Quarantine tickets created in the last 12 hours that might be spam (too many from same user/subject).
     const [spamUsers]: any = await pool.query(`
       SELECT usuario_id, titulo, COUNT(*) as cnt 
       FROM tickets 
-      WHERE empresa_id = ? AND created_at > (NOW() - INTERVAL 12 HOUR)
+      WHERE empresa_id = ? AND deleted_at IS NULL AND created_at > (NOW() - INTERVAL 12 HOUR)
       GROUP BY usuario_id, titulo
       HAVING cnt > 5 
     `, [empresaId]);
 
-    let deletedCount = 0;
+    let quarantinedCount = 0;
     for (const spam of spamUsers) {
       const [result]: any = await pool.query(
-        `DELETE FROM tickets
+        `UPDATE tickets
+         SET deleted_at = NOW(),
+             deleted_by = NULL,
+             delete_reason = 'Quarentena automatica por suspeita de spam',
+             updated_at = NOW()
          WHERE empresa_id = ?
            AND ((usuario_id = ?) OR (usuario_id IS NULL AND ? IS NULL))
            AND titulo = ?
+           AND deleted_at IS NULL
            AND created_at > (NOW() - INTERVAL 12 HOUR)`,
         [empresaId, spam.usuario_id, spam.usuario_id, spam.titulo]
       );
-      deletedCount += result.affectedRows;
+      quarantinedCount += result.affectedRows;
     }
 
-    return { empresaId, deletedCount };
+    return { empresaId, deletedCount: quarantinedCount, quarantinedCount };
   }
 
   async list(filters: any) {
@@ -250,8 +254,8 @@ class TicketsService {
     } = filters;
     const searchTerm = search;
     
-    let baseWhere = 'WHERE 1=1';
-    let summaryWhere = 'WHERE 1=1';
+    let baseWhere = filters.include_deleted ? 'WHERE 1=1' : 'WHERE t.deleted_at IS NULL';
+    let summaryWhere = filters.include_deleted ? 'WHERE 1=1' : 'WHERE t.deleted_at IS NULL';
     const params: (string | number)[] = [];
 
     // Regra de Negócio: Se não for desenvolvedor, só vê chamados da própria empresa
@@ -452,7 +456,7 @@ class TicketsService {
   async getQueuesCounts(filters: any) {
     const { empresa_id, usuario_id, is_dev } = filters;
     
-    let baseWhere = 'WHERE 1=1';
+    let baseWhere = filters.include_deleted ? 'WHERE 1=1' : 'WHERE deleted_at IS NULL';
     const params: (string | number)[] = [];
 
     if (!is_dev) {
@@ -511,8 +515,8 @@ class TicketsService {
     const searchTerm = search;
     const statusConfigEmpresaId = !is_dev ? toPositiveInt(empresa_id) : toPositiveInt(filters.empresa_id_filter);
     
-    let baseWhere = 'WHERE 1=1';
-    let summaryWhere = 'WHERE 1=1';
+    let baseWhere = filters.include_deleted ? 'WHERE 1=1' : 'WHERE t.deleted_at IS NULL';
+    let summaryWhere = filters.include_deleted ? 'WHERE 1=1' : 'WHERE t.deleted_at IS NULL';
     const params: (string | number)[] = [];
 
     // Regra de Negócio: Se não for desenvolvedor, só vê chamados da própria empresa
@@ -791,7 +795,7 @@ class TicketsService {
 
     if (message_id) {
       const [existingTicket]: any = await pool.query(
-        'SELECT id FROM tickets WHERE message_id = ? AND empresa_id = ? ORDER BY id ASC LIMIT 1',
+        'SELECT id FROM tickets WHERE message_id = ? AND empresa_id = ? AND deleted_at IS NULL ORDER BY id ASC LIMIT 1',
         [message_id, empresa_id]
       );
 
@@ -947,8 +951,8 @@ class TicketsService {
       }
 
       if (authorEmail) {
-        const outboundMessageId = `<ticket-${ticketId}-msg-created-${Date.now()}@gestifique.com.br>`;
-        emailOutboundService.sendTicketEmail({
+        const outboundMessageId = `<ticket-${ticketId}-created@gestifique.com.br>`;
+        await emailOutboxService.enqueueTicketEmail({
           to: authorEmail,
           ticketId,
           empresaId: empresa_id,
@@ -963,12 +967,9 @@ class TicketsService {
           messageId: outboundMessageId,
           inReplyTo: message_id,
           references: message_id ? [message_id] : undefined,
-        }).then(async (sendResult) => {
-          if (sendResult.success) {
-             console.log(`[TicketsService] External notification email sent to ${maskEmail(authorEmail)} for ticket #${ticketId} via ${sendResult.provider} (Message-ID: ${maskIdentifier(sendResult.messageId)})`);
-             await trackTicketEmailMessageIds(empresa_id, ticketId, outboundMessageId, sendResult);
-          }
-        }).catch((err: any) => console.error('[TicketsService] Email error:', err));
+          dedupeKey: `ticket:${ticketId}:created`
+        });
+        console.log(`[TicketsService] E-mail de criacao enfileirado para ${maskEmail(authorEmail)} no chamado #${ticketId}.`);
       }
     } catch (e) {
       console.error('Erro ao notificar criação de ticket:', e);
@@ -1011,44 +1012,41 @@ class TicketsService {
     return ticket;
   }
 
-  async delete(id: number): Promise<boolean> {
+  async delete(id: number, deletedBy?: number | null, reason = 'Exclusao manual'): Promise<boolean> {
     const connection = await pool.getConnection();
-    let attachmentPaths: string[] = [];
 
     try {
       await connection.beginTransaction();
 
-      const [attachmentRows]: any = await connection.query(
-        'SELECT caminho FROM ticket_anexos WHERE ticket_id = ?',
-        [id]
+      const [result]: any = await connection.query(
+        `
+          UPDATE tickets
+          SET deleted_at = COALESCE(deleted_at, NOW()),
+              deleted_by = COALESCE(deleted_by, ?),
+              delete_reason = COALESCE(delete_reason, ?),
+              updated_at = NOW()
+          WHERE id = ?
+            AND deleted_at IS NULL
+        `,
+        [deletedBy || null, String(reason || 'Exclusao manual').slice(0, 255), id]
       );
-      attachmentPaths = attachmentRows
-        .map((row: any) => row.caminho)
-        .filter((path: unknown): path is string => typeof path === 'string' && path.length > 0);
 
-      try {
-        await connection.query(
-          'UPDATE processed_emails SET ticket_id = NULL WHERE ticket_id = ?',
+      if (result.affectedRows > 0) {
+        const [ticketRows]: any = await connection.query(
+          'SELECT empresa_id FROM tickets WHERE id = ?',
           [id]
         );
-      } catch (err: any) {
-        if (err?.code !== 'ER_NO_SUCH_TABLE') throw err;
+        const empresaId = ticketRows[0]?.empresa_id || null;
+        await connection.query(
+          `
+            INSERT INTO ticket_eventos (ticket_id, empresa_id, usuario_id, tipo, descricao)
+            VALUES (?, ?, ?, 'ticket_excluido', ?)
+          `,
+          [id, empresaId, deletedBy || null, String(reason || 'Chamado removido').slice(0, 255)]
+        );
       }
-
-      const [result]: any = await connection.query(
-        'DELETE FROM tickets WHERE id = ?',
-        [id]
-      );
 
       await connection.commit();
-
-      for (const caminho of attachmentPaths) {
-        try {
-          await storageService.delete(caminho);
-        } catch (err) {
-          console.error(`[TicketsService] Falha ao deletar anexo do chamado #${id}: ${caminho}`, err);
-        }
-      }
 
       return result.affectedRows > 0;
     } catch (error) {
@@ -1078,7 +1076,7 @@ class TicketsService {
        LEFT JOIN usuarios u ON t.usuario_id = u.id 
        JOIN empresas e ON t.empresa_id = e.id
        LEFT JOIN usuarios r ON t.responsavel_id = r.id 
-       WHERE t.id = ?`,
+       WHERE t.id = ? AND t.deleted_at IS NULL`,
       [id]
     );
     
@@ -1090,7 +1088,7 @@ class TicketsService {
     
     // Buscar satisfação se houver
     const [csatRows]: any = await pool.query(
-      'SELECT id, nota, comentario, token, respondido_em FROM ticket_satisfacao WHERE ticket_id = ? ORDER BY created_at DESC LIMIT 1',
+      'SELECT id, nota, comentario, respondido_em FROM ticket_satisfacao WHERE ticket_id = ? ORDER BY created_at DESC LIMIT 1',
       [id]
     );
     if (!csatRows[0]) {
@@ -1098,13 +1096,11 @@ class TicketsService {
     } else if (!csatRows[0].respondido_em) {
       ticket.satisfacao = {
         id: csatRows[0].id,
-        token: csatRows[0].token,
         status: 'aguardando_resposta'
       };
     } else {
       ticket.satisfacao = {
         id: csatRows[0].id,
-        token: csatRows[0].token,
         nota: csatRows[0].nota,
         comentario: csatRows[0].comentario,
         respondido_em: csatRows[0].respondido_em,
@@ -1191,6 +1187,13 @@ class TicketsService {
 
     if (willBeFinalStatus && !wasFinalStatus) {
       await this.ensureSatisfactionSurvey(id, oldTicket.empresa_id, changedByUserId);
+      await this.enqueueFinalStatusEmail({
+        ticket: oldTicket,
+        ticketId: id,
+        status,
+        statusName: newStatusConfig.nome || labelFromStatus(status),
+        statusSpecial: newStatusConfig.especial
+      });
 
       try {
         await recordTicketEvent({
@@ -1372,35 +1375,6 @@ class TicketsService {
             link: `ticket:${id}`
           });
         }
-        
-        // Disparar e-mail externo para cliente se resolvido ou fechado
-        if (isFinalTicketStatusSpecial(newStatusConfig?.especial) && oldTicket.cliente_email && oldTicket.cliente_email !== 'removido@sistema.com') {
-          // Determine reason if available (it might be in 'data' object being updated now)
-          const motivo = data.resolucao_motivo || oldTicket.resolucao_motivo;
-          const observacao = data.resolucao_observacao || oldTicket.resolucao_observacao;
-
-          const outboundMessageId = `<ticket-${id}-msg-${data.status}-${Date.now()}@gestifique.com.br>`;
-          emailOutboundService.sendTicketEmail({
-            to: oldTicket.cliente_email,
-            ticketId: id,
-            empresaId: oldTicket.empresa_id,
-            emailChannelId: oldTicket.email_channel_id,
-            type: newStatusConfig?.especial === 'encerrado' ? 'ticket_closed' : 'ticket_resolved',
-            title: oldTicket.titulo,
-            customerName: oldTicket.cliente_nome,
-            status: newStatusText,
-            resolutionReason: motivo,
-            resolutionObservation: observacao,
-            messageId: outboundMessageId,
-            inReplyTo: oldTicket.message_id,
-            references: oldTicket.message_id ? [oldTicket.message_id] : undefined,
-          }).then(async (sendResult) => {
-             if (sendResult.success) {
-                console.log(`[TicketsService] External notification email sent to ${maskEmail(oldTicket.cliente_email)} for ticket #${id} via ${sendResult.provider} (Status: ${data.status})`);
-                await trackTicketEmailMessageIds(oldTicket.empresa_id, id, outboundMessageId, sendResult);
-             }
-          }).catch((err: any) => console.error('[TicketsService] Email error:', err));
-        }
       }
     } catch (e) {
       console.error('Erro ao notificar atualização de ticket:', e);
@@ -1410,6 +1384,15 @@ class TicketsService {
     try {
       if (data.status && isFinalTicketStatusSpecial(newStatusConfig?.especial) && !isFinalTicketStatusSpecial(oldStatusConfig?.especial)) {
         await this.ensureSatisfactionSurvey(id, oldTicket.empresa_id, currentUser?.id || null);
+        await this.enqueueFinalStatusEmail({
+          ticket: oldTicket,
+          ticketId: id,
+          status: data.status,
+          statusName: newStatusConfig?.nome || labelFromStatus(data.status),
+          statusSpecial: newStatusConfig?.especial,
+          resolutionReason: data.resolucao_motivo || oldTicket.resolucao_motivo,
+          resolutionObservation: data.resolucao_observacao || oldTicket.resolucao_observacao
+        });
 
         await recordTicketEvent({
           ticket_id: id,
@@ -1547,6 +1530,40 @@ class TicketsService {
     return ticketMessagesService.addMessage(data, currentUser);
   }
 
+  private async enqueueFinalStatusEmail(params: {
+    ticket: any;
+    ticketId: number;
+    status: string;
+    statusName?: string;
+    statusSpecial?: string | null;
+    resolutionReason?: string | null;
+    resolutionObservation?: string | null;
+  }) {
+    const { ticket, ticketId, status, statusName, statusSpecial, resolutionReason, resolutionObservation } = params;
+    const to = ticket.cliente_email;
+    if (!to || to === 'removido@sistema.com') return;
+
+    const emailType = statusSpecial === 'encerrado' ? 'ticket_closed' : 'ticket_resolved';
+    const outboundMessageId = `<ticket-${ticketId}-${emailType}@gestifique.com.br>`;
+
+    await emailOutboxService.enqueueTicketEmail({
+      to,
+      ticketId,
+      empresaId: ticket.empresa_id,
+      emailChannelId: ticket.email_channel_id,
+      type: emailType,
+      title: ticket.titulo,
+      customerName: ticket.cliente_nome,
+      status: statusName || labelFromStatus(status),
+      resolutionReason: resolutionReason || ticket.resolucao_motivo,
+      resolutionObservation: resolutionObservation || ticket.resolucao_observacao,
+      messageId: outboundMessageId,
+      inReplyTo: ticket.message_id,
+      references: ticket.message_id ? [ticket.message_id] : undefined,
+      dedupeKey: `ticket:${ticketId}:${emailType}`
+    });
+  }
+
   private async ensureSatisfactionSurvey(ticketId: number, empresaId: number, usuarioId: number | null) {
     try {
       const [existingCsat]: any = await pool.query(
@@ -1623,6 +1640,15 @@ class TicketsService {
 
     if (!isFinalTicketStatusSpecial(oldStatusConfig?.especial)) {
       await this.ensureSatisfactionSurvey(id, oldTicket.empresa_id, currentUser?.id || null);
+      await this.enqueueFinalStatusEmail({
+        ticket: oldTicket,
+        ticketId: id,
+        status,
+        statusName: newStatusConfig.nome || labelFromStatus(status),
+        statusSpecial: newStatusConfig.especial,
+        resolutionReason: resolucao_motivo,
+        resolutionObservation: observacao
+      });
 
       await recordTicketEvent({
         ticket_id: id,
