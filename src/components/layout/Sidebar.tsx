@@ -163,31 +163,31 @@ export const Sidebar = ({
         >
           <div
             className={cn(
-              "flex min-w-0 items-center gap-2",
-              isCollapsed && "lg:w-full lg:justify-center",
+              "flex min-w-0 flex-1 items-center gap-2 overflow-hidden",
+              isCollapsed && "lg:gap-0",
             )}
           >
             <AppLogo size={24} />
             <span
               className={cn(
-                "text-[14px] font-semibold text-slate-950 tracking-tight transition-opacity duration-200",
-                isCollapsed && "lg:pointer-events-none lg:w-0 lg:overflow-hidden lg:opacity-0",
+                "max-w-[150px] overflow-hidden whitespace-nowrap text-[14px] font-semibold tracking-tight text-slate-950 transition-[max-width,opacity] duration-200 ease-out",
+                isCollapsed && "lg:pointer-events-none lg:max-w-0 lg:opacity-0",
               )}
             >
               Gestifique
             </span>
-            {onToggleCollapse && (
-              <button
-                type="button"
-                onClick={onToggleCollapse}
-                aria-label={isCollapsed ? "Expandir menu" : "Recolher menu"}
-                title={isCollapsed ? "Expandir menu" : "Recolher menu"}
-                className="hidden rounded-md p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 lg:inline-flex"
-              >
-                {isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
-              </button>
-            )}
           </div>
+          {onToggleCollapse && (
+            <button
+              type="button"
+              onClick={onToggleCollapse}
+              aria-label={isCollapsed ? "Expandir menu" : "Recolher menu"}
+              title={isCollapsed ? "Expandir menu" : "Recolher menu"}
+              className="hidden shrink-0 rounded-md p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 lg:inline-flex"
+            >
+              {isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+            </button>
+          )}
           <div className="flex items-center gap-1 lg:hidden">
             <button
               onClick={onClose}
@@ -228,7 +228,7 @@ export const Sidebar = ({
                       aria-label={item.label}
                       className={cn(
                         "group flex h-9 w-full items-center gap-2.5 rounded-md px-3 text-[13px] font-semibold transition-colors duration-150",
-                        isCollapsed && "lg:justify-center lg:px-0",
+                        isCollapsed && "lg:justify-center lg:gap-0 lg:px-0",
                         activeTab === item.id
                           ? "border border-blue-200 bg-blue-50 text-blue-800 shadow-sm shadow-blue-600/5"
                           : "text-slate-600 hover:bg-slate-100 hover:text-slate-950",
@@ -246,8 +246,8 @@ export const Sidebar = ({
                       />
                       <span
                         className={cn(
-                          "truncate transition-opacity duration-200",
-                          isCollapsed && "lg:pointer-events-none lg:w-0 lg:overflow-hidden lg:opacity-0",
+                          "max-w-[190px] truncate whitespace-nowrap transition-[max-width,opacity] duration-200 ease-out",
+                          isCollapsed && "lg:pointer-events-none lg:max-w-0 lg:opacity-0",
                         )}
                       >
                         {item.label}
@@ -277,8 +277,8 @@ export const Sidebar = ({
             </div>
             <div
               className={cn(
-                "min-w-0 flex-1 transition-opacity duration-200",
-                isCollapsed && "lg:pointer-events-none lg:hidden lg:opacity-0",
+                "min-w-0 flex-1 transition-[max-width,opacity] duration-200 ease-out",
+                isCollapsed && "lg:pointer-events-none lg:max-w-0 lg:overflow-hidden lg:opacity-0",
               )}
             >
               <div className="text-[13px] font-semibold text-slate-900 truncate tracking-tight">
@@ -301,11 +301,18 @@ export const Sidebar = ({
             aria-label="Sair"
             className={cn(
               "flex h-8 w-full items-center gap-2.5 rounded-md px-2.5 text-[13px] font-medium text-slate-500 transition-colors hover:bg-red-50 hover:text-red-700",
-              isCollapsed && "lg:justify-center lg:px-0",
+              isCollapsed && "lg:justify-center lg:gap-0 lg:px-0",
             )}
           >
             <LogOut size={16} />
-            <span className={cn(isCollapsed && "lg:hidden")}>Sair</span>
+            <span
+              className={cn(
+                "max-w-[60px] overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ease-out",
+                isCollapsed && "lg:pointer-events-none lg:max-w-0 lg:opacity-0",
+              )}
+            >
+              Sair
+            </span>
           </button>
 
           <div
