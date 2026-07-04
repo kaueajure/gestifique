@@ -11,6 +11,8 @@ import {
   LogOut,
   X,
   BookOpen,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { User } from "../../types";
 import { cn } from "../../lib/utils";
@@ -25,6 +27,7 @@ interface SidebarProps {
   isOpen: boolean;
   isCollapsed?: boolean;
   onClose: () => void;
+  onToggleCollapse?: () => void;
   onLogout: () => void;
   onNavigate: (link: string) => void;
 }
@@ -36,6 +39,7 @@ export const Sidebar = ({
   isOpen,
   isCollapsed = false,
   onClose,
+  onToggleCollapse,
   onLogout,
   onNavigate,
 }: SidebarProps) => {
@@ -147,17 +151,22 @@ export const Sidebar = ({
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex w-[86vw] max-w-[320px] flex-col border-r border-slate-200/80 bg-white shadow-2xl shadow-slate-900/20 transition-[width,transform] duration-300 ease-out will-change-transform",
           "lg:relative lg:inset-auto lg:z-20 lg:h-full lg:max-w-none lg:translate-x-0 lg:shadow-none",
-          isCollapsed ? "lg:w-[76px]" : "lg:w-[282px]",
+          isCollapsed ? "lg:w-[88px]" : "lg:w-[282px]",
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
       >
         <div
           className={cn(
-            "flex h-14 shrink-0 items-center border-b border-slate-200/80 px-4",
-            isCollapsed ? "lg:justify-center lg:px-3" : "justify-between",
+            "flex h-14 shrink-0 items-center justify-between border-b border-slate-200/80 px-4",
+            isCollapsed && "lg:px-3",
           )}
         >
-          <div className="flex min-w-0 items-center gap-2">
+          <div
+            className={cn(
+              "flex min-w-0 items-center gap-2",
+              isCollapsed && "lg:w-full lg:justify-center",
+            )}
+          >
             <AppLogo size={24} />
             <span
               className={cn(
@@ -167,8 +176,19 @@ export const Sidebar = ({
             >
               Gestifique
             </span>
+            {onToggleCollapse && (
+              <button
+                type="button"
+                onClick={onToggleCollapse}
+                aria-label={isCollapsed ? "Expandir menu" : "Recolher menu"}
+                title={isCollapsed ? "Expandir menu" : "Recolher menu"}
+                className="hidden rounded-md p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 lg:inline-flex"
+              >
+                {isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+              </button>
+            )}
           </div>
-          <div className={cn("flex items-center gap-1", isCollapsed && "lg:hidden")}>
+          <div className="flex items-center gap-1 lg:hidden">
             <button
               onClick={onClose}
               aria-label="Fechar menu"

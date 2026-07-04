@@ -15,7 +15,6 @@ import { cn } from "../../lib/utils";
 interface TopbarProps {
   title: string;
   onMenuClick: () => void;
-  isSidebarCollapsed?: boolean;
   showSearch?: boolean;
   onNavigate?: (target: { tab: string; ticketId?: number }) => void;
 }
@@ -51,7 +50,6 @@ const extractTickets = (response: TicketListResponse | Ticket[]): Ticket[] => {
 export const Topbar = ({
   title,
   onMenuClick,
-  isSidebarCollapsed = false,
   showSearch = true,
   onNavigate,
 }: TopbarProps) => {
@@ -231,9 +229,8 @@ export const Topbar = ({
       <div className="flex items-center gap-2 sm:gap-4 overflow-hidden">
         <button
           onClick={onMenuClick}
-          aria-label={isSidebarCollapsed ? "Expandir menu principal" : "Abrir ou recolher menu principal"}
-          title={isSidebarCollapsed ? "Expandir menu" : "Abrir ou recolher menu"}
-          className="shrink-0 rounded-md p-2 text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-900"
+          aria-label="Abrir menu principal"
+          className="shrink-0 rounded-md p-2 text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-900 lg:hidden"
         >
           <Menu size={16} />
         </button>

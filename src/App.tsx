@@ -671,6 +671,13 @@ export default function App() {
           isOpen={isSidebarOpen}
           isCollapsed={isSidebarCollapsed}
           onClose={() => setIsSidebarOpen(false)}
+          onToggleCollapse={() => {
+            setIsSidebarCollapsed((current) => {
+              const next = !current;
+              window.localStorage.setItem("gestifique-sidebar-collapsed", String(next));
+              return next;
+            });
+          }}
           onLogout={handleLogout}
           onNavigate={handleNotificationNavigate}
         />
@@ -678,19 +685,7 @@ export default function App() {
         <div className="relative z-0 flex h-full w-full min-w-0 flex-col overflow-hidden">
           <Topbar
             title={getPageTitle()}
-            isSidebarCollapsed={isSidebarCollapsed}
-            onMenuClick={() => {
-              if (window.innerWidth >= 1024) {
-                setIsSidebarCollapsed((current) => {
-                  const next = !current;
-                  window.localStorage.setItem("gestifique-sidebar-collapsed", String(next));
-                  return next;
-                });
-                return;
-              }
-
-              setIsSidebarOpen(true);
-            }}
+            onMenuClick={() => setIsSidebarOpen(true)}
             showSearch={!(activeTab === "tickets" && selectedTicketId)}
             onNavigate={handleTopbarNavigate}
           />
