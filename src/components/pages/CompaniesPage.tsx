@@ -40,6 +40,18 @@ type CompanyPayload = {
   logo: string;
 };
 
+type BrasilApiCnpjResponse = {
+  cnpj?: string;
+  razao_social?: string;
+  nome_fantasia?: string;
+  email?: string;
+  ddd_telefone_1?: string;
+  ddd_telefone_2?: string;
+  descricao_situacao_cadastral?: string;
+  municipio?: string;
+  uf?: string;
+};
+
 interface CompaniesPageProps {
   currentUser: User | null;
 }
@@ -55,9 +67,13 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
   const [deleteConfirmationName, setDeleteConfirmationName] = useState("");
   const [loadingSave, setLoadingSave] = useState(false);
   const [loadingDelete, setLoadingDelete] = useState(false);
+  const [loadingCnpj, setLoadingCnpj] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [createCnpj, setCreateCnpj] = useState("");
+  const [validatedCompany, setValidatedCompany] =
+    useState<BrasilApiCnpjResponse | null>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
@@ -93,6 +109,68 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
     setTimeout(() => setSuccessMsg(null), 3000);
   };
 
+  const resetCreateFlow = () => {
+    setCreateCnpj("");
+    setValidatedCompany(null);
+    setSaveError(null);
+    setLoadingCnpj(false);
+  };
+
+  const onlyDigits = (value: string) => value.replace(/\D/g, "");
+
+  const formatCnpj = (value: string) => {
+    const digits = onlyDigits(value).slice(0, 14);
+    return digits
+      .replace(/^(\d{2})(\d)/, "$1.$2")
+      .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+      .replace(/\.(\d{3})(\d)/, ".$1/$2")
+      .replace(/(\d{4})(\d)/, "$1-$2");
+  };
+
+  const formatPhone = (value?: string) => {
+    const digits = onlyDigits(value || "");
+    if (!digits) return "";
+    if (digits.length <= 10) {
+      return digits.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, "($1) $2-$3").replace(/-$/, "");
+    }
+    return digits.replace(/^(\d{2})(\d{5})(\d{0,4}).*/, "($1) $2-$3").replace(/-$/, "");
+  };
+
+  const handleValidateCnpj = async () => {
+    const cnpj = onlyDigits(createCnpj);
+    setSaveError(null);
+    setValidatedCompany(null);
+
+    if (cnpj.length !== 14) {
+      setSaveError("Informe um CNPJ válido com 14 dígitos.");
+      return;
+    }
+
+    setLoadingCnpj(true);
+    try {
+      const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
+      if (!response.ok) {
+        throw new Error("CNPJ não encontrado na Brasil API.");
+      }
+
+      const data = (await response.json()) as BrasilApiCnpjResponse;
+      if (!data?.cnpj && !data?.razao_social) {
+        throw new Error("Não foi possível validar este CNPJ.");
+      }
+
+      setValidatedCompany(data);
+      setCreateCnpj(formatCnpj(data.cnpj || cnpj));
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Não foi possível validar o CNPJ. Tente novamente.";
+      setSaveError(message);
+    } finally {
+      setLoadingCnpj(false);
+    }
+  };
+
   const handleSaveCompany = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoadingSave(true);
@@ -109,6 +187,12 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
         cor_principal: String(formData.get("cor_principal") || "#2563eb"),
         logo: String(formData.get("logo") || ""),
       };
+
+      if (!selectedCompany && !validatedCompany) {
+        setSaveError("Valide o CNPJ antes de criar a empresa.");
+        setLoadingSave(false);
+        return;
+      }
 
       if (!payload.nome) {
         setSaveError("O nome da empresa é obrigatório.");
@@ -223,7 +307,7 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
             size="sm"
             onClick={() => {
               setSelectedCompany(null);
-              setSaveError(null);
+              resetCreateFlow();
               setIsModalOpen(true);
             }}
           >
@@ -426,6 +510,7 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
                         <button
                           onClick={() => {
                             setSelectedCompany(company);
+                            resetCreateFlow();
                             setSaveError(null);
                             setIsModalOpen(true);
                           }}
@@ -475,7 +560,10 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
 
       <Modal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          if (!selectedCompany) resetCreateFlow();
+        }}
         title={selectedCompany ? "Configurar Empresa" : "Nova Empresa"}
         size="md"
       >
@@ -486,13 +574,77 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
             </div>
           )}
 
+          {!selectedCompany && !validatedCompany && (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-blue-100 bg-blue-50 text-blue-600">
+                    <Building2 size={16} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-900">
+                      Validar empresa pelo CNPJ
+                    </h4>
+                    <p className="mt-1 text-xs font-medium leading-relaxed text-slate-500">
+                      Informe o CNPJ para buscar os dados públicos da empresa na Brasil API.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-slate-700">
+                  CNPJ
+                </label>
+                <Input
+                  value={createCnpj}
+                  onChange={(event) => setCreateCnpj(formatCnpj(event.target.value))}
+                  placeholder="00.000.000/0000-00"
+                  className="h-8 text-xs"
+                />
+              </div>
+
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleValidateCnpj}
+                  loading={loadingCnpj}
+                >
+                  Validar CNPJ
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {!selectedCompany && validatedCompany && (
+            <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-xs font-medium text-emerald-700">
+              <div className="flex items-center gap-2 font-semibold">
+                <CheckCircle2 size={14} />
+                CNPJ validado com sucesso
+              </div>
+              <div className="mt-1 text-emerald-700/80">
+                {validatedCompany.descricao_situacao_cadastral || "Dados encontrados na Brasil API"}
+                {(validatedCompany.municipio || validatedCompany.uf) &&
+                  ` • ${[validatedCompany.municipio, validatedCompany.uf].filter(Boolean).join(" / ")}`}
+              </div>
+            </div>
+          )}
+
+          {(selectedCompany || validatedCompany) && (
+            <>
           <div className="space-y-1">
             <label className="text-xs font-medium text-slate-700">
               Nome Fantasia / Razão Social
             </label>
             <Input
               name="nome"
-              defaultValue={selectedCompany?.nome}
+              defaultValue={
+                selectedCompany?.nome ||
+                validatedCompany?.nome_fantasia ||
+                validatedCompany?.razao_social ||
+                ""
+              }
               required
               placeholder="Ex: Minha Empresa LTDA"
               className="h-8 text-xs"
@@ -504,7 +656,13 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
               <label className="text-xs font-medium text-slate-700">CNPJ</label>
               <Input
                 name="cnpj"
-                defaultValue={selectedCompany?.cnpj || ""}
+                defaultValue={formatCnpj(
+                  selectedCompany?.cnpj ||
+                    validatedCompany?.cnpj ||
+                    createCnpj ||
+                    "",
+                )}
+                readOnly={!selectedCompany}
                 placeholder="00.000.000/0000-00"
                 className="h-8 text-xs"
               />
@@ -515,7 +673,13 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
               </label>
               <Input
                 name="telefone"
-                defaultValue={selectedCompany?.telefone || ""}
+                defaultValue={
+                  selectedCompany?.telefone ||
+                  formatPhone(
+                    validatedCompany?.ddd_telefone_1 ||
+                      validatedCompany?.ddd_telefone_2,
+                  )
+                }
                 placeholder="(00) 00000-0000"
                 className="h-8 text-xs"
               />
@@ -530,7 +694,7 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
               <Input
                 name="email"
                 type="email"
-                defaultValue={selectedCompany?.email || ""}
+                defaultValue={selectedCompany?.email || validatedCompany?.email || ""}
                 placeholder="contato@empresa.com"
                 className="h-8 text-xs"
               />
@@ -542,13 +706,21 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
               <Input
                 name="email_suporte"
                 type="email"
-                defaultValue={selectedCompany?.email_suporte || ""}
+                defaultValue={selectedCompany?.email_suporte || validatedCompany?.email || ""}
                 placeholder="suporte@empresa.com"
                 className="h-8 text-xs"
               />
             </div>
           </div>
 
+          {!selectedCompany && (
+            <>
+              <input type="hidden" name="cor_principal" value="#2563eb" />
+              <input type="hidden" name="logo" value="" />
+            </>
+          )}
+
+          {selectedCompany && (
           <div className="pt-2">
             <h4 className="text-[11px] font-semibold text-slate-800 mb-3">
               Visual & Identidade
@@ -578,18 +750,30 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
               </div>
             </div>
           </div>
+          )}
+
+            </>
+          )}
 
           <div className="pt-4 flex items-center justify-end gap-2 border-t border-slate-100">
             <Button
               variant="ghost"
               size="sm"
               type="button"
-              onClick={() => setIsModalOpen(false)}
+              onClick={() => {
+                setIsModalOpen(false);
+                if (!selectedCompany) resetCreateFlow();
+              }}
             >
               Cancelar
             </Button>
-            <Button type="submit" loading={loadingSave} size="sm">
-              {selectedCompany ? "Salvar" : "Criar Conta"}
+            <Button
+              type="submit"
+              loading={loadingSave}
+              disabled={!selectedCompany && !validatedCompany}
+              size="sm"
+            >
+              {selectedCompany ? "Salvar" : "Criar Empresa"}
             </Button>
           </div>
         </form>

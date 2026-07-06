@@ -195,6 +195,14 @@ export default function App() {
   const [isBooting, setIsBooting] = useState(true);
   const [resetEmail, setResetEmail] = useState("");
 
+  useEffect(() => {
+    const savedTheme = window.localStorage.getItem("gestifique-theme");
+    document.documentElement.classList.toggle(
+      "theme-dark-beta",
+      savedTheme === "dark-beta",
+    );
+  }, []);
+
   // CSAT Route Check
   const path = window.location.pathname;
   if (path.startsWith("/csat/")) {

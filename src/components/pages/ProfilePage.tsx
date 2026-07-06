@@ -6,10 +6,12 @@ import {
   ChevronRight,
   Eye,
   EyeOff,
+  ImagePlus,
   Key,
   Keyboard,
   Layout,
   Lock,
+  Moon,
   Palette,
   Save,
   TrendingUp,
@@ -53,7 +55,11 @@ export const ProfilePage = ({
   const [activeSection, setActiveSection] =
     useState<ProfileSection>("profile");
   const [loading, setLoading] = useState(false);
+  const [photoLoading, setPhotoLoading] = useState(false);
   const [pwdLoading, setPwdLoading] = useState(false);
+  const [darkThemeBeta, setDarkThemeBeta] = useState(() => {
+    return window.localStorage.getItem("gestifique-theme") === "dark-beta";
+  });
   const [showPwd, setShowPwd] = useState({
     current: false,
     new: false,
@@ -61,6 +67,14 @@ export const ProfilePage = ({
   });
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    document.documentElement.classList.toggle("theme-dark-beta", darkThemeBeta);
+    window.localStorage.setItem(
+      "gestifique-theme",
+      darkThemeBeta ? "dark-beta" : "light",
+    );
+  }, [darkThemeBeta]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,6 +138,45 @@ export const ProfilePage = ({
       setError(message);
     } finally {
       setPwdLoading(false);
+    }
+  };
+
+  const handlePhotoChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("Envie uma imagem válida.");
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setError("A imagem deve ter no máximo 2 MB.");
+      return;
+    }
+
+    setPhotoLoading(true);
+    setSuccess(null);
+    setError(null);
+
+    const formData = new FormData();
+    formData.append("foto", file);
+
+    try {
+      await api.post<{ foto: string }>("/profile/photo", formData);
+      const updated = await api.get<User>("/profile");
+      onUpdate(updated);
+      setSuccess("Foto de perfil atualizada com sucesso!");
+      setTimeout(() => setSuccess(null), 4000);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Erro ao atualizar foto de perfil.";
+      setError(message);
+    } finally {
+      setPhotoLoading(false);
     }
   };
 
@@ -201,6 +254,28 @@ export const ProfilePage = ({
                       Admin
                     </Badge>
                   )}
+                </div>
+                <div className="mt-3">
+                  <input
+                    id="profile-photo-input"
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    className="sr-only"
+                    onChange={handlePhotoChange}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    loading={photoLoading}
+                    onClick={() =>
+                      document.getElementById("profile-photo-input")?.click()
+                    }
+                    className="h-7 w-full text-[11px]"
+                  >
+                    <ImagePlus size={13} className="mr-1.5 text-slate-400" />
+                    Alterar foto
+                  </Button>
                 </div>
               </div>
             </div>
@@ -464,6 +539,56 @@ export const ProfilePage = ({
                     Editar dados do perfil
                     <UserIcon size={14} className="text-blue-500" />
                   </Button>
+                </div>
+              </Card>
+
+              <Card className="space-y-4 p-4 sm:p-5">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
+                    <Moon size={18} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-semibold text-slate-900">
+                        Tema escuro
+                      </h4>
+                      <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-700">
+                        Beta
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      Experimente a versão inicial do tema escuro.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-100 bg-slate-50 p-4">
+                  <div>
+                    <div className="text-[13px] font-semibold text-slate-800">
+                      Ativar tema escuro beta
+                    </div>
+                    <p className="mt-1 text-[11px] font-medium leading-relaxed text-slate-500">
+                      Algumas telas ainda podem receber ajustes visuais nas próximas versões.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setDarkThemeBeta((current) => !current)}
+                    aria-pressed={darkThemeBeta}
+                    className={cn(
+                      "relative h-6 w-11 shrink-0 rounded-full border transition-colors",
+                      darkThemeBeta
+                        ? "border-blue-600 bg-blue-600"
+                        : "border-slate-300 bg-slate-200",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform",
+                        darkThemeBeta ? "left-5" : "left-0.5",
+                      )}
+                    />
+                  </button>
                 </div>
               </Card>
 

@@ -60,3 +60,65 @@
     @apply bg-slate-300/80 rounded-full hover:bg-slate-400 transition-colors;
   }
 }
+
+@layer utilities {
+  html.theme-dark-beta {
+    color-scheme: dark;
+  }
+
+  html.theme-dark-beta body {
+    background: #0f172a;
+    color: #cbd5e1;
+  }
+
+  html.theme-dark-beta .bg-\[\#F4F7FA\],
+  html.theme-dark-beta .bg-slate-50,
+  html.theme-dark-beta .bg-slate-50\/70,
+  html.theme-dark-beta .bg-slate-50\/80 {
+    background-color: #0f172a !important;
+  }
+
+  html.theme-dark-beta .bg-white,
+  html.theme-dark-beta .bg-white\/95 {
+    background-color: #111827 !important;
+  }
+
+  html.theme-dark-beta .border-slate-100,
+  html.theme-dark-beta .border-slate-200,
+  html.theme-dark-beta .border-slate-200\/50,
+  html.theme-dark-beta .border-slate-200\/70,
+  html.theme-dark-beta .border-slate-200\/80 {
+    border-color: #263244 !important;
+  }
+
+  html.theme-dark-beta .text-slate-950,
+  html.theme-dark-beta .text-slate-900,
+  html.theme-dark-beta .text-slate-800,
+  html.theme-dark-beta .text-slate-700 {
+    color: #e5e7eb !important;
+  }
+
+  html.theme-dark-beta .text-slate-600,
+  html.theme-dark-beta .text-slate-500,
+  html.theme-dark-beta .text-slate-400 {
+    color: #94a3b8 !important;
+  }
+
+  html.theme-dark-beta input,
+  html.theme-dark-beta textarea,
+  html.theme-dark-beta select {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+    color: #e5e7eb !important;
+  }
+
+  html.theme-dark-beta input::placeholder,
+  html.theme-dark-beta textarea::placeholder {
+    color: #64748b !important;
+  }
+
+  html.theme-dark-beta .shadow-sm,
+  html.theme-dark-beta .shadow-2xl {
+    box-shadow: none !important;
+  }
+}

@@ -1,12 +1,52 @@
 import { Router } from 'express';
+import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
+import multer from 'multer';
 import usersService from '../services/users.service.js';
 import { authMiddleware } from '../middlewares/auth.js';
 import { sendSuccess, sendError } from '../utils/response.js';
 import { logSystemAction } from '../utils/logger.js';
 import { permissionsService } from '../services/permissions.service.js';
 import { isValidPassword, PASSWORD_RULE_MESSAGE } from '../utils/validators.js';
+import { env } from '../config/env.js';
 const router = Router();
+const profileUploadDir = path.resolve(process.cwd(), env.STORAGE_CONFIG.LOCAL_PATH, '..', 'profiles');
+if (!fs.existsSync(profileUploadDir)) {
+    fs.mkdirSync(profileUploadDir, { recursive: true });
+}
+const profilePhotoUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+        fileSize: 2 * 1024 * 1024,
+        files: 1
+    },
+    fileFilter: (_req, file, cb) => {
+        if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.mimetype)) {
+            return cb(new Error('Envie uma imagem JPG, PNG, WEBP ou GIF.'));
+        }
+        cb(null, true);
+    }
+});
 router.use(authMiddleware);
+router.get('/photo/:filename', async (req, res) => {
+    try {
+        const filename = path.basename(req.params.filename);
+        const filePath = path.resolve(profileUploadDir, filename);
+        const relativePath = path.relative(profileUploadDir, filePath);
+        if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+            return sendError(res, 'Arquivo inválido', 400);
+        }
+        if (!fs.existsSync(filePath)) {
+            return sendError(res, 'Foto não encontrada', 404);
+        }
+        res.sendFile(filePath);
+    }
+    catch (error) {
+        const message = error instanceof Error ? error.message : 'Erro ao carregar foto';
+        sendError(res, message);
+    }
+});
 router.get('/', async (req, res) => {
     try {
         const currentUser = req.user;
@@ -55,6 +95,47 @@ router.patch('/', async (req, res) => {
     }
     catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao atualizar perfil';
+        sendError(res, message);
+    }
+});
+router.post('/photo', profilePhotoUpload.single('foto'), async (req, res) => {
+    try {
+        const currentUser = req.user;
+        if (!currentUser)
+            return sendError(res, 'Não autenticado', 401);
+        if (!req.file)
+            return sendError(res, 'Nenhuma imagem enviada', 400);
+        const extByMime = {
+            'image/jpeg': '.jpg',
+            'image/png': '.png',
+            'image/webp': '.webp',
+            'image/gif': '.gif'
+        };
+        const ext = extByMime[req.file.mimetype] || '.jpg';
+        const filename = `profile-${currentUser.id}-${Date.now()}-${crypto.randomBytes(8).toString('hex')}${ext}`;
+        const filePath = path.resolve(profileUploadDir, filename);
+        const relativePath = path.relative(profileUploadDir, filePath);
+        if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+            return sendError(res, 'Caminho de arquivo inválido', 400);
+        }
+        await fs.promises.writeFile(filePath, req.file.buffer);
+        const foto = `/api/profile/photo/${filename}`;
+        const profile = await usersService.getById(currentUser.id);
+        const previousPhoto = profile?.foto || '';
+        if (previousPhoto.startsWith('/api/profile/photo/')) {
+            const previousFilename = path.basename(previousPhoto);
+            const previousPath = path.resolve(profileUploadDir, previousFilename);
+            const previousRelative = path.relative(profileUploadDir, previousPath);
+            if (!previousRelative.startsWith('..') && !path.isAbsolute(previousRelative)) {
+                await fs.promises.unlink(previousPath).catch(() => { });
+            }
+        }
+        await usersService.update(currentUser.id, { foto });
+        await logSystemAction(req, currentUser.id, currentUser.empresa_id, 'PROFILE_UPDATE', 'Usuário atualizou a foto do perfil');
+        sendSuccess(res, { foto }, 'Foto de perfil atualizada com sucesso');
+    }
+    catch (error) {
+        const message = error instanceof Error ? error.message : 'Erro ao atualizar foto de perfil';
         sendError(res, message);
     }
 });
