@@ -14,6 +14,7 @@ export interface UserPayload {
   desenvolvedor: boolean;
   ativo: boolean;
   perfil?: string | null;
+  access_profile_id?: number | null;
 }
 
 export interface AuthRequest extends Request {
@@ -36,7 +37,10 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
     }
 
     // Strict validation: check database
-    const [rows]: any = await pool.query('SELECT id, nome, email, empresa_id, administrador, desenvolvedor, ativo, perfil FROM usuarios WHERE id = ?', [decoded.id]);
+    const [rows]: any = await pool.query(
+      'SELECT id, nome, email, empresa_id, administrador, desenvolvedor, ativo, perfil, access_profile_id FROM usuarios WHERE id = ?',
+      [decoded.id]
+    );
     
     if (rows.length === 0) {
       return res.status(401).json({ success: false, message: 'Sua conta não foi encontrada no sistema.' });
@@ -55,7 +59,8 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
       administrador: Boolean(rows[0].administrador),
       desenvolvedor: Boolean(rows[0].desenvolvedor),
       ativo: Boolean(rows[0].ativo),
-      perfil: rows[0].perfil || decoded.perfil || null
+      perfil: rows[0].perfil || decoded.perfil || null,
+      access_profile_id: rows[0].access_profile_id ? Number(rows[0].access_profile_id) : null,
     };
 
     next();

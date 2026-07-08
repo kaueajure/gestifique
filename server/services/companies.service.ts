@@ -1,4 +1,5 @@
 import  pool from  '../db/connection.js';
+import { seedDefaultProfilesForEmpresa } from './access-profiles.service.js';
 
 const EMAIL_SIGNATURE_MAX_LENGTH = 2000;
 
@@ -84,6 +85,8 @@ class CompaniesService {
       [companyId, companyId, companyId]
     );
 
+    await seedDefaultProfilesForEmpresa(companyId);
+
     return companyId;
   }
 
@@ -166,7 +169,8 @@ class CompaniesService {
         'empresa_sla_politicas',
         'empresa_distribuicao_regras',
         'logs_sistema',
-        'usuarios'
+        'usuarios',
+        'access_profiles'
       ];
 
       // Delete references using ticket_id first to avoid foreign key issues if ON DELETE CASCADE is missing

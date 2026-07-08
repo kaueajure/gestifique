@@ -13,17 +13,17 @@ import {
   Loader2,
   Key,
 } from "lucide-react";
-import { PageHeader } from "../ui/PageHeader";
 import { Badge } from "../ui/Badge";
 import { Modal } from "../ui/Modal";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { Select } from "../ui/Select";
-import { Card } from "../ui/Card";
 import { PageShell } from "../layout/PageShell";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { cn } from "../../lib/utils";
-import { PermissionUserModal } from "../settings/PermissionUserModal";
+import { hasPermission } from "../../lib/permissions";
+import { AccessProfilesManager } from "../settings/AccessProfilesManager";
+import { AccessProfile } from "../../types";
 
 type UserPayload = {
   nome: string;
@@ -35,6 +35,7 @@ type UserPayload = {
   administrador: boolean;
   desenvolvedor: boolean;
   perfil?: string;
+  access_profile_id?: number | null;
 };
 
 interface UsersPageProps {
@@ -42,7 +43,9 @@ interface UsersPageProps {
 }
 
 export const UsersPage = ({ currentUser }: UsersPageProps) => {
+  const [activeTab, setActiveTab] = useState<"users" | "profiles">("users");
   const [users, setUsers] = useState<User[]>([]);
+  const [accessProfiles, setAccessProfiles] = useState<AccessProfile[]>([]);
   const [companies, setCompanies] = useState<Empresa[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,16 +54,27 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
   const [isStatusConfirmOpen, setIsStatusConfirmOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [empresaId, setEmpresaId] = useState<string>("");
-  const [perfil, setPerfil] = useState<string>("atendente");
+  const [roleSelection, setRoleSelection] = useState<string>("profile:default");
   const [loadingSave, setLoadingSave] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false);
-  const [permissionUserId, setPermissionUserId] = useState<number | null>(null);
+
+  const canViewProfiles = hasPermission(currentUser, "usuarios.ver_permissoes");
+  const defaultAccessProfileId = accessProfiles.find((p) => p.nome === "Atendente")?.id
+    || accessProfiles[0]?.id;
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
-  const [permissionFilter, setPermissionFilter] = useState("todos");
+
+  const fetchAccessProfiles = async () => {
+    if (!canViewProfiles) return;
+    try {
+      const profiles = await api.get<AccessProfile[]>("/access-profiles");
+      setAccessProfiles(profiles);
+    } catch {
+      setAccessProfiles([]);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -88,6 +102,10 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
   };
 
   useEffect(() => {
+    fetchAccessProfiles();
+  }, [canViewProfiles]);
+
+  useEffect(() => {
     const timer = setTimeout(() => {
       fetchData();
     }, 300);
@@ -99,6 +117,35 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
     setTimeout(() => setSuccessMsg(null), 3000);
   };
 
+  const resolveRolePayload = () => {
+    if (roleSelection === "desenvolvedor") {
+      return {
+        perfil: "desenvolvedor",
+        administrador: true,
+        desenvolvedor: true,
+        access_profile_id: null,
+      };
+    }
+    if (roleSelection === "administrador") {
+      return {
+        perfil: "administrador",
+        administrador: true,
+        desenvolvedor: false,
+        access_profile_id: null,
+      };
+    }
+    const profileId = roleSelection.startsWith("profile:")
+      ? Number(roleSelection.replace("profile:", ""))
+      : defaultAccessProfileId;
+    const profile = accessProfiles.find((p) => p.id === profileId);
+    return {
+      perfil: profile?.base_perfil || "atendente",
+      administrador: false,
+      desenvolvedor: false,
+      access_profile_id: profileId || null,
+    };
+  };
+
   const handleSaveUser = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoadingSave(true);
@@ -106,6 +153,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
     const formData = new FormData(e.currentTarget);
 
     try {
+      const rolePayload = resolveRolePayload();
       const payload: UserPayload = {
         nome: String(formData.get("nome") || ""),
         email: String(formData.get("email") || ""),
@@ -114,14 +162,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
         empresa_id: formData.get("empresa_id")
           ? Number(formData.get("empresa_id"))
           : null,
-        administrador:
-          perfil === "administrador" ||
-          perfil === "desenvolvedor" ||
-          formData.get("administrador") === "true",
-        desenvolvedor:
-          perfil === "desenvolvedor" ||
-          formData.get("desenvolvedor") === "true",
-        perfil: perfil,
+        ...rolePayload,
       };
 
       const password = formData.get("password") as string;
@@ -207,27 +248,76 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
     }
   };
 
+  const getRoleSelectionForUser = (user: User) => {
+    if (user.desenvolvedor || user.perfil === "desenvolvedor") return "desenvolvedor";
+    if (user.administrador || user.perfil === "administrador") return "administrador";
+    if (user.access_profile_id) return `profile:${user.access_profile_id}`;
+    const legacyProfile = accessProfiles.find((p) => p.base_perfil === user.perfil);
+    if (legacyProfile) return `profile:${legacyProfile.id}`;
+    return defaultAccessProfileId ? `profile:${defaultAccessProfileId}` : "profile:default";
+  };
+
   return (
     <>
       <PageShell
         title="Equipe"
         subtitle="Gerencie usuários, perfis de acesso e permissões da operação."
         actions={
-          <Button
-            size="sm"
-            onClick={() => {
-              setSelectedUser(null);
-              setPerfil("atendente");
-              setSaveError(null);
-              setIsModalOpen(true);
-            }}
-          >
-            <Plus size={14} className="mr-2" /> Novo Usuário
-          </Button>
+          activeTab === "users" ? (
+            <Button
+              size="sm"
+              onClick={() => {
+                setSelectedUser(null);
+                setRoleSelection(
+                  defaultAccessProfileId
+                    ? `profile:${defaultAccessProfileId}`
+                    : "profile:default",
+                );
+                setSaveError(null);
+                setIsModalOpen(true);
+              }}
+            >
+              <Plus size={14} className="mr-2" /> Novo Usuário
+            </Button>
+          ) : undefined
         }
         flush
         contentClassName="flex flex-col h-full min-h-0"
+        tabs={
+          canViewProfiles ? (
+            <div className="flex gap-1 py-3">
+              <button
+                onClick={() => setActiveTab("users")}
+                className={cn(
+                  "h-8 px-3 rounded-md text-xs font-medium transition-all",
+                  activeTab === "users"
+                    ? "bg-slate-100 text-slate-900 shadow-sm border border-slate-200/50"
+                    : "text-slate-500 hover:text-slate-900 hover:bg-slate-50",
+                )}
+              >
+                Colaboradores
+              </button>
+              <button
+                onClick={() => setActiveTab("profiles")}
+                className={cn(
+                  "h-8 px-3 rounded-md text-xs font-medium transition-all",
+                  activeTab === "profiles"
+                    ? "bg-slate-100 text-slate-900 shadow-sm border border-slate-200/50"
+                    : "text-slate-500 hover:text-slate-900 hover:bg-slate-50",
+                )}
+              >
+                Perfis de Acesso
+              </button>
+            </div>
+          ) : undefined
+        }
       >
+        {activeTab === "profiles" ? (
+          <div className="p-4 sm:p-5">
+            <AccessProfilesManager currentUser={currentUser} />
+          </div>
+        ) : (
+          <>
         <div className="shrink-0 p-2 sm:p-3 border-b border-slate-100 flex flex-col sm:flex-row items-center gap-3">
           <div className="relative flex-1 w-full group">
             <Search
@@ -357,6 +447,14 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
                           <span className="text-[11px] font-medium text-slate-500">
                             {user.cargo || "Membro"}
                           </span>
+                          {user.access_profile_nome && !user.desenvolvedor && !user.administrador && (
+                            <Badge
+                              variant="indigo"
+                              className="text-[9px] py-0 px-1.5 font-medium border-none"
+                            >
+                              {user.access_profile_nome}
+                            </Badge>
+                          )}
                           {user.perfil === "desenvolvedor" && (
                             <Badge
                               variant="indigo"
@@ -373,7 +471,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
                               Admin
                             </Badge>
                           )}
-                          {user.perfil === "gestor" && (
+                          {user.perfil === "gestor" && !user.access_profile_nome && (
                             <Badge
                               variant="emerald"
                               className="text-[9px] py-0 px-1.5 font-medium border-none"
@@ -381,7 +479,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
                               Gestor
                             </Badge>
                           )}
-                          {user.perfil === "atendente" && (
+                          {user.perfil === "atendente" && !user.access_profile_nome && (
                             <Badge
                               variant="slate"
                               className="text-[9px] py-0 px-1.5 font-medium border-none"
@@ -389,7 +487,7 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
                               Atend.
                             </Badge>
                           )}
-                          {user.perfil === "cliente" && (
+                          {user.perfil === "cliente" && !user.access_profile_nome && (
                             <Badge
                               variant="slate"
                               className="bg-transparent border border-slate-200 text-slate-600 text-[9px] py-0 px-1.5 font-medium"
@@ -416,25 +514,8 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
                               </button>
                               <button
                                 onClick={() => {
-                                  setPermissionUserId(user.id);
-                                  setIsPermissionModalOpen(true);
-                                }}
-                                className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 transition-all"
-                                title="Gerenciar Permissões"
-                              >
-                                <Shield size={14} />
-                              </button>
-                              <button
-                                onClick={() => {
                                   setSelectedUser(user);
-                                  setPerfil(
-                                    user.perfil ||
-                                      (user.desenvolvedor
-                                        ? "desenvolvedor"
-                                        : user.administrador
-                                          ? "administrador"
-                                          : "atendente"),
-                                  );
+                                  setRoleSelection(getRoleSelectionForUser(user));
                                   setSaveError(null);
                                   setIsModalOpen(true);
                                 }}
@@ -479,6 +560,8 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
               </tbody>
             </table>
           </div>
+        )}
+          </>
         )}
       </PageShell>
 
@@ -553,24 +636,25 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
               Perfil de Acesso
             </label>
             <Select
-              name="perfil"
-              value={perfil}
-              onChange={setPerfil}
+              value={roleSelection}
+              onChange={setRoleSelection}
               buttonClassName="h-8 text-xs font-medium"
               options={[
                 ...(currentUser.desenvolvedor
-                  ? [{ value: "desenvolvedor", label: "Desenvolvedor" }]
+                  ? [{ value: "desenvolvedor", label: "Desenvolvedor (SaaS)" }]
                   : []),
                 ...(currentUser.administrador || currentUser.desenvolvedor
-                  ? [{ value: "administrador", label: "Administrador" }]
+                  ? [{ value: "administrador", label: "Administrador da Empresa" }]
                   : []),
-                { value: "gestor", label: "Gestor" },
-                { value: "atendente", label: "Atendente" },
-                { value: "cliente", label: "Cliente" },
+                ...accessProfiles.map((profile) => ({
+                  value: `profile:${profile.id}`,
+                  label: profile.nome + (profile.sistema ? " (Padrão)" : ""),
+                })),
               ]}
             />
             <p className="text-[11px] text-slate-500">
-              Define as permissões operacionais do usuário.
+              O cargo é apenas exibição. As permissões vêm do perfil de acesso
+              selecionado.
             </p>
           </div>
 
@@ -718,17 +802,6 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
         variant={selectedUser?.ativo ? "danger" : "info"}
       />
 
-      {permissionUserId && (
-        <PermissionUserModal
-          userId={permissionUserId}
-          isOpen={isPermissionModalOpen}
-          onClose={() => {
-            setIsPermissionModalOpen(false);
-            setPermissionUserId(null);
-          }}
-          currentUser={currentUser}
-        />
-      )}
     </>
   );
 };

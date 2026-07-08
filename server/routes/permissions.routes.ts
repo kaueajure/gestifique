@@ -32,10 +32,17 @@ function validateTargetAccess(caller: any, targetUser: any): string | null {
 
 async function getTargetUser(targetUserId: number) {
   const [targetUserRows]: any = await pool.query(
-    'SELECT id, empresa_id, desenvolvedor, administrador, perfil FROM usuarios WHERE id = ?',
+    'SELECT id, empresa_id, desenvolvedor, administrador, perfil, access_profile_id FROM usuarios WHERE id = ?',
     [targetUserId]
   );
   return targetUserRows[0] || null;
+}
+
+function accessProfileManagedError(targetUser: any): string | null {
+  if (targetUser?.access_profile_id) {
+    return 'Permissoes deste usuario sao gerenciadas pelo perfil de acesso vinculado. Edite o perfil em Perfis de Acesso.';
+  }
+  return null;
 }
 
 function globalPermissionAllowError(caller: any, permissionKeys: string[], effect: 'allow' | 'deny'): string | null {
@@ -128,7 +135,7 @@ router.put('/users/:id/override', requirePermission('usuarios.gerenciar_permisso
 
     // Load target user's details
     const [targetUserRows]: any = await pool.query(
-      'SELECT id, empresa_id, desenvolvedor, administrador, perfil FROM usuarios WHERE id = ?',
+      'SELECT id, empresa_id, desenvolvedor, administrador, perfil, access_profile_id FROM usuarios WHERE id = ?',
       [targetUserId]
     );
 
@@ -139,6 +146,11 @@ router.put('/users/:id/override', requirePermission('usuarios.gerenciar_permisso
     const accessError = validateTargetAccess(caller, targetUser);
     if (accessError) {
       return res.status(403).json({ success: false, message: accessError });
+    }
+
+    const profileManagedError = accessProfileManagedError(targetUser);
+    if (profileManagedError) {
+      return res.status(400).json({ success: false, message: profileManagedError });
     }
 
     // Hierarchy check:
@@ -207,7 +219,7 @@ router.delete('/users/:id/override/:permissionKey', requirePermission('usuarios.
 
     // Load target user's details
     const [targetUserRows]: any = await pool.query(
-      'SELECT id, empresa_id, desenvolvedor, administrador, perfil FROM usuarios WHERE id = ?',
+      'SELECT id, empresa_id, desenvolvedor, administrador, perfil, access_profile_id FROM usuarios WHERE id = ?',
       [targetUserId]
     );
 
@@ -218,6 +230,11 @@ router.delete('/users/:id/override/:permissionKey', requirePermission('usuarios.
     const accessError = validateTargetAccess(caller, targetUser);
     if (accessError) {
       return res.status(403).json({ success: false, message: accessError });
+    }
+
+    const profileManagedError = accessProfileManagedError(targetUser);
+    if (profileManagedError) {
+      return res.status(400).json({ success: false, message: profileManagedError });
     }
 
     // Hierarchy check
@@ -259,7 +276,7 @@ router.post('/users/:id/reset', requirePermission('usuarios.gerenciar_permissoes
 
     // Load target user's details
     const [targetUserRows]: any = await pool.query(
-      'SELECT id, empresa_id, desenvolvedor, administrador, perfil FROM usuarios WHERE id = ?',
+      'SELECT id, empresa_id, desenvolvedor, administrador, perfil, access_profile_id FROM usuarios WHERE id = ?',
       [targetUserId]
     );
 
@@ -270,6 +287,11 @@ router.post('/users/:id/reset', requirePermission('usuarios.gerenciar_permissoes
     const accessError = validateTargetAccess(caller, targetUser);
     if (accessError) {
       return res.status(403).json({ success: false, message: accessError });
+    }
+
+    const profileManagedError = accessProfileManagedError(targetUser);
+    if (profileManagedError) {
+      return res.status(400).json({ success: false, message: profileManagedError });
     }
 
     // Hierarchy check
@@ -311,7 +333,7 @@ router.post('/users/:id/bulk', requirePermission('usuarios.gerenciar_permissoes'
 
     // Load target user's details
     const [targetUserRows]: any = await pool.query(
-      'SELECT id, empresa_id, desenvolvedor, administrador, perfil FROM usuarios WHERE id = ?',
+      'SELECT id, empresa_id, desenvolvedor, administrador, perfil, access_profile_id FROM usuarios WHERE id = ?',
       [targetUserId]
     );
 
@@ -322,6 +344,11 @@ router.post('/users/:id/bulk', requirePermission('usuarios.gerenciar_permissoes'
     const accessError = validateTargetAccess(caller, targetUser);
     if (accessError) {
       return res.status(403).json({ success: false, message: accessError });
+    }
+
+    const profileManagedError = accessProfileManagedError(targetUser);
+    if (profileManagedError) {
+      return res.status(400).json({ success: false, message: profileManagedError });
     }
 
     // Hierarchy check: Only developer can edit developer
@@ -405,7 +432,7 @@ router.post('/users/:id/bulk-reset', requirePermission('usuarios.gerenciar_permi
 
     // Load target user's details
     const [targetUserRows]: any = await pool.query(
-      'SELECT id, empresa_id, desenvolvedor, administrador, perfil FROM usuarios WHERE id = ?',
+      'SELECT id, empresa_id, desenvolvedor, administrador, perfil, access_profile_id FROM usuarios WHERE id = ?',
       [targetUserId]
     );
 
@@ -416,6 +443,11 @@ router.post('/users/:id/bulk-reset', requirePermission('usuarios.gerenciar_permi
     const accessError = validateTargetAccess(caller, targetUser);
     if (accessError) {
       return res.status(403).json({ success: false, message: accessError });
+    }
+
+    const profileManagedError = accessProfileManagedError(targetUser);
+    if (profileManagedError) {
+      return res.status(400).json({ success: false, message: profileManagedError });
     }
 
     // Hierarchy check

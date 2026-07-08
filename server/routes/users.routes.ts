@@ -7,6 +7,7 @@ import  { logSystemAction } from  '../utils/logger.js';
 import  { isValidEmail, isValidPassword, PASSWORD_RULE_MESSAGE } from  '../utils/validators.js';
 import pool from '../db/connection.js';
 import { permissionsService } from '../services/permissions.service.js';
+import { accessProfilesService } from '../services/access-profiles.service.js';
 
 const router = Router();
 
@@ -22,16 +23,34 @@ function normalizeUserRoleFlags(data: any) {
   if (data.perfil === 'desenvolvedor') {
     data.desenvolvedor = true;
     data.administrador = true;
+    data.access_profile_id = null;
   } else if (data.desenvolvedor === true) {
     data.perfil = 'desenvolvedor';
     data.administrador = true;
+    data.access_profile_id = null;
   } else if (data.perfil === 'administrador') {
     data.administrador = true;
     data.desenvolvedor = false;
+    data.access_profile_id = null;
   } else if (data.perfil !== undefined) {
     data.desenvolvedor = false;
     data.administrador = false;
   }
+}
+
+async function resolveAccessProfileAssignment(empresaId: number | null | undefined, accessProfileId: unknown) {
+  const profileId = parsePositiveInt(accessProfileId);
+  if (!profileId) return null;
+  if (!empresaId) throw new Error('Empresa obrigatoria para vincular perfil de acesso.');
+
+  const profile = await accessProfilesService.getById(profileId);
+  if (!profile || Number(profile.empresa_id) !== Number(empresaId)) {
+    throw new Error('Perfil de acesso invalido para esta empresa.');
+  }
+  if (!profile.ativo) {
+    throw new Error('Perfil de acesso inativo.');
+  }
+  return profile;
 }
 
 router.get('/team', async (req: AuthRequest, res) => {
@@ -100,7 +119,7 @@ router.post('/', requirePermission('usuarios.criar'), async (req: AuthRequest, r
     const currentUser = req.user;
     if (!currentUser) return sendError(res, 'Não autenticado', 401);
 
-    const { nome, email, password, administrador, desenvolvedor, empresa_id, cargo, telefone, perfil } = req.body;
+    const { nome, email, password, administrador, desenvolvedor, empresa_id, cargo, telefone, perfil, access_profile_id } = req.body;
     
     if (!nome || !email || !password) return sendError(res, 'Nome, email e senha são obrigatórios', 400);
     if (!isValidEmail(email)) return sendError(res, 'Email inválido', 400);
@@ -127,12 +146,29 @@ router.post('/', requirePermission('usuarios.criar'), async (req: AuthRequest, r
       return sendError(res, 'Empresa e obrigatoria para criar usuarios sem perfil de desenvolvedor', 400);
     }
 
+    let resolvedProfile = null;
+    if (!wantsDeveloper && !wantsAdmin) {
+      resolvedProfile = await resolveAccessProfileAssignment(targetEmpresaId, access_profile_id);
+      if (!resolvedProfile && targetEmpresaId) {
+        const [defaultRows]: any = await pool.query(
+          'SELECT id, base_perfil FROM access_profiles WHERE empresa_id = ? AND nome = ? AND ativo = 1 LIMIT 1',
+          [targetEmpresaId, 'Atendente']
+        );
+        resolvedProfile = defaultRows[0] || null;
+      }
+    }
+
     const buildData = {
       nome, email, password, cargo, telefone,
       empresa_id: targetEmpresaId,
       administrador: wantsAdmin,
       desenvolvedor: currentUser.desenvolvedor ? wantsDeveloper : false,
-      perfil: wantsDeveloper ? 'desenvolvedor' : wantsAdmin ? 'administrador' : (perfil || 'atendente')
+      perfil: wantsDeveloper
+        ? 'desenvolvedor'
+        : wantsAdmin
+          ? 'administrador'
+          : (resolvedProfile?.base_perfil || perfil || 'atendente'),
+      access_profile_id: wantsDeveloper || wantsAdmin ? null : (resolvedProfile?.id || null),
     };
 
     const newUser = await usersService.create(buildData);
@@ -182,6 +218,28 @@ router.patch('/:id', requirePermission('usuarios.editar'), async (req: AuthReque
         }
 
         normalizeUserRoleFlags(req.body);
+
+        if (!req.user.desenvolvedor && !req.body.desenvolvedor && !req.body.administrador) {
+          const empresaId = req.body.empresa_id ?? targetUser.empresa_id;
+          if (req.body.access_profile_id !== undefined) {
+            const profile = await resolveAccessProfileAssignment(empresaId, req.body.access_profile_id);
+            if (profile) {
+              req.body.access_profile_id = profile.id;
+              req.body.perfil = profile.base_perfil || req.body.perfil || targetUser.perfil || 'atendente';
+            } else {
+              req.body.access_profile_id = null;
+            }
+          } else if (req.body.perfil && !['desenvolvedor', 'administrador'].includes(req.body.perfil)) {
+            const [profileRows]: any = await pool.query(
+              'SELECT id, base_perfil FROM access_profiles WHERE empresa_id = ? AND base_perfil = ? AND ativo = 1 ORDER BY sistema DESC LIMIT 1',
+              [empresaId, req.body.perfil]
+            );
+            if (profileRows[0]) {
+              req.body.access_profile_id = profileRows[0].id;
+              req.body.perfil = profileRows[0].base_perfil || req.body.perfil;
+            }
+          }
+        }
 
         // Validate email if present
         if (req.body.email && req.body.email !== targetUser.email) {

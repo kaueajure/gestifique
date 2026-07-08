@@ -1,3 +1,17 @@
+export interface AccessProfile {
+  id: number;
+  empresa_id: number | null;
+  nome: string;
+  descricao?: string | null;
+  base_perfil?: string | null;
+  sistema: boolean;
+  ativo: boolean;
+  usuarios_count?: number;
+  permissions_count?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface User {
   id: number;
   empresa_id: number | null;
@@ -5,6 +19,8 @@ export interface User {
   email: string;
   cargo: string | null;
   perfil?: 'desenvolvedor' | 'administrador' | 'gestor' | 'atendente' | 'cliente' | string | null;
+  access_profile_id?: number | null;
+  access_profile_nome?: string | null;
   administrador: boolean;
   desenvolvedor: boolean;
   ativo: boolean;
@@ -50,6 +66,7 @@ export interface UserFormData {
   administrador: boolean;
   desenvolvedor: boolean;
   perfil?: 'desenvolvedor' | 'administrador' | 'gestor' | 'atendente' | 'cliente' | string | null;
+  access_profile_id?: number | null;
 }
 
 export interface CompanyFormData {

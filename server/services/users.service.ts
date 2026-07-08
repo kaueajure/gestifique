@@ -6,9 +6,12 @@ class UsersService {
   async list(filters: { empresaId?: number; search?: string; status?: string }) {
     let query = `
       SELECT u.id, u.nome, u.email, u.cargo, u.administrador, u.desenvolvedor, 
-             u.ativo, u.empresa_id, u.perfil, e.nome as empresa_nome 
+             u.ativo, u.empresa_id, u.perfil, u.access_profile_id,
+             ap.nome as access_profile_nome,
+             e.nome as empresa_nome 
       FROM usuarios u
       LEFT JOIN empresas e ON u.empresa_id = e.id
+      LEFT JOIN access_profiles ap ON ap.id = u.access_profile_id
       WHERE 1=1
     `;
     const params: any[] = [];
@@ -78,14 +81,14 @@ class UsersService {
   }
 
   async create(data: any) {
-    const { nome, email, password, empresa_id, cargo, telefone, administrador, desenvolvedor, perfil } = data;
+    const { nome, email, password, empresa_id, cargo, telefone, administrador, desenvolvedor, perfil, access_profile_id } = data;
     const hash = await bcrypt.hash(password, 10);
     
     const perfilFinal = perfil || (desenvolvedor ? 'desenvolvedor' : administrador ? 'administrador' : 'atendente');
 
     const [result]: any = await pool.query(
-      'INSERT INTO usuarios (nome, email, senha_hash, empresa_id, cargo, telefone, administrador, desenvolvedor, ativo, perfil) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)',
-      [nome, email, hash, empresa_id, cargo, telefone, administrador ? 1 : 0, desenvolvedor ? 1 : 0, perfilFinal]
+      'INSERT INTO usuarios (nome, email, senha_hash, empresa_id, cargo, telefone, administrador, desenvolvedor, ativo, perfil, access_profile_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)',
+      [nome, email, hash, empresa_id, cargo, telefone, administrador ? 1 : 0, desenvolvedor ? 1 : 0, perfilFinal, access_profile_id || null]
     );
     
     return { id: result.insertId, nome, email };
@@ -96,7 +99,7 @@ class UsersService {
     const params: any[] = [];
 
     Object.keys(data).forEach(key => {
-      if (['nome', 'email', 'cargo', 'administrador', 'desenvolvedor', 'ativo', 'telefone', 'foto', 'empresa_id', 'perfil'].includes(key)) {
+      if (['nome', 'email', 'cargo', 'administrador', 'desenvolvedor', 'ativo', 'telefone', 'foto', 'empresa_id', 'perfil', 'access_profile_id'].includes(key)) {
         fields.push(`${key} = ?`);
         params.push(data[key]);
       }
