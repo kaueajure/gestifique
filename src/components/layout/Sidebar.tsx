@@ -18,7 +18,7 @@ import { User } from "../../types";
 import { cn } from "../../lib/utils";
 import { AppLogo } from "../ui/Logo";
 import { NotificationsDropdown } from "../ui/NotificationsDropdown";
-import { hasPermission } from "../../lib/permissions";
+import { canAccessAppScreen } from "../../lib/permissions";
 
 interface SidebarProps {
   currentUser: User;
@@ -64,19 +64,19 @@ export const Sidebar = ({
           id: "dashboard",
           icon: LayoutDashboard,
           label: "Dashboard",
-          access: hasPermission(currentUser, "dashboard.visualizar"),
+          access: canAccessAppScreen(currentUser, "dashboard"),
         },
         {
           id: "tickets",
           icon: Ticket,
           label: "Chamados",
-          access: hasPermission(currentUser, "tickets.visualizar"),
+          access: canAccessAppScreen(currentUser, "tickets"),
         },
         {
           id: "knowledge",
           icon: BookOpen,
           label: "Base de Conhecimento",
-          access: hasPermission(currentUser, "base_conhecimento.visualizar"),
+          access: canAccessAppScreen(currentUser, "knowledge"),
         },
       ],
     },
@@ -87,19 +87,19 @@ export const Sidebar = ({
           id: "reports",
           icon: BarChart3,
           label: "Relatórios",
-          access: hasPermission(currentUser, "relatorios.visualizar"),
+          access: canAccessAppScreen(currentUser, "reports"),
         },
         {
           id: "users",
           icon: Users,
           label: "Usuários e Permissões",
-          access: hasPermission(currentUser, "usuarios.visualizar"),
+          access: canAccessAppScreen(currentUser, "users"),
         },
         {
           id: "companies",
           icon: Building2,
           label: "Clientes e Empresas",
-          access: hasPermission(currentUser, "empresas.visualizar"),
+          access: canAccessAppScreen(currentUser, "companies"),
         },
       ],
     },
@@ -110,13 +110,13 @@ export const Sidebar = ({
           id: "settings",
           icon: Settings,
           label: "Configurações e SLA",
-          access: hasPermission(currentUser, "configuracoes.visualizar"),
+          access: canAccessAppScreen(currentUser, "settings"),
         },
         {
           id: "logs",
           icon: Shield,
           label: "Auditoria",
-          access: hasPermission(currentUser, "auditoria.visualizar"),
+          access: canAccessAppScreen(currentUser, "logs"),
         },
       ],
     },

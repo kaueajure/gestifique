@@ -26,6 +26,7 @@ import { PageShell } from "../layout/PageShell";
 import { Input } from "../ui/Input";
 import { Button } from "../ui/Button";
 import { cn } from "../../lib/utils";
+import { isDeveloperUser } from "../../lib/permissions";
 
 import { AccessDenied } from "../ui/AccessDenied";
 import { EmailChannelsManager } from "../companies/EmailChannelsManager";
@@ -293,7 +294,7 @@ export const CompaniesPage = ({ currentUser }: CompaniesPageProps) => {
     ),
   };
 
-  if (!currentUser?.desenvolvedor) {
+  if (!isDeveloperUser(currentUser)) {
     return <AccessDenied />;
   }
 

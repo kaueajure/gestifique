@@ -152,7 +152,7 @@ export const SettingsPage = ({
       const res = await api.get<HealthOverviewResponse>("/health/overview");
       setHealthData(res);
     } catch (err: any) {
-      setHealthError(err.message || "Falha ao buscar diagnÃ³stico do sistema");
+      setHealthError(err.message || "Falha ao buscar diagnóstico do sistema");
     } finally {
       setLoadingHealth(false);
     }
@@ -168,7 +168,7 @@ export const SettingsPage = ({
     e.preventDefault();
 
     if (!currentUser.empresa_id) {
-      setError("Sua conta nÃ£o possui empresa vinculada para editar.");
+      setError("Sua conta não possui empresa vinculada para editar.");
       return;
     }
 
@@ -189,13 +189,13 @@ export const SettingsPage = ({
     };
 
     if (!payload.nome) {
-      setError("O nome da empresa Ã© obrigatÃ³rio.");
+      setError("O nome da empresa é obrigatório.");
       setLoading(false);
       return;
     }
 
     if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
-      setError("E-mail de contato invÃ¡lido.");
+      setError("E-mail de contato inválido.");
       setLoading(false);
       return;
     }
@@ -209,11 +209,11 @@ export const SettingsPage = ({
         onUpdateUser(updated);
       }
 
-      setSuccess("ConfiguraÃ§Ãµes da empresa atualizadas!");
+      setSuccess("Configurações da empresa atualizadas!");
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "Erro ao salvar configuraÃ§Ãµes.";
+        err instanceof Error ? err.message : "Erro ao salvar configurações.";
       setError(message);
     } finally {
       setLoading(false);
@@ -223,7 +223,7 @@ export const SettingsPage = ({
   return (
     <>
       <PageShell
-        title="ConfiguraÃ§Ãµes"
+        title="Configurações"
         subtitle="Ajuste chamados, empresa, telas e regras do sistema."
         flush
         tabs={
@@ -305,11 +305,11 @@ export const SettingsPage = ({
                       </div>
                       <div className="space-y-1">
                         <h4 className="text-sm font-semibold text-slate-900">
-                          Empresa nÃ£o vinculada
+                          Empresa não vinculada
                         </h4>
                         <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                          Sua conta de usuÃ¡rio nÃ£o possui uma empresa vinculada
-                          para editar configuraÃ§Ãµes corporativas no momento.
+                          Sua conta de usuário não possui uma empresa vinculada
+                          para editar configurações corporativas no momento.
                         </p>
                       </div>
                       <Button
@@ -333,7 +333,7 @@ export const SettingsPage = ({
                               Perfil Corporativo
                             </h4>
                             <p className="text-[11px] text-slate-500 font-medium">
-                              Dados fundamentais da sua instÃ¢ncia Gestifique.
+                              Dados fundamentais da sua instância Gestifique.
                             </p>
                           </div>
                         </div>
@@ -358,7 +358,7 @@ export const SettingsPage = ({
 
                       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <Input
-                          label="RazÃ£o Social / Nome Fantasia"
+                          label="Razão Social / Nome Fantasia"
                           name="nome"
                           defaultValue={currentUser.empresa_nome || ""}
                           required
@@ -384,7 +384,7 @@ export const SettingsPage = ({
 
                       <div className="space-y-1.5 flex flex-col">
                         <label className="text-xs font-medium text-slate-700">
-                          EndereÃ§o da Sede
+                          Endereço da Sede
                         </label>
                         <textarea
                           name="endereco"
@@ -401,10 +401,10 @@ export const SettingsPage = ({
                           </div>
                           <div>
                             <h4 className="text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
-                              ComunicaÃ§Ã£o com clientes
+                              Comunicação com clientes
                             </h4>
                             <p className="text-[11px] text-slate-500">
-                              Esta assinatura aparece no rodapÃ© dos e-mails de criaÃ§Ã£o e resposta de chamados.
+                              Esta assinatura aparece no rodapé dos e-mails de criação e resposta de chamados.
                             </p>
                           </div>
                         </div>
@@ -424,7 +424,7 @@ export const SettingsPage = ({
                             className="w-full min-h-[96px] bg-white border border-slate-200 rounded-md p-2.5 text-xs leading-relaxed focus:ring-2 focus:ring-blue-100 transition-all outline-none resize-y"
                           />
                           <p className="text-[11px] text-slate-500">
-                            Use o nome da sua empresa ou da sua equipe. Evite incluir informaÃ§Ãµes sensÃ­veis.
+                            Use o nome da sua empresa ou da sua equipe. Evite incluir informações sensíveis.
                           </p>
                         </div>
                       </div>
@@ -507,7 +507,7 @@ export const SettingsPage = ({
                           className="w-full sm:w-auto"
                         >
                           <Save size={14} className="mr-1.5" /> Salvar
-                          AlteraÃ§Ãµes
+                          Alterações
                         </Button>
                       </div>
                     </form>
@@ -538,7 +538,7 @@ export const SettingsPage = ({
                         size={24}
                       />
                       <p className="text-xs font-semibold text-slate-500">
-                        Coletando diagnÃ³sticos...
+                        Coletando diagnósticos...
                       </p>
                     </div>
                   ) : healthError ? (
@@ -549,7 +549,7 @@ export const SettingsPage = ({
                         </div>
                         <div className="space-y-1">
                           <h4 className="text-sm font-semibold text-slate-900">
-                            Falha no DiagnÃ³stico
+                            Falha no Diagnóstico
                           </h4>
                           <p className="text-xs text-slate-500 max-w-sm mx-auto">
                             {healthError}
@@ -568,7 +568,7 @@ export const SettingsPage = ({
                     <>
                       <div className="flex justify-between items-center bg-white p-2.5 rounded-lg border border-slate-200 shadow-sm">
                         <span className="text-[11px] font-medium text-slate-500 pl-2">
-                          Ãšltima verificaÃ§Ã£o: {new Date().toLocaleTimeString()}
+                          Última verificação: {new Date().toLocaleTimeString()}
                         </span>
                         <Button
                           variant="outline"
@@ -577,7 +577,7 @@ export const SettingsPage = ({
                           className="h-7 text-[11px]"
                         >
                           <RefreshCw size={12} className="mr-1.5" /> Atualizar
-                          DiagnÃ³stico
+                          Diagnóstico
                         </Button>
                       </div>
 
@@ -592,7 +592,7 @@ export const SettingsPage = ({
                               Banco de Dados
                             </div>
                             <div className="text-[10px] font-semibold text-slate-500 uppercase">
-                              ConexÃ£o principal
+                              Conexão principal
                             </div>
                           </div>
                           <div className="space-y-2">
@@ -705,12 +705,12 @@ export const SettingsPage = ({
                           </div>
                           <div>
                             <div className="text-sm font-semibold text-slate-900">
-                              Camada de SeguranÃ§a
+                              Camada de Segurança
                             </div>
                             <div className="text-[10px] font-semibold text-slate-400 uppercase">
                               {healthData.security.auth
-                                ? "AutenticaÃ§Ã£o Ativa"
-                                : "AutenticaÃ§Ã£o Mista"}
+                                ? "Autenticação Ativa"
+                                : "Autenticação Mista"}
                             </div>
                           </div>
                           <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
@@ -733,7 +733,7 @@ export const SettingsPage = ({
                             <span className="text-[10px] font-mono text-slate-500">
                               {healthData.security.helmet
                                 ? "Protegido"
-                                : "Sem ProteÃ§Ã£o"}
+                                : "Sem Proteção"}
                             </span>
                           </div>
                         </Card>
@@ -742,7 +742,7 @@ export const SettingsPage = ({
                       {healthData.security.warnings.length > 0 && (
                         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-1.5">
                           <div className="flex gap-1.5 items-center text-amber-800 font-semibold text-xs">
-                            <AlertCircle size={14} /> Avisos de SeguranÃ§a
+                            <AlertCircle size={14} /> Avisos de Segurança
                           </div>
                           <ul className="list-disc pl-5 text-[11px] text-amber-700 space-y-0.5">
                             {healthData.security.warnings.map((warn, i) => (
@@ -759,21 +759,21 @@ export const SettingsPage = ({
                               <Lock size={16} />
                             </div>
                             <h4 className="text-sm font-semibold text-slate-900">
-                              Painel de ManutenÃ§Ã£o
+                              Painel de Manutenção
                             </h4>
                           </div>
                           <Badge
                             variant="slate"
                             className="font-semibold text-[10px] uppercase"
                           >
-                            ManutenÃ§Ã£o
+                            Manutenção
                           </Badge>
                         </div>
 
                         <p className="text-[13px] text-slate-500 leading-relaxed max-w-3xl">
-                          Acesso restrito para diagnÃ³stico e manutenÃ§Ã£o
-                          estrutural do ecossistema Gestifique. AÃ§Ãµes aqui
-                          impactam mÃºltiplos mÃ³dulos.
+                          Acesso restrito para diagnóstico e manutenção
+                          estrutural do ecossistema Gestifique. Ações aqui
+                          impactam múltiplos módulos.
                         </p>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -785,7 +785,7 @@ export const SettingsPage = ({
                             },
                             {
                               id: "users" as const,
-                              desc: "UsuÃ¡rios",
+                              desc: "Usuários",
                               icon: <Shield className="text-indigo-500" />,
                             },
                             {
@@ -824,11 +824,11 @@ export const SettingsPage = ({
                         </div>
                         <div className="space-y-1">
                           <h4 className="text-sm font-semibold text-slate-900">
-                            Nenhum diagnÃ³stico carregado
+                            Nenhum diagnóstico carregado
                           </h4>
                           <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                            As informaÃ§Ãµes de saÃºde do sistema nÃ£o estÃ£o
-                            disponÃ­veis.
+                            As informações de saúde do sistema não estão
+                            disponíveis.
                           </p>
                         </div>
                         <Button
@@ -836,7 +836,7 @@ export const SettingsPage = ({
                           size="sm"
                           onClick={fetchHealthOverview}
                         >
-                          Atualizar diagnÃ³stico
+                          Atualizar diagnóstico
                         </Button>
                       </div>
                     </Card>

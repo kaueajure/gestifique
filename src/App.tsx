@@ -6,7 +6,7 @@ import { AccessDenied } from "./components/ui/AccessDenied";
 import { LoginPage } from "./components/auth/LoginPage";
 import { ForgotPasswordPage } from "./components/auth/ForgotPasswordPage";
 import { ResetPasswordPage } from "./components/auth/ResetPasswordPage";
-import { hasPermission } from "./lib/permissions";
+import { canAccessAppScreen, getFirstAccessibleAppScreen } from "./lib/permissions";
 import { User } from "./types";
 import { api } from "./lib/api";
 import { cn } from "./lib/utils";
@@ -283,6 +283,25 @@ export default function App() {
       setSelectedTicketId(null);
     }
   }, [activeTab, selectedTicketId]);
+
+  useEffect(() => {
+    if (!currentUser || view !== "dashboard") return;
+
+    if (
+      activeTab === "tickets" &&
+      selectedTicketId &&
+      !canAccessAppScreen(currentUser, "tickets", { selectedTicketId }) &&
+      canAccessAppScreen(currentUser, "tickets")
+    ) {
+      setSelectedTicketId(null);
+      return;
+    }
+
+    if (!canAccessAppScreen(currentUser, activeTab, { selectedTicketId })) {
+      setActiveTab(getFirstAccessibleAppScreen(currentUser) as ActiveTab);
+      setSelectedTicketId(null);
+    }
+  }, [activeTab, currentUser, selectedTicketId, view]);
 
   useEffect(() => {
     // Check session on load
@@ -723,7 +742,7 @@ export default function App() {
                 >
                   <Suspense fallback={<LazyPageFallback />}>
                   {activeTab === "dashboard" &&
-                    (hasPermission(currentUser, "dashboard.visualizar") ? (
+                    (canAccessAppScreen(currentUser, "dashboard") ? (
                       <DashboardPage
                         currentUser={currentUser}
                         onNavigate={(tab) => setActiveTab(tab as ActiveTab)}
@@ -733,7 +752,7 @@ export default function App() {
                     ))}
 
                   {activeTab === "tickets" && !selectedTicketId &&
-                    (hasPermission(currentUser, "tickets.visualizar") ? (
+                    (canAccessAppScreen(currentUser, "tickets") ? (
                       <TicketsPage
                         onSelectTicket={setSelectedTicketId}
                         currentUser={currentUser}
@@ -743,7 +762,7 @@ export default function App() {
                     ))}
 
                   {activeTab === "tickets" && selectedTicketId &&
-                    (hasPermission(currentUser, "tickets.ver_detalhes") ? (
+                    (canAccessAppScreen(currentUser, "tickets", { selectedTicketId }) ? (
                       <TicketDetailsPage
                         ticketId={selectedTicketId}
                         onBack={() => setSelectedTicketId(null)}
@@ -754,45 +773,42 @@ export default function App() {
                     ))}
 
                   {activeTab === "users" &&
-                    (hasPermission(currentUser, "usuarios.visualizar") ? (
+                    (canAccessAppScreen(currentUser, "users") ? (
                       <UsersPage currentUser={currentUser} />
                     ) : (
                       <AccessDenied />
                     ))}
 
                   {activeTab === "companies" &&
-                    (hasPermission(currentUser, "empresas.visualizar") ? (
+                    (canAccessAppScreen(currentUser, "companies") ? (
                       <CompaniesPage currentUser={currentUser} />
                     ) : (
                       <AccessDenied />
                     ))}
 
                   {activeTab === "logs" &&
-                    (hasPermission(currentUser, "auditoria.visualizar") ? (
+                    (canAccessAppScreen(currentUser, "logs") ? (
                       <LogsPage />
                     ) : (
                       <AccessDenied />
                     ))}
 
                   {activeTab === "reports" &&
-                    (hasPermission(currentUser, "relatorios.visualizar") ? (
+                    (canAccessAppScreen(currentUser, "reports") ? (
                       <ReportsPage currentUser={currentUser} />
                     ) : (
                       <AccessDenied />
                     ))}
 
                   {activeTab === "knowledge" &&
-                    (hasPermission(
-                      currentUser,
-                      "base_conhecimento.visualizar",
-                    ) ? (
+                    (canAccessAppScreen(currentUser, "knowledge") ? (
                       <KnowledgePage currentUser={currentUser} />
                     ) : (
                       <AccessDenied />
                     ))}
 
                   {activeTab === "ai" &&
-                    (hasPermission(currentUser, "ia.visualizar") ? (
+                    (canAccessAppScreen(currentUser, "ai") ? (
                       <AITesterPage currentUser={currentUser} />
                     ) : (
                       <AccessDenied />
@@ -807,7 +823,7 @@ export default function App() {
                   )}
 
                   {activeTab === "settings" &&
-                    (hasPermission(currentUser, "configuracoes.visualizar") ? (
+                    (canAccessAppScreen(currentUser, "settings") ? (
                       <SettingsPage
                         currentUser={currentUser}
                         onNavigate={(tab) => setActiveTab(tab)}

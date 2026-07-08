@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { hasAllPermissions, hasAnyPermission, hasPermission } from '../src/lib/permissions.ts';
+import { canAccessAppScreen, hasAllPermissions, hasAnyPermission, hasPermission } from '../src/lib/permissions.ts';
 import {
   filterGlobalPermissionsForUser,
   isGlobalOnlyPermission,
@@ -66,6 +66,21 @@ test('explicit permissions remain precise without wildcard', () => {
   assert.equal(hasPermission(user, 'tickets.visualizar'), true);
   assert.equal(hasPermission(user, 'ticket_mensagens.responder'), true);
   assert.equal(hasPermission(user, 'tickets.excluir'), false);
+});
+
+test('companies screen is visible only to developer users', () => {
+  const regularWithCompanyPermission = makeUser({
+    permissions: ['empresas.visualizar'],
+  });
+  const developer = makeUser({
+    perfil: 'desenvolvedor',
+    desenvolvedor: true,
+    permissions: [],
+  });
+
+  assert.equal(hasPermission(regularWithCompanyPermission, 'empresas.visualizar'), true);
+  assert.equal(canAccessAppScreen(regularWithCompanyPermission, 'companies'), false);
+  assert.equal(canAccessAppScreen(developer, 'companies'), true);
 });
 
 test('hasAnyPermission and hasAllPermissions respect global-only wildcard exclusions', () => {
