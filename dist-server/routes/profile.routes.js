@@ -15,17 +15,10 @@ function resolveProfileUploadDir() {
     if (env.STORAGE_CONFIG.PROFILE_PATH) {
         return path.resolve(process.cwd(), env.STORAGE_CONFIG.PROFILE_PATH);
     }
-    const persistentRoots = [
-        path.resolve(process.cwd(), 'imagens-perfil'),
-        path.resolve(process.cwd(), '..', 'imagens-perfil'),
-    ];
-    const persistentRoot = persistentRoots.find((candidate) => fs.existsSync(candidate));
-    if (persistentRoot) {
-        return path.join(persistentRoot, 'profiles');
-    }
-    return path.resolve(process.cwd(), env.STORAGE_CONFIG.LOCAL_PATH, '..', 'profiles');
+    return path.resolve(process.cwd(), '..', 'uploads', 'profiles');
 }
 const profileUploadDir = resolveProfileUploadDir();
+const legacyProfileUploadDir = path.resolve(process.cwd(), 'uploads', 'profiles');
 if (!fs.existsSync(profileUploadDir)) {
     fs.mkdirSync(profileUploadDir, { recursive: true });
 }
@@ -46,13 +39,20 @@ router.use(authMiddleware);
 router.get('/photo/:filename', async (req, res) => {
     try {
         const filename = path.basename(req.params.filename);
-        const filePath = path.resolve(profileUploadDir, filename);
-        const relativePath = path.relative(profileUploadDir, filePath);
-        if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
-            return sendError(res, 'Arquivo inválido', 400);
+        let filePath = null;
+        for (const candidateDir of [profileUploadDir, legacyProfileUploadDir]) {
+            const candidatePath = path.resolve(candidateDir, filename);
+            const relativePath = path.relative(candidateDir, candidatePath);
+            if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+                return sendError(res, 'Arquivo invalido', 400);
+            }
+            if (fs.existsSync(candidatePath)) {
+                filePath = candidatePath;
+                break;
+            }
         }
-        if (!fs.existsSync(filePath)) {
-            return sendError(res, 'Foto não encontrada', 404);
+        if (!filePath) {
+            return sendError(res, 'Foto nao encontrada', 404);
         }
         res.sendFile(filePath);
     }
@@ -65,14 +65,14 @@ router.get('/', async (req, res) => {
     try {
         const currentUser = req.user;
         if (!currentUser)
-            return sendError(res, 'Não autenticado', 401);
+            return sendError(res, 'Nao autenticado', 401);
         const profile = await usersService.getById(currentUser.id);
         let permissions = [];
         try {
             permissions = await permissionsService.getEffectivePermissions(profile);
         }
         catch (permError) {
-            console.error('Erro ao carregar permissões do perfil do usuário:', permError);
+            console.error('Erro ao carregar permissoes do perfil do usuario:', permError);
         }
         const isSuperUser = !!profile.desenvolvedor;
         sendSuccess(res, {
@@ -91,8 +91,7 @@ router.patch('/', async (req, res) => {
     try {
         const currentUser = req.user;
         if (!currentUser)
-            return sendError(res, 'Não autenticado', 401);
-        // Prevent privilege escalation - Only allow specific fields
+            return sendError(res, 'Nao autenticado', 401);
         const safeData = {};
         if (req.body.nome)
             safeData.nome = req.body.nome;
@@ -101,10 +100,10 @@ router.patch('/', async (req, res) => {
         if (req.body.foto)
             safeData.foto = req.body.foto;
         if (Object.keys(safeData).length === 0) {
-            return sendError(res, 'Nenhum dado válido para atualização');
+            return sendError(res, 'Nenhum dado valido para atualizacao');
         }
         await usersService.update(currentUser.id, safeData);
-        await logSystemAction(req, currentUser.id, currentUser.empresa_id, 'PROFILE_UPDATE', 'Usuário atualizou o próprio perfil');
+        await logSystemAction(req, currentUser.id, currentUser.empresa_id, 'PROFILE_UPDATE', 'Usuario atualizou o proprio perfil');
         sendSuccess(res, null, 'Perfil atualizado com sucesso');
     }
     catch (error) {
@@ -116,7 +115,7 @@ router.post('/photo', profilePhotoUpload.single('foto'), async (req, res) => {
     try {
         const currentUser = req.user;
         if (!currentUser)
-            return sendError(res, 'Não autenticado', 401);
+            return sendError(res, 'Nao autenticado', 401);
         if (!req.file)
             return sendError(res, 'Nenhuma imagem enviada', 400);
         const extByMime = {
@@ -130,22 +129,25 @@ router.post('/photo', profilePhotoUpload.single('foto'), async (req, res) => {
         const filePath = path.resolve(profileUploadDir, filename);
         const relativePath = path.relative(profileUploadDir, filePath);
         if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
-            return sendError(res, 'Caminho de arquivo inválido', 400);
+            return sendError(res, 'Caminho de arquivo invalido', 400);
         }
+        await fs.promises.mkdir(profileUploadDir, { recursive: true });
         await fs.promises.writeFile(filePath, req.file.buffer);
         const foto = `/api/profile/photo/${filename}`;
         const profile = await usersService.getById(currentUser.id);
         const previousPhoto = profile?.foto || '';
         if (previousPhoto.startsWith('/api/profile/photo/')) {
             const previousFilename = path.basename(previousPhoto);
-            const previousPath = path.resolve(profileUploadDir, previousFilename);
-            const previousRelative = path.relative(profileUploadDir, previousPath);
-            if (!previousRelative.startsWith('..') && !path.isAbsolute(previousRelative)) {
-                await fs.promises.unlink(previousPath).catch(() => { });
+            for (const candidateDir of [profileUploadDir, legacyProfileUploadDir]) {
+                const previousPath = path.resolve(candidateDir, previousFilename);
+                const previousRelative = path.relative(candidateDir, previousPath);
+                if (!previousRelative.startsWith('..') && !path.isAbsolute(previousRelative)) {
+                    await fs.promises.unlink(previousPath).catch(() => { });
+                }
             }
         }
         await usersService.update(currentUser.id, { foto });
-        await logSystemAction(req, currentUser.id, currentUser.empresa_id, 'PROFILE_UPDATE', 'Usuário atualizou a foto do perfil');
+        await logSystemAction(req, currentUser.id, currentUser.empresa_id, 'PROFILE_UPDATE', 'Usuario atualizou a foto do perfil');
         sendSuccess(res, { foto }, 'Foto de perfil atualizada com sucesso');
     }
     catch (error) {
@@ -157,19 +159,19 @@ router.patch('/password', async (req, res) => {
     try {
         const currentUser = req.user;
         if (!currentUser)
-            return sendError(res, 'Não autenticado', 401);
+            return sendError(res, 'Nao autenticado', 401);
         const { currentPassword, newPassword, confirmPassword } = req.body;
         if (!currentPassword || !newPassword || !confirmPassword) {
-            return sendError(res, 'Todos os campos são obrigatórios');
+            return sendError(res, 'Todos os campos sao obrigatorios');
         }
         if (!newPassword || !isValidPassword(newPassword)) {
             return sendError(res, PASSWORD_RULE_MESSAGE);
         }
         if (newPassword !== confirmPassword) {
-            return sendError(res, 'A confirmação de senha não confere');
+            return sendError(res, 'A confirmacao de senha nao confere');
         }
         await usersService.updatePassword(currentUser.id, currentPassword, newPassword);
-        await logSystemAction(req, currentUser.id, currentUser.empresa_id, 'PASSWORD_CHANGE', 'Usuário alterou a senha');
+        await logSystemAction(req, currentUser.id, currentUser.empresa_id, 'PASSWORD_CHANGE', 'Usuario alterou a senha');
         sendSuccess(res, null, 'Senha alterada com sucesso');
     }
     catch (error) {

@@ -3,16 +3,20 @@ import path from 'path';
 import { env } from '../config/env.js';
 class StorageService {
     localPath;
+    legacyLocalPath;
     constructor() {
         this.localPath = path.resolve(process.cwd(), env.STORAGE_CONFIG.LOCAL_PATH);
+        this.legacyLocalPath = path.resolve(process.cwd(), 'uploads/tickets');
     }
     resolveLocalPath(caminho) {
         const fullPath = path.resolve(caminho);
-        const relativePath = path.relative(this.localPath, fullPath);
-        if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
-            throw new Error('Caminho de arquivo fora do diretorio de uploads.');
+        for (const allowedPath of [this.localPath, this.legacyLocalPath]) {
+            const relativePath = path.relative(allowedPath, fullPath);
+            if (!relativePath.startsWith('..') && !path.isAbsolute(relativePath)) {
+                return fullPath;
+            }
         }
-        return fullPath;
+        throw new Error('Caminho de arquivo fora do diretorio de uploads.');
     }
     /**
      * Absatração para salvar arquivo.

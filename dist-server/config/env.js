@@ -169,7 +169,9 @@ export const env = {
     })(),
     STORAGE_TYPE: (process.env.STORAGE_TYPE || 'local'),
     STORAGE_CONFIG: {
-        LOCAL_PATH: process.env.UPLOAD_DIR || 'uploads/tickets',
+        LOCAL_PATH: !process.env.UPLOAD_DIR || process.env.UPLOAD_DIR === 'uploads/tickets'
+            ? '../uploads/tickets'
+            : process.env.UPLOAD_DIR,
         PROFILE_PATH: process.env.PROFILE_UPLOAD_DIR,
         // Reserved for future use
         BUCKET_NAME: process.env.STORAGE_BUCKET_NAME,

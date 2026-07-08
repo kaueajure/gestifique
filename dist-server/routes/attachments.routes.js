@@ -14,41 +14,42 @@ router.get('/:id/download', async (req, res) => {
     try {
         const currentUser = req.user;
         if (!currentUser)
-            return sendError(res, 'Não autenticado', 401);
+            return sendError(res, 'Nao autenticado', 401);
         const id = parseInt(req.params.id);
         const attachment = await attachmentsService.getById(id);
         if (!attachment)
-            return sendError(res, 'Anexo não encontrado', 404);
+            return sendError(res, 'Anexo nao encontrado', 404);
         const ticketResult = await ticketsService.getByIdForUser(attachment.ticket_id, currentUser);
         if (!ticketResult)
-            return sendError(res, 'Chamado não encontrado', 404);
+            return sendError(res, 'Chamado nao encontrado', 404);
         if (ticketResult.error === 'forbidden')
             return sendError(res, 'Acesso negado ao anexo', 403);
         const ticket = ticketResult;
-        // S7: defesa em profundidade — somente desenvolvedor acessa anexo de outra empresa.
-        // (getByIdForUser trata administrador como superusuário; este guard mantém a
-        // regra de "admin acessa apenas a própria empresa" e bloqueia cross-empresa.)
         if (!currentUser.desenvolvedor && ticket.empresa_id !== currentUser.empresa_id) {
             return sendError(res, 'Acesso negado ao anexo (outra empresa)', 403);
         }
         const isAdminOrDev = currentUser.administrador || currentUser.desenvolvedor;
         const canViewInternal = isAdminOrDev || await permissionsService.hasPermission(currentUser, 'ticket_mensagens.ver_internos');
-        // Internal attachment check
         if (attachment.interno && !canViewInternal) {
             return sendError(res, 'Acesso negado a anexo interno', 403);
         }
-        // Path safety check (usa o diretório central de storage, não hardcoded)
         const absolutePath = path.resolve(attachment.caminho);
-        const uploadsDir = path.resolve(process.cwd(), env.STORAGE_CONFIG.LOCAL_PATH);
-        const relativePath = path.relative(uploadsDir, absolutePath);
-        if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
-            return sendError(res, 'Caminho de arquivo inválido', 400);
+        const allowedUploadDirs = [
+            path.resolve(process.cwd(), env.STORAGE_CONFIG.LOCAL_PATH),
+            path.resolve(process.cwd(), 'uploads/tickets')
+        ];
+        const isAllowedPath = allowedUploadDirs.some((uploadsDir) => {
+            const relativePath = path.relative(uploadsDir, absolutePath);
+            return !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
+        });
+        if (!isAllowedPath) {
+            return sendError(res, 'Caminho de arquivo invalido', 400);
         }
         try {
             await fs.access(absolutePath);
         }
         catch {
-            return sendError(res, 'Arquivo físico não encontrado no servidor', 404);
+            return sendError(res, 'Arquivo fisico nao encontrado no servidor', 404);
         }
         const wantsInlinePreview = req.query.inline === '1' && /^image\//i.test(attachment.mime_type || '');
         const safeFileName = String(attachment.nome_original || 'anexo')
@@ -72,23 +73,21 @@ router.delete('/:id', async (req, res) => {
     try {
         const currentUser = req.user;
         if (!currentUser)
-            return sendError(res, 'Não autenticado', 401);
+            return sendError(res, 'Nao autenticado', 401);
         const id = parseInt(req.params.id);
         const attachment = await attachmentsService.getById(id);
         if (!attachment)
-            return sendError(res, 'Anexo não encontrado', 404);
+            return sendError(res, 'Anexo nao encontrado', 404);
         const isAdminOrDev = currentUser.administrador || currentUser.desenvolvedor;
         const isOwner = attachment.usuario_id === currentUser.id;
         if (!isAdminOrDev && !isOwner) {
-            return sendError(res, 'Permissão negada para excluir anexo', 403);
+            return sendError(res, 'Permissao negada para excluir anexo', 403);
         }
-        // Even if owner, can't delete if from another enterprise (security)
         if (!currentUser.desenvolvedor && attachment.empresa_id !== currentUser.empresa_id) {
             return sendError(res, 'Acesso negado', 403);
         }
         await attachmentsService.delete(id);
-        await logSystemAction(req, currentUser.id, currentUser.empresa_id, 'ATTACHMENT_DELETE', `Anexo excluído: ${attachment.nome_original} (ID: ${id})`);
-        // Real-time update via WebSocket
+        await logSystemAction(req, currentUser.id, currentUser.empresa_id, 'ATTACHMENT_DELETE', `Anexo excluido: ${attachment.nome_original} (ID: ${id})`);
         const io = req.app.get('io');
         if (io) {
             io.to(`empresa_${attachment.empresa_id}`).emit('ticketMessagesChanged', {
@@ -96,7 +95,7 @@ router.delete('/:id', async (req, res) => {
                 empresaId: attachment.empresa_id
             });
         }
-        sendSuccess(res, null, 'Anexo excluído com sucesso');
+        sendSuccess(res, null, 'Anexo excluido com sucesso');
     }
     catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao excluir anexo';
