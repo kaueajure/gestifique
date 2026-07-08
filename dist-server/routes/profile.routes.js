@@ -11,7 +11,21 @@ import { permissionsService } from '../services/permissions.service.js';
 import { isValidPassword, PASSWORD_RULE_MESSAGE } from '../utils/validators.js';
 import { env } from '../config/env.js';
 const router = Router();
-const profileUploadDir = path.resolve(process.cwd(), env.STORAGE_CONFIG.LOCAL_PATH, '..', 'profiles');
+function resolveProfileUploadDir() {
+    if (env.STORAGE_CONFIG.PROFILE_PATH) {
+        return path.resolve(process.cwd(), env.STORAGE_CONFIG.PROFILE_PATH);
+    }
+    const persistentRoots = [
+        path.resolve(process.cwd(), 'imagens-perfil'),
+        path.resolve(process.cwd(), '..', 'imagens-perfil'),
+    ];
+    const persistentRoot = persistentRoots.find((candidate) => fs.existsSync(candidate));
+    if (persistentRoot) {
+        return path.join(persistentRoot, 'profiles');
+    }
+    return path.resolve(process.cwd(), env.STORAGE_CONFIG.LOCAL_PATH, '..', 'profiles');
+}
+const profileUploadDir = resolveProfileUploadDir();
 if (!fs.existsSync(profileUploadDir)) {
     fs.mkdirSync(profileUploadDir, { recursive: true });
 }
