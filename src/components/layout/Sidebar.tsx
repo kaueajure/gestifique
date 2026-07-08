@@ -272,8 +272,16 @@ export const Sidebar = ({
               isCollapsed && "lg:flex-col lg:justify-center lg:px-1.5",
             )}
           >
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-xs font-bold text-slate-700 shadow-sm">
-              {currentUser.nome.charAt(0).toUpperCase()}
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-white text-xs font-bold text-slate-700 shadow-sm">
+              {currentUser.foto ? (
+                <img
+                  src={currentUser.foto}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                (currentUser.nome || "U").charAt(0).toUpperCase()
+              )}
             </div>
             <div
               className={cn(
@@ -285,7 +293,7 @@ export const Sidebar = ({
                 {currentUser.nome}
               </div>
               <div className="text-[11px] font-medium text-slate-500 truncate">
-                {currentUser.cargo || "Membro do Time"}
+                {currentUser.cargo || "Cargo indefinido"}
               </div>
             </div>
             <NotificationsDropdown
