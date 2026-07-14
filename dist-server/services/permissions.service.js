@@ -94,6 +94,10 @@ export const permissionsService = {
         const [rows] = await pool.query('SELECT permission_key FROM role_permissions WHERE perfil = ? AND allowed = 1', [perfil]);
         return rows.map((r) => r.permission_key);
     },
+    async getAccessProfilePermissions(accessProfileId) {
+        const [rows] = await pool.query('SELECT permission_key FROM access_profile_permissions WHERE access_profile_id = ? AND allowed = 1', [accessProfileId]);
+        return rows.map((r) => r.permission_key);
+    },
     async getUserOverrides(userId) {
         const [rows] = await pool.query('SELECT permission_key, effect FROM user_permission_overrides WHERE usuario_id = ?', [userId]);
         return rows;
@@ -113,9 +117,17 @@ export const permissionsService = {
         if (cached && cached.expiresAt > now) {
             return cached.permissions;
         }
-        // Fetch from database
-        const roleKeys = await this.getRolePermissions(user.perfil);
-        const overrides = await this.getUserOverrides(userId);
+        const accessProfileId = user.access_profile_id ? Number(user.access_profile_id) : null;
+        let roleKeys;
+        let overrides;
+        if (accessProfileId) {
+            roleKeys = await this.getAccessProfilePermissions(accessProfileId);
+            overrides = [];
+        }
+        else {
+            roleKeys = await this.getRolePermissions(user.perfil);
+            overrides = await this.getUserOverrides(userId);
+        }
         const effective = resolveEffectivePermissionKeys(user, roleKeys, overrides);
         userPermissionsCache.set(userId, {
             permissions: effective,
@@ -316,15 +328,20 @@ export const permissionsService = {
         }
     },
     async getUserPermissionMatrix(usuarioId) {
-        const [userRows] = await pool.query('SELECT id, nome, email, perfil, administrador, desenvolvedor, empresa_id FROM usuarios WHERE id = ?', [usuarioId]);
+        const [userRows] = await pool.query(`SELECT u.id, u.nome, u.email, u.perfil, u.administrador, u.desenvolvedor, u.empresa_id, u.access_profile_id, ap.nome as access_profile_nome
+       FROM usuarios u
+       LEFT JOIN access_profiles ap ON ap.id = u.access_profile_id
+       WHERE u.id = ?`, [usuarioId]);
         if (userRows.length === 0) {
             throw new Error('Usuário não encontrado.');
         }
         const user = userRows[0];
-        // Catalog Grouped from Database catalog table
         const catalog = await this.getCatalog();
-        const rolePermissions = await this.getRolePermissions(user.perfil);
-        const overrides = await this.getUserOverrides(usuarioId);
+        const accessProfileId = user.access_profile_id ? Number(user.access_profile_id) : null;
+        const rolePermissions = accessProfileId
+            ? await this.getAccessProfilePermissions(accessProfileId)
+            : await this.getRolePermissions(user.perfil);
+        const overrides = accessProfileId ? [] : await this.getUserOverrides(usuarioId);
         const effectivePermissions = await this.getEffectivePermissions(user);
         return {
             user: {
@@ -334,12 +351,15 @@ export const permissionsService = {
                 perfil: user.perfil,
                 administrador: !!user.administrador,
                 desenvolvedor: !!user.desenvolvedor,
-                empresa_id: user.empresa_id
+                empresa_id: user.empresa_id,
+                access_profile_id: accessProfileId,
+                access_profile_nome: user.access_profile_nome || null,
             },
             rolePermissions,
             overrides,
             effectivePermissions,
-            catalog
+            catalog,
+            usesAccessProfile: !!accessProfileId,
         };
     }
 };

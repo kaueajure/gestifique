@@ -24,23 +24,15 @@ import {
   Tag,
   ChevronDown,
   Settings2,
-  HelpCircle,
   Eye,
   EyeOff,
-  Palette,
   RotateCcw,
   Save,
-  ShieldCheck,
   ArrowUp,
   ArrowDown,
   Trash2,
   Check,
   X,
-  CircleDot,
-  PlayCircle,
-  PauseCircle,
-  CheckCircle2,
-  LockKeyhole,
 } from "lucide-react";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
@@ -72,7 +64,6 @@ import { useTicketOptions } from "../../hooks/useTicketOptions";
 import {
   applyTicketWorkflowToKanban,
   DEFAULT_TICKET_WORKFLOW,
-  labelFromTicketStatus,
   loadTicketWorkflow,
   normalizeWorkflowStatus,
   slugifyTicketStatus,
@@ -175,62 +166,45 @@ const STATUS_COLOR_SWATCHES = [
   "#64748b",
 ];
 
-const STATUS_SPECIAL_PRESENTATION: Record<
-  TicketStatusSpecial,
-  {
-    icon: React.ComponentType<{ size?: number; className?: string }>;
-    badge: string;
-    impact: string;
-    rule: string;
-  }
-> = {
-  normal: {
-    icon: CircleDot,
-    badge: "Etapa de trabalho",
-    impact: "Mantém o chamado ativo nas filas e no SLA.",
-    rule: "Use para triagem, atendimento, análise ou qualquer etapa operacional.",
-  },
-  inicial: {
-    icon: PlayCircle,
-    badge: "Entrada do fluxo",
-    impact: "Recebe chamados novos e reabertos.",
-    rule: "A empresa precisa ter exatamente um status inicial ativo.",
-  },
-  aguardando_cliente: {
-    icon: PauseCircle,
-    badge: "Espera externa",
-    impact: "Pausa o SLA e tira o chamado da fila de resposta do atendente.",
-    rule: "Use quando a próxima ação depende do cliente.",
-  },
-  finalizado: {
-    icon: CheckCircle2,
-    badge: "Resolução",
-    impact: "Marca conclusão, grava dados de resolução e permite reabertura.",
-    rule: "Use para chamados resolvidos pela equipe.",
-  },
-  encerrado: {
-    icon: LockKeyhole,
-    badge: "Encerramento",
-    impact: "Exige permissão de fechamento e remove o chamado das pendências.",
-    rule: "Use para arquivamento, cancelamento definitivo ou fechamento administrativo.",
-  },
-};
-
 const getFloatingMenuPosition = (
   element: HTMLElement | null,
   width: number,
+  estimatedHeight = 180,
 ) => {
   if (!element || typeof window === "undefined") return null;
 
   const rect = element.getBoundingClientRect();
   const margin = 8;
-  const maxLeft = Math.max(margin, window.innerWidth - width - margin);
-  const left = Math.min(Math.max(rect.left, margin), maxLeft);
+  const gap = 4;
+
+  let left = rect.left;
+  if (left + width > window.innerWidth - margin) {
+    left = rect.right - width;
+  }
+  left = Math.min(
+    Math.max(left, margin),
+    Math.max(margin, window.innerWidth - width - margin),
+  );
+
+  const spaceBelow = window.innerHeight - rect.bottom - margin;
+  const spaceAbove = rect.top - margin;
+  const openAbove =
+    spaceBelow < Math.min(estimatedHeight, 160) && spaceAbove > spaceBelow;
+
+  const maxHeight = Math.max(
+    120,
+    openAbove ? spaceAbove - gap : spaceBelow - gap,
+  );
+  const height = Math.min(estimatedHeight, maxHeight);
+  const top = openAbove
+    ? Math.max(margin, rect.top - height - gap)
+    : rect.bottom + gap;
 
   return {
-    top: rect.bottom + 4,
+    top,
     left,
     width,
+    maxHeight,
   };
 };
 
@@ -354,17 +328,16 @@ export const TicketsPage = ({
     top: number;
     left: number;
     width: number;
+    maxHeight?: number;
   } | null>(null);
   const [categoryMenuPosition, setCategoryMenuPosition] = useState<{
     top: number;
     left: number;
     width: number;
+    maxHeight?: number;
   } | null>(null);
   const [showWorkflowSettings, setShowWorkflowSettings] = useState(false);
-  const [showAddWorkflowStatus, setShowAddWorkflowStatus] = useState(false);
   const [pendingRemoveWorkflowStatusId, setPendingRemoveWorkflowStatusId] =
-    useState<TicketStatus | null>(null);
-  const [specialStatusModalId, setSpecialStatusModalId] =
     useState<TicketStatus | null>(null);
   const [workflowStatuses, setWorkflowStatuses] = useState<TicketWorkflowStatus[]>(
     DEFAULT_TICKET_WORKFLOW,
@@ -497,9 +470,7 @@ export const TicketsPage = ({
     };
 
     fetchWorkflowStatuses();
-    setShowAddWorkflowStatus(false);
     setPendingRemoveWorkflowStatusId(null);
-    setSpecialStatusModalId(null);
     setNewWorkflowStatusLabel("");
   }, [workflowCompanyKey]);
 
@@ -591,7 +562,6 @@ export const TicketsPage = ({
         return status;
       }),
     );
-    setSpecialStatusModalId(null);
   };
 
   const addWorkflowStatus = () => {
@@ -620,7 +590,6 @@ export const TicketsPage = ({
         special: "normal",
       }),
     ]);
-    setShowAddWorkflowStatus(false);
     setPendingRemoveWorkflowStatusId(null);
     setNewWorkflowStatusLabel("");
   };
@@ -635,7 +604,6 @@ export const TicketsPage = ({
     setWorkflowDraftStatuses(workflowStatuses);
     setWorkflowError(null);
     setPendingRemoveWorkflowStatusId(null);
-    setSpecialStatusModalId(null);
     setShowWorkflowSettings(false);
   };
 
@@ -653,7 +621,6 @@ export const TicketsPage = ({
   const workflowDraftPayload = JSON.stringify(buildWorkflowPayload(workflowDraftStatuses));
   const workflowSavedPayload = JSON.stringify(buildWorkflowPayload(workflowStatuses));
   const hasWorkflowDraftChanges = workflowDraftPayload !== workflowSavedPayload;
-  const specialModalStatus = workflowDraftStatuses.find((status) => status.id === specialStatusModalId) || null;
   const getWorkflowUsage = (statusId: string) => ({
     tickets: workflowUsage.tickets[statusId] || 0,
     automations: workflowUsage.automations[statusId] || 0,
@@ -774,13 +741,21 @@ export const TicketsPage = ({
   const updateFloatingMenuPositions = () => {
     if (showMoreQueues) {
       setMoreQueuesMenuPosition(
-        getFloatingMenuPosition(moreQueuesButtonRef.current, MORE_QUEUES_MENU_WIDTH),
+        getFloatingMenuPosition(
+          moreQueuesButtonRef.current,
+          MORE_QUEUES_MENU_WIDTH,
+          MORE_QUEUES.length * 40 + 16,
+        ),
       );
     }
 
     if (showCategoryMenu) {
       setCategoryMenuPosition(
-        getFloatingMenuPosition(categoryButtonRef.current, CATEGORY_MENU_WIDTH),
+        getFloatingMenuPosition(
+          categoryButtonRef.current,
+          CATEGORY_MENU_WIDTH,
+          Math.max(160, categoryQuickFilterOptions.length * 36 + 16),
+        ),
       );
     }
   };
@@ -804,7 +779,11 @@ export const TicketsPage = ({
     setShowCategoryMenu(false);
     setMoreQueuesMenuPosition(
       nextOpen
-        ? getFloatingMenuPosition(moreQueuesButtonRef.current, MORE_QUEUES_MENU_WIDTH)
+        ? getFloatingMenuPosition(
+            moreQueuesButtonRef.current,
+            MORE_QUEUES_MENU_WIDTH,
+            MORE_QUEUES.length * 40 + 16,
+          )
         : null,
     );
   };
@@ -815,7 +794,11 @@ export const TicketsPage = ({
     setShowMoreQueues(false);
     setCategoryMenuPosition(
       nextOpen
-        ? getFloatingMenuPosition(categoryButtonRef.current, CATEGORY_MENU_WIDTH)
+        ? getFloatingMenuPosition(
+            categoryButtonRef.current,
+            CATEGORY_MENU_WIDTH,
+            220,
+          )
         : null,
     );
   };
@@ -1590,6 +1573,7 @@ export const TicketsPage = ({
                 <Select
                   size="sm"
                   value=""
+                  align="end"
                   onChange={(val) => {
                     if (val === "filtros") setShowAdvanced(true);
                     if (val === "equipe") setShowTeamSidebar(!showTeamSidebar);
@@ -1694,7 +1678,7 @@ export const TicketsPage = ({
                       onClick={() => setShowMoreQueues(false)}
                     />
                     <div
-                      className="fixed z-50 w-48 rounded-lg border border-slate-200 bg-white p-1.5 shadow-[0_18px_50px_rgba(15,23,42,0.16)]"
+                      className="fixed z-50 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1.5 shadow-[0_18px_50px_rgba(15,23,42,0.16)]"
                       style={moreQueuesMenuPosition || undefined}
                     >
                       {MORE_QUEUES.map((q) => {
@@ -1775,7 +1759,7 @@ export const TicketsPage = ({
                       onClick={() => setShowCategoryMenu(false)}
                     />
                     <div
-                      className="fixed w-60 bg-white rounded-lg shadow-lg border border-slate-200 p-1.5 z-50"
+                      className="fixed z-50 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1.5 shadow-lg"
                       style={categoryMenuPosition || undefined}
                     >
                       {ticketOptionsLoading ? (
@@ -2023,21 +2007,13 @@ export const TicketsPage = ({
         isOpen={showWorkflowSettings}
         onClose={cancelWorkflowDraft}
         title="Fluxo de atendimento"
-        size="xl"
+        size="lg"
         footer={
           <>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={cancelWorkflowDraft}
-            >
+            <Button variant="ghost" size="sm" onClick={cancelWorkflowDraft}>
               Cancelar
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={resetWorkflowStatuses}
-            >
+            <Button variant="outline" size="sm" onClick={resetWorkflowStatuses}>
               <RotateCcw size={14} />
               Padrão
             </Button>
@@ -2052,343 +2028,219 @@ export const TicketsPage = ({
           </>
         }
       >
-        <div className="space-y-4">
-          <div className="grid gap-3 lg:grid-cols-[1fr_260px]">
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-              <div className="flex items-start gap-2">
-                <Settings2 size={16} className="mt-0.5 text-slate-500" />
-                <div>
-                  <h4 className="text-sm font-semibold text-slate-900">
-                    Status reais do chamado
-                  </h4>
-                  <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                    Defina as etapas usadas no chamado, filtros, Kanban, ações em massa e automações. A função especial altera o comportamento real do sistema.
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-3">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Validação</div>
-              <div className="mt-2 space-y-1.5 text-xs text-slate-600">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck size={13} className="text-emerald-600" />
-                  1 status inicial obrigatório
-                </div>
-                <div className="flex items-center gap-2">
-                  <ShieldCheck size={13} className="text-emerald-600" />
-                  Finalizado ou encerrado obrigatório
-                </div>
-              </div>
-            </div>
-          </div>
-
+        <div className="space-y-3">
           {workflowError && (
-            <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
+            <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700">
               {workflowError}
             </div>
           )}
 
-          <div className="space-y-2">
-            {workflowLoading && (
-              <div className="rounded-lg border border-slate-200 bg-white p-3 text-xs font-semibold text-slate-500">
-                Carregando status de chamado...
-              </div>
-            )}
-            {!workflowLoading && workflowDraftStatuses.length === 0 && (
-              <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-xs font-medium text-slate-500">
-                Nenhum status configurado. Adicione um status para exibir o fluxo.
-              </div>
-            )}
-            {workflowDraftStatuses.map((status, index) => {
-              const usage = getWorkflowUsage(status.id);
-              const specialLabel = TICKET_STATUS_SPECIAL_OPTIONS.find((option) => option.value === status.special)?.label || "Normal";
-              return (
-                <div
-                key={status.id}
-                className={cn(
-                  "rounded-lg border bg-white p-3 shadow-sm",
-                  status.active ? "border-slate-200" : "border-slate-200 bg-slate-50/70 opacity-80",
-                )}
-              >
-                <div className="grid gap-3 lg:grid-cols-[88px_1fr_180px_210px_84px] lg:items-end">
-                  <div className="flex items-center gap-1">
-                    <Button type="button" variant="ghost" size="icon" onClick={() => moveWorkflowStatus(index, -1)} disabled={index === 0} title="Mover para cima" className="h-8 w-8">
-                      <ArrowUp size={14} />
-                    </Button>
-                    <Button type="button" variant="ghost" size="icon" onClick={() => moveWorkflowStatus(index, 1)} disabled={index === workflowDraftStatuses.length - 1} title="Mover para baixo" className="h-8 w-8">
-                      <ArrowDown size={14} />
-                    </Button>
-                  </div>
+          {workflowLoading ? (
+            <div className="py-10 text-center text-xs text-slate-500">
+              Carregando...
+            </div>
+          ) : workflowDraftStatuses.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 py-8 text-center text-xs text-slate-500">
+              Nenhum status configurado.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {workflowDraftStatuses.map((status, index) => {
+                const usage = getWorkflowUsage(status.id);
 
-                  <Input
-                    inputSize="sm"
-                    label={labelFromTicketStatus(status.id)}
-                    value={status.label}
-                    onChange={(event) => updateWorkflowStatus(status.id, { label: event.target.value })}
-                    hint={`ID: ${status.id}`}
-                  />
-
-                  <div className="space-y-1">
-                    <div className="text-xs font-semibold text-slate-700">Cor</div>
-                    <div className="flex items-center gap-1.5">
-                      {STATUS_COLOR_SWATCHES.map((color) => (
+                return (
+                  <div
+                    key={status.id}
+                    className={cn(
+                      "rounded-lg border border-slate-200 bg-white px-3 py-2.5",
+                      !status.active && "bg-slate-50/80",
+                    )}
+                  >
+                    <div className="grid grid-cols-[auto_minmax(0,1fr)_minmax(140px,180px)_auto] items-center gap-x-3 gap-y-2">
+                      <div className="flex items-center gap-0.5">
                         <button
-                          key={color}
                           type="button"
-                          onClick={() => updateWorkflowStatus(status.id, { color })}
-                          className={cn(
-                            "h-6 w-6 rounded-md border shadow-sm",
-                            status.color === color ? "border-slate-900 ring-2 ring-slate-200" : "border-white",
+                          onClick={() => moveWorkflowStatus(index, -1)}
+                          disabled={index === 0}
+                          title="Mover para cima"
+                          className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
+                        >
+                          <ArrowUp size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveWorkflowStatus(index, 1)}
+                          disabled={index === workflowDraftStatuses.length - 1}
+                          title="Mover para baixo"
+                          className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
+                        >
+                          <ArrowDown size={14} />
+                        </button>
+                      </div>
+
+                      <Input
+                        inputSize="sm"
+                        value={status.label}
+                        onChange={(event) =>
+                          updateWorkflowStatus(status.id, {
+                            label: event.target.value,
+                          })
+                        }
+                        className="h-8"
+                      />
+
+                      <Select
+                        size="sm"
+                        value={status.special}
+                        onChange={(value) =>
+                          setWorkflowStatusSpecial(
+                            status.id,
+                            value as TicketStatusSpecial,
+                          )
+                        }
+                        options={TICKET_STATUS_SPECIAL_OPTIONS.map(
+                          (option) => ({
+                            value: option.value,
+                            label: option.label,
+                          }),
+                        )}
+                        buttonClassName="h-8"
+                      />
+
+                      <div className="flex items-center justify-end gap-0.5">
+                        <Button
+                          type="button"
+                          variant={status.active ? "secondary" : "outline"}
+                          size="icon"
+                          onClick={() =>
+                            updateWorkflowStatus(status.id, {
+                              active: !status.active,
+                            })
+                          }
+                          title={status.active ? "Desativar" : "Ativar"}
+                          className="h-8 w-8"
+                        >
+                          <Check size={14} />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={status.visible ? "secondary" : "outline"}
+                          size="icon"
+                          onClick={() =>
+                            updateWorkflowStatus(status.id, {
+                              visible: !status.visible,
+                            })
+                          }
+                          title={
+                            status.visible
+                              ? "Ocultar no Kanban"
+                              : "Mostrar no Kanban"
+                          }
+                          className="h-8 w-8"
+                        >
+                          {status.visible ? (
+                            <Eye size={14} />
+                          ) : (
+                            <EyeOff size={14} />
                           )}
-                          style={{ backgroundColor: color }}
-                          title={color}
-                        />
-                      ))}
-                      <Palette size={14} className="text-slate-400" />
+                        </Button>
+                        {pendingRemoveWorkflowStatusId === status.id ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              confirmRemoveWorkflowStatus(status.id)
+                            }
+                            title="Confirmar remoção"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-rose-200 bg-white text-rose-700 hover:bg-rose-50"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                              requestRemoveWorkflowStatus(status.id)
+                            }
+                            title="Remover status"
+                            className="h-8 w-8 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        )}
+                      </div>
+
+                      <div className="col-start-2 col-span-3 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {STATUS_COLOR_SWATCHES.map((color) => (
+                            <button
+                              key={color}
+                              type="button"
+                              onClick={() =>
+                                updateWorkflowStatus(status.id, { color })
+                              }
+                              className={cn(
+                                "h-5 w-5 rounded border",
+                                status.color === color
+                                  ? "border-slate-900 ring-1 ring-slate-300"
+                                  : "border-white",
+                              )}
+                              style={{ backgroundColor: color }}
+                              title={color}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-[11px] text-slate-400">
+                          {usage.tickets} ticket(s) · {usage.automations}{" "}
+                          regra(s)
+                          {pendingRemoveWorkflowStatusId === status.id && (
+                            <>
+                              {" · "}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPendingRemoveWorkflowStatusId(null)
+                                }
+                                className="font-medium text-slate-500 hover:text-slate-800"
+                              >
+                                cancelar remoção
+                              </button>
+                            </>
+                          )}
+                        </span>
+                      </div>
                     </div>
                   </div>
+                );
+              })}
+            </div>
+          )}
 
-                  <div className="space-y-1">
-                    <div className="text-xs font-semibold text-slate-700">Função</div>
-                    <button
-                      type="button"
-                      onClick={() => setSpecialStatusModalId(status.id)}
-                      className="flex h-8 w-full items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-white"
-                    >
-                      <span>{specialLabel}</span>
-                      <HelpCircle size={13} className="text-slate-400" />
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-end gap-1">
-                    <Button
-                      type="button"
-                      variant={status.active ? "secondary" : "outline"}
-                      size="icon"
-                      onClick={() => updateWorkflowStatus(status.id, { active: !status.active })}
-                      title={status.active ? "Desativar uso" : "Ativar uso"}
-                      className="h-8 w-8"
-                    >
-                      <Check size={14} />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={status.visible ? "secondary" : "outline"}
-                      size="icon"
-                      onClick={() => updateWorkflowStatus(status.id, { visible: !status.visible })}
-                      title={status.visible ? "Ocultar no Kanban" : "Mostrar no Kanban"}
-                      className="h-8 w-8"
-                    >
-                      {status.visible ? <Eye size={14} /> : <EyeOff size={14} />}
-                    </Button>
-                    {pendingRemoveWorkflowStatusId === status.id ? (
-                      <button
-                        type="button"
-                        onClick={() => confirmRemoveWorkflowStatus(status.id)}
-                        title="Confirmar remoção"
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-rose-200 bg-white text-rose-700 shadow-sm hover:bg-rose-50"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    ) : (
-                      <Button type="button" variant="ghost" size="icon" onClick={() => requestRemoveWorkflowStatus(status.id)} title="Remover status" className="h-8 w-8 text-rose-600 hover:bg-rose-50 hover:text-rose-700">
-                        <Trash2 size={14} />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                {(usage.tickets > 0 || usage.automations > 0 || pendingRemoveWorkflowStatusId === status.id) && (
-                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-2 text-[11px] font-semibold text-slate-500">
-                    <span>{usage.tickets} ticket(s)</span>
-                    <span>{usage.automations} regra(s)</span>
-                    {pendingRemoveWorkflowStatusId === status.id && (
-                      <button
-                        type="button"
-                        onClick={() => setPendingRemoveWorkflowStatusId(null)}
-                        className="ml-auto text-slate-500 hover:text-slate-800"
-                      >
-                        cancelar remoção
-                      </button>
-                    )}
-                  </div>
-                )}
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h4 className="text-sm font-semibold text-slate-900">
-                Adicionar status
-              </h4>
-              <p className="mt-0.5 text-xs text-slate-500">
-                Inclua outra etapa operacional no fluxo da empresa.
-              </p>
+          <div className="flex items-end gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50/60 px-3 py-2.5">
+            <div className="min-w-0 flex-1">
+              <Input
+                inputSize="sm"
+                placeholder="Novo status..."
+                value={newWorkflowStatusLabel}
+                onChange={(event) =>
+                  setNewWorkflowStatusLabel(event.target.value)
+                }
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") addWorkflowStatus();
+                }}
+                className="h-8"
+              />
             </div>
             <Button
               type="button"
-              variant="outline"
               size="sm"
-              onClick={() => setShowAddWorkflowStatus((prev) => !prev)}
+              onClick={addWorkflowStatus}
+              disabled={!newWorkflowStatusLabel.trim()}
+              className="h-8 shrink-0"
             >
               <Plus size={14} />
               Adicionar
-            </Button>
-          </div>
-
-          {showAddWorkflowStatus && (
-            <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50/70 p-3">
-              <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
-                <Input
-                  inputSize="sm"
-                  label="Nome do status"
-                  placeholder="Ex.: Backlog, Em Análise, Aguardando financeiro"
-                  value={newWorkflowStatusLabel}
-                  onChange={(event) =>
-                    setNewWorkflowStatusLabel(event.target.value)
-                  }
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") addWorkflowStatus();
-                  }}
-                  hint={
-                    newWorkflowStatusLabel.trim()
-                      ? `Identificador: ${slugifyTicketStatus(newWorkflowStatusLabel)}`
-                      : "Você pode criar qualquer status personalizado."
-                  }
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={addWorkflowStatus}
-                  disabled={!newWorkflowStatusLabel.trim()}
-                >
-                  <Plus size={14} />
-                  Adicionar
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-      </Modal>
-
-      <Modal
-        isOpen={!!specialModalStatus}
-        onClose={() => setSpecialStatusModalId(null)}
-        title={specialModalStatus ? `Regra operacional de ${specialModalStatus.label}` : "Regra operacional do status"}
-        size="lg"
-      >
-        <div className="space-y-4">
-          {specialModalStatus && (
-            <div className="rounded-lg border border-slate-200 bg-white p-4">
-              <div className="flex items-start gap-3">
-                <div
-                  className="mt-0.5 h-9 w-9 shrink-0 rounded-md border border-white shadow-sm ring-1 ring-slate-200"
-                  style={{ backgroundColor: specialModalStatus.color || "#0891b2" }}
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="text-[11px] font-bold uppercase tracking-wide text-slate-400">
-                    Status especial
-                  </div>
-                  <p className="mt-1 text-sm font-semibold leading-snug text-slate-900">
-                    Escolha como o sistema deve tratar este status nas filas, SLA, reabertura e fechamento.
-                  </p>
-                  <div className="mt-3 grid gap-2 text-xs sm:grid-cols-3">
-                    <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-                      <div className="font-semibold text-slate-400">Status</div>
-                      <div className="mt-0.5 truncate font-semibold text-slate-800">{specialModalStatus.label}</div>
-                    </div>
-                    <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-                      <div className="font-semibold text-slate-400">Identificador</div>
-                      <div className="mt-0.5 truncate font-mono text-[11px] font-semibold text-slate-700">{specialModalStatus.id}</div>
-                    </div>
-                    <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-                      <div className="font-semibold text-slate-400">Publicação</div>
-                      <div className="mt-0.5 font-semibold text-slate-800">Rascunho do fluxo</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="grid gap-2">
-            {TICKET_STATUS_SPECIAL_OPTIONS.map((option) => {
-              const selected = specialModalStatus?.special === option.value;
-              const presentation = STATUS_SPECIAL_PRESENTATION[option.value];
-              const SpecialIcon = presentation.icon;
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => specialModalStatus && setWorkflowStatusSpecial(specialModalStatus.id, option.value)}
-                  className={cn(
-                    "group rounded-lg border p-3 text-left transition-colors",
-                    selected
-                      ? "border-blue-200 bg-blue-50 text-blue-900 shadow-sm shadow-blue-600/5"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50",
-                  )}
-                >
-                  <div className="flex items-start gap-3">
-                    <div
-                      className={cn(
-                        "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md border",
-                        selected
-                          ? "border-blue-200 bg-white text-blue-600"
-                          : "border-slate-200 bg-slate-50 text-slate-500 group-hover:bg-white",
-                      )}
-                    >
-                      <SpecialIcon size={17} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <div className="text-sm font-semibold">{option.label}</div>
-                        <span
-                          className={cn(
-                            "rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide",
-                            selected
-                              ? "border-blue-200 bg-white text-blue-700"
-                              : "border-slate-200 bg-slate-50 text-slate-500",
-                          )}
-                        >
-                          {presentation.badge}
-                        </span>
-                      </div>
-                      <p className={cn("mt-1 text-xs leading-relaxed", selected ? "text-blue-700" : "text-slate-500")}>
-                        {option.description}
-                      </p>
-                      <div className="mt-2 grid gap-1.5 text-[11px] sm:grid-cols-2">
-                        <div className={cn("rounded-md px-2 py-1.5", selected ? "bg-white text-blue-700 ring-1 ring-blue-100" : "bg-slate-50 text-slate-600")}>
-                          <span className="font-bold">Impacto:</span> {presentation.impact}
-                        </div>
-                        <div className={cn("rounded-md px-2 py-1.5", selected ? "bg-white text-blue-700 ring-1 ring-blue-100" : "bg-slate-50 text-slate-600")}>
-                          <span className="font-bold">Quando usar:</span> {presentation.rule}
-                        </div>
-                      </div>
-                    </div>
-                    <div
-                      className={cn(
-                        "mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border",
-                        selected
-                          ? "border-blue-200 bg-white text-blue-600"
-                          : "border-slate-300 text-transparent",
-                      )}
-                    >
-                      <Check size={13} />
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="flex flex-col gap-3 border-t border-slate-200 pt-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs leading-relaxed text-slate-500">
-              A escolha é aplicada ao rascunho. Para publicar, feche esta janela e clique em <span className="font-semibold text-slate-700">Salvar fluxo</span>.
-            </p>
-            <Button type="button" size="sm" onClick={() => setSpecialStatusModalId(null)}>
-              Concluir
             </Button>
           </div>
         </div>

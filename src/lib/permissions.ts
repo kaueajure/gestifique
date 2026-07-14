@@ -48,6 +48,8 @@ export function canAccessAppScreen(
         user,
         options.selectedTicketId ? 'tickets.ver_detalhes' : 'tickets.visualizar',
       );
+    case 'whatsapp':
+      return hasPermission(user, 'integracoes.whatsapp.visualizar');
     case 'users':
       return hasPermission(user, 'usuarios.visualizar');
     case 'companies':
@@ -73,6 +75,7 @@ export function getFirstAccessibleAppScreen(user: User | null | undefined): stri
   return [
     'dashboard',
     'tickets',
+    'whatsapp',
     'knowledge',
     'reports',
     'users',

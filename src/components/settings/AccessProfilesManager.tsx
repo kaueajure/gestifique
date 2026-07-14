@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import {
-  Plus,
   Shield,
   Edit2,
   Trash2,
@@ -14,17 +13,20 @@ import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { Modal } from "../ui/Modal";
 import { Badge } from "../ui/Badge";
-import { Card } from "../ui/Card";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { hasPermission } from "../../lib/permissions";
 import { AccessProfilePermissionsModal } from "./AccessProfilePermissionsModal";
 
 interface AccessProfilesManagerProps {
   currentUser: User;
+  createOpen?: boolean;
+  onCreateOpenChange?: (open: boolean) => void;
 }
 
 export const AccessProfilesManager = ({
   currentUser,
+  createOpen = false,
+  onCreateOpenChange,
 }: AccessProfilesManagerProps) => {
   const [profiles, setProfiles] = useState<AccessProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,11 +68,18 @@ export const AccessProfilesManager = ({
     if (canView) fetchProfiles();
   }, [canView]);
 
-  const openCreate = () => {
-    setEditingProfile(null);
-    setNome("");
-    setDescricao("");
-    setIsFormOpen(true);
+  useEffect(() => {
+    if (createOpen) {
+      setEditingProfile(null);
+      setNome("");
+      setDescricao("");
+      setIsFormOpen(true);
+    }
+  }, [createOpen]);
+
+  const closeForm = () => {
+    setIsFormOpen(false);
+    onCreateOpenChange?.(false);
   };
 
   const openEdit = (profile: AccessProfile) => {
@@ -99,7 +108,7 @@ export const AccessProfilesManager = ({
         });
         setSuccess("Perfil criado com sucesso.");
       }
-      setIsFormOpen(false);
+      closeForm();
       fetchProfiles();
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
@@ -125,127 +134,131 @@ export const AccessProfilesManager = ({
 
   if (!canView) {
     return (
-      <Card className="p-8 text-center">
-        <Lock className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+      <div className="p-10 text-center">
+        <Lock className="mx-auto mb-2 h-8 w-8 text-slate-300" />
         <p className="text-xs text-slate-500">
           Você não tem permissão para visualizar perfis de acesso.
         </p>
-      </Card>
+      </div>
     );
   }
 
   return (
     <>
-      <Card className="p-4 sm:p-5 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-semibold text-slate-900">
-              Perfis de Acesso
-            </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Defina cargos com conjuntos de permissões reutilizáveis para sua
-              equipe.
-            </p>
-          </div>
-          {canManage && (
-            <Button size="sm" onClick={openCreate}>
-              <Plus size={14} className="mr-1.5" /> Novo Perfil
-            </Button>
-          )}
-        </div>
-
+      <div className="flex flex-col">
         {success && (
-          <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-lg text-emerald-700 text-xs">
+          <div className="mx-4 mt-4 rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-xs text-emerald-700">
             {success}
           </div>
         )}
         {error && (
-          <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-red-700 text-xs">
+          <div className="mx-4 mt-4 rounded-lg border border-red-100 bg-red-50 p-3 text-xs text-red-700">
             {error}
           </div>
         )}
 
         {loading ? (
-          <div className="py-10 flex justify-center">
-            <Loader2 className="w-5 h-5 text-indigo-600 animate-spin" />
+          <div className="flex justify-center py-16">
+            <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
           </div>
         ) : profiles.length === 0 ? (
-          <div className="py-10 text-center text-xs text-slate-500">
+          <div className="py-16 text-center text-xs text-slate-500">
             Nenhum perfil de acesso cadastrado.
           </div>
         ) : (
-          <div className="grid gap-3">
-            {profiles.map((profile) => (
-              <div
-                key={profile.id}
-                className="border border-slate-100 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white hover:border-slate-200 transition-colors"
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-semibold text-slate-900">
-                      {profile.nome}
-                    </span>
-                    {profile.sistema && (
-                      <Badge
-                        variant="slate"
-                        className="text-[9px] border-none uppercase"
-                      >
-                        Padrão
-                      </Badge>
-                    )}
-                  </div>
-                  {profile.descricao && (
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      {profile.descricao}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-3 mt-2 text-[11px] text-slate-500">
-                    <span className="flex items-center gap-1">
-                      <Users size={12} /> {profile.usuarios_count || 0}{" "}
-                      usuário(s)
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Shield size={12} /> {profile.permissions_count || 0}{" "}
-                      permissão(ões)
-                    </span>
-                  </div>
-                </div>
-
-                {canManage && (
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => setPermissionsProfileId(profile.id)}
-                      className="h-8 px-3 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors flex items-center gap-1.5"
-                    >
-                      <Shield size={13} /> Permissões
-                    </button>
-                    <button
-                      onClick={() => openEdit(profile)}
-                      className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-blue-50 hover:text-blue-600"
-                      title="Editar"
-                    >
-                      <Edit2 size={14} />
-                    </button>
-                    {!profile.sistema && (
-                      <button
-                        onClick={() => setDeleteProfile(profile)}
-                        className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500"
-                        title="Excluir"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
+          <div className="min-h-0 flex-1 overflow-auto custom-scrollbar">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50/50">
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500">
+                    Perfil
+                  </th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500">
+                    Uso
+                  </th>
+                  <th className="px-3 py-2 text-right text-xs font-semibold text-slate-500">
+                    Ações
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {profiles.map((profile) => (
+                  <tr
+                    key={profile.id}
+                    className="group transition-colors hover:bg-slate-50/50"
+                  >
+                    <td className="px-3 py-2.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[13px] font-medium text-slate-900">
+                          {profile.nome}
+                        </span>
+                        {profile.sistema && (
+                          <Badge
+                            variant="slate"
+                            className="border-none text-[9px] uppercase"
+                          >
+                            Padrão
+                          </Badge>
+                        )}
+                      </div>
+                      {profile.descricao && (
+                        <p className="mt-0.5 text-[11px] text-slate-500">
+                          {profile.descricao}
+                        </p>
+                      )}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
+                        <span className="flex items-center gap-1">
+                          <Users size={12} /> {profile.usuarios_count || 0}{" "}
+                          usuário(s)
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Shield size={12} /> {profile.permissions_count || 0}{" "}
+                          permissão(ões)
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2.5 text-right">
+                      {canManage ? (
+                        <div className="flex items-center justify-end gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => setPermissionsProfileId(profile.id)}
+                            className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-600"
+                            title="Permissões"
+                          >
+                            <Shield size={13} /> Permissões
+                          </button>
+                          <button
+                            onClick={() => openEdit(profile)}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-all hover:bg-blue-50 hover:text-blue-600"
+                            title="Editar"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                          {!profile.sistema && (
+                            <button
+                              onClick={() => setDeleteProfile(profile)}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-all hover:bg-red-50 hover:text-red-500"
+                              title="Excluir"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
+                      ) : null}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
-      </Card>
+      </div>
 
       <Modal
         isOpen={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
+        onClose={closeForm}
         title={editingProfile ? "Editar Perfil" : "Novo Perfil de Acesso"}
         size="sm"
       >
@@ -276,7 +289,7 @@ export const AccessProfilesManager = ({
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => setIsFormOpen(false)}
+              onClick={closeForm}
             >
               Cancelar
             </Button>

@@ -60,11 +60,16 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const canViewProfiles = hasPermission(currentUser, "usuarios.ver_permissoes");
+  const canManageProfiles = hasPermission(
+    currentUser,
+    "usuarios.gerenciar_permissoes",
+  );
   const defaultAccessProfileId = accessProfiles.find((p) => p.nome === "Atendente")?.id
     || accessProfiles[0]?.id;
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
+  const [createProfileOpen, setCreateProfileOpen] = useState(false);
 
   const fetchAccessProfiles = async () => {
     if (!canViewProfiles) return;
@@ -279,6 +284,10 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
             >
               <Plus size={14} className="mr-2" /> Novo Usuário
             </Button>
+          ) : canManageProfiles ? (
+            <Button size="sm" onClick={() => setCreateProfileOpen(true)}>
+              <Plus size={14} className="mr-2" /> Novo Perfil
+            </Button>
           ) : undefined
         }
         flush
@@ -313,9 +322,11 @@ export const UsersPage = ({ currentUser }: UsersPageProps) => {
         }
       >
         {activeTab === "profiles" ? (
-          <div className="p-4 sm:p-5">
-            <AccessProfilesManager currentUser={currentUser} />
-          </div>
+          <AccessProfilesManager
+            currentUser={currentUser}
+            createOpen={createProfileOpen}
+            onCreateOpenChange={setCreateProfileOpen}
+          />
         ) : (
           <>
         <div className="shrink-0 p-2 sm:p-3 border-b border-slate-100 flex flex-col sm:flex-row items-center gap-3">

@@ -11,6 +11,7 @@ import {
   LogOut,
   X,
   BookOpen,
+  MessageCircle,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
@@ -71,6 +72,12 @@ export const Sidebar = ({
           icon: Ticket,
           label: "Chamados",
           access: canAccessAppScreen(currentUser, "tickets"),
+        },
+        {
+          id: "whatsapp",
+          icon: MessageCircle,
+          label: "WhatsApp",
+          access: canAccessAppScreen(currentUser, "whatsapp"),
         },
         {
           id: "knowledge",

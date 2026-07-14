@@ -21,6 +21,7 @@ import emailTestRoutes from './email-test.routes.js';
 import healthRoutes from './health.routes.js';
 import aiRoutes from './ai.routes.js';
 import permissionsRoutes from './permissions.routes.js';
+import accessProfilesRoutes from './access-profiles.routes.js';
 import internalJobsRoutes from './internal-jobs.routes.js';
 import internalOutboxRoutes from './internal-outbox.routes.js';
 const router = Router();
@@ -45,6 +46,7 @@ router.use('/health', healthRoutes);
 router.use('/email-test', emailTestRoutes);
 router.use('/ai', aiRoutes);
 router.use('/permissions', permissionsRoutes);
+router.use('/access-profiles', accessProfilesRoutes);
 router.use('/internal/jobs', internalJobsRoutes);
 router.use('/internal/outbox', internalOutboxRoutes);
 router.use('/', emailChannelsRoutes); // mounted at /api/companies/:companyId/email-channels

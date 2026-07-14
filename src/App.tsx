@@ -78,6 +78,11 @@ const KnowledgePage = lazy(() =>
     default: module.KnowledgePage,
   })),
 );
+const WhatsappPage = lazy(() =>
+  import("./components/pages/WhatsappPage").then((module) => ({
+    default: module.WhatsappPage,
+  })),
+);
 const TicketDetailsPage = lazy(() =>
   import("./components/pages/TicketDetailsPage").then((module) => ({
     default: module.TicketDetailsPage,
@@ -100,6 +105,7 @@ type ViewState =
 type ActiveTab =
   | "dashboard"
   | "tickets"
+  | "whatsapp"
   | "users"
   | "companies"
   | "logs"
@@ -116,6 +122,7 @@ const isActiveTab = (value: string | null): value is ActiveTab =>
   [
     "dashboard",
     "tickets",
+    "whatsapp",
     "users",
     "companies",
     "logs",
@@ -665,6 +672,8 @@ export default function App() {
           return "Dashboard de Controle";
         case "tickets":
           return selectedTicketId ? "Chamado" : "Central de Chamados";
+        case "whatsapp":
+          return "WhatsApp";
         case "users":
           return "Gestão de Usuários";
         case "companies":
@@ -768,6 +777,13 @@ export default function App() {
                         onBack={() => setSelectedTicketId(null)}
                         currentUser={currentUser}
                       />
+                    ) : (
+                      <AccessDenied />
+                    ))}
+
+                  {activeTab === "whatsapp" &&
+                    (canAccessAppScreen(currentUser, "whatsapp") ? (
+                      <WhatsappPage currentUser={currentUser} />
                     ) : (
                       <AccessDenied />
                     ))}

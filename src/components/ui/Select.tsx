@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { ChevronDown, Check } from "lucide-react";
 import { cn } from "../../lib/utils";
 
@@ -19,7 +19,16 @@ interface SelectProps {
   buttonClassName?: string;
   dropdownClassName?: string;
   size?: "sm" | "md" | "lg" | "xs";
+  /** Preferência de alinhamento do menu. "auto" vira para a esquerda se não couber. */
+  align?: "start" | "end" | "auto";
 }
+
+type MenuPosition = {
+  top: number;
+  left: number;
+  minWidth: number;
+  maxHeight: number;
+};
 
 export const Select: React.FC<SelectProps> = ({
   value,
@@ -32,45 +41,104 @@ export const Select: React.FC<SelectProps> = ({
   buttonClassName,
   dropdownClassName,
   size = "md",
+  align = "auto",
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const selectedOption = options.find(
     (opt) => String(opt.value) === String(value),
   );
 
+  const updateMenuPosition = () => {
+    const button = buttonRef.current;
+    if (!button) return;
+
+    const rect = button.getBoundingClientRect();
+    const margin = 8;
+    const gap = 4;
+    const measuredWidth = menuRef.current?.offsetWidth || 0;
+    const minWidth = Math.max(rect.width, measuredWidth || 160);
+    const estimatedHeight = menuRef.current?.offsetHeight || Math.min(240, options.length * 36 + 12);
+
+    let preferredAlign = align;
+    if (align === "auto") {
+      preferredAlign =
+        rect.left + minWidth > window.innerWidth - margin ? "end" : "start";
+    }
+
+    let left =
+      preferredAlign === "end" ? rect.right - minWidth : rect.left;
+    left = Math.min(
+      Math.max(left, margin),
+      Math.max(margin, window.innerWidth - minWidth - margin),
+    );
+
+    const spaceBelow = window.innerHeight - rect.bottom - margin;
+    const spaceAbove = rect.top - margin;
+    const openAbove =
+      spaceBelow < Math.min(estimatedHeight, 160) && spaceAbove > spaceBelow;
+    const maxHeight = Math.max(
+      120,
+      openAbove ? spaceAbove - gap : spaceBelow - gap,
+    );
+    const top = openAbove
+      ? Math.max(margin, rect.top - Math.min(estimatedHeight, maxHeight) - gap)
+      : rect.bottom + gap;
+
+    setMenuPosition({ top, left, minWidth, maxHeight });
+  };
+
+  useLayoutEffect(() => {
+    if (!isOpen) {
+      setMenuPosition(null);
+      return;
+    }
+    updateMenuPosition();
+  }, [isOpen, options.length, align]);
+
   useEffect(() => {
+    if (!isOpen) return;
+
     const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
       if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
+        containerRef.current?.contains(target) ||
+        menuRef.current?.contains(target)
       ) {
-        setIsOpen(false);
+        return;
       }
+      setIsOpen(false);
     };
 
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setIsOpen(false);
-      }
+      if (event.key === "Escape") setIsOpen(false);
     };
 
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      document.addEventListener("keydown", handleEscape);
-    }
+    const handleReposition = () => updateMenuPosition();
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    window.addEventListener("resize", handleReposition);
+    window.addEventListener("scroll", handleReposition, true);
+
+    // Remedeia após o DOM pintar a largura real do menu
+    const raf = window.requestAnimationFrame(updateMenuPosition);
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEscape);
+      window.removeEventListener("resize", handleReposition);
+      window.removeEventListener("scroll", handleReposition, true);
+      window.cancelAnimationFrame(raf);
     };
-  }, [isOpen]);
+  }, [isOpen, options.length, align]);
 
   const toggleDropdown = () => {
-    if (!disabled) {
-      setIsOpen(!isOpen);
-    }
+    if (!disabled) setIsOpen((open) => !open);
   };
 
   const handleSelect = (option: SelectOption) => {
@@ -97,6 +165,7 @@ export const Select: React.FC<SelectProps> = ({
         />
       )}
       <button
+        ref={buttonRef}
         type="button"
         onClick={toggleDropdown}
         disabled={disabled}
@@ -129,13 +198,20 @@ export const Select: React.FC<SelectProps> = ({
         />
       </button>
 
-      {isOpen && (
+      {isOpen && menuPosition && (
         <div
+          ref={menuRef}
           className={cn(
-            "absolute z-[9999] mt-1 min-w-full w-max bg-white border border-slate-200 rounded-md shadow-lg p-1 max-h-60 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in duration-150 origin-top",
+            "fixed z-[9999] bg-white border border-slate-200 rounded-md shadow-lg p-1 overflow-y-auto custom-scrollbar",
             "shadow-[0_12px_32px_rgba(15,23,42,0.14)]",
             dropdownClassName,
           )}
+          style={{
+            top: menuPosition.top,
+            left: menuPosition.left,
+            minWidth: menuPosition.minWidth,
+            maxHeight: menuPosition.maxHeight,
+          }}
           role="listbox"
         >
           {options.length === 0 ? (

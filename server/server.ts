@@ -200,7 +200,13 @@ async function startServer() {
   const PORT = env.PORT;
 
   app.use(cors(corsOptions as cors.CorsOptions));
-  app.use(express.json({ limit: '1mb' }));
+  app.use(express.json({
+    limit: '1mb',
+    verify: (req, _res, buf) => {
+      // Usado para validar assinatura X-Hub-Signature-256 dos webhooks Meta.
+      (req as any).rawBody = buf;
+    },
+  }));
   app.use(cookieParser());
   
   // Database Boot
@@ -273,12 +279,23 @@ async function startServer() {
   if (env.ENABLE_WEB_SERVER) {
     app.use('/api', apiRoutes);
 
-    if (!env.IS_PROD) {
+    // `npm run dev` usa tsx + server.ts. Mesmo com NODE_ENV=production no .env,
+    // precisamos do Vite (HMR). Build estático fica só para `npm start` (dist-server).
+    const runningViaTsx = process.argv.some((arg) => arg.includes('tsx'))
+      || String(process.argv[1] || '').endsWith(`${path.sep}server.ts`)
+      || String(process.argv[1] || '').endsWith('/server.ts');
+    const useViteDevMiddleware = !env.IS_PROD || runningViaTsx;
+
+    if (useViteDevMiddleware) {
       const vite = await createViteServer({
-        server: { middlewareMode: true },
+        server: {
+          middlewareMode: true,
+          hmr: { server: httpServer },
+        },
         appType: "spa",
       });
       app.use(vite.middlewares);
+      console.log(`[BOOT] Vite middleware ativo (HMR). source=${runningViaTsx ? 'tsx/dev' : 'development'}`);
     } else {
       const distPath = path.join(process.cwd(), 'dist');
       app.use(express.static(distPath));
@@ -288,6 +305,7 @@ async function startServer() {
         }
         res.sendFile(path.join(distPath, 'index.html'));
       });
+      console.log('[BOOT] Servindo frontend estático de /dist');
     }
   } else {
     // Worker role minimal responder

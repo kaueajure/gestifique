@@ -1,4 +1,5 @@
 import pool from '../db/connection.js';
+import { seedDefaultProfilesForEmpresa } from './access-profiles.service.js';
 const EMAIL_SIGNATURE_MAX_LENGTH = 2000;
 class CompaniesService {
     async list(filters = {}) {
@@ -69,6 +70,7 @@ class CompaniesService {
        VALUES (?, 'Aberto', 'aberto', 1, 1, '#2563eb', 'inicial', 0),
               (?, 'Em Atendimento', 'em_andamento', 1, 1, '#4f46e5', 'normal', 1),
               (?, 'Finalizado', 'resolvido', 1, 1, '#059669', 'finalizado', 2)`, [companyId, companyId, companyId]);
+        await seedDefaultProfilesForEmpresa(companyId);
         return companyId;
     }
     async update(id, data) {
@@ -149,7 +151,8 @@ class CompaniesService {
                 'empresa_sla_politicas',
                 'empresa_distribuicao_regras',
                 'logs_sistema',
-                'usuarios'
+                'usuarios',
+                'access_profiles'
             ];
             // Delete references using ticket_id first to avoid foreign key issues if ON DELETE CASCADE is missing
             await connection.query('DELETE FROM ticket_leituras WHERE ticket_id IN (SELECT id FROM tickets WHERE empresa_id = ?)', [id]);

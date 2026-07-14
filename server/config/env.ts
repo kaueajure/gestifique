@@ -196,6 +196,19 @@ export const env = {
     REGION: process.env.STORAGE_REGION,
     ENDPOINT: process.env.STORAGE_ENDPOINT,
   },
+
+  FRONTEND_URL: process.env.FRONTEND_URL || '',
+
+  WHATSAPP: {
+    ENABLED: process.env.ENABLE_WHATSAPP === 'true',
+    ACCESS_TOKEN: process.env.WHATSAPP_ACCESS_TOKEN || '',
+    PHONE_NUMBER_ID: process.env.WHATSAPP_PHONE_NUMBER_ID || '',
+    BUSINESS_ACCOUNT_ID: process.env.WHATSAPP_BUSINESS_ACCOUNT_ID || '',
+    VERIFY_TOKEN: process.env.WHATSAPP_VERIFY_TOKEN || '',
+    APP_SECRET: process.env.META_APP_SECRET || '',
+    API_VERSION: process.env.WHATSAPP_API_VERSION || 'v25.0',
+    DISPLAY_PHONE_NUMBER: process.env.WHATSAPP_DISPLAY_PHONE_NUMBER || '',
+  },
 };
 
 // S1: aviso explícito quando a validação TLS de e-mail está desativada.

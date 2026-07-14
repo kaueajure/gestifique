@@ -23,8 +23,14 @@ function validateTargetAccess(caller, targetUser) {
     return null;
 }
 async function getTargetUser(targetUserId) {
-    const [targetUserRows] = await pool.query('SELECT id, empresa_id, desenvolvedor, administrador, perfil FROM usuarios WHERE id = ?', [targetUserId]);
+    const [targetUserRows] = await pool.query('SELECT id, empresa_id, desenvolvedor, administrador, perfil, access_profile_id FROM usuarios WHERE id = ?', [targetUserId]);
     return targetUserRows[0] || null;
+}
+function accessProfileManagedError(targetUser) {
+    if (targetUser?.access_profile_id) {
+        return 'Permissoes deste usuario sao gerenciadas pelo perfil de acesso vinculado. Edite o perfil em Perfis de Acesso.';
+    }
+    return null;
 }
 function globalPermissionAllowError(caller, permissionKeys, effect) {
     if (effect !== 'allow' || caller.desenvolvedor)
@@ -108,7 +114,7 @@ router.put('/users/:id/override', requirePermission('usuarios.gerenciar_permisso
         }
         const caller = req.user;
         // Load target user's details
-        const [targetUserRows] = await pool.query('SELECT id, empresa_id, desenvolvedor, administrador, perfil FROM usuarios WHERE id = ?', [targetUserId]);
+        const [targetUserRows] = await pool.query('SELECT id, empresa_id, desenvolvedor, administrador, perfil, access_profile_id FROM usuarios WHERE id = ?', [targetUserId]);
         if (targetUserRows.length === 0) {
             return res.status(404).json({ success: false, message: 'Usuário alvo não encontrado.' });
         }
@@ -116,6 +122,10 @@ router.put('/users/:id/override', requirePermission('usuarios.gerenciar_permisso
         const accessError = validateTargetAccess(caller, targetUser);
         if (accessError) {
             return res.status(403).json({ success: false, message: accessError });
+        }
+        const profileManagedError = accessProfileManagedError(targetUser);
+        if (profileManagedError) {
+            return res.status(400).json({ success: false, message: profileManagedError });
         }
         // Hierarchy check:
         // Only developer can edit developer
@@ -171,7 +181,7 @@ router.delete('/users/:id/override/:permissionKey', requirePermission('usuarios.
         const { permissionKey } = req.params;
         const caller = req.user;
         // Load target user's details
-        const [targetUserRows] = await pool.query('SELECT id, empresa_id, desenvolvedor, administrador, perfil FROM usuarios WHERE id = ?', [targetUserId]);
+        const [targetUserRows] = await pool.query('SELECT id, empresa_id, desenvolvedor, administrador, perfil, access_profile_id FROM usuarios WHERE id = ?', [targetUserId]);
         if (targetUserRows.length === 0) {
             return res.status(404).json({ success: false, message: 'Usuário alvo não encontrado.' });
         }
@@ -179,6 +189,10 @@ router.delete('/users/:id/override/:permissionKey', requirePermission('usuarios.
         const accessError = validateTargetAccess(caller, targetUser);
         if (accessError) {
             return res.status(403).json({ success: false, message: accessError });
+        }
+        const profileManagedError = accessProfileManagedError(targetUser);
+        if (profileManagedError) {
+            return res.status(400).json({ success: false, message: profileManagedError });
         }
         // Hierarchy check
         if ((targetUser.desenvolvedor || targetUser.perfil === 'desenvolvedor') && !caller.desenvolvedor) {
@@ -214,7 +228,7 @@ router.post('/users/:id/reset', requirePermission('usuarios.gerenciar_permissoes
         }
         const caller = req.user;
         // Load target user's details
-        const [targetUserRows] = await pool.query('SELECT id, empresa_id, desenvolvedor, administrador, perfil FROM usuarios WHERE id = ?', [targetUserId]);
+        const [targetUserRows] = await pool.query('SELECT id, empresa_id, desenvolvedor, administrador, perfil, access_profile_id FROM usuarios WHERE id = ?', [targetUserId]);
         if (targetUserRows.length === 0) {
             return res.status(404).json({ success: false, message: 'Usuário alvo não encontrado.' });
         }
@@ -222,6 +236,10 @@ router.post('/users/:id/reset', requirePermission('usuarios.gerenciar_permissoes
         const accessError = validateTargetAccess(caller, targetUser);
         if (accessError) {
             return res.status(403).json({ success: false, message: accessError });
+        }
+        const profileManagedError = accessProfileManagedError(targetUser);
+        if (profileManagedError) {
+            return res.status(400).json({ success: false, message: profileManagedError });
         }
         // Hierarchy check
         if ((targetUser.desenvolvedor || targetUser.perfil === 'desenvolvedor') && !caller.desenvolvedor) {
@@ -255,7 +273,7 @@ router.post('/users/:id/bulk', requirePermission('usuarios.gerenciar_permissoes'
         }
         const caller = req.user;
         // Load target user's details
-        const [targetUserRows] = await pool.query('SELECT id, empresa_id, desenvolvedor, administrador, perfil FROM usuarios WHERE id = ?', [targetUserId]);
+        const [targetUserRows] = await pool.query('SELECT id, empresa_id, desenvolvedor, administrador, perfil, access_profile_id FROM usuarios WHERE id = ?', [targetUserId]);
         if (targetUserRows.length === 0) {
             return res.status(404).json({ success: false, message: 'Usuário alvo não encontrado.' });
         }
@@ -263,6 +281,10 @@ router.post('/users/:id/bulk', requirePermission('usuarios.gerenciar_permissoes'
         const accessError = validateTargetAccess(caller, targetUser);
         if (accessError) {
             return res.status(403).json({ success: false, message: accessError });
+        }
+        const profileManagedError = accessProfileManagedError(targetUser);
+        if (profileManagedError) {
+            return res.status(400).json({ success: false, message: profileManagedError });
         }
         // Hierarchy check: Only developer can edit developer
         if ((targetUser.desenvolvedor || targetUser.perfil === 'desenvolvedor') && !caller.desenvolvedor) {
@@ -332,7 +354,7 @@ router.post('/users/:id/bulk-reset', requirePermission('usuarios.gerenciar_permi
         }
         const caller = req.user;
         // Load target user's details
-        const [targetUserRows] = await pool.query('SELECT id, empresa_id, desenvolvedor, administrador, perfil FROM usuarios WHERE id = ?', [targetUserId]);
+        const [targetUserRows] = await pool.query('SELECT id, empresa_id, desenvolvedor, administrador, perfil, access_profile_id FROM usuarios WHERE id = ?', [targetUserId]);
         if (targetUserRows.length === 0) {
             return res.status(404).json({ success: false, message: 'Usuário alvo não encontrado.' });
         }
@@ -340,6 +362,10 @@ router.post('/users/:id/bulk-reset', requirePermission('usuarios.gerenciar_permi
         const accessError = validateTargetAccess(caller, targetUser);
         if (accessError) {
             return res.status(403).json({ success: false, message: accessError });
+        }
+        const profileManagedError = accessProfileManagedError(targetUser);
+        if (profileManagedError) {
+            return res.status(400).json({ success: false, message: profileManagedError });
         }
         // Hierarchy check
         if ((targetUser.desenvolvedor || targetUser.perfil === 'desenvolvedor') && !caller.desenvolvedor) {

@@ -2,17 +2,14 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   X,
   Loader2,
-  Shield,
   Search,
-  Check,
-  Ban,
   CheckCircle2,
   AlertTriangle,
 } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import { api } from "../../lib/api";
 import { AccessProfile } from "../../types";
 import { Button } from "../ui/Button";
-import { Badge } from "../ui/Badge";
 import { cn } from "../../lib/utils";
 
 interface PermissionCatalogItem {
@@ -47,8 +44,11 @@ export const AccessProfilePermissionsModal = ({
   const [saving, setSaving] = useState(false);
   const [matrix, setMatrix] = useState<ProfileMatrix | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [initialSelected, setInitialSelected] = useState<Set<string>>(
+    new Set(),
+  );
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeModule, setActiveModule] = useState("all");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -60,7 +60,9 @@ export const AccessProfilePermissionsModal = ({
         `/access-profiles/${profileId}/matrix`,
       );
       setMatrix(data);
-      setSelected(new Set(data.permissions));
+      const next = new Set(data.permissions);
+      setSelected(next);
+      setInitialSelected(new Set(next));
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Erro ao carregar permissões.",
@@ -73,21 +75,32 @@ export const AccessProfilePermissionsModal = ({
   useEffect(() => {
     if (isOpen && profileId) {
       setSearchQuery("");
-      setActiveTab("all");
+      setActiveModule("all");
       setSuccess(null);
       fetchMatrix();
     }
   }, [isOpen, profileId]);
 
-  const modulos = useMemo(() => {
+  const modules = useMemo(() => {
     if (!matrix) return [];
     return Array.from(new Set(matrix.catalog.map((item) => item.modulo))).sort();
   }, [matrix]);
 
+  const moduleCounts = useMemo(() => {
+    const counts: Record<string, { total: number; selected: number }> = {};
+    if (!matrix) return counts;
+    for (const item of matrix.catalog) {
+      if (!counts[item.modulo]) counts[item.modulo] = { total: 0, selected: 0 };
+      counts[item.modulo].total += 1;
+      if (selected.has(item.key)) counts[item.modulo].selected += 1;
+    }
+    return counts;
+  }, [matrix, selected]);
+
   const filteredCatalog = useMemo(() => {
     if (!matrix) return [];
     return matrix.catalog.filter((item) => {
-      if (activeTab !== "all" && item.modulo !== activeTab) return false;
+      if (activeModule !== "all" && item.modulo !== activeModule) return false;
       if (!searchQuery.trim()) return true;
       const query = searchQuery.toLowerCase();
       return (
@@ -97,17 +110,27 @@ export const AccessProfilePermissionsModal = ({
         item.grupo.toLowerCase().includes(query)
       );
     });
-  }, [matrix, activeTab, searchQuery]);
+  }, [matrix, activeModule, searchQuery]);
 
   const grouped = useMemo(() => {
     const groups: Record<string, Record<string, PermissionCatalogItem[]>> = {};
     filteredCatalog.forEach((item) => {
       if (!groups[item.modulo]) groups[item.modulo] = {};
-      if (!groups[item.modulo][item.grupo]) groups[item.modulo][item.grupo] = [];
+      if (!groups[item.modulo][item.grupo]) {
+        groups[item.modulo][item.grupo] = [];
+      }
       groups[item.modulo][item.grupo].push(item);
     });
     return groups;
   }, [filteredCatalog]);
+
+  const isDirty = useMemo(() => {
+    if (selected.size !== initialSelected.size) return true;
+    for (const key of selected) {
+      if (!initialSelected.has(key)) return true;
+    }
+    return false;
+  }, [selected, initialSelected]);
 
   const togglePermission = (key: string) => {
     setSelected((prev) => {
@@ -116,17 +139,19 @@ export const AccessProfilePermissionsModal = ({
       else next.add(key);
       return next;
     });
+    setSuccess(null);
   };
 
-  const toggleModule = (keys: string[], allow: boolean) => {
+  const toggleGroup = (keys: string[], enable: boolean) => {
     setSelected((prev) => {
       const next = new Set(prev);
       keys.forEach((key) => {
-        if (allow) next.add(key);
+        if (enable) next.add(key);
         else next.delete(key);
       });
       return next;
     });
+    setSuccess(null);
   };
 
   const handleSave = async () => {
@@ -137,7 +162,8 @@ export const AccessProfilePermissionsModal = ({
       await api.patch(`/access-profiles/${profileId}`, {
         permissions: Array.from(selected),
       });
-      setSuccess("Permissões do perfil salvas com sucesso.");
+      setInitialSelected(new Set(selected));
+      setSuccess("Permissões salvas. Todos os usuários deste perfil foram atualizados.");
       onSaved?.();
     } catch (err) {
       setError(
@@ -148,213 +174,263 @@ export const AccessProfilePermissionsModal = ({
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0 bg-slate-950/60 backdrop-blur-md"
-        onClick={onClose}
-      />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden border border-slate-100">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white">
-              <Shield size={18} />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">
-                Permissões do Perfil
-              </h3>
-              <p className="text-xs text-slate-500">
-                {matrix?.profile.nome || "Carregando..."} — alterações afetam
-                todos os usuários vinculados.
-              </p>
-            </div>
-          </div>
-          <button
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             onClick={onClose}
-            className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+            className="absolute inset-0 bg-slate-950/30 backdrop-blur-[2px]"
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.97, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.97, y: 8 }}
+            className="relative flex h-[min(88vh,820px)] w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.22)]"
           >
-            <X size={18} />
-          </button>
-        </div>
-
-        {loading ? (
-          <div className="flex-1 flex items-center justify-center">
-            <Loader2 className="w-6 h-6 text-indigo-600 animate-spin" />
-          </div>
-        ) : (
-          <div className="flex-1 flex overflow-hidden">
-            <div className="w-52 border-r border-slate-100 bg-slate-50/50 p-4 space-y-4 overflow-y-auto">
-              <div className="relative">
-                <Search
-                  size={13}
-                  className="absolute left-3 top-2.5 text-slate-400"
-                />
-                <input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Buscar..."
-                  className="w-full h-8 bg-white border border-slate-200 rounded-lg pl-8 pr-3 text-xs outline-none focus:border-indigo-500"
-                />
-              </div>
-              <div className="space-y-1">
+            <div className="shrink-0 border-b border-slate-200 bg-white px-4 py-3 sm:px-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="truncate text-[15px] font-semibold text-slate-950">
+                    Permissões
+                    {matrix?.profile.nome ? ` · ${matrix.profile.nome}` : ""}
+                  </h3>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    Marque o que este perfil pode fazer. A mudança vale para
+                    todos os usuários vinculados.
+                  </p>
+                </div>
                 <button
-                  onClick={() => setActiveTab("all")}
-                  className={cn(
-                    "w-full text-left px-3 py-2 text-xs font-semibold rounded-lg",
-                    activeTab === "all"
-                      ? "bg-indigo-600 text-white"
-                      : "text-slate-600 hover:bg-slate-100",
-                  )}
+                  onClick={onClose}
+                  className="shrink-0 rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
                 >
-                  Todos
+                  <X size={16} />
                 </button>
-                {modulos.map((mod) => (
-                  <button
-                    key={mod}
-                    onClick={() => setActiveTab(mod)}
-                    className={cn(
-                      "w-full text-left px-3 py-2 text-xs font-semibold rounded-lg truncate",
-                      activeTab === mod
-                        ? "bg-indigo-50 text-indigo-800 border border-indigo-100"
-                        : "text-slate-600 hover:bg-slate-100",
-                    )}
-                  >
-                    {mod}
-                  </button>
-                ))}
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-slate-50/20">
-              {error && (
-                <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-red-700 text-xs flex items-center gap-2">
-                  <AlertTriangle size={14} />
-                  {error}
-                </div>
-              )}
-              {success && (
-                <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-lg text-emerald-700 text-xs flex items-center gap-2">
-                  <CheckCircle2 size={14} />
-                  {success}
-                </div>
-              )}
+            {loading ? (
+              <div className="flex flex-1 items-center justify-center">
+                <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+              </div>
+            ) : (
+              <>
+                <div className="shrink-0 space-y-3 border-b border-slate-100 px-4 py-3 sm:px-5">
+                  <div className="relative">
+                    <Search
+                      size={14}
+                      className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                    <input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Buscar permissão..."
+                      className="h-8 w-full rounded-md border border-slate-200 bg-slate-50 pl-9 pr-3 text-xs font-medium text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
 
-              {Object.keys(grouped).length === 0 ? (
-                <div className="text-center py-10 text-xs text-slate-500">
-                  Nenhuma permissão encontrada.
-                </div>
-              ) : (
-                Object.entries(grouped).map(([modulo, grupos]) => {
-                  const moduleKeys = matrix?.catalog
-                    .filter((i) => i.modulo === modulo)
-                    .map((i) => i.key) || [];
-
-                  return (
-                    <div
-                      key={modulo}
-                      className="bg-white border border-slate-100 rounded-xl p-4 space-y-3"
+                  <div className="flex gap-1.5 overflow-x-auto pb-0.5 custom-scrollbar">
+                    <button
+                      type="button"
+                      onClick={() => setActiveModule("all")}
+                      className={cn(
+                        "h-7 shrink-0 rounded-md px-2.5 text-[11px] font-medium transition-colors",
+                        activeModule === "all"
+                          ? "bg-slate-900 text-white"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900",
+                      )}
                     >
-                      <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                        <h4 className="text-xs font-bold text-indigo-900 uppercase tracking-wider">
-                          {modulo}
-                        </h4>
-                        <div className="flex gap-1">
-                          <button
-                            onClick={() => toggleModule(moduleKeys, true)}
-                            className="h-6 px-2 text-[10px] font-bold rounded-md bg-emerald-50 text-emerald-700 border border-emerald-100"
-                          >
-                            Permitir todos
-                          </button>
-                          <button
-                            onClick={() => toggleModule(moduleKeys, false)}
-                            className="h-6 px-2 text-[10px] font-bold rounded-md bg-red-50 text-red-700 border border-red-100"
-                          >
-                            Remover todos
-                          </button>
-                        </div>
-                      </div>
+                      Todos ({selected.size})
+                    </button>
+                    {modules.map((mod) => {
+                      const count = moduleCounts[mod];
+                      return (
+                        <button
+                          key={mod}
+                          type="button"
+                          onClick={() => setActiveModule(mod)}
+                          className={cn(
+                            "h-7 shrink-0 rounded-md px-2.5 text-[11px] font-medium transition-colors",
+                            activeModule === mod
+                              ? "bg-slate-900 text-white"
+                              : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900",
+                          )}
+                        >
+                          {mod}
+                          {count ? (
+                            <span className="ml-1 opacity-70">
+                              {count.selected}/{count.total}
+                            </span>
+                          ) : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
-                      {Object.entries(grupos).map(([grupo, items]) => (
-                        <div key={grupo} className="space-y-2">
-                          <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider pl-1">
-                            {grupo}
-                          </h5>
-                          <div className="grid gap-2">
-                            {items.map((item) => {
-                              const isAllowed = selected.has(item.key);
-                              return (
-                                <button
-                                  key={item.key}
-                                  type="button"
-                                  onClick={() => togglePermission(item.key)}
-                                  className={cn(
-                                    "w-full text-left border rounded-lg p-3 flex items-start gap-3 transition-all",
-                                    isAllowed
-                                      ? "border-emerald-100 bg-emerald-50/30"
-                                      : "border-slate-150 bg-white hover:bg-slate-50",
-                                  )}
-                                >
+                <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-5 custom-scrollbar">
+                  {error && (
+                    <div className="mb-3 flex items-start gap-2 rounded-md border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-700">
+                      <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                      {error}
+                    </div>
+                  )}
+                  {success && (
+                    <div className="mb-3 flex items-start gap-2 rounded-md border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                      <CheckCircle2 size={14} className="mt-0.5 shrink-0" />
+                      {success}
+                    </div>
+                  )}
+
+                  {Object.keys(grouped).length === 0 ? (
+                    <div className="py-12 text-center text-xs text-slate-500">
+                      Nenhuma permissão encontrada.
+                    </div>
+                  ) : (
+                    <div className="space-y-5">
+                      {Object.entries(grouped).map(([modulo, grupos]) => (
+                        <section key={modulo}>
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <h4 className="text-xs font-semibold text-slate-900">
+                              {modulo}
+                            </h4>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const keys = Object.values(grupos)
+                                  .flat()
+                                  .map((i) => i.key);
+                                const allOn = keys.every((k) =>
+                                  selected.has(k),
+                                );
+                                toggleGroup(keys, !allOn);
+                              }}
+                              className="text-[11px] font-medium text-blue-600 hover:text-blue-700"
+                            >
+                              {Object.values(grupos)
+                                .flat()
+                                .every((i) => selected.has(i.key))
+                                ? "Desmarcar módulo"
+                                : "Marcar módulo"}
+                            </button>
+                          </div>
+
+                          <div className="overflow-hidden rounded-md border border-slate-200">
+                            {Object.entries(grupos).map(
+                              ([grupo, items], groupIndex) => (
+                                <div key={grupo}>
                                   <div
                                     className={cn(
-                                      "w-7 h-7 rounded-md flex items-center justify-center border flex-shrink-0",
-                                      isAllowed
-                                        ? "bg-emerald-50 border-emerald-100 text-emerald-600"
-                                        : "bg-slate-100 border-slate-200 text-slate-400",
+                                      "flex items-center justify-between gap-2 bg-slate-50 px-3 py-1.5",
+                                      groupIndex > 0 &&
+                                        "border-t border-slate-200",
                                     )}
                                   >
-                                    {isAllowed ? (
-                                      <Check size={14} />
-                                    ) : (
-                                      <Ban size={12} />
-                                    )}
+                                    <span className="text-[11px] font-medium text-slate-500">
+                                      {grupo}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const keys = items.map((i) => i.key);
+                                        const allOn = keys.every((k) =>
+                                          selected.has(k),
+                                        );
+                                        toggleGroup(keys, !allOn);
+                                      }}
+                                      className="text-[10px] font-medium text-slate-500 hover:text-slate-800"
+                                    >
+                                      {items.every((i) => selected.has(i.key))
+                                        ? "Desmarcar"
+                                        : "Marcar grupo"}
+                                    </button>
                                   </div>
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <span className="text-xs font-semibold text-slate-800">
-                                        {item.nome}
-                                      </span>
-                                      <Badge
-                                        variant="slate"
-                                        className="text-[9px] font-mono border-none"
-                                      >
-                                        {item.key}
-                                      </Badge>
-                                    </div>
-                                    <p className="text-[11px] text-slate-500 mt-0.5">
-                                      {item.descricao || "Sem descrição."}
-                                    </p>
-                                  </div>
-                                </button>
-                              );
-                            })}
+
+                                  <ul className="divide-y divide-slate-100">
+                                    {items.map((item) => {
+                                      const isAllowed = selected.has(item.key);
+                                      return (
+                                        <li key={item.key}>
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              togglePermission(item.key)
+                                            }
+                                            className="flex w-full items-start gap-3 px-3 py-2.5 text-left transition-colors hover:bg-slate-50"
+                                          >
+                                            <span
+                                              className={cn(
+                                                "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border",
+                                                isAllowed
+                                                  ? "border-blue-600 bg-blue-600 text-white"
+                                                  : "border-slate-300 bg-white",
+                                              )}
+                                              aria-hidden
+                                            >
+                                              {isAllowed && (
+                                                <svg
+                                                  viewBox="0 0 12 12"
+                                                  className="h-2.5 w-2.5"
+                                                  fill="none"
+                                                  stroke="currentColor"
+                                                  strokeWidth="2"
+                                                >
+                                                  <path d="M2.5 6.5 L5 9 L9.5 3.5" />
+                                                </svg>
+                                              )}
+                                            </span>
+                                            <span className="min-w-0 flex-1">
+                                              <span className="block text-[13px] font-medium text-slate-800">
+                                                {item.nome}
+                                              </span>
+                                              {item.descricao ? (
+                                                <span className="mt-0.5 block text-[11px] leading-relaxed text-slate-500">
+                                                  {item.descricao}
+                                                </span>
+                                              ) : null}
+                                            </span>
+                                          </button>
+                                        </li>
+                                      );
+                                    })}
+                                  </ul>
+                                </div>
+                              ),
+                            )}
                           </div>
-                        </div>
+                        </section>
                       ))}
                     </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        )}
+                  )}
+                </div>
+              </>
+            )}
 
-        <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-white">
-          <span className="text-xs text-slate-500">
-            {selected.size} permissão(ões) ativa(s)
-          </span>
-          <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              Fechar
-            </Button>
-            <Button size="sm" loading={saving} onClick={handleSave}>
-              Salvar Permissões
-            </Button>
-          </div>
+            <div className="flex shrink-0 flex-col-reverse items-stretch justify-between gap-2 border-t border-slate-200 bg-slate-50/80 px-4 py-3 sm:flex-row sm:items-center sm:px-5">
+              <span className="text-xs text-slate-500">
+                {selected.size} ativas
+                {isDirty ? " · alterações não salvas" : ""}
+              </span>
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" size="sm" onClick={onClose}>
+                  Cancelar
+                </Button>
+                <Button
+                  size="sm"
+                  loading={saving}
+                  onClick={handleSave}
+                  disabled={!isDirty}
+                >
+                  Salvar
+                </Button>
+              </div>
+            </div>
+          </motion.div>
         </div>
-      </div>
-    </div>
+      )}
+    </AnimatePresence>
   );
 };
