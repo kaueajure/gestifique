@@ -66,12 +66,46 @@ router.get(
 );
 
 router.get(
+  '/conversations',
+  requirePermission('integracoes.whatsapp.visualizar', { allowDeveloper: true }),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const limit = Number(req.query.limit) || 80;
+      const conversations = await whatsappService.listConversations(limit);
+      return sendSuccess(res, conversations);
+    } catch (err) {
+      console.error(err);
+      return sendError(res, 'Erro ao listar conversas do WhatsApp', 500);
+    }
+  },
+);
+
+router.get(
+  '/conversations/:phone/messages',
+  requirePermission('integracoes.whatsapp.visualizar', { allowDeveloper: true }),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const phone = String(req.params.phone || '');
+      const limit = Number(req.query.limit) || 200;
+      const messages = await whatsappService.listThreadMessages(phone, limit);
+      return sendSuccess(res, messages);
+    } catch (err) {
+      console.error(err);
+      return sendError(res, 'Erro ao listar mensagens da conversa', 500);
+    }
+  },
+);
+
+router.get(
   '/messages',
   requirePermission('integracoes.whatsapp.visualizar', { allowDeveloper: true }),
   async (req: AuthRequest, res: Response) => {
     try {
       const limit = Number(req.query.limit) || 50;
-      const messages = await whatsappService.listMessages(limit);
+      const phone = req.query.phone ? String(req.query.phone) : '';
+      const messages = phone
+        ? await whatsappService.listThreadMessages(phone, limit)
+        : await whatsappService.listMessages(limit);
       return sendSuccess(res, messages);
     } catch (err) {
       console.error(err);

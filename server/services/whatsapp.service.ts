@@ -17,6 +17,23 @@ export type WhatsAppInboundMessage = {
   created_at: string;
 };
 
+export type WhatsAppConversation = {
+  contact_phone: string;
+  contact_name: string | null;
+  last_body: string | null;
+  last_direction: 'inbound' | 'outbound' | null;
+  last_message_at: string;
+  message_count: number;
+};
+
+function normalizePhone(value?: string | null): string {
+  return String(value || '').replace(/\D/g, '');
+}
+
+function contactPhoneExpr(): string {
+  return `CASE WHEN direction = 'inbound' THEN from_phone ELSE to_phone END`;
+}
+
 function maskToken(token?: string | null): string | null {
   if (!token) return null;
   if (token.length <= 12) return '••••';
@@ -210,10 +227,104 @@ export const whatsappService = {
           SELECT id, wa_message_id, direction, from_phone, to_phone, contact_name,
                  message_type, body, status, created_at
           FROM whatsapp_messages
+          WHERE message_type <> 'status'
           ORDER BY created_at DESC, id DESC
           LIMIT ?
         `,
         [safeLimit],
+      );
+      return rows;
+    } catch (err: any) {
+      if (err?.code === 'ER_NO_SUCH_TABLE') return [];
+      throw err;
+    }
+  },
+
+  async listConversations(limit = 80): Promise<WhatsAppConversation[]> {
+    const safeLimit = Math.min(Math.max(Number(limit) || 80, 1), 200);
+    const contactPhone = contactPhoneExpr();
+    try {
+      const [rows]: any = await pool.query(
+        `
+          SELECT
+            contact_phone,
+            MAX(NULLIF(contact_name, '')) AS contact_name,
+            SUBSTRING_INDEX(
+              GROUP_CONCAT(
+                IFNULL(body, '')
+                ORDER BY created_at DESC, id DESC
+                SEPARATOR '|||'
+              ),
+              '|||',
+              1
+            ) AS last_body,
+            SUBSTRING_INDEX(
+              GROUP_CONCAT(
+                direction
+                ORDER BY created_at DESC, id DESC
+                SEPARATOR '|||'
+              ),
+              '|||',
+              1
+            ) AS last_direction,
+            MAX(created_at) AS last_message_at,
+            COUNT(*) AS message_count
+          FROM (
+            SELECT
+              id,
+              direction,
+              ${contactPhone} AS contact_phone,
+              contact_name,
+              body,
+              created_at
+            FROM whatsapp_messages
+            WHERE message_type <> 'status'
+              AND ${contactPhone} IS NOT NULL
+              AND ${contactPhone} <> ''
+          ) AS threads
+          GROUP BY contact_phone
+          ORDER BY last_message_at DESC
+          LIMIT ?
+        `,
+        [safeLimit],
+      );
+      return rows.map((row: any) => ({
+        ...row,
+        last_body: row.last_body || null,
+        last_direction: row.last_direction || null,
+      }));
+    } catch (err: any) {
+      if (err?.code === 'ER_NO_SUCH_TABLE') return [];
+      throw err;
+    }
+  },
+
+  async listThreadMessages(phone: string, limit = 200): Promise<WhatsAppInboundMessage[]> {
+    const normalized = normalizePhone(phone);
+    if (!normalized) return [];
+
+    const safeLimit = Math.min(Math.max(Number(limit) || 200, 1), 500);
+    try {
+      const [rows]: any = await pool.query(
+        `
+          SELECT id, wa_message_id, direction, from_phone, to_phone, contact_name,
+                 message_type, body, status, created_at
+          FROM whatsapp_messages
+          WHERE message_type <> 'status'
+            AND (
+              (
+                direction = 'inbound'
+                AND REPLACE(REPLACE(REPLACE(IFNULL(from_phone, ''), '+', ''), '-', ''), ' ', '') = ?
+              )
+              OR (
+                direction = 'outbound'
+                AND REPLACE(REPLACE(REPLACE(IFNULL(to_phone, ''), '+', ''), '-', ''), ' ', '') = ?
+              )
+            )
+          ORDER BY created_at ASC, id ASC
+          LIMIT ?
+        `,
+        [normalized, normalized, safeLimit],
       );
       return rows;
     } catch (err: any) {
