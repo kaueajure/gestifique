@@ -208,6 +208,19 @@ export const env = {
     APP_SECRET: process.env.META_APP_SECRET || '',
     API_VERSION: process.env.WHATSAPP_API_VERSION || 'v25.0',
     DISPLAY_PHONE_NUMBER: process.env.WHATSAPP_DISPLAY_PHONE_NUMBER || '',
+    /** Auto-envia menu com botões quando o cliente mandar a palavra-gatilho. */
+    AUTO_REPLY: process.env.ENABLE_WHATSAPP_AUTO_REPLY === 'true',
+    /** Palavra que dispara o menu (ex.: teste). Comparação sem maiúsculas/minúsculas. */
+    AUTO_REPLY_TRIGGER: (process.env.WHATSAPP_AUTO_REPLY_TRIGGER || 'teste').trim().toLowerCase(),
+    WELCOME_HEADER:
+      process.env.WHATSAPP_WELCOME_HEADER || 'MetaBit - Sistemas para Gestão Pública',
+    WELCOME_BODY:
+      process.env.WHATSAPP_WELCOME_BODY ||
+      'Seja Bem-Vindo, antes de iniciarmos seu atendimento, sobre qual sistema gostaria de falar?',
+    /** Formato: id:titulo|id:titulo|id:titulo  (título max 20 caracteres) */
+    WELCOME_BUTTONS:
+      process.env.WHATSAPP_WELCOME_BUTTONS ||
+      'pgp:Gestão Pública|pci:Controle Interno|pts:Terceiro Setor',
   },
 };
 

@@ -34,6 +34,25 @@ function contactPhoneExpr(): string {
   return `CASE WHEN direction = 'inbound' THEN from_phone ELSE to_phone END`;
 }
 
+type WelcomeButton = { id: string; title: string };
+
+function parseWelcomeButtons(raw: string): WelcomeButton[] {
+  return String(raw || '')
+    .split('|')
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => {
+      const idx = part.indexOf(':');
+      if (idx <= 0) return null;
+      const id = part.slice(0, idx).trim().slice(0, 256);
+      const title = part.slice(idx + 1).trim().slice(0, 20);
+      if (!id || !title) return null;
+      return { id, title };
+    })
+    .filter((b): b is WelcomeButton => Boolean(b))
+    .slice(0, 3);
+}
+
 function maskToken(token?: string | null): string | null {
   if (!token) return null;
   if (token.length <= 12) return '••••';
@@ -197,6 +216,21 @@ export const whatsappService = {
             rawPayload: msg,
           });
           processed += 1;
+
+          // Menu com botões: só quando o texto for exatamente a palavra-gatilho (ex.: "teste").
+          const trigger = env.WHATSAPP.AUTO_REPLY_TRIGGER;
+          const inboundText = String(textBody || '').trim().toLowerCase();
+          if (
+            env.WHATSAPP.AUTO_REPLY &&
+            trigger &&
+            inboundText === trigger &&
+            msg?.from &&
+            msg?.type === 'text'
+          ) {
+            void this.sendWelcomeMenu(msg.from).catch((err) => {
+              console.error('[WhatsApp] Falha no auto-reply de boas-vindas:', err);
+            });
+          }
         }
 
         const statuses = Array.isArray(value.statuses) ? value.statuses : [];
@@ -331,6 +365,111 @@ export const whatsappService = {
       if (err?.code === 'ER_NO_SUCH_TABLE') return [];
       throw err;
     }
+  },
+
+  async sendWelcomeMenu(to: string) {
+    if (!this.isConfigured()) {
+      throw Object.assign(new Error('WhatsApp não configurado'), { status: 400 });
+    }
+
+    const buttons = parseWelcomeButtons(env.WHATSAPP.WELCOME_BUTTONS);
+    if (buttons.length === 0) {
+      throw Object.assign(new Error('Nenhum botão de boas-vindas configurado'), { status: 400 });
+    }
+
+    return this.sendInteractiveButtons({
+      to,
+      header: env.WHATSAPP.WELCOME_HEADER,
+      body: env.WHATSAPP.WELCOME_BODY,
+      buttons,
+    });
+  },
+
+  async sendInteractiveButtons(input: {
+    to: string;
+    header?: string;
+    body: string;
+    buttons: WelcomeButton[];
+  }) {
+    if (!this.isConfigured()) {
+      throw Object.assign(new Error('WhatsApp não configurado'), { status: 400 });
+    }
+
+    const phone = normalizePhone(input.to);
+    const body = String(input.body || '').trim();
+    const header = String(input.header || '').trim().slice(0, 60);
+    const buttons = (input.buttons || [])
+      .map((b) => ({
+        id: String(b.id || '').trim().slice(0, 256),
+        title: String(b.title || '').trim().slice(0, 20),
+      }))
+      .filter((b) => b.id && b.title)
+      .slice(0, 3);
+
+    if (!phone || phone.length < 10) {
+      throw Object.assign(new Error('Número de destino inválido'), { status: 400 });
+    }
+    if (!body) {
+      throw Object.assign(new Error('Mensagem vazia'), { status: 400 });
+    }
+    if (buttons.length === 0) {
+      throw Object.assign(new Error('Informe de 1 a 3 botões'), { status: 400 });
+    }
+
+    const url = `${GRAPH_API_BASE}/${env.WHATSAPP.API_VERSION}/${env.WHATSAPP.PHONE_NUMBER_ID}/messages`;
+    const payload: Record<string, unknown> = {
+      messaging_product: 'whatsapp',
+      to: phone,
+      type: 'interactive',
+      interactive: {
+        type: 'button',
+        body: { text: body.slice(0, 1024) },
+        action: {
+          buttons: buttons.map((b) => ({
+            type: 'reply',
+            reply: { id: b.id, title: b.title },
+          })),
+        },
+        ...(header
+          ? {
+              header: { type: 'text', text: header },
+            }
+          : {}),
+      },
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${env.WHATSAPP.ACCESS_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data: any = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const msg =
+        data?.error?.message ||
+        data?.message ||
+        `Falha ao enviar mensagem interativa (${response.status})`;
+      throw Object.assign(new Error(msg), { status: 502, details: data });
+    }
+
+    const waMessageId = data?.messages?.[0]?.id || null;
+    const preview = `${header ? `${header}\n` : ''}${body}\n[${buttons.map((b) => b.title).join(' | ')}]`;
+    await this.persistMessage({
+      waMessageId,
+      direction: 'outbound',
+      fromPhone: env.WHATSAPP.DISPLAY_PHONE_NUMBER || null,
+      toPhone: phone,
+      messageType: 'interactive',
+      body: preview,
+      status: 'sent',
+      rawPayload: data,
+    });
+
+    return data;
   },
 
   async sendTextMessage(to: string, text: string) {
