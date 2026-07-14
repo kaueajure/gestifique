@@ -8,61 +8,90 @@ function normalizePhone(value) {
 function contactPhoneExpr() {
     return `CASE WHEN direction = 'inbound' THEN from_phone ELSE to_phone END`;
 }
+const DEFAULT_CLOSING_MESSAGE = 'Como não recebemos uma resposta nos últimos 60 minutos, este atendimento será encerrado automaticamente. Quando precisar, envie uma nova mensagem para iniciar um novo atendimento.';
 const DEFAULT_BOT_SETTINGS = {
-    autoReplyEnabled: false,
-    autoReplyTrigger: 'teste',
+    autoReplyEnabled: true,
+    menuType: 'buttons',
     welcomeHeader: 'MetaBit - Sistemas para Gestão Pública',
     welcomeBody: 'Seja Bem-Vindo, antes de iniciarmos seu atendimento, sobre qual sistema gostaria de falar?',
     buttons: [
-        { id: 'pgp', title: 'Gestão Pública' },
-        { id: 'pci', title: 'Controle Interno' },
-        { id: 'pts', title: 'Terceiro Setor' },
+        { id: 'pgp', title: 'Gestão Pública', description: 'Sistemas de gestão pública' },
+        { id: 'pci', title: 'Controle Interno', description: 'Controle e auditoria' },
+        { id: 'pts', title: 'Terceiro Setor', description: 'Entidades do terceiro setor' },
     ],
+    listButtonText: 'Ver opções',
+    listSectionTitle: 'Atendimento',
+    inactivityMinutes: 60,
+    closingMessage: DEFAULT_CLOSING_MESSAGE,
     updatedAt: null,
 };
 let botSettingsCache = null;
 const BOT_SETTINGS_CACHE_MS = 2_000;
-function normalizeButtons(input) {
-    let list = [];
+/** Evita reenvio do menu se a Meta entregar o mesmo evento duas vezes em sequência. */
+const recentWelcomeSentAt = new Map();
+const WELCOME_DEBOUNCE_MS = 8_000;
+function parseOptionsRaw(input) {
     if (typeof input === 'string') {
         try {
             const parsed = JSON.parse(input);
-            list = Array.isArray(parsed) ? parsed : [];
+            return Array.isArray(parsed) ? parsed : [];
         }
         catch {
-            list = [];
+            return [];
         }
     }
-    else if (Array.isArray(input)) {
-        list = input;
-    }
-    return list
-        .map((item) => ({
-        id: String(item?.id || '').trim().slice(0, 256),
-        title: String(item?.title || '').trim().slice(0, 20),
-    }))
-        .filter((b) => b.id && b.title)
-        .slice(0, 3);
+    return Array.isArray(input) ? input : [];
+}
+function normalizeMenuOptions(input, menuType) {
+    const maxItems = menuType === 'list' ? 10 : 3;
+    const titleMax = menuType === 'list' ? 24 : 20;
+    return parseOptionsRaw(input)
+        .map((item) => {
+        const id = String(item?.id || '').trim().slice(0, 200);
+        const title = String(item?.title || '').trim().slice(0, titleMax);
+        const description = String(item?.description || '')
+            .trim()
+            .slice(0, 72);
+        if (!id || !title)
+            return null;
+        return description ? { id, title, description } : { id, title };
+    })
+        .filter((b) => Boolean(b))
+        .slice(0, maxItems);
 }
 function mapRowToBotSettings(row) {
+    const inactivity = Number(row?.inactivity_minutes);
+    const menuType = row?.menu_type === 'list' ? 'list' : 'buttons';
+    const options = normalizeMenuOptions(row?.welcome_buttons_json, menuType);
     return {
         autoReplyEnabled: Boolean(row?.auto_reply_enabled),
-        autoReplyTrigger: String(row?.auto_reply_trigger || DEFAULT_BOT_SETTINGS.autoReplyTrigger)
-            .trim()
-            .toLowerCase()
-            .slice(0, 80),
+        menuType,
         welcomeHeader: String(row?.welcome_header || DEFAULT_BOT_SETTINGS.welcomeHeader)
             .trim()
             .slice(0, 60),
         welcomeBody: String(row?.welcome_body || DEFAULT_BOT_SETTINGS.welcomeBody).trim(),
-        buttons: normalizeButtons(row?.welcome_buttons_json).length
-            ? normalizeButtons(row?.welcome_buttons_json)
-            : DEFAULT_BOT_SETTINGS.buttons.map((b) => ({ ...b })),
+        buttons: options.length ? options : DEFAULT_BOT_SETTINGS.buttons.map((b) => ({ ...b })),
+        listButtonText: String(row?.list_button_text || DEFAULT_BOT_SETTINGS.listButtonText)
+            .trim()
+            .slice(0, 20) || DEFAULT_BOT_SETTINGS.listButtonText,
+        listSectionTitle: String(row?.list_section_title || DEFAULT_BOT_SETTINGS.listSectionTitle)
+            .trim()
+            .slice(0, 24) || DEFAULT_BOT_SETTINGS.listSectionTitle,
+        inactivityMinutes: Number.isInteger(inactivity) && inactivity >= 1 && inactivity <= 24 * 60
+            ? inactivity
+            : DEFAULT_BOT_SETTINGS.inactivityMinutes,
+        closingMessage: String(row?.closing_message || DEFAULT_CLOSING_MESSAGE).trim() || DEFAULT_CLOSING_MESSAGE,
         updatedAt: row?.updated_at ? String(row.updated_at) : null,
     };
 }
 function invalidateBotSettingsCache() {
     botSettingsCache = null;
+}
+function cloneDefaultSettings() {
+    return {
+        ...DEFAULT_BOT_SETTINGS,
+        buttons: DEFAULT_BOT_SETTINGS.buttons.map((b) => ({ ...b })),
+    };
 }
 function maskToken(token) {
     if (!token)
@@ -112,71 +141,296 @@ export const whatsappService = {
         }
         try {
             const [rows] = await pool.query(`
-          SELECT auto_reply_enabled, auto_reply_trigger, welcome_header,
-                 welcome_body, welcome_buttons_json, updated_at
+          SELECT auto_reply_enabled, menu_type, welcome_header, welcome_body, welcome_buttons_json,
+                 list_button_text, list_section_title,
+                 inactivity_minutes, closing_message, updated_at
           FROM whatsapp_settings
           WHERE id = 1
           LIMIT 1
         `);
-            const settings = rows?.[0] ? mapRowToBotSettings(rows[0]) : { ...DEFAULT_BOT_SETTINGS };
+            const settings = rows?.[0] ? mapRowToBotSettings(rows[0]) : cloneDefaultSettings();
             botSettingsCache = { value: settings, at: now };
             return settings;
         }
         catch (err) {
-            if (err?.code === 'ER_NO_SUCH_TABLE') {
-                return { ...DEFAULT_BOT_SETTINGS, buttons: DEFAULT_BOT_SETTINGS.buttons.map((b) => ({ ...b })) };
+            if (err?.code === 'ER_NO_SUCH_TABLE' || err?.code === 'ER_BAD_FIELD_ERROR') {
+                return cloneDefaultSettings();
             }
             throw err;
         }
     },
     async updateBotSettings(input) {
         const current = await this.getBotSettings();
+        const inactivityRaw = input.inactivityMinutes !== undefined ? Number(input.inactivityMinutes) : current.inactivityMinutes;
+        const menuType = input.menuType === 'list' || input.menuType === 'buttons'
+            ? input.menuType
+            : current.menuType;
         const next = {
             autoReplyEnabled: input.autoReplyEnabled !== undefined ? Boolean(input.autoReplyEnabled) : current.autoReplyEnabled,
-            autoReplyTrigger: String(input.autoReplyTrigger !== undefined ? input.autoReplyTrigger : current.autoReplyTrigger)
-                .trim()
-                .toLowerCase()
-                .slice(0, 80),
+            menuType,
             welcomeHeader: String(input.welcomeHeader !== undefined ? input.welcomeHeader : current.welcomeHeader)
                 .trim()
                 .slice(0, 60),
             welcomeBody: String(input.welcomeBody !== undefined ? input.welcomeBody : current.welcomeBody).trim(),
             buttons: input.buttons !== undefined
-                ? normalizeButtons(input.buttons)
-                : current.buttons.map((b) => ({ ...b })),
+                ? normalizeMenuOptions(input.buttons, menuType)
+                : normalizeMenuOptions(current.buttons, menuType),
+            listButtonText: String(input.listButtonText !== undefined ? input.listButtonText : current.listButtonText)
+                .trim()
+                .slice(0, 20),
+            listSectionTitle: String(input.listSectionTitle !== undefined ? input.listSectionTitle : current.listSectionTitle)
+                .trim()
+                .slice(0, 24),
+            inactivityMinutes: Number.isInteger(inactivityRaw) && inactivityRaw >= 1 && inactivityRaw <= 24 * 60
+                ? inactivityRaw
+                : current.inactivityMinutes,
+            closingMessage: String(input.closingMessage !== undefined ? input.closingMessage : current.closingMessage).trim(),
             updatedAt: current.updatedAt,
         };
-        if (!next.autoReplyTrigger) {
-            throw Object.assign(new Error('Informe a palavra-gatilho do auto-reply'), { status: 400 });
-        }
         if (!next.welcomeBody) {
             throw Object.assign(new Error('Informe o texto do menu de boas-vindas'), { status: 400 });
         }
         if (next.buttons.length === 0) {
-            throw Object.assign(new Error('Configure de 1 a 3 botões (título máx. 20 caracteres)'), {
+            throw Object.assign(new Error(next.menuType === 'list'
+                ? 'Configure de 1 a 10 itens na lista (título máx. 24 caracteres)'
+                : 'Configure de 1 a 3 botões (título máx. 20 caracteres)'), { status: 400 });
+        }
+        if (next.menuType === 'list') {
+            if (!next.listButtonText) {
+                throw Object.assign(new Error('Informe o texto do botão que abre a lista'), { status: 400 });
+            }
+            if (!next.listSectionTitle) {
+                throw Object.assign(new Error('Informe o título da seção da lista'), { status: 400 });
+            }
+        }
+        if (!next.closingMessage) {
+            throw Object.assign(new Error('Informe a mensagem de encerramento por inatividade'), {
                 status: 400,
             });
         }
         await pool.query(`
         INSERT INTO whatsapp_settings (
           id, auto_reply_enabled, auto_reply_trigger,
-          welcome_header, welcome_body, welcome_buttons_json
-        ) VALUES (1, ?, ?, ?, ?, ?)
+          menu_type, welcome_header, welcome_body, welcome_buttons_json,
+          list_button_text, list_section_title,
+          inactivity_minutes, closing_message
+        ) VALUES (1, ?, '', ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
           auto_reply_enabled = VALUES(auto_reply_enabled),
-          auto_reply_trigger = VALUES(auto_reply_trigger),
+          menu_type = VALUES(menu_type),
           welcome_header = VALUES(welcome_header),
           welcome_body = VALUES(welcome_body),
-          welcome_buttons_json = VALUES(welcome_buttons_json)
+          welcome_buttons_json = VALUES(welcome_buttons_json),
+          list_button_text = VALUES(list_button_text),
+          list_section_title = VALUES(list_section_title),
+          inactivity_minutes = VALUES(inactivity_minutes),
+          closing_message = VALUES(closing_message)
       `, [
             next.autoReplyEnabled ? 1 : 0,
-            next.autoReplyTrigger,
+            next.menuType,
             next.welcomeHeader,
             next.welcomeBody,
             JSON.stringify(next.buttons),
+            next.listButtonText,
+            next.listSectionTitle,
+            next.inactivityMinutes,
+            next.closingMessage,
         ]);
         invalidateBotSettingsCache();
         return this.getBotSettings();
+    },
+    async getSession(phone) {
+        const normalized = normalizePhone(phone);
+        if (!normalized)
+            return null;
+        try {
+            const [rows] = await pool.query(`
+          SELECT contact_phone, contact_name, status, selected_option_id, selected_option_title,
+                 last_client_message_at, last_company_message_at, attendance_started_at, closed_at
+          FROM whatsapp_sessions
+          WHERE contact_phone = ?
+          LIMIT 1
+        `, [normalized]);
+            return rows?.[0] || null;
+        }
+        catch (err) {
+            if (err?.code === 'ER_NO_SUCH_TABLE')
+                return null;
+            throw err;
+        }
+    },
+    async ensureSessionRow(phone, contactName) {
+        await pool.query(`
+        INSERT INTO whatsapp_sessions (contact_phone, contact_name, status)
+        VALUES (?, ?, 'idle')
+        ON DUPLICATE KEY UPDATE
+          contact_name = COALESCE(VALUES(contact_name), contact_name)
+      `, [phone, contactName || null]);
+    },
+    async startAttendance(phone, optionId, optionTitle, contactName) {
+        const normalized = normalizePhone(phone);
+        if (!normalized)
+            return;
+        try {
+            await this.ensureSessionRow(normalized, contactName);
+            await pool.query(`
+          UPDATE whatsapp_sessions
+          SET status = 'active',
+              selected_option_id = ?,
+              selected_option_title = ?,
+              attendance_started_at = NOW(),
+              last_client_message_at = NOW(),
+              last_company_message_at = NULL,
+              closed_at = NULL,
+              contact_name = COALESCE(?, contact_name)
+          WHERE contact_phone = ?
+        `, [optionId, optionTitle, contactName || null, normalized]);
+        }
+        catch (err) {
+            if (err?.code === 'ER_NO_SUCH_TABLE') {
+                console.warn('[WhatsApp] Tabela whatsapp_sessions ausente. Rode as migrations.');
+                return;
+            }
+            throw err;
+        }
+    },
+    async closeAttendance(phone) {
+        const normalized = normalizePhone(phone);
+        if (!normalized)
+            return;
+        try {
+            await pool.query(`
+          UPDATE whatsapp_sessions
+          SET status = 'idle',
+              selected_option_id = NULL,
+              selected_option_title = NULL,
+              attendance_started_at = NULL,
+              last_company_message_at = NULL,
+              closed_at = NOW()
+          WHERE contact_phone = ?
+        `, [normalized]);
+        }
+        catch (err) {
+            if (err?.code === 'ER_NO_SUCH_TABLE')
+                return;
+            throw err;
+        }
+    },
+    async touchClientMessage(phone, contactName) {
+        const normalized = normalizePhone(phone);
+        if (!normalized)
+            return;
+        try {
+            await this.ensureSessionRow(normalized, contactName);
+            await pool.query(`
+          UPDATE whatsapp_sessions
+          SET last_client_message_at = NOW(),
+              contact_name = COALESCE(?, contact_name)
+          WHERE contact_phone = ?
+        `, [contactName || null, normalized]);
+        }
+        catch (err) {
+            if (err?.code === 'ER_NO_SUCH_TABLE')
+                return;
+            throw err;
+        }
+    },
+    async markCompanyMessage(phone) {
+        const normalized = normalizePhone(phone);
+        if (!normalized)
+            return;
+        try {
+            const session = await this.getSession(normalized);
+            if (!session || session.status !== 'active')
+                return;
+            await pool.query(`
+          UPDATE whatsapp_sessions
+          SET last_company_message_at = NOW()
+          WHERE contact_phone = ? AND status = 'active'
+        `, [normalized]);
+        }
+        catch (err) {
+            if (err?.code === 'ER_NO_SUCH_TABLE')
+                return;
+            throw err;
+        }
+    },
+    /**
+     * Fluxo sem palavra-gatilho:
+     * - sem atendimento ativo → menu inicial (ou inicia se clicou em botão)
+     * - atendimento ativo → só registra a mensagem do cliente
+     */
+    async processInboundAttendanceFlow(input) {
+        const settings = await this.getBotSettings();
+        if (!settings.autoReplyEnabled || !this.isConfigured())
+            return;
+        const phone = normalizePhone(input.fromPhone);
+        if (!phone)
+            return;
+        const session = await this.getSession(phone);
+        const isActive = session?.status === 'active';
+        const optionReply = input.rawMessage?.interactive?.button_reply ||
+            input.rawMessage?.interactive?.list_reply ||
+            (input.rawMessage?.button
+                ? { id: input.rawMessage.button.payload, title: input.rawMessage.button.text }
+                : null);
+        if (!isActive && optionReply?.id) {
+            await this.startAttendance(phone, String(optionReply.id).slice(0, 256), String(optionReply.title || '').slice(0, 40), input.contactName);
+            return;
+        }
+        if (isActive) {
+            await this.touchClientMessage(phone, input.contactName);
+            return;
+        }
+        // Sem atendimento ativo: qualquer mensagem dispara o menu inicial.
+        await this.touchClientMessage(phone, input.contactName);
+        const lastWelcome = recentWelcomeSentAt.get(phone) || 0;
+        if (Date.now() - lastWelcome < WELCOME_DEBOUNCE_MS)
+            return;
+        recentWelcomeSentAt.set(phone, Date.now());
+        await this.sendWelcomeMenu(phone);
+    },
+    async closeInactiveAttendances() {
+        const settings = await this.getBotSettings();
+        if (!settings.autoReplyEnabled || !this.isConfigured()) {
+            return { closed: 0 };
+        }
+        const minutes = settings.inactivityMinutes;
+        let rows = [];
+        try {
+            const [found] = await pool.query(`
+          SELECT contact_phone
+          FROM whatsapp_sessions
+          WHERE status = 'active'
+            AND last_company_message_at IS NOT NULL
+            AND last_company_message_at <= DATE_SUB(NOW(), INTERVAL ? MINUTE)
+            AND (
+              last_client_message_at IS NULL
+              OR last_client_message_at < last_company_message_at
+            )
+        `, [minutes]);
+            rows = found || [];
+        }
+        catch (err) {
+            if (err?.code === 'ER_NO_SUCH_TABLE')
+                return { closed: 0 };
+            throw err;
+        }
+        let closed = 0;
+        for (const row of rows) {
+            const phone = normalizePhone(row.contact_phone);
+            if (!phone)
+                continue;
+            try {
+                await this.sendTextMessage(phone, settings.closingMessage, { skipAttendanceTouch: true });
+                await this.closeAttendance(phone);
+                closed += 1;
+            }
+            catch (err) {
+                console.error(`[WhatsApp] Falha ao encerrar atendimento ${phone}:`, err);
+            }
+        }
+        return { closed };
     },
     verifyWebhookChallenge(params) {
         const verifyToken = env.WHATSAPP.VERIFY_TOKEN;
@@ -273,17 +527,14 @@ export const whatsappService = {
                         rawPayload: msg,
                     });
                     processed += 1;
-                    // Menu com botões: só quando o texto for exatamente a palavra-gatilho.
-                    const botSettings = await this.getBotSettings();
-                    const trigger = botSettings.autoReplyTrigger;
-                    const inboundText = String(textBody || '').trim().toLowerCase();
-                    if (botSettings.autoReplyEnabled &&
-                        trigger &&
-                        inboundText === trigger &&
-                        msg?.from &&
-                        msg?.type === 'text') {
-                        void this.sendWelcomeMenu(msg.from).catch((err) => {
-                            console.error('[WhatsApp] Falha no auto-reply de boas-vindas:', err);
+                    if (msg?.from) {
+                        void this.processInboundAttendanceFlow({
+                            fromPhone: msg.from,
+                            contactName,
+                            messageType: msg.type || 'text',
+                            rawMessage: msg,
+                        }).catch((err) => {
+                            console.error('[WhatsApp] Falha no fluxo de atendimento:', err);
                         });
                     }
                 }
@@ -419,7 +670,17 @@ export const whatsappService = {
         }
         const settings = await this.getBotSettings();
         if (settings.buttons.length === 0) {
-            throw Object.assign(new Error('Nenhum botão de boas-vindas configurado'), { status: 400 });
+            throw Object.assign(new Error('Nenhuma opção de menu configurada'), { status: 400 });
+        }
+        if (settings.menuType === 'list') {
+            return this.sendInteractiveList({
+                to,
+                header: settings.welcomeHeader,
+                body: settings.welcomeBody,
+                buttonText: settings.listButtonText,
+                sectionTitle: settings.listSectionTitle,
+                rows: settings.buttons,
+            });
         }
         return this.sendInteractiveButtons({
             to,
@@ -427,6 +688,80 @@ export const whatsappService = {
             body: settings.welcomeBody,
             buttons: settings.buttons,
         });
+    },
+    async sendInteractiveList(input) {
+        if (!this.isConfigured()) {
+            throw Object.assign(new Error('WhatsApp não configurado'), { status: 400 });
+        }
+        const phone = normalizePhone(input.to);
+        const body = String(input.body || '').trim();
+        const header = String(input.header || '').trim().slice(0, 60);
+        const buttonText = String(input.buttonText || '').trim().slice(0, 20);
+        const sectionTitle = String(input.sectionTitle || '').trim().slice(0, 24);
+        const rows = normalizeMenuOptions(input.rows, 'list');
+        if (!phone || phone.length < 10) {
+            throw Object.assign(new Error('Número de destino inválido'), { status: 400 });
+        }
+        if (!body) {
+            throw Object.assign(new Error('Mensagem vazia'), { status: 400 });
+        }
+        if (!buttonText || !sectionTitle || rows.length === 0) {
+            throw Object.assign(new Error('Lista incompleta: botão, seção e itens são obrigatórios'), {
+                status: 400,
+            });
+        }
+        const url = `${GRAPH_API_BASE}/${env.WHATSAPP.API_VERSION}/${env.WHATSAPP.PHONE_NUMBER_ID}/messages`;
+        const payload = {
+            messaging_product: 'whatsapp',
+            to: phone,
+            type: 'interactive',
+            interactive: {
+                type: 'list',
+                body: { text: body.slice(0, 1024) },
+                action: {
+                    button: buttonText,
+                    sections: [
+                        {
+                            title: sectionTitle,
+                            rows: rows.map((row) => ({
+                                id: row.id,
+                                title: row.title,
+                                ...(row.description ? { description: row.description } : {}),
+                            })),
+                        },
+                    ],
+                },
+                ...(header ? { header: { type: 'text', text: header } } : {}),
+            },
+        };
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${env.WHATSAPP.ACCESS_TOKEN}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            const msg = data?.error?.message ||
+                data?.message ||
+                `Falha ao enviar lista interativa (${response.status})`;
+            throw Object.assign(new Error(msg), { status: 502, details: data });
+        }
+        const waMessageId = data?.messages?.[0]?.id || null;
+        const preview = `${header ? `${header}\n` : ''}${body}\n[Lista: ${rows.map((r) => r.title).join(' | ')}]`;
+        await this.persistMessage({
+            waMessageId,
+            direction: 'outbound',
+            fromPhone: env.WHATSAPP.DISPLAY_PHONE_NUMBER || null,
+            toPhone: phone,
+            messageType: 'interactive',
+            body: preview,
+            status: 'sent',
+            rawPayload: data,
+        });
+        return data;
     },
     async sendInteractiveButtons(input) {
         if (!this.isConfigured()) {
@@ -501,7 +836,7 @@ export const whatsappService = {
         });
         return data;
     },
-    async sendTextMessage(to, text) {
+    async sendTextMessage(to, text, options) {
         if (!this.isConfigured()) {
             throw Object.assign(new Error('WhatsApp não configurado'), { status: 400 });
         }
@@ -546,6 +881,9 @@ export const whatsappService = {
             status: 'sent',
             rawPayload: data,
         });
+        if (!options?.skipAttendanceTouch) {
+            await this.markCompanyMessage(phone);
+        }
         return data;
     },
     async sendTemplateMessage(input) {
