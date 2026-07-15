@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import pool from '../db/connection.js';
 import { env } from '../config/env.js';
+import { emitWhatsAppChanged } from '../realtime.js';
 const GRAPH_API_BASE = 'https://graph.facebook.com';
 function normalizePhone(value) {
     return String(value || '').replace(/\D/g, '');
@@ -45,19 +46,21 @@ function parseOptionsRaw(input) {
 function normalizeMenuOptions(input, menuType) {
     const maxItems = menuType === 'list' ? 10 : 3;
     const titleMax = menuType === 'list' ? 24 : 20;
-    return parseOptionsRaw(input)
-        .map((item) => {
+    const options = [];
+    for (const item of parseOptionsRaw(input)) {
         const id = String(item?.id || '').trim().slice(0, 200);
         const title = String(item?.title || '').trim().slice(0, titleMax);
         const description = String(item?.description || '')
             .trim()
             .slice(0, 72);
         if (!id || !title)
-            return null;
-        return description ? { id, title, description } : { id, title };
-    })
-        .filter((b) => Boolean(b))
-        .slice(0, maxItems);
+            continue;
+        const option = description ? { id, title, description } : { id, title };
+        options.push(option);
+        if (options.length >= maxItems)
+            break;
+    }
+    return options;
 }
 function mapRowToBotSettings(row) {
     const inactivity = Number(row?.inactivity_minutes);
@@ -246,7 +249,8 @@ export const whatsappService = {
         try {
             const [rows] = await pool.query(`
           SELECT contact_phone, contact_name, status, selected_option_id, selected_option_title,
-                 last_client_message_at, last_company_message_at, attendance_started_at, closed_at
+                 last_client_message_at, last_company_message_at, attendance_started_at,
+                 assigned_user_id, assigned_at, closed_at
           FROM whatsapp_sessions
           WHERE contact_phone = ?
           LIMIT 1
@@ -284,7 +288,13 @@ export const whatsappService = {
               closed_at = NULL,
               contact_name = COALESCE(?, contact_name)
           WHERE contact_phone = ?
-        `, [optionId, optionTitle, contactName || null, normalized]);
+        `, [
+                String(optionId || '').trim().toUpperCase().slice(0, 256),
+                optionTitle,
+                contactName || null,
+                normalized,
+            ]);
+            emitWhatsAppChanged();
         }
         catch (err) {
             if (err?.code === 'ER_NO_SUCH_TABLE') {
@@ -305,10 +315,13 @@ export const whatsappService = {
               selected_option_id = NULL,
               selected_option_title = NULL,
               attendance_started_at = NULL,
+              assigned_user_id = NULL,
+              assigned_at = NULL,
               last_company_message_at = NULL,
               closed_at = NOW()
           WHERE contact_phone = ?
         `, [normalized]);
+            emitWhatsAppChanged();
         }
         catch (err) {
             if (err?.code === 'ER_NO_SUCH_TABLE')
@@ -355,6 +368,108 @@ export const whatsappService = {
             throw err;
         }
     },
+    async getAssignmentDetails(phone) {
+        const normalized = normalizePhone(phone);
+        if (!normalized)
+            return { current: null, history: [] };
+        const [currentRows, historyRows] = await Promise.all([
+            pool.query(`
+          SELECT s.status, s.assigned_user_id AS user_id, u.nome AS user_name,
+                 DATE_FORMAT(s.assigned_at, '%Y-%m-%dT%H:%i:%sZ') AS assigned_at
+          FROM whatsapp_sessions s
+          LEFT JOIN usuarios u ON u.id = s.assigned_user_id
+          WHERE s.contact_phone = ?
+          LIMIT 1
+        `, [normalized]),
+            pool.query(`
+          SELECT id, user_id, user_name,
+                 DATE_FORMAT(assigned_at, '%Y-%m-%dT%H:%i:%sZ') AS assigned_at
+          FROM whatsapp_assignment_history
+          WHERE contact_phone = ?
+          ORDER BY assigned_at ASC, id ASC
+        `, [normalized]),
+        ]);
+        const currentRow = currentRows?.[0]?.[0];
+        const current = currentRow?.status === 'active'
+            && currentRow?.user_id
+            && currentRow?.user_name
+            && currentRow?.assigned_at
+            ? {
+                user_id: Number(currentRow.user_id),
+                user_name: String(currentRow.user_name),
+                assigned_at: String(currentRow.assigned_at),
+            }
+            : null;
+        return {
+            current,
+            history: (historyRows?.[0] || []).map((row) => ({
+                id: Number(row.id),
+                user_id: Number(row.user_id),
+                user_name: String(row.user_name || 'Atendente removido'),
+                assigned_at: String(row.assigned_at),
+            })),
+        };
+    },
+    async claimAttendance(phone, actor) {
+        const normalized = normalizePhone(phone);
+        const actorId = Number(actor.id);
+        const actorName = String(actor.name || '').trim();
+        if (!normalized || !Number.isInteger(actorId) || actorId <= 0 || !actorName) {
+            throw Object.assign(new Error('N\u00e3o foi poss\u00edvel identificar o atendimento ou o atendente.'), {
+                status: 400,
+            });
+        }
+        const connection = await pool.getConnection();
+        try {
+            await connection.beginTransaction();
+            await connection.query(`
+          INSERT INTO whatsapp_sessions (contact_phone, status)
+          VALUES (?, 'idle')
+          ON DUPLICATE KEY UPDATE contact_phone = VALUES(contact_phone)
+        `, [normalized]);
+            const [rows] = await connection.query(`
+          SELECT s.status, s.selected_option_id, s.assigned_user_id, s.assigned_at,
+                 u.nome AS assigned_user_name
+          FROM whatsapp_sessions s
+          LEFT JOIN usuarios u ON u.id = s.assigned_user_id
+          WHERE s.contact_phone = ?
+          FOR UPDATE
+        `, [normalized]);
+            const session = rows?.[0];
+            if (session?.status !== 'active' || !String(session?.selected_option_id || '').trim()) {
+                throw Object.assign(new Error('Este atendimento n\u00e3o est\u00e1 ativo. Aguarde o cliente iniciar uma nova conversa.'), { status: 409 });
+            }
+            if (session?.assigned_user_id && Number(session.assigned_user_id) !== actorId) {
+                throw Object.assign(new Error(`Este atendimento j\u00e1 est\u00e1 sob responsabilidade de ${session.assigned_user_name || 'outro atendente'}.`), { status: 409 });
+            }
+            if (!session?.assigned_user_id) {
+                await connection.query(`
+            UPDATE whatsapp_sessions
+            SET assigned_user_id = ?, assigned_at = NOW()
+            WHERE contact_phone = ? AND assigned_user_id IS NULL
+          `, [actorId, normalized]);
+                await connection.query(`
+            INSERT INTO whatsapp_assignment_history (contact_phone, user_id, user_name, assigned_at)
+            VALUES (?, ?, ?, NOW())
+          `, [normalized, actorId, actorName]);
+            }
+            await connection.commit();
+            emitWhatsAppChanged();
+            return this.getAssignmentDetails(normalized);
+        }
+        catch (err) {
+            try {
+                await connection.rollback();
+            }
+            catch {
+                // A transacao pode ja ter sido encerrada no conflito de atribuicao.
+            }
+            throw err;
+        }
+        finally {
+            connection.release();
+        }
+    },
     /**
      * Fluxo sem palavra-gatilho:
      * - sem atendimento ativo → menu inicial (ou inicia se clicou em botão)
@@ -374,7 +489,8 @@ export const whatsappService = {
             (input.rawMessage?.button
                 ? { id: input.rawMessage.button.payload, title: input.rawMessage.button.text }
                 : null);
-        if (!isActive && optionReply?.id) {
+        // Clique no menu (ou troca de serviço): grava escolha e abre/renova atendimento.
+        if (optionReply?.id) {
             await this.startAttendance(phone, String(optionReply.id).slice(0, 256), String(optionReply.title || '').slice(0, 40), input.contactName);
             return;
         }
@@ -486,6 +602,7 @@ export const whatsappService = {
                 input.status || null,
                 input.rawPayload ? JSON.stringify(input.rawPayload) : null,
             ]);
+            emitWhatsAppChanged();
         }
         catch (err) {
             // Tabela pode ainda não existir se a migration não rodou.
@@ -561,7 +678,8 @@ export const whatsappService = {
         try {
             const [rows] = await pool.query(`
           SELECT id, wa_message_id, direction, from_phone, to_phone, contact_name,
-                 message_type, body, status, created_at
+                 message_type, body, status,
+                 DATE_FORMAT(created_at, '%Y-%m-%dT%H:%i:%sZ') AS created_at
           FROM whatsapp_messages
           WHERE message_type <> 'status'
           ORDER BY created_at DESC, id DESC
@@ -581,49 +699,89 @@ export const whatsappService = {
         try {
             const [rows] = await pool.query(`
           SELECT
-            contact_phone,
-            MAX(NULLIF(contact_name, '')) AS contact_name,
-            SUBSTRING_INDEX(
-              GROUP_CONCAT(
-                IFNULL(body, '')
-                ORDER BY created_at DESC, id DESC
-                SEPARATOR '|||'
-              ),
-              '|||',
-              1
-            ) AS last_body,
-            SUBSTRING_INDEX(
-              GROUP_CONCAT(
-                direction
-                ORDER BY created_at DESC, id DESC
-                SEPARATOR '|||'
-              ),
-              '|||',
-              1
-            ) AS last_direction,
-            MAX(created_at) AS last_message_at,
-            COUNT(*) AS message_count
+            t.contact_phone,
+            COALESCE(NULLIF(s.contact_name, ''), t.contact_name) AS contact_name,
+            t.last_body,
+            t.last_direction,
+            DATE_FORMAT(t.last_message_at, '%Y-%m-%dT%H:%i:%sZ') AS last_message_at,
+            t.message_count,
+            CASE
+              WHEN s.status = 'active' THEN NULLIF(s.selected_option_id, '')
+              ELSE NULL
+            END AS service_id,
+            CASE
+              WHEN s.status = 'active' THEN NULLIF(s.selected_option_title, '')
+              ELSE NULL
+            END AS service_title,
+            s.status AS attendance_status,
+            CASE WHEN s.status = 'active' THEN s.assigned_user_id ELSE NULL END AS assigned_user_id,
+            CASE WHEN s.status = 'active' THEN u.nome ELSE NULL END AS assigned_user_name,
+            CASE
+              WHEN s.status = 'active'
+                THEN DATE_FORMAT(s.assigned_at, '%Y-%m-%dT%H:%i:%sZ')
+              ELSE NULL
+            END AS assigned_at
           FROM (
             SELECT
-              id,
-              direction,
-              ${contactPhone} AS contact_phone,
-              contact_name,
-              body,
-              created_at
-            FROM whatsapp_messages
-            WHERE message_type <> 'status'
-              AND ${contactPhone} IS NOT NULL
-              AND ${contactPhone} <> ''
-          ) AS threads
-          GROUP BY contact_phone
-          ORDER BY last_message_at DESC
-          LIMIT ?
+              contact_phone,
+              MAX(NULLIF(contact_name, '')) AS contact_name,
+              SUBSTRING_INDEX(
+                GROUP_CONCAT(
+                  IFNULL(body, '')
+                  ORDER BY created_at DESC, id DESC
+                  SEPARATOR '|||'
+                ),
+                '|||',
+                1
+              ) AS last_body,
+              SUBSTRING_INDEX(
+                GROUP_CONCAT(
+                  direction
+                  ORDER BY created_at DESC, id DESC
+                  SEPARATOR '|||'
+                ),
+                '|||',
+                1
+              ) AS last_direction,
+              MAX(created_at) AS last_message_at,
+              COUNT(*) AS message_count
+            FROM (
+              SELECT
+                id,
+                direction,
+                REPLACE(REPLACE(REPLACE(IFNULL(${contactPhone}, ''), '+', ''), '-', ''), ' ', '') AS contact_phone,
+                contact_name,
+                body,
+                created_at
+              FROM whatsapp_messages
+              WHERE message_type <> 'status'
+                AND ${contactPhone} IS NOT NULL
+                AND ${contactPhone} <> ''
+            ) AS threads
+            WHERE contact_phone <> ''
+            GROUP BY contact_phone
+            ORDER BY last_message_at DESC
+            LIMIT ?
+          ) AS t
+          LEFT JOIN whatsapp_sessions s
+            ON s.contact_phone = t.contact_phone
+          LEFT JOIN usuarios u
+            ON u.id = s.assigned_user_id
+          ORDER BY t.last_message_at DESC
         `, [safeLimit]);
             return rows.map((row) => ({
-                ...row,
+                contact_phone: String(row.contact_phone || ''),
+                contact_name: row.contact_name || null,
                 last_body: row.last_body || null,
                 last_direction: row.last_direction || null,
+                last_message_at: row.last_message_at,
+                message_count: Number(row.message_count) || 0,
+                service_id: row.service_id ? String(row.service_id).trim().toUpperCase() : null,
+                service_title: row.service_title || null,
+                attendance_status: row.attendance_status === 'active' ? 'active' : row.attendance_status === 'idle' ? 'idle' : null,
+                assigned_user_id: row.assigned_user_id ? Number(row.assigned_user_id) : null,
+                assigned_user_name: row.assigned_user_name || null,
+                assigned_at: row.assigned_at || null,
             }));
         }
         catch (err) {
@@ -640,7 +798,8 @@ export const whatsappService = {
         try {
             const [rows] = await pool.query(`
           SELECT id, wa_message_id, direction, from_phone, to_phone, contact_name,
-                 message_type, body, status, created_at
+                 message_type, body, status,
+                 DATE_FORMAT(created_at, '%Y-%m-%dT%H:%i:%sZ') AS created_at
           FROM whatsapp_messages
           WHERE message_type <> 'status'
             AND (
@@ -885,6 +1044,19 @@ export const whatsappService = {
             await this.markCompanyMessage(phone);
         }
         return data;
+    },
+    async sendAgentTextMessage(to, text, actor) {
+        const phone = normalizePhone(to);
+        const details = await this.getAssignmentDetails(phone);
+        if (!details.current) {
+            throw Object.assign(new Error('Defina um respons\u00e1vel pelo atendimento antes de enviar mensagens.'), { status: 409 });
+        }
+        if (details.current.user_id !== Number(actor.id)) {
+            throw Object.assign(new Error(`Somente ${details.current.user_name}, respons\u00e1vel por este atendimento, pode responder ao cliente.`), { status: 403 });
+        }
+        const agentName = details.current.user_name.trim();
+        const message = String(text || '').trim();
+        return this.sendTextMessage(phone, `*${agentName}*:\n${message}`);
     },
     async sendTemplateMessage(input) {
         if (!this.isConfigured()) {
